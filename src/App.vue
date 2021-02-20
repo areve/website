@@ -5,7 +5,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import Menu from "./components/Menu/Menu.vue";
+import Menu from "./components/Menu.vue";
 export default defineComponent({
   name: "App",
   components: {
@@ -18,6 +18,7 @@ export default defineComponent({
 body {
   font-family: Roboto, Verdana, Geneva, Tahoma, sans-serif;
   font-weight: 300;
+  overflow-y: scroll; /* because otherwise my menu jumps */
 }
 
 h1 {

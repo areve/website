@@ -80,6 +80,7 @@ export default {
     },
     reset() {
       localStorage.removeItem("bubbles");
+      this.charge = -20;
       this.svg.node().remove();
       this.$nextTick(() => {
         this.load();

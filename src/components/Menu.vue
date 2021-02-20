@@ -1,22 +1,29 @@
 <template>
-  <transition name="fade">
+  <transition name="slide">
     <div v-if="isOpen" class="menu">
       <nav>
         <ul>
-          <li><router-link to="/">Home</router-link></li>
-          <li><router-link to="/seaside">Seaside</router-link></li>
-          <li><router-link to="/colours">Colours</router-link></li>
+          <li><router-link to="/" @click="toggle">Home</router-link></li>
+          <li>
+            <router-link to="/seaside" @click="toggle">Seaside</router-link>
+          </li>
+          <li>
+            <router-link to="/colours" @click="toggle">Colours</router-link>
+          </li>
         </ul>
       </nav>
     </div>
   </transition>
+  <transition name="fade">
+    <div class="overlay" v-if="isOpen" @click="toggle"></div>
+  </transition>
+
   <button
     class="standard toggle-button"
-    v-on:click="toggle"
+    @click="toggle"
     aria-label="Toggle Sidebar"
   >
-    <span v-if="!isOpen">&#9776;</span>
-    <span v-if="isOpen">&times;</span>
+    &#9776;
   </button>
 </template>
 
@@ -64,18 +71,36 @@ a {
   min-height: 20vmin;
   background-color: #f7f7f7;
   top: 0;
-  right: 0;
+  left: 0;
   padding: 4em 1em 1em;
   box-shadow: 0.1em 0.1em 0.5em rgba(0, 0, 0, 0.5);
 }
 
+.overlay {
+  z-index: 99;
+  background-color: #000;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0.8;
+}
 .toggle-button {
   position: fixed;
-  width: 3em;
-  text-align: center;
-  z-index: 200;
   top: 1em;
-  right: 1em;
+  left: 1em;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.4s ease;
+}
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  transform: translateX(-20vmin);
 }
 
 .fade-enter-active,
@@ -85,6 +110,5 @@ a {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-  transform: translateX(20vmin);
 }
 </style>

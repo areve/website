@@ -18,7 +18,6 @@ export default defineComponent({
 body {
   font-family: Roboto, Verdana, Geneva, Tahoma, sans-serif;
   font-weight: 300;
-  overflow-y: scroll; /* because otherwise my menu jumps */
 }
 
 h1 {

@@ -1,27 +1,34 @@
 <template>
-  <img alt="Vue logo" src="./assets/logo.png" />
-  <HelloWorld msg="Hello Vue 3 + TypeScript + Vite" />
+  <Menu />
+  <router-view></router-view>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
-import HelloWorld from './components/HelloWorld.vue'
-
+import { defineComponent } from "vue";
+import Menu from "./components/Menu/Menu.vue";
 export default defineComponent({
-  name: 'App',
+  name: "App",
   components: {
-    HelloWorld
-  }
-})
+    Menu,
+  },
+});
 </script>
 
 <style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
+body {
+  font-family: Roboto, Verdana, Geneva, Tahoma, sans-serif;
+  font-weight: 300;
+}
+
+h1 {
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 4em;
+}
+
+h2 {
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 2.5em;
 }
 </style>

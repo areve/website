@@ -5,6 +5,7 @@
         <ul>
           <li><router-link to="/">Home</router-link></li>
           <li><router-link to="/seaside">Seaside</router-link></li>
+          <li><router-link to="/colours">Colours</router-link></li>
         </ul>
       </nav>
     </div>
@@ -21,14 +22,15 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { ref } from "vue";
+
 export default defineComponent({
   name: "Menu",
-  data() {
+  setup() {
     return {
-      isOpen: false,
+      isOpen: ref(false),
     };
   },
-  setup: () => ({}),
   methods: {
     toggle() {
       this.isOpen = !this.isOpen;

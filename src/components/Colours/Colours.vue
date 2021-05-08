@@ -58,8 +58,8 @@ export default {
     });
     this.load();
   },
-  unmounted() {
-    d3.select("#bubble-chart").remove();
+  beforeUnmount() {
+    d3.select("#bubble-chart > *").remove();
   },
   methods: {
     load() {

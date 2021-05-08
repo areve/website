@@ -125,7 +125,7 @@ export default {
     },
     initBubbleChart() {
       const chart = d3.select("#bubble-chart");
-
+      console.log("chart", chart);
       this.tooltip = chart
         .append("div")
         .attr("class", "colours-dyanmic-tooltip")

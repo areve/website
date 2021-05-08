@@ -58,9 +58,6 @@ export default {
     });
     this.load();
   },
-  beforeUnmount() {
-    d3.select("#bubble-chart > *").remove();
-  },
   methods: {
     load() {
       this.data = JSON.parse(JSON.stringify(namedColors));
@@ -124,6 +121,7 @@ export default {
         });
     },
     initBubbleChart() {
+      d3.select("#bubble-chart > *").remove();
       const chart = d3.select("#bubble-chart");
       console.log("chart", chart);
       this.tooltip = chart

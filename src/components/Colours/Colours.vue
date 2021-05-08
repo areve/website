@@ -46,7 +46,7 @@ export default {
     };
   },
   watch: {
-    windowWidth(newWidth, oldWidth) {
+    windowWidth(_newWidth, _oldWidth) {
       this.updateNodes();
     },
   },
@@ -113,7 +113,7 @@ export default {
             .iterations(24)
         )
 
-        .on("tick", (e) => {
+        .on("tick", (_event) => {
           this.node
             .attr("r", (d) => scaleRadius(d.count) || 10)
             .attr("cx", (d) => d.x + this.offset.x)
@@ -150,17 +150,17 @@ export default {
         .enter()
         .append("circle")
         .style("fill", (d) => d.color || this.colorCircles(d.category))
-        .on("mouseover", (d) => {
+        .on("mouseover", (_event, d) => {
           if (d.dragging) return;
           this.tooltip
-            .html(this.getTooltipText(d))
+            .html(() => d.name)
             .style("opacity", 0.9)
             .style("z-index", 100);
         })
-        .on("mousemove", () =>
+        .on("mousemove", (event) =>
           this.tooltip
-            .style("top", d3.event.pageY - 10 + "px")
-            .style("left", d3.event.pageX + 10 + "px")
+            .style("top", event.pageY - 10 + "px")
+            .style("left", event.pageX + 10 + "px")
         )
         .on("mouseout", () =>
           this.tooltip.style("opacity", 0).style("z-index", -1)
@@ -168,35 +168,27 @@ export default {
         .call(
           d3
             .drag()
-            .on("start", (d) => {
+            .on("start", (event, d) => {
               d.dragging = true;
               this.tooltip.style("opacity", 0).style("z-index", -1);
 
-              if (!d3.event.active) this.simulation.alpha(1).restart();
+              if (!event.active) this.simulation.alpha(1).restart();
               d.fx = d.x;
               d.fy = d.y;
             })
-            .on("drag", (d) => {
-              if (!d3.event.active) this.simulation.alpha(1).restart();
-              d.fx = d3.event.x;
-              d.fy = d3.event.y;
+            .on("drag", (event, d) => {
+              if (!event.active) this.simulation.alpha(1).restart();
+              d.fx = event.x;
+              d.fy = event.y;
             })
-            .on("end", (d) => {
+            .on("end", (_event, d) => {
               d.dragging = false;
               d.fx = null;
               d.fy = null;
             })
         )
         .merge(this.node);
-
       this.updateSimulation();
-    },
-    getTooltipText(d) {
-      return d.name;
-      // return '' +
-      // '<div>' + (d.name || d.title) + '</div>'         +
-      // '<div><strong>' + d.count + '</strong></div>' +
-      // '<div><em>' + d.category + '</em></div>'
     },
   },
 };

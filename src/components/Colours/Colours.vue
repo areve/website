@@ -1,5 +1,5 @@
 <template>
-  <section fluid class="colours">
+  <section class="colours">
     <h1>Colours</h1>
     <p>
       Here is a a bubble chart showing all the HTML Colour names. It was created
@@ -9,10 +9,10 @@
     <label
       >Charge
       <input
-        v-model="charge"
+        v-model.number="charge"
         type="number"
         required
-        @change="updateSimulation"
+        @change="updateSimulation()"
       />
     </label>
     {{ " " }}
@@ -22,15 +22,16 @@
     <div id="bubble-chart" />
   </section>
 </template>
-<script>
+<script lang="ts">
 import * as d3 from "d3";
 import namedColors from "./namedColors";
 import { ref } from "vue";
 
-export default {
+import { defineComponent } from "vue";
+
+export default defineComponent({
   name: "Colours",
   setup() {
-    const data = [];
     return {
       windowWidth: 0,
       offset: ref({
@@ -43,6 +44,11 @@ export default {
       minSize: 10,
       maxSize: 30,
       data: [],
+      svg: (undefined as unknown) as any,
+      simulation: (undefined as unknown) as d3.Simulation<never, undefined>,
+      node: (undefined as unknown) as any,
+      colorCircles: null as any,
+      tooltip: null as any,
     };
   },
   watch: {
@@ -93,8 +99,8 @@ export default {
       const scaleRadius = d3
         .scaleLinear()
         .domain([
-          d3.min(this.data, (d) => d.count),
-          d3.max(this.data, (d) => d.count),
+          d3.min(this.data, (d: any) => d.count),
+          d3.max(this.data, (d: any) => d.count),
         ])
         .range([this.minSize, this.maxSize]);
 
@@ -112,15 +118,15 @@ export default {
         .force(
           "collide",
           d3
-            .forceCollide((d) => (scaleRadius(d.count) || 10) + 1)
+            .forceCollide((d: any) => (scaleRadius(d.count) || 10) + 1)
             .iterations(24)
         )
 
-        .on("tick", (_event) => {
+        .on("tick", () => {
           this.node
-            .attr("r", (d) => scaleRadius(d.count) || 10)
-            .attr("cx", (d) => d.x + this.offset.x)
-            .attr("cy", (d) => d.y + this.offset.y);
+            .attr("r", (d: any) => scaleRadius(d.count) || 10)
+            .attr("cx", (d: any) => d.x + this.offset.x)
+            .attr("cy", (d: any) => d.y + this.offset.y);
         });
     },
     initBubbleChart() {
@@ -144,7 +150,7 @@ export default {
       this.updateNodes();
     },
     updateNodes() {
-      this.node = this.node.data(this.data, (d) => d.name || d.title);
+      this.node = this.node.data(this.data, (d: any) => d.name || d.title);
       this.node.exit().remove();
 
       const bounds = this.svg.node().getBoundingClientRect();
@@ -153,15 +159,15 @@ export default {
       this.node = this.node
         .enter()
         .append("circle")
-        .style("fill", (d) => d.color || this.colorCircles(d.category))
-        .on("mouseover", (_event, d) => {
+        .style("fill", (d: any) => d.color || this.colorCircles(d.category))
+        .on("mouseover", (_event: MouseEvent, d: any) => {
           if (d.dragging) return;
           this.tooltip
             .html(() => d.name)
             .style("opacity", 0.9)
             .style("z-index", 100);
         })
-        .on("mousemove", (event) =>
+        .on("mousemove", (event: MouseEvent) =>
           this.tooltip
             .style("top", event.pageY - 10 + "px")
             .style("left", event.pageX + 10 + "px")
@@ -172,7 +178,7 @@ export default {
         .call(
           d3
             .drag()
-            .on("start", (event, d) => {
+            .on("start", (event, d: any) => {
               d.dragging = true;
               this.tooltip.style("opacity", 0).style("z-index", -1);
 
@@ -180,12 +186,12 @@ export default {
               d.fx = d.x;
               d.fy = d.y;
             })
-            .on("drag", (event, d) => {
+            .on("drag", (event, d: any) => {
               if (!event.active) this.simulation.alpha(1).restart();
               d.fx = event.x;
               d.fy = event.y;
             })
-            .on("end", (_event, d) => {
+            .on("end", (_event, d: any) => {
               d.dragging = false;
               d.fx = null;
               d.fy = null;
@@ -195,7 +201,7 @@ export default {
       this.updateSimulation();
     },
   },
-};
+});
 </script>
 
 <style>

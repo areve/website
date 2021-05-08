@@ -3,19 +3,21 @@
     <div v-if="isOpen" class="menu">
       <nav>
         <ul>
-          <li><router-link to="/" @click="toggle">Home</router-link></li>
           <li>
-            <router-link to="/seaside" @click="toggle">Seaside</router-link>
+            <router-link to="/" @click="toggle()">Home</router-link>
           </li>
           <li>
-            <router-link to="/colours" @click="toggle">Colours</router-link>
+            <router-link to="/seaside" @click="toggle()">Seaside</router-link>
+          </li>
+          <li>
+            <router-link to="/colours" @click="toggle()">Colours</router-link>
           </li>
         </ul>
       </nav>
     </div>
   </transition>
   <transition name="fade">
-    <div class="overlay" v-if="isOpen" @click="toggle"></div>
+    <div class="overlay" v-if="isOpen" @click="toggle()"></div>
   </transition>
 
   <button
@@ -51,9 +53,6 @@ ul {
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-li {
 }
 
 a {

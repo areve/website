@@ -13,7 +13,7 @@
             <router-link to="/colours" @click="toggle()">Colours</router-link>
           </li>
           <li>
-            <router-link to="/sign-in" @click="toggle()">Sign-in</router-link>
+            <router-link to="/azure-ad" @click="toggle()">Azure AD</router-link>
           </li>
         </ul>
       </nav>

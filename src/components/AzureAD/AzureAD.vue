@@ -1,6 +1,6 @@
 <template>
   <article>
-    <h1>Sign-in</h1>
+    <h1>Azure AD</h1>
     <p>Experimenting with a Azure AD</p>
     <div>
       <button v-if="!account" @click="signIn()" type="button">Sign-in</button>
@@ -48,7 +48,7 @@ const msalConfig: msal.Configuration = {
 };
 
 export default defineComponent({
-  name: "SignIn",
+  name: "AzureAD",
   setup: () => ({
     clientApplication: new msal.PublicClientApplication(msalConfig),
   }),

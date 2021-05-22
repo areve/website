@@ -15,6 +15,11 @@
           <li>
             <router-link to="/azure-ad" @click="toggle()">Azure AD</router-link>
           </li>
+          <li>
+            <router-link to="/azure-b2c" @click="toggle()"
+              >Azure B2C</router-link
+            >
+          </li>
         </ul>
       </nav>
     </div>

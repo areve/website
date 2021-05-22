@@ -4,6 +4,7 @@ const Colours = () => import("./components/Colours/Colours.vue");
 const SignIn = () => import("./components/SignIn/SignIn.vue");
 
 export const routes = [
+  { path: "/code=:code(.*)", component: SignIn },
   { path: "/", component: Home },
   { path: "/seaside", component: Seaside },
   { path: "/sign-in", component: SignIn },

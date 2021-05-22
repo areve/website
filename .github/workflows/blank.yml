@@ -41,6 +41,9 @@ jobs:
           yarn build
           cd dist
           echo 'www.challen.info' > CNAME
+          echo GITHUB_ACTOR $GITHUB_ACTOR
+          echo GITHUB_TOKEN $GITHUB_TOKEN
+          echo GITHUB_REPOSITORY $GITHUB_REPOSITORY
           git config --global user.email $GITHUB_ACTOR
           git config --global user.name CI
 

@@ -1,0 +1,98 @@
+body {
+  font-family: Roboto, Verdana, Geneva, Tahoma, sans-serif;
+  font-weight: 300;
+}
+
+h1 {
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 4em;
+}
+
+h2 {
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 2.5em;
+}
+
+.buttons,
+.attrEntry,
+.entry-item {
+  margin: 2em 0;
+  position: relative;
+  display: block;
+}
+
+.entry-item label {
+  display: block;
+}
+
+.attrEntry input,
+.entry-item input {
+  width: 100%;
+}
+
+#forgotPassword {
+  display: none; /* because the tabindex is wrong! */
+}
+
+#createAccount {
+  display: block;
+}
+
+#api {
+  margin: auto;
+  max-width: 24em;
+  position: relative;
+}
+
+.error {
+  color: #eb0000;
+}
+
+p[role="alert"] {
+  margin: 0 0;
+  font-size: 0.9em;
+}
+
+ul {
+  padding: 0;
+}
+
+li {
+  list-style: none;
+  margin: 1em 0;
+  display: block;
+}
+
+.helpLink {
+  right: 0;
+  top: 0;
+  position: absolute;
+  display: none; /* because the tabindex is wrong! */
+}
+
+.tiny {
+  font-size: 0.8em;
+}
+
+.buttons #cancel {
+  background-color: #eb0000;
+}
+
+[data-name="SelfAsserted"] > .intro {
+  margin: 0;
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 2.5em;
+  line-height: 1.2em;
+}
+
+[data-name="SelfAsserted"] > .intro > p {
+  margin: 0;
+}
+
+label#emailVerificationControl_label {
+  display: block;
+  min-height: 0;
+}

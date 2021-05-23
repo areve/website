@@ -15,9 +15,9 @@
         @change="updateSimulation()"
       />
     </label>
-    {{ " " }}
+
     <button type="button" @click="save">Save</button>
-    {{ " " }}
+
     <button type="button" @click="reset">Reset</button>
     <div id="bubble-chart" />
   </section>

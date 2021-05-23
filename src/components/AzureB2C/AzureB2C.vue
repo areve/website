@@ -8,7 +8,6 @@
       <button v-if="account" @click="editProfile()" type="button">
         Edit Profile
       </button>
-      <button @click="passwordReset()" type="button">Password Reset</button>
     </div>
     <div v-if="account">
       <p>username: {{ username }}</p>
@@ -155,6 +154,11 @@ export default defineComponent({
         if (error.errorMessage.indexOf("AADB2C90091:") === 0) {
           console.log(error.errorMessage);
           router.push({ path: "/azure-b2c" });
+          return;
+        }
+        if (error.errorMessage.indexOf("AADB2C90118:") === 0) {
+          console.log(error.errorMessage);
+          this.passwordReset();
           return;
         }
 

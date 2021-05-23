@@ -1,3 +1,7 @@
+:root {
+  --negative-color: firebrick;
+}
+
 body {
   font-family: Roboto, Verdana, Geneva, Tahoma, sans-serif;
   font-weight: 300;
@@ -23,7 +27,7 @@ h2 {
   display: block;
 }
 
-.entry-item label {
+label {
   display: block;
 }
 
@@ -33,21 +37,27 @@ h2 {
 }
 
 #forgotPassword {
-  display: none; /* because the tabindex is wrong! */
+  /* needs to move */
+  display: block;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 #createAccount {
   display: block;
+  width: fit-content;
 }
 
 #api {
   margin: auto;
   max-width: 24em;
   position: relative;
+  opacity: 1;
 }
 
 .error {
-  color: #eb0000;
+  color: var(--negative-color);
 }
 
 p[role="alert"] {
@@ -69,7 +79,7 @@ li {
   right: 0;
   top: 0;
   position: absolute;
-  display: none; /* because the tabindex is wrong! */
+  display: none; /* they use alerts! and some don't work! */
 }
 
 .tiny {
@@ -77,7 +87,6 @@ li {
 }
 
 .buttons #cancel {
-  background-color: #eb0000;
 }
 
 [data-name="SelfAsserted"] > .intro {
@@ -95,4 +104,8 @@ li {
 label#emailVerificationControl_label {
   display: block;
   min-height: 0;
+}
+
+button {
+  margin-right: 0.5em;
 }

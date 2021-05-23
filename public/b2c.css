@@ -66,9 +66,9 @@
 #WeiboExchange:hover {
   background-image: url(http://localhost:3000/b2c/idp_logos/white/weibo.svg);
 }
-/* .buttons #cancel:before {
+.buttons #cancel:before {
   content: url(http://localhost:3000/b2c/images/left-arrow.svg);
-} */
+}
 
 #SignInWithLogonNameExchange,
 #SignUpWithLogonEmailExchange,

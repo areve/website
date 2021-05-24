@@ -153,7 +153,7 @@ export default defineComponent({
       .catch((error) => {
         if (error.errorMessage.indexOf("AADB2C90091:") === 0) {
           console.log(error.errorMessage);
-          router.push({ path: "/azure-b2c" });
+          router.push({ path: "/azure-b2c", force: true });
           return;
         }
         if (error.errorMessage.indexOf("AADB2C90118:") === 0) {

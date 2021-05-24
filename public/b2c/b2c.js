@@ -9,7 +9,7 @@ $(() => {
   if ($('#createAccount').length) {
     const cancel = $('<button type="button">Cancel</button>')
     cancel.click(() => {
-      document.location = 'http://localhost:3000/#/azure-b2c'
+      document.location = 'https://www.challen.info/#/azure-b2c'
     })
     cancel.insertAfter('button[form="localAccountForm"]')
   }

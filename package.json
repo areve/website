@@ -6,7 +6,8 @@
     "watch": "vuedx-typecheck --watch",
     "build:only": "vite build",
     "build": "vuedx-typecheck . && vite build",
-    "serve": "vite preview"
+    "serve": "vite preview",
+    "preinstall": "node ./check-yarn.js"
   },
   "dependencies": {
     "@azure/msal-browser": "^2.14.2",

@@ -9,32 +9,52 @@
   </section>
 </template>
 
-<script>
-/* eslint-disable */
-
-import fullscreen from "fullscreen";
+<script lang="ts">
 import CanvasWriter from "./canvas-writer";
 import canvasColor from "./canvas-color";
 import imageBufferManipulate from "./image-buffer-manipulate";
 import { constantly } from "./constantly";
-
 import convert from "color-convert";
+import fullscreen from "fullscreen";
+import { Fullscreen } from "fullscreen-types";
+import { defineComponent } from "vue";
 
-export default {
+export default defineComponent({
   name: "OldskoolFire",
   data() {
     return {};
   },
+  setup() {
+    return {
+      _fullscreen: null as Fullscreen | null,
+      palette: [] as number[],
+      buffer: [] as number[][],
+      canvasWriter: undefined! as unknown,
+      constantly: undefined! as unknown,
+    };
+  },
   mounted() {
-    if (typeof jest !== "undefined") return;
-    this.setup();
-    this.update();
+    this._setup();
+    this._update();
   },
   beforeDestroy() {
     this.destroyChildObjects();
   },
   computed: {},
   methods: {
+    _setup() {
+      // TODO can this can all be move to setup()?
+      this.destroyChildObjects();
+      const canvas = document.getElementById("play-canvas");
+      this.canvasWriter = new CanvasWriter(canvas, undefined, false);
+      this.canvasWriter = Object.assign(
+        this.canvasWriter,
+        imageBufferManipulate
+      );
+      this.createPalette();
+      this.createBuffer();
+      this.constantly = constantly(() => this._update(), 100);
+    },
     createPalette() {
       this.palette = [];
       const h1 = 80; //~~(Math.random() * 360);
@@ -64,19 +84,7 @@ export default {
       if (this.canvasWriter) this.canvasWriter.destroy();
       if (this.constantly) this.constantly.destroy();
     },
-    setup() {
-      this.destroyChildObjects();
-      const canvas = document.getElementById("play-canvas");
-      this.canvasWriter = new CanvasWriter(canvas, undefined, false);
-      this.canvasWriter = Object.assign(
-        this.canvasWriter,
-        imageBufferManipulate
-      );
-      this.createPalette();
-      this.createBuffer();
-      this.constantly = constantly(() => this.update(), 100);
-    },
-    update() {
+    _update() {
       const width = this.canvasWriter.width;
       const height = this.canvasWriter.height;
       let y = height - 1;
@@ -103,12 +111,11 @@ export default {
       }
       this.canvasWriter.canvasUpdateIsRequired = true;
     },
-    openFullscreen(event) {
-      const playArea = document.getElementById("play-area");
-      const canvas = document.getElementById("play-canvas");
-
-      if (!playArea) throw Error("missing #play-area");
-      if (!playArea) throw Error("missing #play-canvas");
+    openFullscreen(_: Event) {
+      const playArea = document.getElementById("play-area")!;
+      const canvas = document.getElementById(
+        "play-canvas"
+      )! as HTMLCanvasElement;
 
       const onAttain = () => {
         playArea.style.width = screen.width + "px";
@@ -122,7 +129,7 @@ export default {
 
         this.canvasWriter.refresh(width, height);
         this.createBuffer();
-        this.update();
+        this._update();
       };
 
       const onRelease = () => {
@@ -132,22 +139,23 @@ export default {
         canvas.width = canvas.offsetWidth;
         this.canvasWriter.refresh();
         this.createBuffer();
-        this.update();
-        this._fullscreen.dispose();
+        this._update();
+        this._fullscreen?.dispose();
         this._fullscreen = null;
       };
 
-      if (this._fullscreen) this._fullscreen.dispose();
-      this._fullscreen = fullscreen(playArea);
-      this._fullscreen.on("attain", onAttain);
-      this._fullscreen.on("release", onRelease);
-      this._fullscreen.on("error", () => {
+      if (this._fullscreen) this._fullscreen?.dispose();
+      const screen = fullscreen(playArea);
+      screen.on("attain", onAttain);
+      screen.on("release", onRelease);
+      screen.on("error", () => {
         console.error("fullscreen not supported");
       });
-      this._fullscreen.request();
+      screen.request();
+      this._fullscreen = screen;
     },
   },
-};
+});
 </script>
 
 <style scoped>

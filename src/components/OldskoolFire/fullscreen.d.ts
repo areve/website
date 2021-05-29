@@ -1,5 +1,15 @@
-// fullscreen requires the "events" package but doesn't mention it in it's package.json
+declare module "fullscreen-types" {
+  import { EventEmitter } from "events";
+
+  export type Fullscreen = EventEmitter & {
+    dispose: () => void;
+    request: () => void;
+  };
+}
+
 declare module "fullscreen" {
-  function fullscreen(htmlElement: HTMLElement): void;
+  import { Fullscreen } from "fullscreen-types";
+
+  function fullscreen(htmlElement: HTMLElement): Fullscreen;
   export = fullscreen;
 }

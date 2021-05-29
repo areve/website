@@ -1,11 +1,11 @@
 /* eslint-disable */
 
-import ImageBuffer from './image-buffer';
-import { constantly } from './constantly';
-import { getDevicePixelRatio } from './get-device-pixel-ratio';
+import ImageBuffer from "./image-buffer";
+import { constantly } from "./constantly";
+import { getDevicePixelRatio } from "./get-device-pixel-ratio";
 
 export default class CanvasWriter extends ImageBuffer {
-  constructor(canvas, fps = 25, hiRes = true) {
+  constructor(canvas: HTMLCanvasElement, fps = 25, hiRes = true) {
     super(canvas.width, canvas.height);
 
     this.canvas = canvas;
@@ -17,14 +17,17 @@ export default class CanvasWriter extends ImageBuffer {
     this.refresh();
 
     this.constantly = constantly(() => {
-      if (this.canvasUpdateIsRequired)
-        this.update();
+      if (this.canvasUpdateIsRequired) this.update();
     }, this.fps);
   }
 
   refresh(width = null, height = null) {
-    width = width || this.canvas.offsetWidth * (this.hiRes ? getDevicePixelRatio() : 1);
-    height = height || this.canvas.offsetHeight * (this.hiRes ? getDevicePixelRatio() : 1);
+    width =
+      width ||
+      this.canvas.offsetWidth * (this.hiRes ? getDevicePixelRatio() : 1);
+    height =
+      height ||
+      this.canvas.offsetHeight * (this.hiRes ? getDevicePixelRatio() : 1);
     this.canvas.width = width;
     this.canvas.height = height;
     this.resizeTo(width, height);
@@ -45,7 +48,7 @@ export default class CanvasWriter extends ImageBuffer {
   getCanvasPoint(x, y) {
     return {
       x: x * (this.hiRes ? getDevicePixelRatio() : 1),
-      y: y * (this.hiRes ? getDevicePixelRatio() : 1)
+      y: y * (this.hiRes ? getDevicePixelRatio() : 1),
     };
   }
 }

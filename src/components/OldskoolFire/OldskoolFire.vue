@@ -49,34 +49,9 @@ export default defineComponent({
         "play-canvas"
       ) as HTMLCanvasElement;
       this.canvasWriter = new ImageBufferManipulate(canvas, undefined, false);
-      this.createPalette();
-      this.createBuffer();
+      this.palette = createPalette();
+      this.buffer = createBuffer(this.canvasWriter);
       this.constantly = constantly(() => this._update(), 100);
-    },
-    createPalette() {
-      this.palette = [];
-      const h1 = 80;
-      const h2 = -60;
-      for (let i = 0; i < 256; i++) {
-        const dh = ((h2 - h1) * i) / 255;
-        const h = (360 + h1 + dh) % 360;
-        const c = convert.hsl.rgb([h, 100, 100 - Math.sqrt(i / 255) * 100]);
-        this.palette.push(canvasColor.fromRGB(c[0], c[1], c[2]));
-      }
-    },
-    createBuffer() {
-      const width = this.canvasWriter.width;
-      const height = this.canvasWriter.height;
-      this.buffer = [];
-      for (let y = 0; y < height; y++) {
-        this.buffer.push([]);
-        for (let x = 0; x < width; x++) {
-          this.buffer[y].push(255);
-        }
-      }
-    },
-    clickChange() {
-      this.createPalette();
     },
     destroyChildObjects() {
       if (this.canvasWriter) this.canvasWriter.destroy();
@@ -126,7 +101,7 @@ export default defineComponent({
         const width = ~~(window.screen.width * scale);
 
         this.canvasWriter.refresh(width, height);
-        this.createBuffer();
+        this.buffer = createBuffer(this.canvasWriter);
         this._update();
       };
 
@@ -136,7 +111,7 @@ export default defineComponent({
         canvas.height = canvas.offsetHeight;
         canvas.width = canvas.offsetWidth;
         this.canvasWriter.refresh();
-        this.createBuffer();
+        this.buffer = createBuffer(this.canvasWriter);
         this._update();
         this._fullscreen?.dispose();
         this._fullscreen = null;
@@ -154,6 +129,31 @@ export default defineComponent({
     },
   },
 });
+
+function createPalette() {
+  const palette = [];
+  const h1 = 80;
+  const h2 = -60;
+  for (let i = 0; i < 256; i++) {
+    const dh = ((h2 - h1) * i) / 255;
+    const h = (360 + h1 + dh) % 360;
+    const c = convert.hsl.rgb([h, 100, 100 - Math.sqrt(i / 255) * 100]);
+    palette.push(canvasColor.fromRGB(c[0], c[1], c[2]));
+  }
+  return palette;
+}
+function createBuffer(canvasWriter: CanvasWriter) {
+  const width = canvasWriter.width;
+  const height = canvasWriter.height;
+  const buffer: number[][] = [];
+  for (let y = 0; y < height; y++) {
+    buffer.push([]);
+    for (let x = 0; x < width; x++) {
+      buffer[y].push(255);
+    }
+  }
+  return buffer;
+}
 </script>
 
 <style scoped>

@@ -1,7 +1,7 @@
 <template>
   <section>
     <h1>Oldskool Fire</h1>
-    <p>I'm writing to a canvas as fast as I can to produce an fire effect.</p>
+    <p>I'm writing to a canvas as fast as I can to produce a fire effect.</p>
     <section id="play-area">
       <canvas id="play-canvas" width="100" height="100" />
     </section>

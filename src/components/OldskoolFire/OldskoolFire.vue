@@ -26,38 +26,31 @@ export default defineComponent({
   },
   setup() {
     return {
-      _fullscreen: null as Fullscreen | null,
-      palette: [] as number[],
+      fullscreen: null as Fullscreen | null,
+      palette: createPalette(),
       buffer: [] as number[][],
       canvasWriter: undefined! as CanvasWriter,
       constantly: undefined! as Constantly,
     };
   },
   mounted() {
-    this._setup();
-    this._update();
-  },
-  beforeDestroy() {
-    this.destroyChildObjects();
-  },
-  computed: {},
-  methods: {
-    _setup() {
-      // TODO can this can all be move to setup()?
-      this.destroyChildObjects();
+    const attachToCanvas = () => {
       const canvas = document.getElementById(
         "play-canvas"
       ) as HTMLCanvasElement;
       this.canvasWriter = new ImageBufferManipulate(canvas, undefined, false);
-      this.palette = createPalette();
       this.buffer = createBuffer(this.canvasWriter);
-      this.constantly = constantly(() => this._update(), 100);
-    },
-    destroyChildObjects() {
-      if (this.canvasWriter) this.canvasWriter.destroy();
-      if (this.constantly) this.constantly.destroy();
-    },
-    _update() {
+    };
+
+    attachToCanvas();
+    this.constantly = constantly(() => this.update(), 100);
+  },
+  beforeUnmount() {
+    this.canvasWriter?.destroy();
+    this.constantly?.destroy();
+  },
+  methods: {
+    update() {
       const width = this.canvasWriter.width;
       const height = this.canvasWriter.height;
       let y = height - 1;
@@ -102,7 +95,7 @@ export default defineComponent({
 
         this.canvasWriter.refresh(width, height);
         this.buffer = createBuffer(this.canvasWriter);
-        this._update();
+        this.update();
       };
 
       const onRelease = () => {
@@ -112,12 +105,12 @@ export default defineComponent({
         canvas.width = canvas.offsetWidth;
         this.canvasWriter.refresh();
         this.buffer = createBuffer(this.canvasWriter);
-        this._update();
-        this._fullscreen?.dispose();
-        this._fullscreen = null;
+        this.update();
+        this.fullscreen?.dispose();
+        this.fullscreen = null;
       };
 
-      if (this._fullscreen) this._fullscreen?.dispose();
+      this.fullscreen?.dispose();
       const screen = fullscreen(playArea);
       screen.on("attain", onAttain);
       screen.on("release", onRelease);
@@ -125,7 +118,7 @@ export default defineComponent({
         console.error("fullscreen not supported");
       });
       screen.request();
-      this._fullscreen = screen;
+      this.fullscreen = screen;
     },
   },
 });

@@ -13,11 +13,11 @@
 import CanvasWriter from "./canvas-writer";
 import canvasColor from "./canvas-color";
 import imageBufferManipulate from "./image-buffer-manipulate";
-import { constantly } from "./constantly";
+import { Constantly, constantly } from "./constantly";
 import convert from "color-convert";
-import fullscreen from "fullscreen";
-import { Fullscreen } from "fullscreen-types";
 import { defineComponent } from "vue";
+import { Fullscreen } from "fullscreen-types";
+import fullscreen from "fullscreen";
 
 export default defineComponent({
   name: "OldskoolFire",
@@ -29,8 +29,8 @@ export default defineComponent({
       _fullscreen: null as Fullscreen | null,
       palette: [] as number[],
       buffer: [] as number[][],
-      canvasWriter: undefined! as unknown,
-      constantly: undefined! as unknown,
+      canvasWriter: undefined! as CanvasWriter,
+      constantly: undefined! as Constantly,
     };
   },
   mounted() {
@@ -45,7 +45,9 @@ export default defineComponent({
     _setup() {
       // TODO can this can all be move to setup()?
       this.destroyChildObjects();
-      const canvas = document.getElementById("play-canvas");
+      const canvas = document.getElementById(
+        "play-canvas"
+      ) as HTMLCanvasElement;
       this.canvasWriter = new CanvasWriter(canvas, undefined, false);
       this.canvasWriter = Object.assign(
         this.canvasWriter,
@@ -106,7 +108,7 @@ export default defineComponent({
       for (let y = 0; y < height; y++) {
         for (let x = 1; x < width; x++) {
           const i = ~~Math.min(this.buffer[y][x] / 2, 255);
-          this.canvasWriter.uint32[y * width + x] = this.palette[i];
+          this.canvasWriter.uint32![y * width + x] = this.palette[i];
         }
       }
       this.canvasWriter.canvasUpdateIsRequired = true;

@@ -1,7 +1,3 @@
-/* eslint-disable */
-
-import { UrlString } from "@azure/msal-common";
-
 type ImageBufferGetPixel = (
   index: number,
   width: number,
@@ -25,7 +21,7 @@ class ImageBuffer {
   isPaused: boolean = false;
   private _fastPutBuffer: any;
 
-  constructor(width: number, height: number, data: ImageBufferData) {
+  constructor(width: number, height: number, data?: ImageBufferData) {
     this.width = width;
     this.height = height;
     this._createBuffer();

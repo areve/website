@@ -1,26 +1,33 @@
-/* eslint-disable */
+import canvasColor from "./canvas-color";
+import CanvasWriter from "./canvas-writer";
 
-import canvasColor from './canvas-color';
+// methods to extend CanvasWriter
+
+// export class ImageBufferManipulate implements CanvasWriter {
+//   constructor(canvasWriter: CanvasWriter) {
+//       Object.assign(this, remote);
+//   }
+// }
 
 const imageBufferManipulate = {
-  clear(color) {
+  clear(color: number) {
     const size = this.width * this.height;
     for (let i = 0; i < size; i++) {
-      this.uint32[i] = color;        
+      this.uint32[i] = color;
     }
     this.canvasUpdateIsRequired = true;
   },
 
-  getPoint(x, y) {
+  getPoint(x: number, y: number) {
     return this.uint32[~~y * this.width + ~~x];
   },
 
-  setPoint(x, y, color) {
+  setPoint(x: number, y: number, color: number) {
     this.uint32[~~y * this.width + ~~x] = color;
     this.canvasUpdateIsRequired = true;
   },
 
-  subtractPoint(x, y, color) {
+  subtractPoint(x: number, y: number, color: number) {
     const c1 = canvasColor.toRGB(this.getPoint(x, y));
     const c2 = canvasColor.toRGB(color);
     this.uint32[~~y * this.width + ~~x] = canvasColor.fromRGB(
@@ -28,8 +35,8 @@ const imageBufferManipulate = {
       Math.max(c1.g - c2.g, 0),
       Math.max(c1.b - c2.b, 0)
     );
-    this.canvasUpdateIsRequired = true;    
-  }
-}
+    this.canvasUpdateIsRequired = true;
+  },
+};
 
 export default imageBufferManipulate;

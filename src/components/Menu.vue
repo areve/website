@@ -20,6 +20,11 @@
               >Azure B2C</router-link
             >
           </li>
+          <li>
+            <router-link to="/oldskool-fire" @click="toggle()"
+              >Oldskool Fire</router-link
+            >
+          </li>
         </ul>
       </nav>
     </div>

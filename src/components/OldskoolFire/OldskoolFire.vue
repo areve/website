@@ -12,12 +12,12 @@
 <script lang="ts">
 import CanvasWriter from "./canvas-writer";
 import canvasColor from "./canvas-color";
-import imageBufferManipulate from "./image-buffer-manipulate";
 import { Constantly, constantly } from "./constantly";
 import convert from "color-convert";
 import { defineComponent } from "vue";
 import { Fullscreen } from "fullscreen-types";
 import fullscreen from "fullscreen";
+import ImageBufferManipulate from "./image-buffer-manipulate";
 
 export default defineComponent({
   name: "OldskoolFire",
@@ -48,23 +48,19 @@ export default defineComponent({
       const canvas = document.getElementById(
         "play-canvas"
       ) as HTMLCanvasElement;
-      this.canvasWriter = new CanvasWriter(canvas, undefined, false);
-      this.canvasWriter = Object.assign(
-        this.canvasWriter,
-        imageBufferManipulate
-      );
+      this.canvasWriter = new ImageBufferManipulate(canvas, undefined, false);
       this.createPalette();
       this.createBuffer();
       this.constantly = constantly(() => this._update(), 100);
     },
     createPalette() {
       this.palette = [];
-      const h1 = 80; //~~(Math.random() * 360);
-      const h2 = -60; //~~(Math.random() * 360);
+      const h1 = 80;
+      const h2 = -60;
       for (let i = 0; i < 256; i++) {
         const dh = ((h2 - h1) * i) / 255;
         const h = (360 + h1 + dh) % 360;
-        const c = convert.hsl.rgb(h, 100, 100 - Math.sqrt(i / 255) * 100);
+        const c = convert.hsl.rgb([h, 100, 100 - Math.sqrt(i / 255) * 100]);
         this.palette.push(canvasColor.fromRGB(c[0], c[1], c[2]));
       }
     },
@@ -120,14 +116,14 @@ export default defineComponent({
       )! as HTMLCanvasElement;
 
       const onAttain = () => {
-        playArea.style.width = screen.width + "px";
-        playArea.style.height = screen.height + "px";
+        playArea.style.width = window.screen.width + "px";
+        playArea.style.height = window.screen.height + "px";
 
         const maxPixels = canvas.width * canvas.height;
         const pixels = canvas.offsetHeight * canvas.offsetWidth;
         const scale = Math.sqrt(maxPixels / pixels);
         const height = ~~(canvas.offsetHeight * scale);
-        const width = ~~(screen.width * scale);
+        const width = ~~(window.screen.width * scale);
 
         this.canvasWriter.refresh(width, height);
         this.createBuffer();

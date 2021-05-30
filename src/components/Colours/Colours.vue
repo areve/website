@@ -24,7 +24,7 @@
 </template>
 <script lang="ts">
 import * as d3 from "d3";
-import namedColors from "./namedColors";
+import namedColors from "./lib/namedColors";
 import { ref } from "vue";
 
 import { defineComponent } from "vue";

@@ -1,4 +1,4 @@
-const Home = () => import("./components/Home.vue");
+const Home = () => import("./components/Home/Home.vue");
 const Seaside = () => import("./components/Seaside/Seaside.vue");
 const Colours = () => import("./components/Colours/Colours.vue");
 const AzureAD = () => import("./components/AzureAD/AzureAD.vue");

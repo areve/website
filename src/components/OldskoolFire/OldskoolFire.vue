@@ -10,14 +10,14 @@
 </template>
 
 <script lang="ts">
-import CanvasWriter from "./canvas-writer";
-import canvasColor from "./canvas-color";
-import { Constantly, constantly } from "./constantly";
+import CanvasWriter from "./lib/canvas-writer";
+import canvasColor from "./lib/canvas-color";
+import { Constantly, constantly } from "./lib/constantly";
 import convert from "color-convert";
 import { defineComponent } from "vue";
 import { Fullscreen } from "fullscreen-types";
 import fullscreen from "fullscreen";
-import ImageBufferManipulate from "./image-buffer-manipulate";
+import ImageBufferManipulate from "./lib/image-buffer-manipulate";
 
 export default defineComponent({
   name: "OldskoolFire",

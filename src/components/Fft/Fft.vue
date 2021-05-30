@@ -7,10 +7,10 @@
       third image is made by comnining the two.
     </p>
 
-    <img src="./sample-images/lena.png" @click="selectImage" />
-    <img src="./sample-images/clown.jpg" @click="selectImage" />
-    <img src="./sample-images/sine4.png" @click="selectImage" />
-    <img src="./sample-images/twigs.jpg" @click="selectImage" />
+    <img src="./images/lena.png" @click="selectImage" />
+    <img src="./images/clown.jpg" @click="selectImage" />
+    <img src="./images/sine4.png" @click="selectImage" />
+    <img src="./images/twigs.jpg" @click="selectImage" />
     <div>
       <div>
         Magnitude<br />
@@ -31,7 +31,7 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
-import ComplexBuffer from "./complex-buffer";
+import ComplexBuffer from "./lib/complex-buffer";
 
 export default defineComponent({
   name: "Fft",

@@ -8,7 +8,7 @@
     <img
       class="sand-castle-photo"
       alt="Sand Castle Photo"
-      src="./sand-castle.jpg"
+      src="./images/sand-castle.jpg"
     />
   </article>
 </template>

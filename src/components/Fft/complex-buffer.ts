@@ -15,7 +15,7 @@ class ComplexBuffer {
     imag: number[],
     width: number,
     height: number,
-    buffer: ImageBuffer
+    buffer?: ImageBuffer
   ) {
     this.channels = channels;
     this.width = width;
@@ -72,7 +72,7 @@ class ComplexBuffer {
     );
   }
 
-  toBuffer(gamma: number) {
+  toBuffer(gamma?: number) {
     const buffer = new ImageBuffer(this.width, this.height);
 
     const real = this.real;
@@ -94,7 +94,7 @@ class ComplexBuffer {
   }
 
   // magnitude = sqrt(real^2+imaginary^2)
-  toMaginitude() {
+  toMagnitude() {
     const complexBuffer = this.clone();
     const real = complexBuffer.real;
     const imag = complexBuffer.imag;

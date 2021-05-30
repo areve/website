@@ -3,7 +3,8 @@
     <h1>FFT</h1>
     <p>
       Experiments with Fast Fourier Transformations in javascript. Click an
-      image at the top to show an FFT magnitude and phase image.
+      image at the top to show an FFT magnitude and phase image, and then the
+      third image is made by comnining the two.
     </p>
 
     <img src="./sample-images/lena.png" @click="selectImage" />
@@ -55,7 +56,7 @@ export default defineComponent({
 
       const complexBuffer = ComplexBuffer.createFromImage(img);
       const fftData = complexBuffer.fft();
-      const mag = fftData.toMaginitude().autoContrast().toBuffer(6);
+      const mag = fftData.toMagnitude().autoContrast().toBuffer(6);
       const phase = fftData.toPhase().toBuffer();
       const output = fftData.ifft().toBuffer();
 

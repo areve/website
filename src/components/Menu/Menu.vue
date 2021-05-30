@@ -38,6 +38,11 @@
               >Sierpinski</router-link
             >
           </li>
+          <li>
+            <router-link to="/mandelbrot" @click="toggle()"
+              >Mandelbrot</router-link
+            >
+          </li>
         </ul>
       </nav>
     </div>

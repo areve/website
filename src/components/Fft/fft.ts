@@ -1,4 +1,10 @@
-function rearrangeSamples(samples, offset, w, stride, channels) {
+function rearrangeSamples(
+  samples: number[],
+  offset: number,
+  w: number,
+  stride: number,
+  channels: number
+) {
   var target = 0;
   for (var pos = 0; pos < w; ++pos) {
     if (target > pos) {
@@ -18,7 +24,13 @@ function rearrangeSamples(samples, offset, w, stride, channels) {
   }
 }
 
-function shiftSamples(samples, base, w, stride, channels) {
+function shiftSamples(
+  samples: number[],
+  base: number,
+  w: number,
+  stride: number,
+  channels: number
+) {
   var mid = base + (w * stride) / 2;
   for (var i = 0; i < w / 2; ++i) {
     for (var k = 0; k < channels; ++k) {
@@ -31,15 +43,40 @@ function shiftSamples(samples, base, w, stride, channels) {
   }
 }
 
-function inverseFft(real, imag, w, h, dx, dy, channels) {
+function inverseFft(
+  real: number[],
+  imag: number[],
+  w: number,
+  h: number,
+  dx: number,
+  dy: number,
+  channels: number
+) {
   return performFft(real, imag, w, h, dx, dy, true, channels);
 }
 
-function fft(real, imag, w, h, dx, dy, channels) {
+function fft(
+  real: number[],
+  imag: number[],
+  w: number,
+  h: number,
+  dx: number,
+  dy: number,
+  channels: number
+) {
   return performFft(real, imag, w, h, dx, dy, false, channels);
 }
 
-function performFft(real, imag, w, h, dx, dy, inverse, channels) {
+function performFft(
+  real: number[],
+  imag: number[],
+  w: number,
+  h: number,
+  dx: number,
+  dy: number,
+  inverse: boolean,
+  channels: number
+) {
   const pi = Math.PI;
   for (var j = 0; j < h; ++j) {
     if (inverse) {

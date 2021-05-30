@@ -6,6 +6,9 @@
       set.
     </p>
     <p>Click/shift to zoom in and out, or pinch-in/out on touchscreen.</p>
+    <pre>
+      {{ event }}
+    </pre>
     <figure class="touch-area">
       <canvas
         id="mandelbrot-canvas"
@@ -110,6 +113,7 @@ export default defineComponent({
       juliaR: -1,
       juliaI: 0,
       snapshots: [] as string[],
+      event: null as HammerInput | null,
     };
   },
   mounted() {
@@ -149,7 +153,7 @@ export default defineComponent({
     },
     pinch(event: HammerInput) {
       // TODO pinch not working
-      alert(JSON.stringify(event));
+      this.event = event;
       const canvasDevicePos = getElementScreenOffset(event.target);
       const canvasPos = this.canvasWriter.getCanvasPoint(
         event.center.x - canvasDevicePos.x,

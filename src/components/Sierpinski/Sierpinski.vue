@@ -34,7 +34,7 @@ import canvasColor from "./lib/canvas-color";
 import { getDevicePixelRatio } from "./lib/get-device-pixel-ratio";
 import { defineComponent } from "vue";
 import { constantly, Constantly } from "./lib/constantly";
-import ImageBufferManipulate from "../OldskoolFire/lib/image-buffer-manipulate";
+import ImageBufferManipulate from "./lib/image-buffer-manipulate";
 
 interface Point {
   x: number;

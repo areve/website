@@ -30,10 +30,14 @@ export default class CanvasWriter extends ImageBuffer {
   refresh(width?: number, height?: number) {
     width =
       width ||
-      this.canvas.offsetWidth * (this.hiRes ? getDevicePixelRatio() : 1);
+      Math.round(
+        this.canvas.offsetWidth * (this.hiRes ? getDevicePixelRatio() : 1)
+      );
     height =
       height ||
-      this.canvas.offsetHeight * (this.hiRes ? getDevicePixelRatio() : 1);
+      Math.round(
+        this.canvas.offsetHeight * (this.hiRes ? getDevicePixelRatio() : 1)
+      );
     this.canvas.width = width;
     this.canvas.height = height;
     this.resizeTo(width, height);

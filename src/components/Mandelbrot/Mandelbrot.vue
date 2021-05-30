@@ -5,7 +5,11 @@
       A html canvas showing a Mandelbrot set, and some options to show a Julia
       set.
     </p>
-    <p>Click/shift to zoom in and out, or pinch-in/out on touchscreen</p>
+    <p>
+      Click/shift to zoom in and out.
+      <!-- , or pinch-in/out on touchscreen. -->
+      <!-- <mark>TODO Pinch not currently working since vue3 upgrade.</mark> -->
+    </p>
     <figure class="touch-area">
       <canvas
         id="mandelbrot-canvas"
@@ -115,7 +119,7 @@ export default defineComponent({
     const mc = new Hammer.Manager(touchArea);
     const pinch = new Hammer.Pinch();
     mc.add(pinch);
-    mc.on("pinchend", this.pinch);
+    mc.on("pinch", this.pinch);
 
     this.update();
   },

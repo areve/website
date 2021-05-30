@@ -53,7 +53,6 @@ export default defineComponent({
     update() {
       const width = this.canvasWriter.width;
       const height = this.canvasWriter.height;
-      let y = height - 1;
       for (let x = 0; x < width; x++) {
         this.buffer[height - 1][x] = ~~(Math.random() * 255);
         this.buffer[height - 2][x] = ~~(Math.random() * 255);

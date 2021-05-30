@@ -5,12 +5,9 @@
       A html canvas showing a Mandelbrot set, and some options to show a Julia
       set.
     </p>
-    <p>
-      Click/shift to zoom in and out.
-      <!-- , or pinch-in/out on touchscreen -->
-    </p>
+    <p>Click/shift to zoom in and out. , or pinch-in/out on touchscreen</p>
     <!-- <v-touch class="touch-area" @pinchend="pinch"> -->
-    <figure>
+    <figure class="touch-area">
       <canvas
         id="mandelbrot-canvas"
         width="100"
@@ -64,6 +61,8 @@
 </template>
 
 <script lang="ts">
+/// <reference types="hammerjs" />
+
 import ComplexGridIterator, {
   ComplexNumber,
   ComplexPoint,
@@ -75,6 +74,8 @@ import canvasColor from "./lib/canvas-color";
 import ImageBufferManipulate from "./lib/image-buffer-manipulate";
 import fullscreen from "fullscreen";
 import { Fullscreen } from "fullscreen-types";
+import { getElementScreenOffset } from "./lib/get-element-offset";
+import "hammerjs";
 
 interface MandelbrotCalculateResult {
   iterations: number;
@@ -110,6 +111,14 @@ export default defineComponent({
     };
   },
   mounted() {
+    const touchArea = document.getElementsByClassName(
+      "touch-area"
+    )[0] as HTMLElement;
+    const mc = new Hammer.Manager(touchArea);
+    const pinch = new Hammer.Pinch();
+    mc.add(pinch);
+    mc.on("pinchend", this.pinch);
+
     this.update();
   },
   beforeUnmount() {
@@ -136,17 +145,16 @@ export default defineComponent({
       this.maxIterations = 50;
       this.update();
     },
-    // TODO upgrade pinch
-    // pinch(event: Event) {
-    //   const canvasDevicePos = getElementScreenOffset(event.target);
-    //   const canvasPos = this.canvasWriter.getCanvasPoint(
-    //     event.center.x - canvasDevicePos.x,
-    //     event.center.y - canvasDevicePos.y
-    //   );
-    //   const point = this.grid.toComplex(canvasPos.x, canvasPos.y);
-    //   const scale = event.additionalEvent === "pinchin" ? 0.5 : 2;
-    //   this.zoom(point, scale);
-    // },
+    pinch(event: HammerInput) {
+      const canvasDevicePos = getElementScreenOffset(event.target);
+      const canvasPos = this.canvasWriter.getCanvasPoint(
+        event.center.x - canvasDevicePos.x,
+        event.center.y - canvasDevicePos.y
+      );
+      const point = this.grid.toComplex(canvasPos.x, canvasPos.y);
+      const scale = event.type === "pinchin" ? 0.5 : 2;
+      this.zoom(point, scale);
+    },
     clickZoom(event: MouseEvent) {
       const canvasPos = this.canvasWriter.getCanvasPoint(
         event.offsetX,

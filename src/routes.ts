@@ -4,6 +4,7 @@ const Colours = () => import("./components/Colours/Colours.vue");
 const AzureAD = () => import("./components/AzureAD/AzureAD.vue");
 const AzureB2C = () => import("./components/AzureB2C/AzureB2C.vue");
 const OldskoolFire = () => import("./components/OldskoolFire/OldskoolFire.vue");
+const Fft = () => import("./components/Fft/Fft.vue");
 
 export const routes = [
   { path: "/code=:code(.*)", component: AzureAD },
@@ -15,4 +16,5 @@ export const routes = [
   { path: "/azure-b2c", component: AzureB2C },
   { path: "/colours", component: Colours },
   { path: "/oldskool-fire", component: OldskoolFire },
+  { path: "/fft", component: Fft },
 ];

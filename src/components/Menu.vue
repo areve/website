@@ -25,6 +25,9 @@
               >Oldskool Fire</router-link
             >
           </li>
+          <li>
+            <router-link to="/fft" @click="toggle()">FFT</router-link>
+          </li>
         </ul>
       </nav>
     </div>

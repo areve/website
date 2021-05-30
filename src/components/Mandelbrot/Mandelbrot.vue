@@ -5,8 +5,7 @@
       A html canvas showing a Mandelbrot set, and some options to show a Julia
       set.
     </p>
-    <p>Click/shift to zoom in and out. , or pinch-in/out on touchscreen</p>
-    <!-- <v-touch class="touch-area" @pinchend="pinch"> -->
+    <p>Click/shift to zoom in and out, or pinch-in/out on touchscreen</p>
     <figure class="touch-area">
       <canvas
         id="mandelbrot-canvas"
@@ -15,7 +14,6 @@
         @click="clickZoom"
       />
     </figure>
-    <!-- </v-touch> -->
 
     <fieldset>
       <button type="button" @click="snapshot">Snapshot</button>

@@ -28,6 +28,11 @@
           <li>
             <router-link to="/fft" @click="toggle()">FFT</router-link>
           </li>
+          <li>
+            <router-link to="/tic-tac-toe" @click="toggle()"
+              >tic-tac-toe</router-link
+            >
+          </li>
         </ul>
       </nav>
     </div>

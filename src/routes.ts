@@ -5,6 +5,7 @@ const AzureAD = () => import("./components/AzureAD/AzureAD.vue");
 const AzureB2C = () => import("./components/AzureB2C/AzureB2C.vue");
 const OldskoolFire = () => import("./components/OldskoolFire/OldskoolFire.vue");
 const Fft = () => import("./components/Fft/Fft.vue");
+const TicTacToe = () => import("./components/TicTacToe/TicTacToe.vue");
 
 export const routes = [
   { path: "/code=:code(.*)", component: AzureAD },
@@ -17,4 +18,5 @@ export const routes = [
   { path: "/colours", component: Colours },
   { path: "/oldskool-fire", component: OldskoolFire },
   { path: "/fft", component: Fft },
+  { path: "/tic-tac-toe", component: TicTacToe },
 ];

@@ -6,9 +6,6 @@
       set.
     </p>
     <p>Click/shift to zoom in and out, or pinch-in/out on touchscreen.</p>
-    <pre>
-      {{ event }}
-    </pre>
     <figure class="touch-area">
       <canvas
         id="mandelbrot-canvas"
@@ -85,6 +82,10 @@ interface MandelbrotCalculateResult {
   c: ComplexNumber;
 }
 
+interface HammerPinchInput extends HammerInput {
+  additionalEvent: "pinchin" | "pinchout";
+}
+
 export default defineComponent({
   name: "Mandelbrot",
   setup() {
@@ -109,7 +110,6 @@ export default defineComponent({
       juliaR: -1,
       juliaI: 0,
       snapshots: [] as string[],
-      event: null as HammerInput | null,
     };
   },
   mounted() {
@@ -148,22 +148,14 @@ export default defineComponent({
       this.update();
     },
     pinch(event: HammerInput) {
-      this.event = event;
+      const pinchEvent = event as HammerPinchInput;
       const canvasDevicePos = getElementScreenOffset(event.target);
       const canvasPos = this.canvasWriter.getCanvasPoint(
         event.center.x - canvasDevicePos.x,
         event.center.y - canvasDevicePos.y
       );
       const point = this.grid.toComplex(canvasPos.x, canvasPos.y);
-      const scale = (event as any).additionalEvent ? 0.5 : 2;
-      alert(
-        "pinch " +
-          scale +
-          " " +
-          (event as any).additionalEvent +
-          " " +
-          JSON.stringify(event)
-      );
+      const scale = pinchEvent.additionalEvent === "pinchin" ? 0.5 : 2;
       this.zoom(point, scale);
     },
     clickZoom(event: MouseEvent) {

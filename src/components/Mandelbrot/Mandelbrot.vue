@@ -148,6 +148,8 @@ export default defineComponent({
       this.update();
     },
     pinch(event: HammerInput) {
+      // TODO pinch not working
+      alert(JSON.stringify(event));
       const canvasDevicePos = getElementScreenOffset(event.target);
       const canvasPos = this.canvasWriter.getCanvasPoint(
         event.center.x - canvasDevicePos.x,

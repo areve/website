@@ -33,6 +33,11 @@
               >tic-tac-toe</router-link
             >
           </li>
+          <li>
+            <router-link to="/sierpinski" @click="toggle()"
+              >Sierpinski</router-link
+            >
+          </li>
         </ul>
       </nav>
     </div>

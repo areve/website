@@ -82,6 +82,10 @@ interface MandelbrotCalculateResult {
   c: ComplexNumber;
 }
 
+type HammerPinchInput = HammerInput & {
+  additionalEvent: "pinchin" | "pinchout";
+};
+
 export default defineComponent({
   name: "Mandelbrot",
   setup() {
@@ -144,14 +148,13 @@ export default defineComponent({
       this.update();
     },
     pinch(event: HammerInput) {
-      alert(JSON.stringify(event));
       const canvasDevicePos = getElementScreenOffset(event.target);
       const canvasPos = this.canvasWriter.getCanvasPoint(
         event.center.x - canvasDevicePos.x,
         event.center.y - canvasDevicePos.y
       );
       const point = this.grid.toComplex(canvasPos.x, canvasPos.y);
-      const scale = event.type === "pinchin" ? 0.5 : 2;
+      const scale = (event as HammerPinchInput).additionalEvent ? 0.5 : 2;
       this.zoom(point, scale);
     },
     clickZoom(event: MouseEvent) {

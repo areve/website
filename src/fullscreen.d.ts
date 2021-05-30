@@ -7,9 +7,12 @@ declare module "fullscreen-types" {
   };
 }
 
-declare module "fullscreen" {
+declare module "foo" {
   import { Fullscreen } from "fullscreen-types";
+  export function fullscreen(htmlElement: HTMLElement): Fullscreen;
+}
 
-  function fullscreen(htmlElement: HTMLElement): Fullscreen;
+declare module "fullscreen" {
+  import { fullscreen } from "foo";
   export = fullscreen;
 }

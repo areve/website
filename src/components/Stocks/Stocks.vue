@@ -9,7 +9,7 @@
     </p>
 
     <div class="cards">
-      <div v-for="(item, key) in data" :key="key" class="card">
+      <div v-for="item in sortedData" :key="item.id" class="card">
         <h2>{{ item.id }}</h2>
         <p>{{ item.shortName }} - {{ item.quoteType }}</p>
         <dl>
@@ -21,7 +21,7 @@
           <dd>{{ item.dayLow.toFixed(2) }} - {{ item.dayHigh.toFixed(2) }}</dd>
         </dl>
         <dl>
-          <dt>Time</dt>
+          <dt>Last Updated</dt>
           <dd>{{ new Date(item.time).toLocaleString() }}</dd>
         </dl>
       </div>
@@ -69,6 +69,13 @@ export default defineComponent({
     });
 
     StockSocket.addTickers(this.tickers, stockPriceChanged);
+  },
+  computed: {
+    sortedData(): any[] {
+      return Object.values(this.data).sort((a: any, b: any) =>
+        a.id === b.id ? 0 : a.id > b.id ? 1 : -1
+      );
+    },
   },
 });
 </script>

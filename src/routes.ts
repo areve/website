@@ -1,5 +1,3 @@
-import Stocks from "./components/Stocks/Stocks.vue";
-
 const Home = () => import("./components/Home/Home.vue");
 const Seaside = () => import("./components/Seaside/Seaside.vue");
 const Colours = () => import("./components/Colours/Colours.vue");
@@ -10,6 +8,7 @@ const Fft = () => import("./components/Fft/Fft.vue");
 const TicTacToe = () => import("./components/TicTacToe/TicTacToe.vue");
 const Sierpinski = () => import("./components/Sierpinski/Sierpinski.vue");
 const Mandelbrot = () => import("./components/Mandelbrot/Mandelbrot.vue");
+const Stocks = () => import("./components/Stocks/Stocks.vue");
 
 export const routes = [
   { path: "/code=:code(.*)", component: AzureAD },

@@ -167,7 +167,7 @@ export default defineComponent({
       const scale = event.shiftKey ? 0.5 : 2;
       this.zoom(point, scale);
     },
-    openFullscreen(event: Event) {
+    openFullscreen(_event: Event) {
       const onAttain = () => {
         const canvas = document.getElementById(
           "mandelbrot-canvas"

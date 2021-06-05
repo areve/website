@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "lint": "vuedx-typecheck --watch",
+    "lint": "vuedx-typecheck --no-pretty --watch",
     "build:only": "vite build",
-    "build": "vuedx-typecheck . && vite build",
+    "build": "vite build",
     "serve": "vite preview",
     "preinstall": "node ./check-yarn.js"
   },

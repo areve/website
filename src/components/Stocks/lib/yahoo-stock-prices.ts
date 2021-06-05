@@ -8,7 +8,7 @@ function escapeRegExp(value: string) {
 }
 
 export var getCurrentData = function (ticker: string): any {
-  return new Promise(async function (resolve, reject) {
+  return new Promise(async function (resolve, _reject) {
     const response = await axios.get(baseUrl + ticker + "/");
     var dataJson = response.data.match(
       new RegExp(

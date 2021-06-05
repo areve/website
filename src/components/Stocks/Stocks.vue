@@ -26,6 +26,20 @@
         </dl>
       </div>
     </div>
+    <p>The Azure Function source code:</p>
+    <pre>
+        const axios = require("axios");
+
+        module.exports = async function (context, req) {
+            const baseUrl = 'https://finance.yahoo.com/quote/';
+            const queryString = context.req.url.replace(/^.*?\?/, '');
+            const url = baseUrl + queryString;
+            const response = await axios.get(url);
+            context.log(response.status + ' ' + url);
+            context.res.send(response.data);
+        };
+        </pre
+    >
   </article>
 </template>
 

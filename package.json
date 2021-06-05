@@ -12,12 +12,14 @@
   "dependencies": {
     "@azure/msal-browser": "^2.14.2",
     "@types/hammerjs": "^2.0.39",
+    "axios": "^0.21.1",
     "buffer": "^6.0.3",
     "color-convert": "^2.0.1",
     "d3": "^6.7.0",
     "events": "^3.3.0",
     "fullscreen": "^1.1.1",
     "hammerjs": "^2.0.8",
+    "node-fetch": "^2.6.1",
     "stocksocket": "^2.1.0",
     "vue": "3.1.0-beta.7",
     "vue-router": "^4.0.6"

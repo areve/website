@@ -47,6 +47,8 @@
 import { defineComponent, ref } from "vue";
 
 import * as StockSocket from "stocksocket";
+// import { Buffer } from "buffer";
+// (window as any).Buffer = Buffer;
 
 import * as yahooStockPrices from "./lib/yahoo-stock-prices";
 

@@ -2,7 +2,7 @@ import { createApp } from "vue";
 import App from "./App.vue";
 import { router } from "./router";
 
-import { Buffer } from "buffer";
+import * as Buffer from "buffer";
 (window as any).Buffer = Buffer;
 
 const app = createApp(App);

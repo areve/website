@@ -43,6 +43,9 @@
               >Mandelbrot</router-link
             >
           </li>
+          <li>
+            <router-link to="/stocks" @click="toggle()">Stocks</router-link>
+          </li>
         </ul>
       </nav>
     </div>

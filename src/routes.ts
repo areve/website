@@ -8,6 +8,7 @@ const Fft = () => import("./components/Fft/Fft.vue");
 const TicTacToe = () => import("./components/TicTacToe/TicTacToe.vue");
 const Sierpinski = () => import("./components/Sierpinski/Sierpinski.vue");
 const Mandelbrot = () => import("./components/Mandelbrot/Mandelbrot.vue");
+const Stocks = () => import("./components/Stocks/Stocks.vue");
 
 export const routes = [
   { path: "/code=:code(.*)", component: AzureAD },
@@ -23,4 +24,5 @@ export const routes = [
   { path: "/tic-tac-toe", component: TicTacToe },
   { path: "/sierpinski", component: Sierpinski },
   { path: "/mandelbrot", component: Mandelbrot },
+  { path: "/stocks", component: Stocks },
 ];

@@ -14,20 +14,15 @@ import * as StockSocket from "stocksocket";
 import { Buffer } from "buffer";
 (window as any).Buffer = Buffer;
 
-import { getCurrentData } from "./lib/yahoo-stock-prices";
-console.log(getCurrentData);
-
-getCurrentData("AAPL");
 export default defineComponent({
   name: "Stocks",
   setup: () => ({
-    tickers: ref(["TSLA", "NNDM", "AAPL", "MARA", "DOGE-USD"]),
-    data: ref({}),
+    tickers: ref(["BTC-USD", "DOGE-USD"]),
+    data: ref({} as { [name: string]: any }),
   }),
   mounted() {
     const stockPriceChanged = (data: any) => {
-      console.log(data);
-      this.data = data;
+      this.data[data.id] = data;
     };
     StockSocket.addTickers(this.tickers, stockPriceChanged);
   },

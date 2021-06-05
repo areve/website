@@ -7,7 +7,7 @@
             <router-link to="/" @click="toggle()">Home</router-link>
           </li>
           <li>
-            <router-link to="/seaside" @click="toggle()">Seaside</router-link>
+            <router-link to="/seaside" @click="toggle()">Seaside </router-link>
           </li>
           <li>
             <router-link to="/colours" @click="toggle()">Colours</router-link>
@@ -80,30 +80,42 @@ export default defineComponent({
 </script>
 
 <style scoped>
-ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 a {
+  width: 100%;
+  box-shadow: 0 0 0.3em rgba(0, 0, 0, 0.3);
   color: #333;
   font-size: 1.1em;
   display: block;
-  padding: 0.5em 0em;
+  padding: 0.5em;
+  text-align: center;
+  line-height: 3em;
+}
+
+ul {
+  list-style: none;
+  display: flex;
+  flex-flow: row wrap;
+  margin: -0.5em;
+}
+
+li {
+  flex: 1 0;
+  min-width: 10em;
+  display: flex;
+  margin: 0.5em;
 }
 
 .menu {
   height: 100%;
   position: fixed;
   z-index: 100;
-  min-width: 20vmin;
-  min-height: 20vmin;
-  background-color: #f7f7f7;
+  width: 80%;
+  background-color: var(--background-color);
   top: 0;
   left: 0;
   padding: 4em 1em 1em;
   box-shadow: 0.1em 0.1em 0.5em rgba(0, 0, 0, 0.5);
+  overflow: auto;
 }
 
 .overlay {

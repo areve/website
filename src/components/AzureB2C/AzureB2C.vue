@@ -57,7 +57,7 @@ const msalConfig: msal.Configuration = {
   },
   system: {
     loggerOptions: {
-      loggerCallback: (level, message, containsPii) => {
+      loggerCallback: (level: any, message: any, containsPii: any) => {
         if (containsPii) return;
         switch (level) {
           case msal.LogLevel.Error:
@@ -103,7 +103,7 @@ export default defineComponent({
          * as this is the default flow the user initially signed-in with.
          */
         const accounts = currentAccounts.filter(
-          (account) =>
+          (account: msal.AccountInfo) =>
             account.homeAccountId
               .toUpperCase()
               .includes(b2cConfig.policies.signUpSignIn.name.toUpperCase()) &&
@@ -117,7 +117,8 @@ export default defineComponent({
           // localAccountId identifies the entity for which the token asserts information.
           if (
             accounts.every(
-              (account) => account.localAccountId === accounts[0].localAccountId
+              (account: msal.AccountInfo) =>
+                account.localAccountId === accounts[0].localAccountId
             )
           ) {
             // All accounts belong to the same user
@@ -150,14 +151,14 @@ export default defineComponent({
     this.clientApplication
       .handleRedirectPromise()
       .then(handleResponse)
-      .catch((error) => {
+      .catch((error: any) => {
         if (error.errorMessage.indexOf("AADB2C90091:") === 0) {
-          console.log(error.errorMessage);
+          console.debug(error.errorMessage);
           router.push({ path: "/azure-b2c", force: true });
           return;
         }
         if (error.errorMessage.indexOf("AADB2C90118:") === 0) {
-          console.log(error.errorMessage);
+          console.debug(error.errorMessage);
           this.passwordReset();
           return;
         }

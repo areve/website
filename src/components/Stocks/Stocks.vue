@@ -3,9 +3,9 @@
     <h1>Stocks</h1>
     <p>
       This is experiment of showing some stock prices, and updating
-      continuously. It uses unsupported ways of getting data from yahoo, so it's
+      continuously. It uses unsupported ways of getting data from Yahoo, so it's
       good for experimental purposes only. And it relies on a tiny Azure
-      Function I wrote, because of CORS issues with scraping yahoo's page.
+      Function I wrote, because of CORS issues with scraping Yahoo's page.
     </p>
 
     <div class="cards">
@@ -27,28 +27,22 @@
       </div>
     </div>
     <p>The Azure Function source code:</p>
-    <pre>
-        const axios = require("axios");
-        module.exports = async function (context, req) {
-            const url = 'https://finance.yahoo.com/quote/' + context.req.url.replace(/^.*?\?/, '');
-            const response = await axios.get(url);
-            context.log(response.status + ' ' + url);
-            context.res.send(response.data);
-        };
-        </pre
-    >
+    <pre><code>const axios = require("axios");
+module.exports = async function (context, req) {
+  const url =
+    `https://finance.yahoo.com/quote/${context.req.url.replace(/^.*?\?/, "")}`;
+  const response = await axios.get(url);
+  context.log(`${response.status} ${url}`);
+  context.res.send(response.data);
+};</code></pre>
   </article>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 
-import YFinance, { yfinancedata } from "yfinance-live";
-
-import * as yahooStockPrices from "./lib/yahoo-stock-prices";
-
-import { Buffer } from "buffer";
-(window as any).Buffer = (window as any).Buffer || Buffer;
+import { getCurrentData } from "./lib/yahoo-stocks-query";
+import { yahooStockLive } from "./lib/yahoo-stocks-live";
 
 export default defineComponent({
   name: "Stocks",
@@ -57,17 +51,11 @@ export default defineComponent({
     data: ref({} as { [name: string]: any }),
   }),
   async mounted() {
-    const stockPriceChanged = (data: any | yfinancedata) => {
-      console.log(data);
-      this.data[data.id] = data;
-    };
+    this.tickers.forEach(
+      async (ticker) => (this.data[ticker] = await getCurrentData(ticker))
+    );
 
-    this.tickers.forEach(async (ticker) => {
-      const data = await yahooStockPrices.getCurrentData(ticker);
-      this.data[data.id] = data;
-    });
-
-    YFinance(this.tickers, stockPriceChanged);
+    yahooStockLive(this.tickers, (data: any) => (this.data[data.id] = data));
   },
   computed: {
     sortedData(): any[] {

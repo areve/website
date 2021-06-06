@@ -1,6 +1,6 @@
 <template>
   <article>
-    <h1>Home</h1>
+    <h1>challen.info</h1>
     <p>
       I'm making this site and I'm having a play with Vue3,
       <em>(and loving it)</em>. The site contains many experiments I've created

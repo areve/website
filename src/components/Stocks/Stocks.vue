@@ -14,11 +14,11 @@
         <p>{{ item.shortName }} - {{ item.quoteType }}</p>
         <dl>
           <dt>Price</dt>
-          <dd>{{ item.price.toFixed(2) }} {{ item.currency }}</dd>
+          <dd>{{ item.price.toFixed(5) }} {{ item.currency }}</dd>
         </dl>
         <dl>
           <dt>Day Range</dt>
-          <dd>{{ item.dayLow.toFixed(2) }} - {{ item.dayHigh.toFixed(2) }}</dd>
+          <dd>{{ item.dayLow.toFixed(5) }} - {{ item.dayHigh.toFixed(5) }}</dd>
         </dl>
         <dl>
           <dt>Last Updated</dt>
@@ -29,11 +29,8 @@
     <p>The Azure Function source code:</p>
     <pre>
         const axios = require("axios");
-
         module.exports = async function (context, req) {
-            const baseUrl = 'https://finance.yahoo.com/quote/';
-            const queryString = context.req.url.replace(/^.*?\?/, '');
-            const url = baseUrl + queryString;
+            const url = 'https://finance.yahoo.com/quote/' + context.req.url.replace(/^.*?\?/, '');
             const response = await axios.get(url);
             context.log(response.status + ' ' + url);
             context.res.send(response.data);
@@ -46,9 +43,7 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 
-import * as StockSocket from "stocksocket";
-// import { Buffer } from "buffer";
-// (window as any).Buffer = Buffer;
+import * as StockSocket from "./lib/stocksocket";
 
 import * as yahooStockPrices from "./lib/yahoo-stock-prices";
 

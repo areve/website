@@ -19,8 +19,9 @@
     "events": "^3.3.0",
     "fullscreen": "^1.1.1",
     "hammerjs": "^2.0.8",
+    "isomorphic-ws": "^4.0.1",
     "node-fetch": "^2.6.1",
-    "stocksocket": "^2.1.0",
+    "protobufjs": "^6.11.2",
     "vue": "3.1.0-beta.7",
     "vue-router": "^4.0.6"
   },

@@ -43,9 +43,12 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 
-import * as StockSocket from "./lib/stocksocket";
+import YFinance, { yfinancedata } from "yfinance-live";
 
 import * as yahooStockPrices from "./lib/yahoo-stock-prices";
+
+import { Buffer } from "buffer";
+(window as any).Buffer = (window as any).Buffer || Buffer;
 
 export default defineComponent({
   name: "Stocks",
@@ -54,7 +57,8 @@ export default defineComponent({
     data: ref({} as { [name: string]: any }),
   }),
   async mounted() {
-    const stockPriceChanged = (data: any) => {
+    const stockPriceChanged = (data: any | yfinancedata) => {
+      console.log(data);
       this.data[data.id] = data;
     };
 
@@ -63,7 +67,7 @@ export default defineComponent({
       this.data[data.id] = data;
     });
 
-    StockSocket.addTickers(this.tickers, stockPriceChanged);
+    YFinance(this.tickers, stockPriceChanged);
   },
   computed: {
     sortedData(): any[] {

@@ -14,11 +14,14 @@
         <p>{{ item.shortName }} - {{ item.quoteType }}</p>
         <dl>
           <dt>Price</dt>
-          <dd>{{ item.price.toFixed(5) }} {{ item.currency }}</dd>
+          <dd>{{ item.price?.toPrecision(5) }} {{ item.currency }}</dd>
         </dl>
         <dl>
           <dt>Day Range</dt>
-          <dd>{{ item.dayLow.toFixed(5) }} - {{ item.dayHigh.toFixed(5) }}</dd>
+          <dd>
+            {{ item.dayLow?.toPrecision(5) }} -
+            {{ item.dayHigh?.toPrecision(5) }}
+          </dd>
         </dl>
         <dl>
           <dt>Last Updated</dt>

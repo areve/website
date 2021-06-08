@@ -14,8 +14,8 @@ export interface FinanceData {
   marketHours?: MarketHoursType;
   changePercent: number;
   dayVolume: number;
-  dayHigh: number;
-  dayLow: number;
+  dayHigh?: number;
+  dayLow?: number;
   change: number;
   shortName: string;
   expireDate?: number;

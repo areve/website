@@ -17,6 +17,7 @@ export function yahooStockLive(tickers: string[], callback: Function) {
   YFinance(tickers, (data: yfinancedata) => {
     const financeData: FinanceData = {
       ...data,
+      shortName: data.shortName || data.id,
       marketHours: getKeyByValue(
         yfinancedata.MarketHoursType,
         data.marketHours

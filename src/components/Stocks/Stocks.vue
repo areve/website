@@ -16,16 +16,17 @@
           <dt>Price</dt>
           <dd>{{ item.price?.toPrecision(5) }} {{ item.currency }}</dd>
         </dl>
+
         <dl>
+          <dt>Last Updated</dt>
+          <dd>{{ new Date(item.time).toLocaleString() }}</dd>
+        </dl>
+        <dl v-if="item.dayLow">
           <dt>Day Range</dt>
           <dd>
             {{ item.dayLow?.toPrecision(5) }} -
             {{ item.dayHigh?.toPrecision(5) }}
           </dd>
-        </dl>
-        <dl>
-          <dt>Last Updated</dt>
-          <dd>{{ new Date(item.time).toLocaleString() }}</dd>
         </dl>
       </div>
     </div>
@@ -46,23 +47,28 @@ import { defineComponent, ref } from "vue";
 
 import { getCurrentData } from "./lib/yahoo-stocks-query";
 import { yahooStockLive } from "./lib/yahoo-stocks-live";
+import { FinanceData } from "./lib/finance-data";
 
 export default defineComponent({
   name: "Stocks",
   setup: () => ({
     tickers: ref(["BTC-USD", "DOGE-USD", "GME"]),
-    data: ref({} as { [name: string]: any }),
+    data: ref({} as { [name: string]: FinanceData }),
   }),
   async mounted() {
     this.tickers.forEach(
       async (ticker) => (this.data[ticker] = await getCurrentData(ticker))
     );
 
-    yahooStockLive(this.tickers, (data: any) => (this.data[data.id] = data));
+    yahooStockLive(
+      this.tickers,
+      (data: FinanceData) =>
+        (this.data[data.id] = Object.assign({}, this.data[data.id], data))
+    );
   },
   computed: {
-    sortedData(): any[] {
-      return Object.values(this.data).sort((a: any, b: any) =>
+    sortedData(): FinanceData[] {
+      return Object.values(this.data).sort((a: FinanceData, b: FinanceData) =>
         a.id === b.id ? 0 : a.id > b.id ? 1 : -1
       );
     },

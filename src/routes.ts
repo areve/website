@@ -9,6 +9,7 @@ const TicTacToe = () => import("./components/TicTacToe/TicTacToe.vue");
 const Sierpinski = () => import("./components/Sierpinski/Sierpinski.vue");
 const Mandelbrot = () => import("./components/Mandelbrot/Mandelbrot.vue");
 const Stocks = () => import("./components/Stocks/Stocks.vue");
+const GoogleMaps = () => import("./components/GoogleMaps/GoogleMaps.vue");
 
 export const routes = [
   { path: "/code=:code(.*)", component: AzureAD },
@@ -25,4 +26,5 @@ export const routes = [
   { path: "/sierpinski", component: Sierpinski },
   { path: "/mandelbrot", component: Mandelbrot },
   { path: "/stocks", component: Stocks },
+  { path: "/google-maps", component: GoogleMaps },
 ];

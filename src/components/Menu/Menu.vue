@@ -46,6 +46,9 @@
           <li>
             <router-link to="/stocks" @click="toggle()">Stocks</router-link>
           </li>
+          <!-- <li>
+            <router-link to="/google-maps" @click="toggle()">GoogleMaps</router-link>
+          </li> -->
         </ul>
       </nav>
     </div>

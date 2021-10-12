@@ -164,6 +164,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@googlemaps/js-api-loader@npm:^1.12.5":
+  version: 1.12.5
+  resolution: "@googlemaps/js-api-loader@npm:1.12.5"
+  dependencies:
+    fast-deep-equal: ^3.1.3
+  checksum: e3e2422065b5db063ee47de4ddb508ec829a6a2b5cf39ad2362568bbdf56f3580d3e9aa607dd994c0f2dc97821bd0851c0faf292b03cd53804285b3de5f527b6
+  languageName: node
+  linkType: hard
+
 "@intlify/core-base@npm:9.1.9":
   version: 9.1.9
   resolution: "@intlify/core-base@npm:9.1.9"
@@ -2086,6 +2095,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fast-deep-equal@npm:^3.1.3":
+  version: 3.1.3
+  resolution: "fast-deep-equal@npm:3.1.3"
+  checksum: e21a9d8d84f53493b6aa15efc9cfd53dd5b714a1f23f67fb5dc8f574af80df889b3bce25dc081887c6d25457cce704e636395333abad896ccdec03abaf1f3f9d
+  languageName: node
+  linkType: hard
+
 "fast-glob@npm:^3.2.4":
   version: 3.2.7
   resolution: "fast-glob@npm:3.2.7"
@@ -3603,6 +3619,7 @@ resolve@^1.20.0:
   resolution: "website@workspace:."
   dependencies:
     "@azure/msal-browser": ^2.14.2
+    "@googlemaps/js-api-loader": ^1.12.5
     "@types/color-convert": ^2.0.0
     "@types/d3": ^6.7.0
     "@types/events": ^3.0.0

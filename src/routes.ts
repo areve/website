@@ -13,12 +13,12 @@ const GoogleMaps = () => import("./components/GoogleMaps/GoogleMaps.vue");
 const GoogleAuth = () => import("./components/GoogleAuth/GoogleAuth.vue");
 
 export const routes = [
+  { path: "/", component: Home },
   { path: "/code=:code(.*)", component: AzureAD },
   { path: "/state=:state(.*)", component: AzureB2C },
   { path: "/error=:error(.*)", component: AzureB2C },
-  { path: "/", component: Home },
-  { path: "/seaside", component: Seaside },
   { path: "/azure-ad", component: AzureAD },
+  { path: "/seaside", component: Seaside },
   { path: "/azure-b2c", component: AzureB2C },
   { path: "/colours", component: Colours },
   { path: "/oldskool-fire", component: OldskoolFire },
@@ -28,5 +28,6 @@ export const routes = [
   { path: "/mandelbrot", component: Mandelbrot },
   { path: "/stocks", component: Stocks },
   { path: "/google-maps", component: GoogleMaps },
+  { path: "/scope=:scope(.*)", component: GoogleAuth },
   { path: "/google-auth", component: GoogleAuth },
 ];

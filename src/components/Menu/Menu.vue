@@ -49,6 +49,9 @@
           <li>
             <router-link to="/google-maps" @click="toggle()">Google Maps</router-link>
           </li>
+          <li>
+            <router-link to="/google-auth" @click="toggle()">Google Auth</router-link>
+          </li>
         </ul>
       </nav>
     </div>

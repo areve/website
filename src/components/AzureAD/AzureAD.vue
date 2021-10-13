@@ -1,7 +1,7 @@
 <template>
   <article>
     <h1>Azure AD</h1>
-    <p>Experimenting with a Azure AD</p>
+    <p>Experimenting with a Azure AD, if you sign in with an Azure AD account you'll see your name below.</p>
     <div>
       <button v-if="!account" @click="signIn()" type="button">Sign-in</button>
       <button v-if="account" @click="signOut()" type="button">Sign-out</button>

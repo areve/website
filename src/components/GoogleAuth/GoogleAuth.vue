@@ -1,6 +1,6 @@
 <template>
   <h1>Google Auth</h1>
-  <p>Example of using Google Auth.</p>
+  <p>Example of using Google Auth. If you sign-in with a Google account then you'll see your name below, that's all.</p>
   <article class="profile" v-if="profile?.id">
     <img
       class="profile-image"

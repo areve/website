@@ -3,7 +3,6 @@
     <p>
       Google Maps, vector map. Use shift-drag to adjust tilt.
     </p>
-
   <div class="map-wrapper">
     <div id="map"></div>
   </div>
@@ -20,7 +19,7 @@ export default defineComponent({
   setup: () => {
      
     const loader = new Loader({
-      apiKey: "AIzaSyBwoamHCxIZra4xaO1KyYtoXyZ587UNnio", 
+      apiKey: "AIzaSyD8l8r-hp3R9i_8Hjrf_jsbbT2J7v4lt7g", 
       version: "beta",
       libraries: []
     });

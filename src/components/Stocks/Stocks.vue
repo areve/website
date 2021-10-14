@@ -46,12 +46,6 @@ module.exports = async function (context, req) {
 exports.yahooFinanceProxy = async (req, res) => {
   res.set('Access-Control-Allow-Origin', "https://www.challen.info")
   res.set('Access-Control-Allow-Methods', 'GET');
-
-  if (req.method === "OPTIONS") {
-    res.status(204).send('');
-    return;
-  }
-  
   const url =
      `https://finance.yahoo.com/quote/${req.url.replace(/^.*?\?/, "")}`;
   const response = await axios.get(url);

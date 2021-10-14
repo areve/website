@@ -1,8 +1,12 @@
 import axios from "axios";
 import { FinanceData } from "./finance-data";
 
+// var baseUrl =
+//   "https://func-stocks-areve.azurewebsites.net/api/yahoo-finance-proxy?";
 var baseUrl =
-  "https://func-stocks-areve.azurewebsites.net/api/yahoo-finance-proxy?";
+  "https://us-central1-www-challen-info.cloudfunctions.net/yahooFinanceProxy?";
+// var baseUrl =
+//   "http://localhost:8080/?";
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

@@ -6,6 +6,7 @@
       continuously. It uses unsupported ways of getting data from Yahoo, so it's
       good for experimental purposes only. And it relies on a tiny Azure
       Function I wrote, because of CORS issues with scraping Yahoo's page.
+      Or there's a Google Cloud Function as an alternative.
     </p>
 
     <div class="cards">
@@ -38,6 +39,28 @@ module.exports = async function (context, req) {
   const response = await axios.get(url);
   context.log(`${response.status} ${url}`);
   context.res.send(response.data);
+};</code></pre>
+
+<p>A Google Cloud Function equivalent, in Azure the CORS headers were done outside of the code.</p>
+<pre><code>const axios = require("axios");
+exports.yahooFinanceProxy = async (req, res) => {
+  if (req.url.indexOf('http://localhost:3000/' === 0)) {
+    res.set('Access-Control-Allow-Origin', "http://localhost:3000")
+  } else if (req.url.indexOf('https://www.challen.info/' === 0)) {
+    res.set('Access-Control-Allow-Origin', "https://www.challen.info")
+  }
+  res.set('Access-Control-Allow-Methods', 'GET');
+
+  if (req.method === "OPTIONS") {
+    res.status(204).send('');
+    return;
+  }
+  
+  const url =
+     `https://finance.yahoo.com/quote/${req.url.replace(/^.*?\?/, "")}`;
+  const response = await axios.get(url);
+  console.log(`${response.status} ${url}`);
+  res.send(response.data);
 };</code></pre>
   </article>
 </template>

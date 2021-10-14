@@ -44,11 +44,7 @@ module.exports = async function (context, req) {
 <p>A Google Cloud Function equivalent, in Azure the CORS headers were done outside of the code.</p>
 <pre><code>const axios = require("axios");
 exports.yahooFinanceProxy = async (req, res) => {
-  if (req.url.indexOf('http://localhost:3000/' === 0)) {
-    res.set('Access-Control-Allow-Origin', "http://localhost:3000")
-  } else if (req.url.indexOf('https://www.challen.info/' === 0)) {
-    res.set('Access-Control-Allow-Origin', "https://www.challen.info")
-  }
+  res.set('Access-Control-Allow-Origin', "https://www.challen.info")
   res.set('Access-Control-Allow-Methods', 'GET');
 
   if (req.method === "OPTIONS") {

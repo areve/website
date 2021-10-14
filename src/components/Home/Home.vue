@@ -5,10 +5,10 @@
       I'm making this site and I'm having a play with Vue3,
       <em>(and loving it)</em>. 
       </p>
-      <p>The site contains many experiments I've created
-      over a number of years, they were converted to typescript when they were
+      <p>The site contains some of the many experiments I've created
+      over years, they were converted to typescript when they were
       added into this Vue3 site, as a result some of the code isn't the best it
-      could be - and some of my projects I left alone. 
+      could be. 
       </p>
       <p>I think in an Lean and Agile way, this means that each page is a
       micro project or prototype that is complete in some way - although the

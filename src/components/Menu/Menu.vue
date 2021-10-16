@@ -52,6 +52,9 @@
           <li>
             <router-link to="/google-auth" @click="toggle()">Google Auth</router-link>
           </li>
+          <li>
+            <router-link to="/flat-css" @click="toggle()">flat.css</router-link>
+          </li>
         </ul>
       </nav>
     </div>

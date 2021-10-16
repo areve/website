@@ -11,6 +11,7 @@ const Mandelbrot = () => import("./components/Mandelbrot/Mandelbrot.vue");
 const Stocks = () => import("./components/Stocks/Stocks.vue");
 const GoogleMaps = () => import("./components/GoogleMaps/GoogleMaps.vue");
 const GoogleAuth = () => import("./components/GoogleAuth/GoogleAuth.vue");
+const FlatCss = () => import("./components/FlatCss/FlatCss.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -30,4 +31,5 @@ export const routes = [
   { path: "/google-maps", component: GoogleMaps },
   { path: "/scope=:scope(.*)", component: GoogleAuth },
   { path: "/google-auth", component: GoogleAuth },
+  { path: "/flat-css", component: FlatCss },
 ];

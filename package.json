@@ -6,7 +6,8 @@
     "lint": "vuedx-typecheck --no-pretty --watch",
     "build": "vite build",
     "serve": "vite build && vite preview --port 3000",
-    "preinstall": "node ./check-yarn.js"
+    "preinstall": "node ./check-yarn.js",
+    "test": "jest"
   },
   "dependencies": {
     "@azure/msal-browser": "^2.14.2",
@@ -29,12 +30,18 @@
     "@types/color-convert": "^2.0.0",
     "@types/d3": "^6.7.0",
     "@types/events": "^3.0.0",
+    "@types/jest": "^27.0.2",
+    "@types/node": "^16.11.1",
     "@vitejs/plugin-vue": "^1.2.3",
     "@vue/compiler-sfc": "3.1.0-beta.7",
+    "@vue/test-utils": "next",
     "@vuedx/typecheck": "^0.6.3",
     "@vuedx/typescript-plugin-vue": "^0.6.3",
+    "jest": "^27.3.1",
+    "ts-jest": "^27.0.7",
     "typescript": "^4.4.4",
-    "vite": "^2.6.7"
+    "vite": "^2.6.7",
+    "vue3-jest": "^27.0.0-alpha.1"
   },
   "packageManager": "yarn@3.0.2"
 }

@@ -1,6 +1,8 @@
 /node_modules/
 /dist/
+/coverage/
 
 yarn-error.log
 .yarn/*
 !.yarn/releases
+

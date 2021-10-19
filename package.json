@@ -7,7 +7,9 @@
     "build": "vite build",
     "serve": "vite build && vite preview --port 3000",
     "preinstall": "node ./check-yarn.js",
-    "test": "jest"
+    "test": "jest --coverage",
+    "watch": "jest --coverage --watchAll",
+    "watch:fast": "jest --watch"
   },
   "dependencies": {
     "@azure/msal-browser": "^2.14.2",

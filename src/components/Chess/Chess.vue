@@ -96,7 +96,7 @@
 
 <script lang="ts">
 import ChessBoard from "./ChessBoard.vue";
-import * as chess from "./chess";
+import * as chess from "./lib/chess";
 
 import { defineComponent } from "vue";
 export default defineComponent({

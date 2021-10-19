@@ -15,15 +15,16 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Install
+        run: yarn install --frozen-lockfile
+        shell: bash
+
       - name: Test
-        run: |
-          yarn install --frozen-lockfile
-          yarn test
+        run: yarn test
         shell: bash
 
       - name: Build
-        run: |
-          yarn build
+        run: yarn build
         shell: bash
 
       - name: Deploy

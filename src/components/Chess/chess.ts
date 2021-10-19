@@ -19,15 +19,15 @@ import {
   emptyAt
 } from './chess-core'
 
-function chooseMove (board, log) {
+function chooseMove (board: any, log: any) {
   const moves = getPossibleMoves(board, log)
   if (!moves.length) return null
   const move = moves[~~(Math.random() * moves.length)]
   return move
 }
 
-function logMove (board, moveRef) {
-  const move = parseMove(moveRef)
+function logMove (board: any, moveRef: any) {
+  const move = parseMove(moveRef) 
   const piece = pieceAt(board, move.from)
   const capture = emptyAt(board, move.to) ? '' : 'x'
 
@@ -37,7 +37,7 @@ function logMove (board, moveRef) {
       return toRef(move.to) + promotionSuffix
     } else {
       const enPassantSuffix = capture === '' ? 'e.p.' : ''
-      return toRef(move.from)[0] + 'x' + toRef(move.to) + promotionSuffix + enPassantSuffix
+      return toRef(move.from)![0] + 'x' + toRef(move.to) + promotionSuffix + enPassantSuffix
     }
   }
 
@@ -50,19 +50,19 @@ function logMove (board, moveRef) {
   }
 
   const ambiguities = threatsByPieceTo(board, piece, move.to)
-  const rankAmbiguities = ambiguities.filter(x => x.from.y === move.from.y)
-  const fileAmbiguities = ambiguities.filter(x => x.from.x === move.from.x)
+  const rankAmbiguities = ambiguities.filter((x: any) => x.from.y === move.from.y)
+  const fileAmbiguities = ambiguities.filter((x: any) => x.from.x === move.from.x)
 
   let disambiguate
   if (fileAmbiguities.length > 1) {
     if (rankAmbiguities.length > 1) {
       disambiguate = toRef(move.from)
     } else {
-      disambiguate = toRef(move.from)[1]
+      disambiguate = toRef(move.from)![1]
     }
   } else {
     if (ambiguities.length > 1) {
-      disambiguate = toRef(move.from)[0]
+      disambiguate = toRef(move.from)![0]
     } else {
       disambiguate = ''
     }

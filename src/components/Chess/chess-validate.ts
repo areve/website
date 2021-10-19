@@ -6,8 +6,8 @@ import {
   refsAreEqual
 } from './chess-core'
 
-function getMovesInDirection (board, from, diff, singleStep) {
-  const moves = []
+function getMovesInDirection (board: any, from: any, diff: any, singleStep?: any) {
+  const moves = [] as any
   const {x: dx, y: dy} = parseRef(diff)
   const color = colorAt(board, from)
   let {x: ix, y: iy} = parseRef(from)
@@ -22,16 +22,16 @@ function getMovesInDirection (board, from, diff, singleStep) {
   return moves
 }
 
-function canLandOn (board, color, ref) {
+function canLandOn (board: any, color: any, ref: any) {
   return emptyAt(board, ref) || colorAt(board, ref) !== color
 }
 
-function canPassThrough (board, ref) {
+function canPassThrough (board: any, ref: any) {
   return emptyAt(board, ref)
 }
 
-function getMovesFrom (board, log, ref) {
-  const moves = []
+function getMovesFrom (board: any, log: any, ref: any) {
+  const moves = [] as any
   moves.push(...getWhitePawnThreats(board, log, ref))
   moves.push(...getWhitePawnMoves(board, ref))
   moves.push(...getBlackPawnThreats(board, log, ref))
@@ -45,8 +45,8 @@ function getMovesFrom (board, log, ref) {
   return moves
 }
 
-function getThreatsFrom (board, log, ref) {
-  const moves = []
+function getThreatsFrom (board: any, log: any, ref: any) {
+  const moves = [] as any
   moves.push(...getWhitePawnThreats(board, log, ref))
   moves.push(...getBlackPawnThreats(board, log, ref))
   moves.push(...getRookThreats(board, ref))
@@ -57,8 +57,8 @@ function getThreatsFrom (board, log, ref) {
   return moves
 }
 
-function getWhitePawnThreats (board, log, from) {
-  const moves = []
+function getWhitePawnThreats (board: any, log: any, from: any) {
+  const moves = [] as any as any
   const piece = pieceAt(board, from)
   if (piece !== 'P') return moves
 
@@ -102,8 +102,8 @@ function getWhitePawnThreats (board, log, from) {
   return moves
 }
 
-function getWhitePawnMoves (board, from) {
-  const moves = []
+function getWhitePawnMoves (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'P') return moves
   const {x, y} = parseRef(from)
@@ -128,8 +128,8 @@ function getWhitePawnMoves (board, from) {
   return moves
 }
 
-function getBlackPawnThreats (board, log, from) {
-  const moves = []
+function getBlackPawnThreats (board: any, log: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'p') return moves
 
@@ -173,8 +173,8 @@ function getBlackPawnThreats (board, log, from) {
   return moves
 }
 
-function getBlackPawnMoves (board, from) {
-  const moves = []
+function getBlackPawnMoves (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'p') return moves
 
@@ -200,8 +200,8 @@ function getBlackPawnMoves (board, from) {
   return moves
 }
 
-function getRookThreats (board, from) {
-  const moves = []
+function getRookThreats (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'r' && piece !== 'R') return moves
   moves.push(...getMovesInDirection(board, from, [1, 0]))
@@ -211,8 +211,8 @@ function getRookThreats (board, from) {
   return moves
 }
 
-function getQueenThreats (board, from) {
-  const moves = []
+function getQueenThreats (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'q' && piece !== 'Q') return moves
   moves.push(...getMovesInDirection(board, from, [1, 0]))
@@ -226,8 +226,8 @@ function getQueenThreats (board, from) {
   return moves
 }
 
-function getBishopThreats (board, from) {
-  const moves = []
+function getBishopThreats (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'b' && piece !== 'B') return moves
   moves.push(...getMovesInDirection(board, from, [1, 1]))
@@ -237,8 +237,8 @@ function getBishopThreats (board, from) {
   return moves
 }
 
-function getKnightThreats (board, from) {
-  const moves = []
+function getKnightThreats (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'n' && piece !== 'N') return moves
   moves.push(...getMovesInDirection(board, from, [2, 1], true))
@@ -252,8 +252,8 @@ function getKnightThreats (board, from) {
   return moves
 }
 
-function getKingThreats (board, from) {
-  const moves = []
+function getKingThreats (board: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'k' && piece !== 'K') return moves
   moves.push(...getMovesInDirection(board, from, [0, 1], true))
@@ -268,8 +268,8 @@ function getKingThreats (board, from) {
   return moves
 }
 
-function getKingMoves (board, log, from) {
-  const moves = []
+function getKingMoves (board: any, log: any, from: any) {
+  const moves = [] as any
   const piece = pieceAt(board, from)
   if (piece !== 'k' && piece !== 'K') return moves
 
@@ -321,23 +321,23 @@ function getKingMoves (board, log, from) {
   return moves
 }
 
-function filterMovesIntoCheck (board, movesToTry) {
-  const moves = []
-  movesToTry.forEach(move => {
+function filterMovesIntoCheck (board: any, movesToTry: any) {
+  const moves = [] as any
+  movesToTry.forEach((move: any) => {
     if (!isMoveIntoCheck(board, move)) moves.push(move)
   })
   return moves
 }
 
-function isMoveIntoCheck (board, moveRef) {
+function isMoveIntoCheck (board: any, moveRef: any) {
   const move = parseMove(moveRef)
   const boardAfter = applyMove(board, move)
   const color = colorAt(board, move.from)
   return isInCheck(boardAfter, color)
 }
 
-function isThreatenedByColor (board, ref, color) {
-  const moves = []
+function isThreatenedByColor (board: any, ref: any, color: any) {
+  const moves = [] as any
   for (let ix = 0; ix <= 7; ix++) {
     for (let iy = 0; iy <= 7; iy++) {
       if (colorAt(board, [ix, iy]) === color) {
@@ -346,11 +346,11 @@ function isThreatenedByColor (board, ref, color) {
     }
   }
 
-  return !!moves.find(x => refsAreEqual(x.to, ref))
+  return !!moves.find((x: any) => refsAreEqual(x.to, ref))
 }
 
-function threatsByPieceTo (board, piece, ref) {
-  const moves = []
+function threatsByPieceTo (board: any, piece: any, ref: any) {
+  const moves = [] as any
   for (let ix = 0; ix <= 7; ix++) {
     for (let iy = 0; iy <= 7; iy++) {
       if (pieceAt(board, [ix, iy]) === piece) {
@@ -359,10 +359,10 @@ function threatsByPieceTo (board, piece, ref) {
     }
   }
 
-  return moves.filter(x => refsAreEqual(x.to, ref))
+  return moves.filter((x: any) => refsAreEqual(x.to, ref))
 }
 
-function isInCheck (board, color) {
+function isInCheck (board: any, color: any) {
   const king = findPiece(board, color === black ? 'k' : 'K')
   // this is to support boards without a king, primarily for tests (perhaps fix the tests?)
   if (king) {
@@ -373,7 +373,7 @@ function isInCheck (board, color) {
   }
 }
 
-function canMoveOnTurn (board, log, moveRef) {
+function canMoveOnTurn (board: any, log:any, moveRef: any) {
   const move = parseMove(moveRef)
   const color = colorAt(board, move.from)
   const turn = log.length % 2 ? black : white
@@ -381,20 +381,20 @@ function canMoveOnTurn (board, log, moveRef) {
   return canMove(board, log, move)
 }
 
-function canMove (board, log, moveRef) {
+function canMove (board: any, log:any, moveRef: any) {
   const move = parseMove(moveRef)
   const moves = getMovesFrom(board, log, move.from)
   const allowedMoves = filterMovesIntoCheck(board, moves)
-  return !!allowedMoves.find(x => movesAreEqual(x, move))
+  return !!allowedMoves.find((x:any) => movesAreEqual(x, move))
 }
 
-function getPossibleMoves (board, log) {
+function getPossibleMoves (board: any, log: any) {
   const color = log.length % 2 ? black : white
   return getPossibleMovesFor(board, color, log)
 }
 
-function getPossibleMovesFor (board, color, log) {
-  const moves = []
+function getPossibleMovesFor (board: any, color: any, log: any) {
+  const moves = [] as any
   for (let ix = 0; ix <= 7; ix++) {
     for (let iy = 0; iy <= 7; iy++) {
       if (!emptyAt(board, [ix, iy]) && colorAt(board, [ix, iy]) === color) {
@@ -407,11 +407,11 @@ function getPossibleMovesFor (board, color, log) {
   return allowedMoves
 }
 
-function allPiecesSorted (board) {
+function allPiecesSorted (board: any) {
   return board.join('').replace(/\W/g, '').split('').sort().join('')
 }
 
-function analyse (board) {
+function analyse (board: any) {
   const blackInCheck = isInCheck(board, black)
   const whiteInCheck = isInCheck(board, white)
   if (blackInCheck && whiteInCheck) return 'Invalid - both in check'
@@ -444,7 +444,7 @@ function analyse (board) {
   return null
 }
 
-function isPawnPromotion (board, moveRef) {
+function isPawnPromotion (board: any, moveRef: any) {
   const move = parseMove(moveRef)
   if (pieceAt(board, move.from) === 'P' && move.to.y === 7) {
     return true

@@ -1,21 +1,21 @@
 const black = 'black'
 const white = 'white'
 
-function movesAreEqual (moveRefA, moveRefB) {
+function movesAreEqual (moveRefA: any, moveRefB: any) {
   return moveToString(parseMove(moveRefA)) === moveToString(parseMove(moveRefB))
 }
 
-function moveToString (moveRef) {
+function moveToString (moveRef: any) {
   const move = parseMove(moveRef)
   const promoteSuffix = move.promoteTo ? '=' + move.promoteTo : ''
   return toRef(move.from) + '-' + toRef(move.to) + promoteSuffix
 }
 
-function parseMove (moveRef) {
+function parseMove (moveRef: any) {
   if (typeof moveRef === 'string') {
     const [both, promoteTo] = moveRef.split('=')
     const [from, to] = both.split('-')
-    const result = { from: parseRef(from), to: parseRef(to) }
+    const result = { from: parseRef(from), to: parseRef(to) } as any
     if (promoteTo) {
       result.promoteTo = promoteTo
     }
@@ -25,30 +25,30 @@ function parseMove (moveRef) {
   }
 }
 
-function moveBy (from, diff, promoteTo) {
+function moveBy (from: any, diff: any, promoteTo?: any) {
   const {x, y} = parseRef(from)
   const {x: dx, y: dy} = parseRef(diff)
   const result = {
     from: parseRef(from),
     to: parseRef([x + dx, y + dy])
-  }
+  } as any
   if (promoteTo) result.promoteTo = promoteTo
   return result
 }
 
-function moveTo (from, to) {
+function moveTo (from: any, to: any) {
   return {
     from: parseRef(from),
     to: parseRef(to)
   }
 }
 
-function parseRef (ref) {
+function parseRef (ref: any) {
   if (typeof ref === 'string') {
     const alphaToNumeric = {
       a: 0, b: 1, c: 2, d: 3, e: 4, f: 5, g: 6, h: 7
-    }
-    return { x: alphaToNumeric[ref[0]], y: ref[1] - 1 }
+    } as any
+    return { x: alphaToNumeric[ref[0]], y: ref[1] as any - 1 }
   } else if (Array.isArray(ref)) {
     return {x: ref[0], y: ref[1]}
   } else {
@@ -56,20 +56,20 @@ function parseRef (ref) {
   }
 }
 
-function refsAreEqual (refA, refB) {
+function refsAreEqual (refA: any, refB: any) {
   const a = parseRef(refA)
   const b = parseRef(refB)
   return toRef(a) === toRef(b)
 }
 
-function toRef (ref) {
+function toRef (ref: any) {
   if (ref === null) return null
   const numericToAlpha = 'abcdefgh'
   const {x, y} = parseRef(ref)
   return numericToAlpha[x] + (y + 1)
 }
 
-function colorOf (piece) {
+function colorOf (piece: any) {
   const blackPieces = 'rnbkqp'
   const whitePieces = 'RNBKQP'
   if (blackPieces.indexOf(piece) !== -1) return black
@@ -77,32 +77,32 @@ function colorOf (piece) {
   return piece
 }
 
-function pieceAt (board, ref) {
+function pieceAt (board: any, ref: any) {
   const {x, y} = parseRef(ref)
   return board[7 - y][x]
 }
 
-function colorAt (board, ref) {
+function colorAt (board: any, ref: any) {
   return colorOf(pieceAt(board, ref))
 }
 
-function blackAt (board, ref) {
+function blackAt (board: any, ref: any) {
   return colorAt(board, ref) === black
 }
 
-function whiteAt (board, ref) {
+function whiteAt (board: any, ref: any) {
   return colorAt(board, ref) === white
 }
 
-function emptyAt (board, ref) {
+function emptyAt (board: any, ref: any) {
   return pieceAt(board, ref) === '.'
 }
 
-function pieceHasMoved (board, log, ref, piece) {
-  return !(pieceAt(board, ref) === piece && !log.find(x => refsAreEqual(x, ref)))
+function pieceHasMoved (board: any, log: any, ref: any, piece: any) {
+  return !(pieceAt(board, ref) === piece && !log.find((x: any) => refsAreEqual(x, ref)))
 }
 
-function setPieceAt (board, ref, value) {
+function setPieceAt (board: any, ref: any, value: any) {
   const boardAfter = board.slice(0)
   let {x, y} = parseRef(ref)
 
@@ -112,7 +112,7 @@ function setPieceAt (board, ref, value) {
   return boardAfter
 }
 
-function findPiece (board, piece) {
+function findPiece (board: any, piece: any) {
   for (let x = 0; x <= 7; x++) {
     for (let y = 0; y <= 7; y++) {
       if (pieceAt(board, [x, y]) === piece) return {x, y}
@@ -120,7 +120,7 @@ function findPiece (board, piece) {
   }
 }
 
-function applyMove (board, moveRef) {
+function applyMove (board: any, moveRef: any) {
   const move = parseMove(moveRef)
   const piece = pieceAt(board, move.from)
   let boardAfter = setPieceAt(board, move.from, '.')

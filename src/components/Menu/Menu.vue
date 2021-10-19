@@ -55,6 +55,9 @@
           <li>
             <router-link to="/flat-css" @click="toggle()">flat.css</router-link>
           </li>
+          <li>
+            <router-link to="/quantum-particles" @click="toggle()">Quantum Particles</router-link>
+          </li>
         </ul>
       </nav>
     </div>

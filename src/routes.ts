@@ -12,6 +12,7 @@ const Stocks = () => import("./components/Stocks/Stocks.vue");
 const GoogleMaps = () => import("./components/GoogleMaps/GoogleMaps.vue");
 const GoogleAuth = () => import("./components/GoogleAuth/GoogleAuth.vue");
 const FlatCss = () => import("./components/FlatCss/FlatCss.vue");
+const QuantumParticles = () => import("./components/QuantumParticles/QuantumParticles.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -32,4 +33,5 @@ export const routes = [
   { path: "/scope=:scope(.*)", component: GoogleAuth },
   { path: "/google-auth", component: GoogleAuth },
   { path: "/flat-css", component: FlatCss },
+  { path: "/quantum-particles", component: QuantumParticles },
 ];

@@ -58,6 +58,9 @@
           <li>
             <router-link to="/quantum-particles" @click="toggle()">Quantum Particles</router-link>
           </li>
+          <li>
+            <router-link to="/n-queens" @click="toggle()">n-Queens</router-link>
+          </li>
         </ul>
       </nav>
     </div>

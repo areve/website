@@ -13,6 +13,7 @@ const GoogleMaps = () => import("./components/GoogleMaps/GoogleMaps.vue");
 const GoogleAuth = () => import("./components/GoogleAuth/GoogleAuth.vue");
 const FlatCss = () => import("./components/FlatCss/FlatCss.vue");
 const QuantumParticles = () => import("./components/QuantumParticles/QuantumParticles.vue");
+const NQueens = () => import("./components/NQueens/NQueens.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -34,4 +35,5 @@ export const routes = [
   { path: "/google-auth", component: GoogleAuth },
   { path: "/flat-css", component: FlatCss },
   { path: "/quantum-particles", component: QuantumParticles },
+  { path: "/n-queens", component: NQueens },
 ];

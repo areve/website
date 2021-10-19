@@ -43,7 +43,7 @@
 
 <script lang="ts">
 
-import ChessBoard from "../ChessBoard/ChessBoard.vue";
+import ChessBoard from "./ChessBoard.vue";
 import { defineComponent } from "vue";
 
 export default defineComponent({

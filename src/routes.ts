@@ -14,6 +14,7 @@ const GoogleAuth = () => import("./components/GoogleAuth/GoogleAuth.vue");
 const FlatCss = () => import("./components/FlatCss/FlatCss.vue");
 const QuantumParticles = () => import("./components/QuantumParticles/QuantumParticles.vue");
 const NQueens = () => import("./components/NQueens/NQueens.vue");
+const Chess = () => import("./components/Chess/Chess.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -36,4 +37,5 @@ export const routes = [
   { path: "/flat-css", component: FlatCss },
   { path: "/quantum-particles", component: QuantumParticles },
   { path: "/n-queens", component: NQueens },
+  { path: "/chess", component: Chess },
 ];

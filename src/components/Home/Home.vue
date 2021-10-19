@@ -7,8 +7,8 @@
       </p>
       <p>The site contains some of the many experiments I've created
       over years, they were converted to typescript when they were
-      added into this Vue3 site, as a result some of the code isn't the best it
-      could be. 
+      added into this Vue3 site, as a result some of the typescript isn't 
+      as good as it would be if I had originally coded it typescript. 
       </p>
       <p>I think in an Lean and Agile way, this means that each page is a
       micro project or prototype that is complete in some way - although the

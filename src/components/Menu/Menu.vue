@@ -61,6 +61,9 @@
           <li>
             <router-link to="/n-queens" @click="toggle()">n-Queens</router-link>
           </li>
+          <li>
+            <router-link to="/chess" @click="toggle()">Chess</router-link>
+          </li>
         </ul>
       </nav>
     </div>

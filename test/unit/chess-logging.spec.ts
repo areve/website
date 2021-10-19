@@ -1,6 +1,4 @@
-
-// import * as chess from '@/components/Chess/chess'
-import * as chess from '../../src/components/Chess/chess'
+import * as chess from '@/components/Chess/chess'
 
 describe('move logging', () => {
   describe('Castling', () => {

@@ -1,6 +1,4 @@
-
-// import * as validate from '@/assets/chess-validate'
-import * as validate from '../../src/components/Chess/chess-validate'
+import * as validate from '@/components/Chess/chess-validate'
 
 describe('Board Analyse', () => {
   it('black is in check', () => {

@@ -27,7 +27,7 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ matrix.node-version }}-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install
-        run: yarn install --prefer-offline --frozen-lockfile
+        run: yarn install --cached --frozen-lockfile
         shell: bash
 
       - name: Test

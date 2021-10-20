@@ -107,8 +107,8 @@ export default defineComponent({
       move: "",
       board: [] as any,
       selected: null,
-      log: [] as any,
-      humanLog: [] as any,
+      log: [] as string[],
+      humanLog: [] as string[],
       playRandom: false,
       status: "" as any,
       aiPlaysBlack: false,
@@ -121,16 +121,16 @@ export default defineComponent({
     };
   },
   computed: {
-    moveCount() {
+    moveCount(): number {
       return ~~(this.log.length / 2) + 1;
     },
-    boardRender() {
-      return this.board.map((x) => x.replace(/\./g, " ").split(""));
+    boardRender(): string[] {
+      return this.board.map((x: any) => x.replace(/\./g, " ").split(""));
     },
-    boardString() {
+    boardString(): string {
       return this.board.join("\n");
     },
-    gameLog() {
+    gameLog(): string {
       const result = [];
       let i = 0;
       while (this.humanLog.length > i) {
@@ -142,7 +142,7 @@ export default defineComponent({
       }
       return result.join("");
     },
-    turn() {
+    turn(): string {
       return this.log.length % 2 ? "black" : "white";
     },
     highlight() {

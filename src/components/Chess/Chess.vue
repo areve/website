@@ -78,7 +78,7 @@
       </label>
     </fieldset>
     <fieldset>
-      <label or="move">Move</label>
+      <label for="move">Move</label>
       <input
         id="move"
         v-model="move"

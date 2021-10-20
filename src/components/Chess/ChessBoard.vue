@@ -28,21 +28,22 @@
   </div>
 </template>
 
-<script>
-/* eslint-disable */
-export default {
+<script lang="ts">
+import { defineComponent } from "vue";
+
+export default defineComponent({
   props: ["board", "highlight", "selected"],
   data() {
     return {};
   },
   methods: {
-    clickSquare(ref) {
+    clickSquare(ref: any) {
       this.$emit("clickSquare", ref);
     },
-    getHighlight(ref) {
-      const result = {};
+    getHighlight(ref: any) {
+      const result = {} as any;
       if (this.highlight) {
-        this.highlight.forEach((coord) => {
+        this.highlight.forEach((coord: any) => {
           if (coord.x === ref.x && coord.y === ref.y) {
             result.highlight = true;
           }
@@ -58,7 +59,7 @@ export default {
       return result;
     },
   },
-};
+});
 </script>
 
 <style scoped>
@@ -69,18 +70,16 @@ tr:nth-child(odd) td:nth-child(even) {
 
 tr:nth-child(even) td:nth-child(odd).highlight {
   background-color: #fc0;
-
 }
 tr:nth-child(odd) td:nth-child(even).selected {
-  background-color: #bbf;  
+  background-color: #bbf;
 }
 
 tr:nth-child(odd) td:nth-child(even).highlight {
   background-color: #fc0;
-
 }
 tr:nth-child(even) td:nth-child(odd).selected {
-  background-color: #bbf;  
+  background-color: #bbf;
 }
 
 tr td {

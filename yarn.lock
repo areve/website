@@ -1616,7 +1616,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@vue/devtools-api@npm:^6.0.0-beta.14":
+"@vue/devtools-api@npm:^6.0.0-beta.11, @vue/devtools-api@npm:^6.0.0-beta.14":
   version: 6.0.0-beta.19
   resolution: "@vue/devtools-api@npm:6.0.0-beta.19"
   checksum: 2eecb7096540ed2777d16e9be21f81429cc8eeed8fcef14dc0481db3f213dad8e3534e099cf268bc91ffbc5a721b3e5252a3ae38a5cc9f67ab59ee24204e974c
@@ -6325,6 +6325,17 @@ resolve@^1.20.0:
   languageName: node
   linkType: hard
 
+"vuex@npm:next":
+  version: 4.0.2
+  resolution: "vuex@npm:4.0.2"
+  dependencies:
+    "@vue/devtools-api": ^6.0.0-beta.11
+  peerDependencies:
+    vue: ^3.0.2
+  checksum: d7c03f0afcbad045ef58921a4baa9ec23bc12c71dbaf1317f1df94e7d8740ce839b9fac48ec775955ce7a8893dceb7217bc05e45421fc6bacc559ed3541e6052
+  languageName: node
+  linkType: hard
+
 "w3c-hr-time@npm:^1.0.2":
   version: 1.0.2
   resolution: "w3c-hr-time@npm:1.0.2"
@@ -6406,6 +6417,7 @@ resolve@^1.20.0:
     vue-router: ^4.0.11
     vue3-google-auth: ^0.0.2
     vue3-jest: ^27.0.0-alpha.1
+    vuex: next
     yfinance-live: ^0.3.3
   languageName: unknown
   linkType: soft

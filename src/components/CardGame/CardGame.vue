@@ -3,11 +3,12 @@
     <h1>Card Game</h1>
     <p>This work in progress may become a multiplayer card game.</p>
     <ol>
-      <li>Move data to vuex</li>
       <li>Make cards drag and droppable</li>
       <li>User Google firebase</li>
       <li>User Google config</li>
     </ol>
+    <button type="button" @click="increment">next {{ count }}</button>
+    <button type="button" @click="reset">reset</button>
     <h2>Players</h2>
     <ul>
       <li v-for="player in players" :key="player.id">
@@ -35,68 +36,27 @@
 
 <script lang="ts">
 import { defineComponent } from "vue";
+import { mapGetters, mapActions } from "vuex";
 
 export default defineComponent({
   name: "CardGame",
   setup() {
-    return {
-      players: [
-        {
-          id: "alex",
-          name: "alex",
-          hand: [
-            {
-              id: "ace-of-hearts",
-              faceUp: true,
-            },
-          ],
-        },
-        {
-          id: "steve",
-          name: "steve",
-          hand: [
-            {
-              id: "9-of-spades",
-              faceUp: true,
-            },
-            {
-              id: "8-of-spades",
-              faceUp: true,
-            },
-          ],
-        },
-      ],
-      stacks: [
-        {
-          id: "draw",
-          faceUp: false,
-          cards: [
-            {
-              id: "2-of-hearts",
-              faceUp: true,
-            },
-            {
-              id: "queen-of-hearts",
-              faceUp: true,
-            },
-          ],
-        },
-        {
-          id: "discard",
-          faceUp: true,
-          cards: [
-            {
-              id: "3-of-clubs",
-              faceUp: true,
-            },
-            {
-              id: "king-of-diamonds",
-              faceUp: true,
-            },
-          ],
-        },
-      ],
-    };
+    return {};
+  },
+  computed: {
+    ...mapGetters({
+      count: "CardGame/count",
+      players: "CardGame/players",
+      stacks: "CardGame/stacks",
+    }),
+  },
+  methods: {
+    increment() {
+      this.$store.commit("CardGame/increment");
+    },
+    ...mapActions({
+      reset: "CardGame/reset"
+    })
   },
 });
 </script>

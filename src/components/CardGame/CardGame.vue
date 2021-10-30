@@ -2,7 +2,12 @@
   <section>
     <h1>Card Game</h1>
     <p>This work in progress may become a multiplayer card game.</p>
-
+    <ol>
+      <li>Move data to vuex</li>
+      <li>Make cards drag and droppable</li>
+      <li>User Google firebase</li>
+      <li>User Google config</li>
+    </ol>
     <h2>Players</h2>
     <ul>
       <li v-for="player in players" :key="player.id">

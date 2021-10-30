@@ -64,6 +64,9 @@
           <li>
             <router-link to="/chess" @click="toggle()">Chess</router-link>
           </li>
+          <!-- <li>
+            <router-link to="/card-game" @click="toggle()">Card Game</router-link>
+          </li> -->
         </ul>
       </nav>
     </div>

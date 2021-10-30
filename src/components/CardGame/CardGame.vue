@@ -14,7 +14,7 @@
       <li v-for="player in players" :key="player.id">
         <h3>{{ player.name }}</h3>
         <ul>
-          <li v-for="card in player.hand" :key="card.id">
+          <li v-for="card in player.cards" :key="card.id">
             {{ card.id }}
           </li>
         </ul>

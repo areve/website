@@ -1,11 +1,12 @@
 export interface CardGameState {
   count: number;
-  players: any[];
-  stacks: any[];
+  players: Player[];
+  stacks: Stack[];
 }
 
 import { RootState } from "@/store";
 import { ActionContext } from "vuex";
+import { Player, Stack } from "./lib/cards";
 
 type Context = ActionContext<CardGameState, RootState>;
 
@@ -16,7 +17,7 @@ export const CardGame = {
       {
         id: "alex",
         name: "alex",
-        hand: [
+        cards: [
           {
             id: "ace-of-hearts",
             faceUp: true,
@@ -26,7 +27,7 @@ export const CardGame = {
       {
         id: "steve",
         name: "steve",
-        hand: [
+        cards: [
           {
             id: "9-of-spades",
             faceUp: true,

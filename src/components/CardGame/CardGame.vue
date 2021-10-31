@@ -7,25 +7,25 @@
       <li>User Google config</li>
       <li>Add players</li>
     </ol>
-    <ul class="groups">
+    <ul class="cardGroups">
       <li
-        v-for="group in cardGroups"
-        :key="group.id"
-        class="group"
-        @drop.stop="moveCard($event, group.id)"
+        v-for="cardGroup in cardGroups"
+        :key="cardGroup.id"
+        class="cardGroup"
+        @drop.stop="moveCard($event, cardGroup.id)"
         @dragover.prevent
       >
-        <h3>{{ group.id }}</h3>
+        <h3>{{ cardGroup.id }}</h3>
         <ul class="cards">
           <li
-            v-for="card in group.cards"
+            v-for="card in cardGroup.cards"
             :key="card.id"
             draggable="true"
             class="card"
             :class="{ dragging: card.dragging }"
-            @dragstart="pickupCard($event, card, group.id)"
+            @dragstart="pickupCard($event, card, cardGroup.id)"
             @dragend="dropCard($event, card)"
-            @drop.stop="moveCard($event, group.id, card.id)"
+            @drop.stop="moveCard($event, cardGroup.id, card.id)"
           >
             {{ card.id }}
           </li>
@@ -57,20 +57,20 @@ export default defineComponent({
     dropCard(e: DTDragEvent, card: any) {
       card.dragging = false;
     },
-    pickupCard(e: DTDragEvent, card: any, groupId: any) {
+    pickupCard(e: DTDragEvent, card: any, cardGroupId: any) {
       card.dragging = true;
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.dropEffect = "move";
       e.dataTransfer.setData("card-id", card.id);
-      e.dataTransfer.setData("from-group-id", groupId);
+      e.dataTransfer.setData("from-card-group-id", cardGroupId);
     },
-    moveCard(e: DTDragEvent, toGroupId: string, toCardId?: string) {
-      const fromGroupId = e.dataTransfer.getData("from-group-id");
+    moveCard(e: DTDragEvent, toCardGroupId: string, toCardId?: string) {
+      const fromCardGroupId = e.dataTransfer.getData("from-card-group-id");
       const cardId = e.dataTransfer.getData("card-id");
       this.$store.commit(MOVE_CARD, {
-        fromGroupId,
+        fromCardGroupId,
         cardId,
-        toGroupId,
+        toCardGroupId,
         toCardId
       });
     },
@@ -93,10 +93,10 @@ export default defineComponent({
   opacity: 0.1;
 }
 ul.cards,
-ul.groups {
+ul.cardGroups {
   padding-left: 0;
 }
-.group {
+.cardGroup {
   border: 1px solid #ccc;
   box-shadow: 0.25em 0.25em 0.5em rgba(0, 0, 0, 0.3);
   padding: 0.25em 0.5em;

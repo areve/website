@@ -82,21 +82,21 @@ export const CardGame = {
     [MOVE_CARD](
       state: CardGameState,
       {
-        fromGroupId,
+        fromCardGroupId,
         cardId,
-        toGroupId,
+        toCardGroupId,
         toCardId,
       }: {
-        fromGroupId: string;
+        fromCardGroupId: string;
         cardId: string;
-        toGroupId: string;
+        toCardGroupId: string;
         toCardId: string;
       }
     ) {
       const fromCards = state.cardGroups.find(
-        (x) => x.id === fromGroupId
+        (x) => x.id === fromCardGroupId
       )!.cards;
-      const toCards = state.cardGroups.find((x) => x.id === toGroupId)!.cards;
+      const toCards = state.cardGroups.find((x) => x.id === toCardGroupId)!.cards;
       const fromCardIndex = fromCards.findIndex((x) => cardId === x.id);
       const toCardIndex = toCards.findIndex((x) => toCardId === x.id);
       const cardToMove = fromCards.splice(fromCardIndex, 1)[0];

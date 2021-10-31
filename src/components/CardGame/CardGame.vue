@@ -86,8 +86,6 @@ export default defineComponent({
       card.dragging = false;
     },
     pickupCard(e: DTDragEvent, card: any, StackId: any) {
-      console.log("pickupCard", e);
-
       card.dragging = true;
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.dropEffect = "move";

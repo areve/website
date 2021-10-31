@@ -86,6 +86,13 @@ export const CardGame = {
     increment(state: CardGameState) {
       state.count++;
     },
+    moveCard (state: CardGameState, { fromStackId, cardId, toStackId }) {
+      const fromCards = state.stacks.find((x) => x.id === fromStackId)!.cards;
+      const toCards = state.stacks.find((x) => x.id === toStackId)!.cards;
+      const cardIndex = fromCards.findIndex(x => cardId === x.id)
+      const cardToMove = fromCards.splice(cardIndex, 1)[0]
+      toCards.unshift(cardToMove)
+    }
   },
 
   getters: {

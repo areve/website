@@ -4,8 +4,11 @@ import { CardGameState } from "./CardGameState";
 
 // type Context = ActionContext<CardGameState, RootState>;
 
+export const MOVE_CARD = 'moveCard'
+export const GET_CARD_GROUPS = 'getCardGroups'
+
 export const CardGame = {
-  namespaced: true,
+  namespaced: false,
   state: (): CardGameState => ({
     // players: [
     //   {
@@ -76,7 +79,7 @@ export const CardGame = {
     // setCount(state: CardGameState, value: number) {
     //   state.count = value;
     // },
-    moveCard(
+    [MOVE_CARD](
       state: CardGameState,
       {
         fromGroupId,
@@ -104,6 +107,6 @@ export const CardGame = {
   getters: {
     // count: (state: any) => state.count,
     // players: (state: any) => state.players,
-    cardGroups: (state: any) => state.cardGroups,
+    [GET_CARD_GROUPS]: (state: any) => state.cardGroups,
   },
 };

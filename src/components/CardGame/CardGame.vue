@@ -39,6 +39,7 @@
 type DTDragEvent = DragEvent & { dataTransfer?: DataTransfer };
 import { defineComponent } from "vue";
 import { mapGetters, mapActions } from "vuex";
+import { GET_CARD_GROUPS, MOVE_CARD } from "./CardGameStore";
 
 export default defineComponent({
   name: "CardGame",
@@ -49,7 +50,7 @@ export default defineComponent({
     ...mapGetters({
       // count: "CardGame/count",
       // players: "CardGame/players",
-      cardGroups: "CardGame/cardGroups",
+      cardGroups: GET_CARD_GROUPS,
     }),
   },
   methods: {
@@ -66,7 +67,7 @@ export default defineComponent({
     moveCard(e: DTDragEvent, toGroupId: string, toCardId?: string) {
       const fromGroupId = e.dataTransfer.getData("from-group-id");
       const cardId = e.dataTransfer.getData("card-id");
-      this.$store.commit("CardGame/moveCard", {
+      this.$store.commit(MOVE_CARD, {
         fromGroupId,
         cardId,
         toGroupId,

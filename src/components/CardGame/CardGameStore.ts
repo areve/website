@@ -86,7 +86,7 @@ export const CardGame = {
     increment(state: CardGameState) {
       state.count++;
     },
-    moveCard (state: CardGameState, { fromStackId, cardId, toStackId }) {
+    moveCard (state: CardGameState, { fromStackId, cardId, toStackId }: { fromStackId: string, cardId: string, toStackId: string }) {
       const fromCards = state.stacks.find((x) => x.id === fromStackId)!.cards;
       const toCards = state.stacks.find((x) => x.id === toStackId)!.cards;
       const cardIndex = fromCards.findIndex(x => cardId === x.id)

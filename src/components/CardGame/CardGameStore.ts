@@ -76,13 +76,29 @@ export const CardGame = {
     // setCount(state: CardGameState, value: number) {
     //   state.count = value;
     // },
-    moveCard (state: CardGameState, { fromGroupId, cardId, toGroupId }: { fromGroupId: string, cardId: string, toGroupId: string }) {
-      const fromCards = state.cardGroups.find((x) => x.id === fromGroupId)!.cards;
+    moveCard(
+      state: CardGameState,
+      {
+        fromGroupId,
+        cardId,
+        toGroupId,
+        toCardId,
+      }: {
+        fromGroupId: string;
+        cardId: string;
+        toGroupId: string;
+        toCardId: string;
+      }
+    ) {
+      const fromCards = state.cardGroups.find(
+        (x) => x.id === fromGroupId
+      )!.cards;
       const toCards = state.cardGroups.find((x) => x.id === toGroupId)!.cards;
-      const cardIndex = fromCards.findIndex(x => cardId === x.id)
-      const cardToMove = fromCards.splice(cardIndex, 1)[0]
-      toCards.unshift(cardToMove)
-    }
+      const fromCardIndex = fromCards.findIndex((x) => cardId === x.id);
+      const toCardIndex = toCards.findIndex((x) => toCardId === x.id);
+      const cardToMove = fromCards.splice(fromCardIndex, 1)[0];
+      toCards.splice(toCardIndex, 0, cardToMove);
+    },
   },
 
   getters: {

@@ -12,7 +12,7 @@
         v-for="group in cardGroups"
         :key="group.id"
         class="group"
-        @drop="moveCard($event, group.id)"
+        @drop.stop="moveCard($event, group.id)"
         @dragover.prevent
       >
         <h3>{{ group.id }}</h3>
@@ -25,6 +25,7 @@
             :class="{ dragging: card.dragging }"
             @dragstart="pickupCard($event, card, group.id)"
             @dragend="dropCard($event, card)"
+            @drop.stop="moveCard($event, group.id, card.id)"
           >
             {{ card.id }}
           </li>
@@ -62,13 +63,14 @@ export default defineComponent({
       e.dataTransfer.setData("card-id", card.id);
       e.dataTransfer.setData("from-group-id", groupId);
     },
-    moveCard(e: DTDragEvent, toGroupId: string) {
+    moveCard(e: DTDragEvent, toGroupId: string, toCardId?: string) {
       const fromGroupId = e.dataTransfer.getData("from-group-id");
       const cardId = e.dataTransfer.getData("card-id");
       this.$store.commit("CardGame/moveCard", {
         fromGroupId,
         cardId,
         toGroupId,
+        toCardId
       });
     },
   },

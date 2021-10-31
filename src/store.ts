@@ -1,5 +1,6 @@
 import { createStore } from "vuex";
-import { CardGame, CardGameState } from "./components/CardGame/CardGameStore";
+import { CardGame } from "./components/CardGame/CardGameStore";
+import { CardGameState } from "./components/CardGame/CardGameState";
 
 export interface RootState {
   CardGame: CardGameState;

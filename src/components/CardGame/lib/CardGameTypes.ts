@@ -72,13 +72,13 @@ export interface CardState {
   faceUp: boolean;
 }
 
-export interface Player {
-  id: string;
-  name: string;
-  cards: CardState[];
-}
+// export interface Player {
+//   id: string;
+//   name: string;
+//   cards: CardState[];
+// }
 
-export interface Stack {
+export interface CardGroup {
   id: string;
   faceUp: boolean;
   cards: CardState[];

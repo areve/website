@@ -31,4 +31,11 @@ h2 {
   letter-spacing: 0.1em;
   font-size: 2.5em;
 }
+
+
+h3 {
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  font-size: 1.25em;
+}
 </style>

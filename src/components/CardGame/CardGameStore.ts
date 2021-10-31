@@ -1,45 +1,39 @@
-export interface CardGameState {
-  count: number;
-  players: Player[];
-  stacks: Stack[];
-}
+// import { RootState } from "@/store";
+// import { ActionContext } from "vuex";
+import { CardGameState } from "./CardGameState";
 
-import { RootState } from "@/store";
-import { ActionContext } from "vuex";
-import { Player, Stack } from "./lib/cards";
-
-type Context = ActionContext<CardGameState, RootState>;
+// type Context = ActionContext<CardGameState, RootState>;
 
 export const CardGame = {
   namespaced: true,
   state: (): CardGameState => ({
-    players: [
-      {
-        id: "alex",
-        name: "alex",
-        cards: [
-          {
-            id: "ace-of-hearts",
-            faceUp: true,
-          },
-        ],
-      },
-      {
-        id: "steve",
-        name: "steve",
-        cards: [
-          {
-            id: "9-of-spades",
-            faceUp: true,
-          },
-          {
-            id: "8-of-spades",
-            faceUp: true,
-          },
-        ],
-      },
-    ],
-    stacks: [
+    // players: [
+    //   {
+    //     id: "alex",
+    //     name: "alex",
+    //     cards: [
+    //       {
+    //         id: "ace-of-hearts",
+    //         faceUp: true,
+    //       },
+    //     ],
+    //   },
+    //   {
+    //     id: "steve",
+    //     name: "steve",
+    //     cards: [
+    //       {
+    //         id: "9-of-spades",
+    //         faceUp: true,
+    //       },
+    //       {
+    //         id: "8-of-spades",
+    //         faceUp: true,
+    //       },
+    //     ],
+    //   },
+    // ],
+    cardGroups: [
       {
         id: "draw",
         faceUp: false,
@@ -69,26 +63,22 @@ export const CardGame = {
         ],
       },
     ],
-    count: 0,
   }),
 
   actions: {
-    reset({ commit, state }: Context) {
-      if (state.count === 0) return;
-      commit("setCount", 0);
-    },
+    // reset({ commit, state }: Context) {
+    //   if (state.count === 0) return;
+    //   commit("setCount", 0);
+    // },
   },
 
   mutations: {
-    setCount(state: CardGameState, value: number) {
-      state.count = value;
-    },
-    increment(state: CardGameState) {
-      state.count++;
-    },
-    moveCard (state: CardGameState, { fromStackId, cardId, toStackId }: { fromStackId: string, cardId: string, toStackId: string }) {
-      const fromCards = state.stacks.find((x) => x.id === fromStackId)!.cards;
-      const toCards = state.stacks.find((x) => x.id === toStackId)!.cards;
+    // setCount(state: CardGameState, value: number) {
+    //   state.count = value;
+    // },
+    moveCard (state: CardGameState, { fromGroupId, cardId, toGroupId }: { fromGroupId: string, cardId: string, toGroupId: string }) {
+      const fromCards = state.cardGroups.find((x) => x.id === fromGroupId)!.cards;
+      const toCards = state.cardGroups.find((x) => x.id === toGroupId)!.cards;
       const cardIndex = fromCards.findIndex(x => cardId === x.id)
       const cardToMove = fromCards.splice(cardIndex, 1)[0]
       toCards.unshift(cardToMove)
@@ -96,8 +86,8 @@ export const CardGame = {
   },
 
   getters: {
-    count: (state: any) => state.count,
-    players: (state: any) => state.players,
-    stacks: (state: any) => state.stacks,
+    // count: (state: any) => state.count,
+    // players: (state: any) => state.players,
+    cardGroups: (state: any) => state.cardGroups,
   },
 };

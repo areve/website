@@ -8,28 +8,29 @@
       <li>Add players</li>
     </ol>
     <ul class="cardGroups">
-      <li
-        v-for="cardGroup in cardGroups"
-        :key="cardGroup.id"
-        class="cardGroup"
-        @drop.stop="moveCard($event, cardGroup.id)"
-        @dragover.prevent
-      >
-        <h3>{{ cardGroup.id }}</h3>
-        <ul class="cards">
-          <li
-            v-for="card in cardGroup.cards"
-            :key="card.id"
-            draggable="true"
-            class="card"
-            :class="{ dragging: card.dragging }"
-            @dragstart="pickupCard($event, card, cardGroup.id)"
-            @dragend="dropCard($event, card)"
-            @drop.stop="moveCard($event, cardGroup.id, card.id)"
-          >
-            {{ card.id }}
-          </li>
-        </ul>
+      <li v-for="cardGroup in cardGroups" :key="cardGroup.id" class="cardGroup">
+        <card-game-drop @drop="moveCard" :cardGroupId="cardGroup.id">
+          <h3>{{ cardGroup.id }}</h3>
+          <ul class="cards">
+            <li
+              v-for="card in cardGroup.cards"
+              :key="card.id"
+              draggable="true"
+              class="card"
+              :class="{ dragging: card.dragging }"
+              @dragstart="pickupCard($event, card, cardGroup.id)"
+              @dragend="dropCard($event, card)"
+            >
+              <card-game-drop
+                @drop="moveCard"
+                :cardGroupId="cardGroup.id"
+                :cardId="card.id"
+              >
+                {{ card.id }}
+              </card-game-drop>
+            </li>
+          </ul>
+        </card-game-drop>
       </li>
     </ul>
   </section>
@@ -40,9 +41,14 @@ type DTDragEvent = DragEvent & { dataTransfer?: DataTransfer };
 import { defineComponent } from "vue";
 import { mapGetters, mapActions } from "vuex";
 import { GET_CARD_GROUPS, MOVE_CARD } from "./CardGameStore";
+import CardGameDrop from "./CardGameDrop.vue";
+import { CardDraggedInfo, CardDroppedInfo } from "./lib/CardGameTypes";
 
 export default defineComponent({
   name: "CardGame",
+  components: {
+    CardGameDrop,
+  },
   setup() {
     return {};
   },
@@ -59,20 +65,16 @@ export default defineComponent({
     },
     pickupCard(e: DTDragEvent, card: any, cardGroupId: any) {
       card.dragging = true;
+      const data: CardDraggedInfo = {
+        cardId: card.id,
+        fromCardGroupId: cardGroupId,
+      };
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.dropEffect = "move";
-      e.dataTransfer.setData("card-id", card.id);
-      e.dataTransfer.setData("from-card-group-id", cardGroupId);
+      e.dataTransfer.setData("data", JSON.stringify(data));
     },
-    moveCard(e: DTDragEvent, toCardGroupId: string, toCardId?: string) {
-      const fromCardGroupId = e.dataTransfer.getData("from-card-group-id");
-      const cardId = e.dataTransfer.getData("card-id");
-      this.$store.commit(MOVE_CARD, {
-        fromCardGroupId,
-        cardId,
-        toCardGroupId,
-        toCardId
-      });
+    moveCard(cardDraggedInfo: CardDraggedInfo & CardDroppedInfo) {
+      this.$store.commit(MOVE_CARD, cardDraggedInfo);
     },
   },
 });

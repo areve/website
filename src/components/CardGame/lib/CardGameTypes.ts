@@ -83,3 +83,14 @@ export interface CardGroup {
   faceUp: boolean;
   cards: CardState[];
 }
+
+
+export interface CardDroppedInfo {
+  toCardGroupId: string;
+  toCardId?: string;
+}
+
+export interface CardDraggedInfo {
+  cardId: string;
+  fromCardGroupId: string;
+}

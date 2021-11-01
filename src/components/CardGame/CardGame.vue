@@ -12,23 +12,21 @@
         <card-game-drop @drop="moveCard" :cardGroupId="cardGroup.id">
           <h3>{{ cardGroup.id }}</h3>
           <ul class="cards">
-            <li
+            <card-game-drag
               v-for="card in cardGroup.cards"
               :key="card.id"
-              draggable="true"
+              :cardId="card.id"
+              :cardGroupId="cardGroup.id"
               class="card"
-              :class="{ dragging: card.dragging }"
-              @dragstart="pickupCard($event, card, cardGroup.id)"
-              @dragend="dropCard($event, card)"
             >
-              <card-game-drop
+             <card-game-drop
                 @drop="moveCard"
                 :cardGroupId="cardGroup.id"
                 :cardId="card.id"
               >
                 {{ card.id }}
               </card-game-drop>
-            </li>
+            </card-game-drag>
           </ul>
         </card-game-drop>
       </li>
@@ -37,42 +35,28 @@
 </template>
 
 <script lang="ts">
-type DTDragEvent = DragEvent & { dataTransfer?: DataTransfer };
 import { defineComponent } from "vue";
-import { mapGetters, mapActions } from "vuex";
+import { mapGetters } from "vuex";
 import { GET_CARD_GROUPS, MOVE_CARD } from "./CardGameStore";
 import CardGameDrop from "./CardGameDrop.vue";
+import CardGameDrag from "./CardGameDrag.vue";
 import { CardDraggedInfo, CardDroppedInfo } from "./lib/CardGameTypes";
 
 export default defineComponent({
   name: "CardGame",
   components: {
     CardGameDrop,
+    CardGameDrag,
   },
   setup() {
     return {};
   },
   computed: {
     ...mapGetters({
-      // count: "CardGame/count",
-      // players: "CardGame/players",
       cardGroups: GET_CARD_GROUPS,
     }),
   },
   methods: {
-    dropCard(e: DTDragEvent, card: any) {
-      card.dragging = false;
-    },
-    pickupCard(e: DTDragEvent, card: any, cardGroupId: any) {
-      card.dragging = true;
-      const data: CardDraggedInfo = {
-        cardId: card.id,
-        fromCardGroupId: cardGroupId,
-      };
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.dropEffect = "move";
-      e.dataTransfer.setData("data", JSON.stringify(data));
-    },
     moveCard(cardDraggedInfo: CardDraggedInfo & CardDroppedInfo) {
       this.$store.commit(MOVE_CARD, cardDraggedInfo);
     },
@@ -91,9 +75,7 @@ export default defineComponent({
   border-radius: 0.5em;
   list-style: none;
 }
-.dragging {
-  opacity: 0.1;
-}
+
 ul.cards,
 ul.cardGroups {
   padding-left: 0;

@@ -18,6 +18,7 @@
               :cardId="card.id"
               :cardGroupId="cardGroup.id"
               class="card"
+              tag="li"
             >
              <card-game-drop
                 @drop="moveCard"

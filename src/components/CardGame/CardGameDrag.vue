@@ -1,18 +1,8 @@
-<template>
-  <li
-    @dragstart="pickup"
-    @dragend="drop"
-    draggable="true"
-    :class="{ dragging: this.dragging }"
-  >
-    <slot />
-  </li>
-</template>
-
 <script lang="ts">
 type DTDragEvent = DragEvent & { dataTransfer?: DataTransfer };
 import { defineComponent, ref } from "vue";
 import { CardDraggedInfo } from "./lib/CardGameTypes";
+import { h } from "vue";
 
 export default defineComponent({
   name: "CardGameDrag",
@@ -25,11 +15,28 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    tag: {
+      type: String,
+      required: false,
+      default: 'div'
+    },
   },
   setup() {
     return {
       dragging: ref(false),
     };
+  },
+  render() {
+    return h(
+      this.tag,
+      {
+        draggable: true,
+        onDragstart: this.pickup,
+        onDragend: this.drop,
+        class: [{ dragging: this.dragging }],
+      },
+      this.$slots.default && this.$slots.default()
+    );
   },
   methods: {
     drop() {

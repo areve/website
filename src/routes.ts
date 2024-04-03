@@ -16,6 +16,7 @@ const QuantumParticles = () => import("./components/QuantumParticles/QuantumPart
 const NQueens = () => import("./components/NQueens/NQueens.vue");
 const Chess = () => import("./components/Chess/Chess.vue");
 const CardGame = () => import("./components/CardGame/CardGame.vue");
+const Bible = () => import("./components/Bible/Bible.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -40,4 +41,5 @@ export const routes = [
   { path: "/n-queens", component: NQueens },
   { path: "/chess", component: Chess },
   { path: "/card-game", component: CardGame },
+  { path: "/bible", component: Bible },
 ];

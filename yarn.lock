@@ -1431,6 +1431,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/mersenne-twister@npm:^1":
+  version: 1.1.7
+  resolution: "@types/mersenne-twister@npm:1.1.7"
+  checksum: 10/2d97e98287573ef6bdf3684ac3ed80bc384e5f9e214d4fa20e0449642fe0bd77347a9c4f8ef5feedd137a22ae073f51e314d52fe3aa921c1ecb7b5cc0d5e3d93
+  languageName: node
+  linkType: hard
+
 "@types/micromatch@npm:^4.0.1":
   version: 4.0.2
   resolution: "@types/micromatch@npm:4.0.2"
@@ -4775,6 +4782,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"mersenne-twister@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "mersenne-twister@npm:1.1.0"
+  checksum: 10/1123526199091097102f2f91639ad7d5b3df4b098de9a4a72c835920e11ef0ce08e25737d5af1d363325a60da8804365eae8a41e03b7a46a1acc22e18fa8f261
+  languageName: node
+  linkType: hard
+
 "micromatch@npm:^4.0.2, micromatch@npm:^4.0.4":
   version: 4.0.4
   resolution: "micromatch@npm:4.0.4"
@@ -6396,6 +6410,7 @@ __metadata:
     "@types/events": "npm:^3.0.0"
     "@types/hammerjs": "npm:^2.0.39"
     "@types/jest": "npm:^27.0.2"
+    "@types/mersenne-twister": "npm:^1"
     "@types/node": "npm:^16.11.1"
     "@vitejs/plugin-vue": "npm:^1.2.3"
     "@vue/compiler-sfc": "npm:3.1.0-beta.7"
@@ -6410,6 +6425,7 @@ __metadata:
     fullscreen: "npm:^1.1.1"
     hammerjs: "npm:^2.0.8"
     jest: "npm:^27.3.1"
+    mersenne-twister: "npm:^1.1.0"
     node-fetch: "npm:^3.0.0"
     ts-jest: "npm:^27.0.7"
     typescript: "npm:^4.4.4"

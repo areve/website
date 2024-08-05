@@ -20,25 +20,43 @@ interface Props {
   // seed: 0;
 }
 const props = defineProps<Props>();
+
+const width = 256;
+const height = 256;
+const channels = 4;
+
 onMounted(async () => {
   render(getContext());
 });
+
+
+function getMapOfSeed(seed: number) {
+  console.log('getMapOfSeed', seed)
+  const data = new Float32Array(width * height * channels);
+  const generator = new MersenneTwister(seed);
+
+  for (let i = 0; i < width * height; i++) {
+    data[i] = generator.random_int();
+  }
+  return data
+
+}
+function getMapAtLocation(location: number[][]) {
+  let data = getMapOfSeed(0);
+  for(let i = 0; i < location.length; i++){
+    const seedAtCoord = data[location[i][1] * width + location[i][0]]
+    data = getMapOfSeed(seedAtCoord)
+  }
+  return data
+}
 
 function render(context: CanvasRenderingContext2D | null) {
   if (!context) return;
 
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-  const seed = 0;
-  const generator = new MersenneTwister(seed);
-  const width = 256;
-  const height = 256;
-  const channels = 4;
-  const data = new Float32Array(width * height * channels);
-
-  for (let i = 0; i < width * height; i++) {
-    data[i] = generator.random_int();
-  }
+  const location = [[0,0], [0,0], [0,0]]
+  const data = getMapAtLocation(location);
 
   const imageData = context.getImageData(0, 0, width, height);
   const pixelData = imageData.data;

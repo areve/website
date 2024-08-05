@@ -30,42 +30,49 @@ onMounted(async () => {
 });
 
 class PRNG {
-    private rng_state: Uint8Array;
+  private rng_state: Uint8Array;
 
-    constructor(seed: number) {
-        this.rng_state = new Uint8Array(16);
-        this.rng_state[0] = seed >>> 0 >> 24 & 0xff
-        this.rng_state[1] = seed >>> 0 >> 16 & 0xff
-        this.rng_state[2] = seed >>> 0 >> 8 & 0xff
-        this.rng_state[3] = seed >>> 0 >> 0 & 0xff
+  constructor(seed: number) {
+    // if (seed === 0) throw new Error("seed should not be zero");
+
+    this.rng_state = new Uint8Array(16);
+    this.rng_state[0] = ((seed >>> 0) >> 24) & 0xff;
+    this.rng_state[1] = ((seed >>> 0) >> 16) & 0xff;
+    this.rng_state[2] = ((seed >>> 0) >> 8) & 0xff;
+    this.rng_state[3] = ((seed >>> 0) >> 0) & 0xff;
+    // Zero state prevention
+    this.prevent_zero_state();
+  }
+
+  prevent_zero_state() {
+    for (let x = 16; x > 0; --x) {
+      if (++this.rng_state[x - 1]) {
+        break;
+      }
+    }
+  }
+  random_int(): number {
+    let carry = 0;
+    for (let x = 15; x > 0; --x) {
+      const result = this.rng_state[x - 1] + this.rng_state[x] + carry;
+      this.rng_state[x - 1] = result & 0xff; // keep only the lower 8 bits
+      carry = result >> 8; // get the carry (upper 8 bits)
     }
 
-    random_int(): number {
-        let carry = 0;
+    this.prevent_zero_state();
 
-        for (let x = 15; x > 0; --x) {
-            const result = this.rng_state[x - 1] + this.rng_state[x] + carry;
-            this.rng_state[x - 1] = result & 0xFF; // keep only the lower 8 bits
-            carry = result >> 8; // get the carry (upper 8 bits)
-        }
-
-        // Zero state prevention
-        for (let x = 16; x > 0; --x) {
-            if (++this.rng_state[x - 1]) {
-                break;
-            }
-        }
-
-        // return this.rng_state[0];
-        const value = (this.rng_state[0] << 24) | (this.rng_state[1] << 16) | (this.rng_state[2] << 8) | this.rng_state[3];
-        return value >>> 0; // Ensure the result is treated as an unsigned 32-bit integer
-    }
+    // return this.rng_state[0];
+    const value =
+      (this.rng_state[0] << 24) |
+      (this.rng_state[1] << 16) |
+      (this.rng_state[2] << 8) |
+      this.rng_state[3];
+    return value >>> 0; // Ensure the result is treated as an unsigned 32-bit integer
+  }
 }
 
-
-
 function getMapOfSeed(seed: number) {
-  console.log('getMapOfSeed', seed)
+  console.log("getMapOfSeed", seed);
   const data = new Float32Array(width * height * channels);
   // const generator = new MersenneTwister(seed);
   const generator = new PRNG(seed);
@@ -73,16 +80,16 @@ function getMapOfSeed(seed: number) {
   for (let i = 0; i < width * height; i++) {
     data[i] = generator.random_int();
   }
-  return data
+  return data;
 }
 
 function getMapAtLocation(location: number[][]) {
   let data = getMapOfSeed(0);
-  for(let i = 0; i < location.length; i++){
-    const seedAtCoord = data[location[i][1] * width + location[i][0]]
-    data = getMapOfSeed(seedAtCoord)
+  for (let i = 0; i < location.length; i++) {
+    const seedAtCoord = data[location[i][1] * width + location[i][0]];
+    data = getMapOfSeed(seedAtCoord);
   }
-  return data
+  return data;
 }
 
 function render(context: CanvasRenderingContext2D | null) {
@@ -90,7 +97,11 @@ function render(context: CanvasRenderingContext2D | null) {
 
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-  const location = [[0,0], [0,0], [0,0]]
+  const location = [
+    [0, 0],
+    [0, 0],
+    [0, 0],
+  ];
   const data = getMapAtLocation(location);
 
   const imageData = context.getImageData(0, 0, width, height);

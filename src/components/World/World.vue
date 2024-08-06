@@ -85,7 +85,10 @@ class PRNG {
 interface Props {
   // seed: 0;
 }
-const seed = new Uint8Array(new Uint32Array([0, 0, 0, 1]).buffer);
+
+
+
+const seed = new TextEncoder().encode("This is the seed");
 
 const props = defineProps<Props>();
 

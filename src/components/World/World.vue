@@ -2,6 +2,7 @@
   <section>
     <h1>World</h1>
     <p>A psuedo random number generated world map</p>
+    <p>click the top map to see the detail</p>
 
     <div class="canvas-wrap">
       <canvas

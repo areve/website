@@ -1,5 +1,11 @@
-export function makeUniverseMap(weightMap: number[]) {
-  return weightMap;
+import { Cells, getCells } from "../lib/other";
+
+export function makeUniverseMap(width: number, height: number, seed: Uint8Array) {
+  let universe: Cells;
+  const universeWeightKg = 1e53;
+  universe = getCells(seed, universeWeightKg);
+
+  return universe;
 }
 
 const width = 256;

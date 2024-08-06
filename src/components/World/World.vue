@@ -28,9 +28,11 @@ import { Cells, getCells, xor } from "./lib/other";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
+let universeMap: Cells;
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
+let planetMap: Cells;
 
 const hover = ref(0.45);
 const clickData = ref(0.45);
@@ -40,17 +42,21 @@ const seed = new TextEncoder().encode("This is the seed");
 const width = 256;
 const height = 256;
 
-let universe: Cells;
-const universeWeightKg = 1e53;
-
 onMounted(async () => {
   universeContext = getContext(universeCanvas, width, height);
   planetContext = getContext(planetCanvas, width, height);
 
-  universe = getCells(seed, universeWeightKg);
-  const universeMap = makeUniverseMap(universe.cellIntegers);
-  renderUniverse(universeContext, universeMap);
+  universeMap = makeUniverseMap(width, height, seed);
+  renderUniverse(universeContext, universeMap.cellIntegers);
 
+  planetMap = makePlanetMap(
+    width,
+    height,
+    xor(universeMap.stats.layerState, universeMap.cellStates[0]),
+    universeMap.cellWeights[0],
+    universeMap.cellIntegers[0],
+  );
+  renderPlanet(planetContext, planetMap.cellIntegers);
   // universe
   // galaxy
   // solar system
@@ -62,7 +68,11 @@ onMounted(async () => {
   // house
 });
 
-function getContext(canvas: Ref<HTMLCanvasElement>, width: number, height: number) {
+function getContext(
+  canvas: Ref<HTMLCanvasElement>,
+  width: number,
+  height: number
+) {
   if (!canvas.value) return null;
   canvas.value.width = width;
   canvas.value.height = height;
@@ -79,7 +89,7 @@ const hoverUniverse = (event: MouseEvent) => {
   };
   const coord = clickPoint.y * width + clickPoint.x;
   // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
-  hover.value = (universe.cellIntegers[coord] / 0xffffffff) * 255;
+  hover.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
 };
 
 const clickUniverse = (event: MouseEvent) => {
@@ -88,20 +98,28 @@ const clickUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = clickPoint.y * width + clickPoint.x;
-  clickData.value = (universe.cellIntegers[coord] / 0xffffffff) * 255;
+  clickData.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
   // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
 
   // planet
-  const planet = getCells(
-    xor(universe.stats.layerState, universe.cellStates[coord]),
-    universe.cellWeights[coord]
-  );
+  // const planet = getCells(
+  //   xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
+  //   universeMap.cellWeights[coord]
+  // );
 
-  const planetMap = makePlanetMap(
-    planet.cellIntegers,
-    universe.cellIntegers[coord]
+  // const planetMap = makePlanetMap(
+  //   planet.cellIntegers,
+  //   universeMap.cellIntegers[coord]
+  // );
+  // renderPlanet(planetContext, planetMap);
+  planetMap = makePlanetMap(
+    width,
+    height,
+    xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
+    universeMap.cellWeights[coord],
+    universeMap.cellIntegers[coord],
   );
-  renderPlanet(planetContext, planetMap);
+  renderPlanet(planetContext, planetMap.cellIntegers);
 };
 </script>
 

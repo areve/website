@@ -1,9 +1,30 @@
 import { diskFilter } from "../filters/diskFilter";
+import { Cells, getCells } from "../lib/other";
 
 const width = 256;
 const height = 256;
 
-export function makePlanetMap(weightMap: number[], weight: number) {
+export function makePlanetMap(width: number, height: number, seed: Uint8Array, weight: number, integer: number) {
+  // let universe: Cells;
+  // const universeWeightKg = 1e53;
+  // universe = getCells(seed, universeWeightKg);
+
+  // return universe;
+  const planet = getCells(
+    seed,
+    weight
+  );
+
+  const planetMap = makePlanetMapInternal(
+    planet.cellIntegers,
+    integer
+  );
+
+  planet.cellIntegers = planetMap
+  return planet
+}
+
+function makePlanetMapInternal(weightMap: number[], weight: number) {
   const filter = diskFilter(10);
   const size = (filter.length - 1) / 2;
   const result = weightMap.map((v, i, a) => {

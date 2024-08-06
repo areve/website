@@ -46,8 +46,7 @@ onMounted(async () => {
   universeContext = getContext(universeCanvas, width, height);
   planetContext = getContext(planetCanvas, width, height);
 
-  const universeWeightKg = 1e53;
-
+  const universeWeightKg = 1e53; // TODO will use this again later
   universeMap = makeUniverseMap(width, height, seed, universeWeightKg);
   renderUniverse(universeContext, universeMap.cellIntegers);
 
@@ -89,7 +88,6 @@ function updatePlanet(coord: number) {
     width,
     height,
     xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
-    universeMap.cellWeights[coord],
     universeMap.cellIntegers[coord]
   );
   renderPlanet(planetContext, planetMap.cellIntegers);

@@ -7,7 +7,8 @@ export function makeUniverseMap(
   weight: number
 ) {
   let universe: Cells;
-  universe = getCells(width, height, seed, weight);
+  universe = getCells(width, height, seed);
+  (universe as any).weight = weight; // TODO do it better
   return universe;
 }
 

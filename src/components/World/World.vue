@@ -11,8 +11,8 @@
         @mousemove="hoverUniverse"
       ></canvas>
     </div>
-    <div>{{ Math.round(hover) }}</div>
-    <div>{{ Math.round(clickData) }}</div>
+    <div>{{ Math.floor(hover) }}</div>
+    <div>{{ Math.floor(clickData) }}</div>
     <div class="canvas-wrap">
       <canvas ref="planetCanvas" class="canvas"></canvas>
     </div>
@@ -151,7 +151,7 @@ function makePlanetMap(weightMap: number[], weight: number) {
     [1, 1, 1],
     [1, 1, 1],
   ];
-  const blurAmount = 15; // must be odd
+  const blurAmount = 25; // must be odd
   const reallyBlur = new Array(blurAmount)
     .fill(0)
     .map((v, x) =>
@@ -166,7 +166,7 @@ function makePlanetMap(weightMap: number[], weight: number) {
   // console.log(reallyBlur)
   const filt = reallyBlur;
   const norm = sum(filt.map((v) => sum(v)));
-  console.log('norm', norm)
+  console.log("norm", norm);
   const size = (filt.length - 1) / 2;
   const result = weightMap.map((v, i, a) => {
     const x = i % width;
@@ -183,8 +183,9 @@ function makePlanetMap(weightMap: number[], weight: number) {
         output += (i2 * mult) / norm;
       }
     }
-    const value = output; //* totalWeight / universeWeightKg;
-    return value * weight / 255; // + (value << 8) + (value << 16) + (value << 24);
+    const value = (output - 0xffffffff / 2) * 8 + 0xffffffff / 2; //* totalWeight / universeWeightKg;
+    const out2 = value * (weight / 0xffffffff) * 2; //value + weight //* 255 * 255 * 255; // + (value << 8) + (value << 16) + (value << 24);
+    return Math.max(Math.min(out2, 0xffffffff), 0);
   });
   console.log("point", result[127 * width + 127], weight);
   // console.log(totalWeight, (255 * 255 * totalWeight) / universeWeightKg);
@@ -289,9 +290,9 @@ function renderUniverse(
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
       const o = (y * width + x) * channels;
-      pixelData[o + 0] = (data[i] / 0xffffff) & 0xff;
-      pixelData[o + 1] = (data[i] / 0xffffff) & 0xff; //(data[i] >> 8) & 0xff;
-      pixelData[o + 2] = (data[i] / 0xffffff) & 0xff; //(data[i] >> 16) & 0xff;
+      pixelData[o + 0] = ((data[i] / 0xffffffff) * 255) & 0xff;
+      pixelData[o + 1] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 8) & 0xff;
+      pixelData[o + 2] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 16) & 0xff;
 
       pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
     }
@@ -316,15 +317,17 @@ function renderPlanet(
       const i = y * width + x;
       const o = (y * width + x) * channels;
 
-      if (data[i] / 0xffffff < 50) {
-        pixelData[o + 0] = 0;
-        pixelData[o + 1] = 0; //(data[i] >> 8) & 0xff;
-        pixelData[o + 2] = 50 + data[i] / 0xffffff & 0xff; //(data[i] >> 16) & 0xff;
-      } else {
-        pixelData[o + 0] = 100;
-        pixelData[o + 1] = 50 + data[i] / 0xffffff & 0xff; //(data[i] >> 8) & 0xff;
+      const vv = ((data[i] / 0xffffffff) * 255) & 0xff;
+      if (vv > 127) {
+        pixelData[o + 0] = vv;
+        pixelData[o + 1] = vv * 2 - 127; //(data[i] >> 8) & 0xff;
         pixelData[o + 2] = 0; //(data[i] >> 16) & 0xff;
+      } else {
+        pixelData[o + 0] = 0;
+        pixelData[o + 1] = vv; //(data[i] >> 8) & 0xff;
+        pixelData[o + 2] = vv * 2; //(data[i] >> 16) & 0xff;
       }
+
       pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
     }
   }
@@ -349,7 +352,7 @@ const hoverUniverse = (event: MouseEvent) => {
   };
   const coord = clickPoint.y * width + clickPoint.x;
   // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
-  hover.value = universe.cellIntegers[coord] / 255 / 255 / 255;
+  hover.value = (universe.cellIntegers[coord] / 0xffffffff) * 255;
 };
 
 const clickUniverse = (event: MouseEvent) => {
@@ -358,7 +361,7 @@ const clickUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = clickPoint.y * width + clickPoint.x;
-  clickData.value = universe.cellIntegers[coord] / 255 / 255 / 255;
+  clickData.value = (universe.cellIntegers[coord] / 0xffffffff) * 255;
   // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
 
   // planet
@@ -367,7 +370,10 @@ const clickUniverse = (event: MouseEvent) => {
     universe.cellWeights[coord]
   );
 
-  const planetMap = makePlanetMap(planet.cellIntegers, universe.cellIntegers[coord] / 255 / 255 / 255);
+  const planetMap = makePlanetMap(
+    planet.cellIntegers,
+    universe.cellIntegers[coord]
+  );
   renderPlanet(getContext(planetCanvas), planetMap);
 };
 </script>

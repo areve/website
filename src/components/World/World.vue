@@ -23,6 +23,7 @@ class PRNG {
     if (this.isAllZero(seed)) throw new Error("seed must not be all zeros");
 
     this.state = seed.slice(0, 16);
+    // console.log(seed)
   }
 
   isAllZero(array: Uint8Array) {
@@ -50,14 +51,14 @@ class PRNG {
   getRandomStateArray(length: number) {
     const result: Uint8Array[] = new Array(length);
     for (let i = 0; i < result.length; i++) {
-      result[i] = this.random_state().slice(0, 16); // TODO this will be slow :/
+      result[i] = this.random_state();
     }
     return result;
   }
 
   random_state(): Uint8Array {
     this.shuffle();
-    return this.state;
+    return this.state.slice(0, 16); // TODO this will be slow :/
   }
 
   random_int(): number {
@@ -95,7 +96,7 @@ const channels = 4;
 const details = ref("");
 
 const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
-
+const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 function getCells(seed: Uint8Array, totalWeight: number) {
   const generator = new PRNG(seed);
   const cellStates = generator.getRandomStateArray(width * height);
@@ -104,8 +105,9 @@ function getCells(seed: Uint8Array, totalWeight: number) {
   );
   const sumCellIntegers = sum(cellIntegers);
   let cellWeights = cellIntegers.map(
-    (v, i) => ((totalWeight * v) / sumCellIntegers) as number
+    (v) => ((totalWeight * v) / sumCellIntegers) as number
   );
+  let layerState = generator.random_state();
   return {
     cellWeights,
     cellIntegers,
@@ -113,15 +115,99 @@ function getCells(seed: Uint8Array, totalWeight: number) {
     stats: {
       totalWeight,
       sumCellIntegers,
+      layerState,
     },
   };
+}
+
+function makeHeightMap(weightMap: number[]) {
+  const blurMore = [
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1],
+  ];
+  const blur = [
+    [1, 1, 1],
+    [1, 1, 1],
+    [1, 1, 1],
+  ];
+  const blurAmount = 25; // must be odd
+  const reallyBlur = new Array(blurAmount)
+    .fill(0)
+    .map((v, x) =>
+      new Array(blurAmount)
+        .fill(0)
+        .map(
+          (v, y) =>
+            ((blurAmount - 1) / 2) ** 2 -
+            Math.abs((y - (blurAmount - 1) / 2) * (x - (blurAmount - 1) / 2))
+        )
+    );
+  // console.log(reallyBlur)
+  const filt = reallyBlur;
+  const norm = sum(filt.map((v) => sum(v)));
+  const size = (filt.length - 1) / 2;
+  const result = weightMap.map((v, i, a) => {
+    const x = i % width;
+    const y = Math.floor(i / height);
+    if (x < size || x >= width - size) return 0;
+    if (y < size || y >= width - size) return 0;
+
+    let output = 0;
+    for (let fy = 0; fy < filt.length; ++fy) {
+      for (let fx = 0; fx < filt[fy].length; ++fx) {
+        const mult = filt[fy][fx];
+        const coord = (y + fy - size) * width + (x + fx - size);
+        const i2 = weightMap[coord] & 0xff;
+        output += (i2 * mult) / norm;
+      }
+    }
+    const value = output;
+    return value; // + (value << 8) + (value << 16) + (value << 24);
+  });
+
+  // console.log(result)
+  const minMax = result.reduce(
+    (p, v, i) => {
+      const x = i % width;
+      const y = Math.floor(i / height);
+      if (x < size || x >= width - size) return p;
+      if (y < size || y >= width - size) return p;
+
+      return {
+        min: Math.min(p.min, Math.abs(v) & 0xff),
+        max: Math.max(p.max, Math.abs(v) & 0xff),
+      };
+    },
+    {
+      min: 255,
+      max: 0,
+    }
+  );
+
+  // console.log(minMax);
+  const result2 = result.map((v, i) => {
+    const x = i % width;
+    const y = Math.floor(i / height);
+    if (x < size || x >= width - size) return v;
+    if (y < size || y >= width - size) return v;
+
+    const out = ((v - minMax.min) / (minMax.max - minMax.min)) * 255;
+    // return out < 127 ? 0 : out;
+    return out;
+  });
+
+  // console.log(result2);
+  return result2;
 }
 
 onMounted(async () => {
   let data: string[] = [];
 
   const universeWeightKg = 1e53;
-  const coord = 127 * 127 + 127;
+  const coord = 100 * 100 + 127;
 
   // universe
   const cells1 = getCells(seed, universeWeightKg);
@@ -129,31 +215,38 @@ onMounted(async () => {
   data.push("cells1:" + cells1.cellWeights[coord]);
 
   // galaxy
-  const cells2 = getCells(cells1.cellStates[coord], cells1.cellWeights[coord]);
+  const cells2 = getCells(
+    xor(cells1.stats.layerState, cells1.cellStates[coord]),
+    cells1.cellWeights[coord]
+  );
   data.push("cells2:" + cells2.cellWeights[coord]);
 
   // solar system
-  const cells3 = getCells(cells2.cellStates[coord], cells2.cellWeights[coord]);
+  const cells3 = getCells(
+    xor(cells2.stats.layerState, cells2.cellStates[coord]),
+    cells2.cellWeights[coord]
+  );
   data.push("cells3:" + cells3.cellWeights[coord]);
 
   // star
-  const cells4 = getCells(cells3.cellStates[coord], cells3.cellWeights[coord]);
+  const cells4 = getCells(
+    xor(cells3.stats.layerState, cells3.cellStates[coord]),
+    cells3.cellWeights[coord]
+  );
   data.push("cells4:" + cells4.cellWeights[coord]);
 
   // planet
-  const cells5 = getCells(cells4.cellStates[coord], cells4.cellWeights[coord]);
+  const cells5 = getCells(
+    xor(cells4.stats.layerState, cells4.cellStates[coord]),
+    cells4.cellWeights[coord]
+  );
   data.push("cells5:" + cells5.cellWeights[coord]);
 
-  // all oceans
-  const cells6 = getCells(cells5.cellStates[coord], cells5.cellWeights[coord]);
-  data.push("cells6:" + cells6.cellWeights[coord]);
-
-  // continent
-  const cells7 = getCells(cells6.cellStates[coord], cells6.cellWeights[coord]);
-  data.push("cells7:" + cells7.cellWeights[coord]);
+  const heightMap = makeHeightMap(cells5.cellIntegers);
+  // console.log(heightMap);
 
   details.value = data.join("\n");
-  render(getContext(), cells7.cellIntegers);
+  render(getContext(), heightMap);
 });
 
 function render(context: CanvasRenderingContext2D | null, data: number[]) {
@@ -169,10 +262,16 @@ function render(context: CanvasRenderingContext2D | null, data: number[]) {
       const i = y * width + x;
       const o = (y * width + x) * channels;
 
-      pixelData[o + 0] = data[i] & 255;
-      pixelData[o + 1] = (data[i] >> 8) & 255;
-      pixelData[o + 2] = (data[i] >> 16) & 255;
-      pixelData[o + 3] = (data[i] >> 24) & 255;
+      if (data[i] < 150) {
+        pixelData[o + 0] = 0;
+        pixelData[o + 1] = 0; //(data[i] >> 8) & 0xff;
+        pixelData[o + 2] = data[i] & 0xff; //(data[i] >> 16) & 0xff;
+      } else {
+        pixelData[o + 0] = 180;
+        pixelData[o + 1] = data[i] & 0xff; //(data[i] >> 8) & 0xff;
+        pixelData[o + 2] = 0; //(data[i] >> 16) & 0xff;
+      }
+      pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
     }
   }
 

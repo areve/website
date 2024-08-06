@@ -45,7 +45,12 @@ function getCells(seed: Uint8Array, totalWeight: number) {
   let cellWeights = cellIntegers.map((v, i) => (totalWeight * v / sumCellIntegers) as number);
   return {
     cellWeights,
-    cellStates
+    cellIntegers,
+    cellStates,
+    stats: {
+      totalWeight,
+      sumCellIntegers,
+    }
   }
 }
 
@@ -119,7 +124,7 @@ onMounted(async () => {
   // data.push("bar:" + bar);
   // data.push("baz:" + baz);
   details.value = data.join("\n");
-  render(getContext());
+  render(getContext(), cells12.cellIntegers);
 });
 
 class PRNG {
@@ -129,7 +134,7 @@ class PRNG {
     if (seed.length != 16) throw new Error("seed length must be 16");
     
     this.rng_state = seed//new Uint8Array(16);
-    console.log('foo', this.rng_state)
+    // console.log('foo', this.rng_state)
 
     // let b = new Uint32Array([10, 11, 12, 13]);
     // console.log(new Uint8Array(b.buffer));
@@ -138,7 +143,7 @@ class PRNG {
     // this.rng_state[2] = (seed >> 8) & 0xff;
     // this.rng_state[3] = (seed >> 0) & 0xff;
     // this.prevent_zero_state(); // TODO throw error on zero state instead of this which alters the state
-    console.log('foo', this.rng_state)
+    // console.log('foo', this.rng_state)
   }
 
   prevent_zero_state() {
@@ -220,33 +225,27 @@ function getMapAtLocation(location: number[][]) {
   return data;
 }
 
-function render(context: CanvasRenderingContext2D | null) {
+function render(context: CanvasRenderingContext2D | null, data: number[]) {
   if (!context) return;
 
-  // context.clearRect(0, 0, context.canvas.width, context.canvas.height);
-
-  // const location = [
-  //   [0, 0],
-  //   // [0, 0],
-  //   // [0, 0],
-  // ];
-  // const data = getMapAtLocation(location);
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
   // const imageData = context.getImageData(0, 0, width, height);
-  // const pixelData = imageData.data;
-  // for (let y = 0; y < height; y++) {
-  //   for (let x = 0; x < width; x++) {
-  //     const i = y * width + x;
-  //     const o = (y * width + x) * channels;
+  const imageData = new ImageData(width, height)
+  const pixelData = imageData.data;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const o = (y * width + x) * channels;
 
-  //     pixelData[o + 0] = data[i] & 255;
-  //     pixelData[o + 1] = (data[i] >> 8) & 255;
-  //     pixelData[o + 2] = (data[i] >> 16) & 255;
-  //     pixelData[o + 3] = (data[i] >> 24) & 255;
-  //   }
-  // }
+      pixelData[o + 0] = data[i] & 255;
+      pixelData[o + 1] = (data[i] >> 8) & 255;
+      pixelData[o + 2] = (data[i] >> 16) & 255;
+      pixelData[o + 3] = (data[i] >> 24) & 255;
+    }
+  }
 
-  // context.putImageData(imageData, 0, 0);
+  context.putImageData(imageData, 0, 0);
 }
 
 function getContext() {

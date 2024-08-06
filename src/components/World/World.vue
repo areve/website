@@ -24,15 +24,15 @@
 import { onMounted, Ref, ref } from "vue";
 import { makeUniverseMap, renderUniverse } from "./maps/universeMap";
 import { makePlanetMap, renderPlanet } from "./maps/planetMap";
-import { Cells, xor } from "./lib/other";
+import { MapData, xor } from "./lib/other";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
-let universeMap: Cells;
+let universeMap: MapData;
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
-let planetMap: Cells;
+let planetMap: MapData;
 
 const hover = ref(0.45);
 const clickData = ref(0.45);
@@ -48,7 +48,7 @@ onMounted(async () => {
 
   const universeWeightKg = 1e53; // TODO will use this again later
   universeMap = makeUniverseMap(width, height, seed, universeWeightKg);
-  renderUniverse(universeContext, universeMap.cellIntegers);
+  renderUniverse(universeContext, universeMap);
 
   updatePlanet(0);
 
@@ -70,7 +70,7 @@ const hoverUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = point.y * width + point.x;
-  hover.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
+  hover.value = (universeMap.integers[coord] / 0xffffffff) * 255;
 };
 
 const clickUniverse = (event: MouseEvent) => {
@@ -79,7 +79,7 @@ const clickUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = point.y * width + point.x;
-  clickData.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
+  clickData.value = (universeMap.integers[coord] / 0xffffffff) * 255;
   updatePlanet(coord);
 };
 
@@ -87,10 +87,10 @@ function updatePlanet(coord: number) {
   planetMap = makePlanetMap(
     width,
     height,
-    xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
-    universeMap.cellIntegers[coord]
+    xor(universeMap.state, universeMap.states[coord]),
+    universeMap.integers[coord]
   );
-  renderPlanet(planetContext, planetMap.cellIntegers);
+  renderPlanet(planetContext, planetMap);
 }
 
 function getContext(

@@ -1,4 +1,4 @@
-import { Cells, getCells } from "../lib/other";
+import { MapData, makeMap } from "../lib/other";
 
 export function makeUniverseMap(
   width: number,
@@ -6,15 +6,15 @@ export function makeUniverseMap(
   seed: Uint8Array,
   weight: number
 ) {
-  let universe: Cells;
-  universe = getCells(width, height, seed);
+  let universe: MapData;
+  universe = makeMap(width, height, seed);
   (universe as any).weight = weight; // TODO do it better
   return universe;
 }
 
 export function renderUniverse(
   context: CanvasRenderingContext2D | null,
-  data: number[]
+  map: MapData
 ) {
   if (!context) return;
 
@@ -22,6 +22,7 @@ export function renderUniverse(
   const height = context.canvas.height;
   context.clearRect(0, 0, width, height);
 
+  const data = map.integers
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {

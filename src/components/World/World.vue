@@ -4,17 +4,30 @@
     <p>A psuedo random number generated world map</p>
 
     <div class="canvas-wrap">
-      <canvas ref="canvas" class="canvas"></canvas>
+      <canvas
+        ref="universeCanvas"
+        class="canvas"
+        @click="clickUniverse"
+        @mousemove="hoverUniverse"
+      ></canvas>
+    </div>
+    <div>{{ Math.round(hover) }}</div>
+    <div>{{ Math.round(clickData) }}</div>
+    <div class="canvas-wrap">
+      <canvas ref="planetCanvas" class="canvas"></canvas>
     </div>
     <pre>{{ details }}</pre>
   </section>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watchEffect } from "vue";
+import { onMounted, Ref, ref, watchEffect } from "vue";
 
-const canvas = ref<HTMLCanvasElement>(undefined!);
+const universeCanvas = ref<HTMLCanvasElement>(undefined!);
+const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 
+const hover = ref(0.45);
+const clickData = ref(0.45);
 class PRNG {
   private state: Uint8Array;
 
@@ -86,8 +99,6 @@ interface Props {
   // seed: 0;
 }
 
-
-
 const seed = new TextEncoder().encode("This is the seed");
 
 const props = defineProps<Props>();
@@ -123,7 +134,11 @@ function getCells(seed: Uint8Array, totalWeight: number) {
   };
 }
 
-function makeHeightMap(weightMap: number[]) {
+function makeUniverseMap(weightMap: number[]) {
+  return weightMap;
+}
+
+function makePlanetMap(weightMap: number[], weight: number) {
   const blurMore = [
     [1, 1, 1, 1, 1],
     [1, 1, 1, 1, 1],
@@ -136,7 +151,7 @@ function makeHeightMap(weightMap: number[]) {
     [1, 1, 1],
     [1, 1, 1],
   ];
-  const blurAmount = 25; // must be odd
+  const blurAmount = 15; // must be odd
   const reallyBlur = new Array(blurAmount)
     .fill(0)
     .map((v, x) =>
@@ -151,6 +166,7 @@ function makeHeightMap(weightMap: number[]) {
   // console.log(reallyBlur)
   const filt = reallyBlur;
   const norm = sum(filt.map((v) => sum(v)));
+  console.log('norm', norm)
   const size = (filt.length - 1) / 2;
   const result = weightMap.map((v, i, a) => {
     const x = i % width;
@@ -163,96 +179,131 @@ function makeHeightMap(weightMap: number[]) {
       for (let fx = 0; fx < filt[fy].length; ++fx) {
         const mult = filt[fy][fx];
         const coord = (y + fy - size) * width + (x + fx - size);
-        const i2 = weightMap[coord] & 0xff;
+        const i2 = weightMap[coord];
         output += (i2 * mult) / norm;
       }
     }
-    const value = output;
-    return value; // + (value << 8) + (value << 16) + (value << 24);
+    const value = output; //* totalWeight / universeWeightKg;
+    return value * weight / 255; // + (value << 8) + (value << 16) + (value << 24);
   });
+  console.log("point", result[127 * width + 127], weight);
+  // console.log(totalWeight, (255 * 255 * totalWeight) / universeWeightKg);
 
   // console.log(result)
-  const minMax = result.reduce(
-    (p, v, i) => {
-      const x = i % width;
-      const y = Math.floor(i / height);
-      if (x < size || x >= width - size) return p;
-      if (y < size || y >= width - size) return p;
+  // const minMax = result.reduce(
+  //   (p, v, i) => {
+  //     const x = i % width;
+  //     const y = Math.floor(i / height);
+  //     if (x < size || x >= width - size) return p;
+  //     if (y < size || y >= width - size) return p;
 
-      return {
-        min: Math.min(p.min, Math.abs(v) & 0xff),
-        max: Math.max(p.max, Math.abs(v) & 0xff),
-      };
-    },
-    {
-      min: 255,
-      max: 0,
-    }
-  );
+  //     return {
+  //       min: Math.min(p.min, Math.abs(v) & 0xff),
+  //       max: Math.max(p.max, Math.abs(v) & 0xff),
+  //     };
+  //   },
+  //   {
+  //     min: 255,
+  //     max: 0,
+  //   }
+  // );
 
   // console.log(minMax);
-  const result2 = result.map((v, i) => {
-    const x = i % width;
-    const y = Math.floor(i / height);
-    if (x < size || x >= width - size) return v;
-    if (y < size || y >= width - size) return v;
+  // const result2 = result.map((v, i) => {
+  //   const x = i % width;
+  //   const y = Math.floor(i / height);
+  //   if (x < size || x >= width - size) return v;
+  //   if (y < size || y >= width - size) return v;
 
-    const out = ((v - minMax.min) / (minMax.max - minMax.min)) * 255;
-    // return out < 127 ? 0 : out;
-    return out;
-  });
+  //   const out = ((v - minMax.min) / (minMax.max - minMax.min)) * 255;
+  //   // return out < 127 ? 0 : out;
+  //   return out;
+  // });
 
   // console.log(result2);
-  return result2;
+  return result;
 }
 
+interface Cells {
+  cellWeights: number[];
+  cellIntegers: number[];
+  cellStates: Uint8Array[];
+  stats: {
+    totalWeight: number;
+    sumCellIntegers: number;
+    layerState: Uint8Array;
+  };
+}
+let universe: Cells;
+const universeWeightKg = 1e53;
 onMounted(async () => {
   let data: string[] = [];
 
-  const universeWeightKg = 1e53;
   const coord = 100 * 100 + 127;
 
   // universe
-  const cells1 = getCells(seed, universeWeightKg);
-  data.push("universeWeight:" + cells1.stats.totalWeight);
-  data.push("cells1:" + cells1.cellWeights[coord]);
+  universe = getCells(seed, universeWeightKg);
+  data.push("universeWeight:" + universe.stats.totalWeight);
+  data.push("cells1:" + universe.cellWeights[coord]);
 
-  // galaxy
-  const cells2 = getCells(
-    xor(cells1.stats.layerState, cells1.cellStates[coord]),
-    cells1.cellWeights[coord]
-  );
-  data.push("cells2:" + cells2.cellWeights[coord]);
+  // // galaxy
+  // const cells2 = getCells(
+  //   xor(cells1.stats.layerState, cells1.cellStates[coord]),
+  //   cells1.cellWeights[coord]
+  // );
+  // data.push("cells2:" + cells2.cellWeights[coord]);
 
-  // solar system
-  const cells3 = getCells(
-    xor(cells2.stats.layerState, cells2.cellStates[coord]),
-    cells2.cellWeights[coord]
-  );
-  data.push("cells3:" + cells3.cellWeights[coord]);
+  // // solar system
+  // const cells3 = getCells(
+  //   xor(cells2.stats.layerState, cells2.cellStates[coord]),
+  //   cells2.cellWeights[coord]
+  // );
+  // data.push("cells3:" + cells3.cellWeights[coord]);
 
-  // star
-  const cells4 = getCells(
-    xor(cells3.stats.layerState, cells3.cellStates[coord]),
-    cells3.cellWeights[coord]
-  );
-  data.push("cells4:" + cells4.cellWeights[coord]);
+  // // star
+  // const cells4 = getCells(
+  //   xor(cells3.stats.layerState, cells3.cellStates[coord]),
+  //   cells3.cellWeights[coord]
+  // );
+  // data.push("cells4:" + cells4.cellWeights[coord]);
 
-  // planet
-  const cells5 = getCells(
-    xor(cells4.stats.layerState, cells4.cellStates[coord]),
-    cells4.cellWeights[coord]
-  );
-  data.push("cells5:" + cells5.cellWeights[coord]);
-
-  const heightMap = makeHeightMap(cells5.cellIntegers);
+  const universeMap = makeUniverseMap(universe.cellIntegers);
   // console.log(heightMap);
 
   details.value = data.join("\n");
-  render(getContext(), heightMap);
+  renderUniverse(getContext(universeCanvas), universeMap);
 });
 
-function render(context: CanvasRenderingContext2D | null, data: number[]) {
+function renderUniverse(
+  context: CanvasRenderingContext2D | null,
+  data: number[]
+) {
+  if (!context) return;
+
+  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+
+  // const imageData = context.getImageData(0, 0, width, height);
+  const imageData = new ImageData(width, height);
+  const pixelData = imageData.data;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      const o = (y * width + x) * channels;
+      pixelData[o + 0] = (data[i] / 0xffffff) & 0xff;
+      pixelData[o + 1] = (data[i] / 0xffffff) & 0xff; //(data[i] >> 8) & 0xff;
+      pixelData[o + 2] = (data[i] / 0xffffff) & 0xff; //(data[i] >> 16) & 0xff;
+
+      pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
+    }
+  }
+
+  context.putImageData(imageData, 0, 0);
+}
+
+function renderPlanet(
+  context: CanvasRenderingContext2D | null,
+  data: number[]
+) {
   if (!context) return;
 
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
@@ -265,13 +316,13 @@ function render(context: CanvasRenderingContext2D | null, data: number[]) {
       const i = y * width + x;
       const o = (y * width + x) * channels;
 
-      if (data[i] < 150) {
+      if (data[i] / 0xffffff < 50) {
         pixelData[o + 0] = 0;
         pixelData[o + 1] = 0; //(data[i] >> 8) & 0xff;
-        pixelData[o + 2] = data[i] & 0xff; //(data[i] >> 16) & 0xff;
+        pixelData[o + 2] = 50 + data[i] / 0xffffff & 0xff; //(data[i] >> 16) & 0xff;
       } else {
-        pixelData[o + 0] = 180;
-        pixelData[o + 1] = data[i] & 0xff; //(data[i] >> 8) & 0xff;
+        pixelData[o + 0] = 100;
+        pixelData[o + 1] = 50 + data[i] / 0xffffff & 0xff; //(data[i] >> 8) & 0xff;
         pixelData[o + 2] = 0; //(data[i] >> 16) & 0xff;
       }
       pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
@@ -281,7 +332,7 @@ function render(context: CanvasRenderingContext2D | null, data: number[]) {
   context.putImageData(imageData, 0, 0);
 }
 
-function getContext() {
+function getContext(canvas: Ref<HTMLCanvasElement>) {
   if (!canvas.value) return null;
   canvas.value.width = canvas.value.offsetWidth;
   canvas.value.height = canvas.value.offsetHeight;
@@ -289,6 +340,36 @@ function getContext() {
     willReadFrequently: true,
   });
 }
+
+const hoverUniverse = (event: MouseEvent) => {
+  // console.log(hoverUniverse)
+  const clickPoint = {
+    x: event.offsetX,
+    y: event.offsetY,
+  };
+  const coord = clickPoint.y * width + clickPoint.x;
+  // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
+  hover.value = universe.cellIntegers[coord] / 255 / 255 / 255;
+};
+
+const clickUniverse = (event: MouseEvent) => {
+  const clickPoint = {
+    x: event.offsetX,
+    y: event.offsetY,
+  };
+  const coord = clickPoint.y * width + clickPoint.x;
+  clickData.value = universe.cellIntegers[coord] / 255 / 255 / 255;
+  // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
+
+  // planet
+  const planet = getCells(
+    xor(universe.stats.layerState, universe.cellStates[coord]),
+    universe.cellWeights[coord]
+  );
+
+  const planetMap = makePlanetMap(planet.cellIntegers, universe.cellIntegers[coord] / 255 / 255 / 255);
+  renderPlanet(getContext(planetCanvas), planetMap);
+};
 </script>
 
 <style scoped>
@@ -301,6 +382,6 @@ function getContext() {
   position: absolute;
   width: 100%;
   height: 100%;
-  border: 1px solid #999;
+  border: 0px solid #999;
 }
 </style>

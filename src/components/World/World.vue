@@ -15,10 +15,76 @@ import { onMounted, ref, watchEffect } from "vue";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 
+class PRNG {
+  private state: Uint8Array;
+
+  constructor(seed: Uint8Array) {
+    if (seed.length != 16) throw new Error("seed length must be 16");
+    if (this.isAllZero(seed)) throw new Error("seed must not be all zeros");
+
+    this.state = seed.slice(0, 16);
+  }
+
+  isAllZero(array: Uint8Array) {
+    for (let i = 0; i < array.length; ++i) {
+      if (array[i]) return false;
+    }
+    return true;
+  }
+
+  preventZeroState() {
+    for (let i = 0; i < 16; ++i) {
+      if (++this.state[i]) break;
+    }
+  }
+
+  shuffle() {
+    let carry = 0;
+    for (let i = 15; i > 0; --i) {
+      const result = this.state[i - 1] + this.state[i] + carry;
+      this.state[i - 1] = result & 0xff; // keep only the lower 8 bits
+      carry = result >> 8; // get the carry (upper 8 bits)
+    }
+  }
+
+  getRandomStateArray(length: number) {
+    const result: Uint8Array[] = new Array(length);
+    for (let i = 0; i < result.length; i++) {
+      result[i] = this.random_state().slice(0, 16); // TODO this will be slow :/
+    }
+    return result;
+  }
+
+  random_state(): Uint8Array {
+    this.shuffle();
+    return this.state;
+  }
+
+  random_int(): number {
+    this.shuffle();
+    this.preventZeroState();
+
+    const value =
+      (this.state[0] << 24) |
+      (this.state[1] << 16) |
+      (this.state[2] << 8) |
+      this.state[3];
+    return value >>> 0;
+  }
+
+  random_byte(): number {
+    this.shuffle();
+
+    this.preventZeroState();
+
+    return this.state[0];
+  }
+}
+
 interface Props {
   // seed: 0;
 }
-const seed = new Uint8Array(new Uint32Array([0, 0, 0, 1]).buffer)
+const seed = new Uint8Array(new Uint32Array([0, 0, 0, 1]).buffer);
 
 const props = defineProps<Props>();
 
@@ -30,19 +96,16 @@ const details = ref("");
 
 const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
 
-
 function getCells(seed: Uint8Array, totalWeight: number) {
   const generator = new PRNG(seed);
-
   const cellStates = generator.getRandomStateArray(width * height);
   const cellIntegers = cellStates.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
-  // console.log(cellStates)
-
-  const sumCellIntegers = cellIntegers.reduce((p, c) => p + c, 0);
-
-  let cellWeights = cellIntegers.map((v, i) => (totalWeight * v / sumCellIntegers) as number);
+  const sumCellIntegers = sum(cellIntegers);
+  let cellWeights = cellIntegers.map(
+    (v, i) => ((totalWeight * v) / sumCellIntegers) as number
+  );
   return {
     cellWeights,
     cellIntegers,
@@ -50,24 +113,23 @@ function getCells(seed: Uint8Array, totalWeight: number) {
     stats: {
       totalWeight,
       sumCellIntegers,
-    }
-  }
+    },
+  };
 }
 
 onMounted(async () => {
   let data: string[] = [];
 
   const universeWeightKg = 1e53;
-  const sunWeightKg = 1.989e30;
   const coord = 127 * 127 + 127;
-  // console.log(universeWeightKg)
 
   // universe
-  const cells = getCells(seed, universeWeightKg);
-  data.push("universeWeight:" + sum(cells.cellWeights));
-  
+  const cells1 = getCells(seed, universeWeightKg);
+  data.push("universeWeight:" + cells1.stats.totalWeight);
+  data.push("cells1:" + cells1.cellWeights[coord]);
+
   // galaxy
-  const cells2 = getCells(cells.cellStates[coord], cells.cellWeights[coord]);
+  const cells2 = getCells(cells1.cellStates[coord], cells1.cellWeights[coord]);
   data.push("cells2:" + cells2.cellWeights[coord]);
 
   // solar system
@@ -89,141 +151,10 @@ onMounted(async () => {
   // continent
   const cells7 = getCells(cells6.cellStates[coord], cells6.cellWeights[coord]);
   data.push("cells7:" + cells7.cellWeights[coord]);
-  
-  // country
-  const cells8 = getCells(cells7.cellStates[coord], cells7.cellWeights[coord]);
-  data.push("cells8:" + cells8.cellWeights[coord]);
-  
-  // city
-  const cells9 = getCells(cells8.cellStates[coord], cells8.cellWeights[coord]);
-  data.push("cells9:" + cells9.cellWeights[coord]);
-  
-  // house
-  const cells10 = getCells(cells9.cellStates[coord], cells9.cellWeights[coord]);
-  data.push("cells10:" + cells10.cellWeights[coord]);
-  
-  // human
-  const cells11 = getCells(cells10.cellStates[coord], cells10.cellWeights[coord]);
-  data.push("cells11:" + cells11.cellWeights[coord]);
-  
-  // insect
-  const cells12 = getCells(cells11.cellStates[coord], cells11.cellWeights[coord]);
-  data.push("cells12:" + cells12.cellWeights[coord]);
 
-  // data.push("cells2.1:" + cells2.cellStates[1]);
-
-  // const generator2 = new PRNG(seed);
-  // const cellStates2 = generator2.getRandomStateArray(width * height);
-
-  // data.push(metaData.toString());
-
-  // let meta = 3;
-  // const metaData = generator.getRandomArray(meta);
-  // let [foo, bar, baz] = metaData;
-  // data.push("foo:" + foo);
-  // data.push("bar:" + bar);
-  // data.push("baz:" + baz);
   details.value = data.join("\n");
-  render(getContext(), cells12.cellIntegers);
+  render(getContext(), cells7.cellIntegers);
 });
-
-class PRNG {
-  private rng_state: Uint8Array;
-
-  constructor(seed: Uint8Array) {
-    if (seed.length != 16) throw new Error("seed length must be 16");
-    
-    this.rng_state = seed//new Uint8Array(16);
-    // console.log('foo', this.rng_state)
-
-    // let b = new Uint32Array([10, 11, 12, 13]);
-    // console.log(new Uint8Array(b.buffer));
-    // this.rng_state[0] = (seed >> 24) & 0xff;
-    // this.rng_state[1] = (seed >> 16) & 0xff;
-    // this.rng_state[2] = (seed >> 8) & 0xff;
-    // this.rng_state[3] = (seed >> 0) & 0xff;
-    // this.prevent_zero_state(); // TODO throw error on zero state instead of this which alters the state
-    // console.log('foo', this.rng_state)
-  }
-
-  prevent_zero_state() {
-    for (let x = 16; x > 0; --x) {
-      if (++this.rng_state[x - 1]) {
-        break;
-      }
-    }
-  }
-
-  shuffle() {
-    let carry = 0;
-    for (let x = 15; x > 0; --x) {
-      const result = this.rng_state[x - 1] + this.rng_state[x] + carry;
-      this.rng_state[x - 1] = result & 0xff; // keep only the lower 8 bits
-      carry = result >> 8; // get the carry (upper 8 bits)
-    }
-  }
-
-  getRandomArray(length: number) {
-    const result = new Uint32Array(length);
-    for (let i = 0; i < result.length; i++) {
-      result[i] = this.random_int();
-    }
-    return result;
-  }
-  getRandomStateArray(length: number) {
-    const result: Uint8Array[] = new Array(length);
-    for (let i = 0; i < result.length; i++) {
-      result[i] = this.random_state().slice(0, 16); // TODO this will be slow :/
-    }
-    return result;
-  }
-
-  random_state(): Uint8Array {
-    this.shuffle();
-    return this.rng_state;
-  }
-
-  random_int(): number {
-    this.shuffle();
-    this.prevent_zero_state();
-
-    const value =
-      (this.rng_state[0] << 24) |
-      (this.rng_state[1] << 16) |
-      (this.rng_state[2] << 8) |
-      this.rng_state[3];
-    return value >>> 0;
-  }
-
-  random_byte(): number {
-    this.shuffle();
-
-    this.prevent_zero_state();
-
-    return this.rng_state[0];
-  }
-}
-
-function getMapOfSeed(seed: Uint8Array) {
-  console.log("getMapOfSeed", seed);
-  const data = new Float32Array(width * height * channels);
-  // const generator = new MersenneTwister(seed);
-  const generator = new PRNG(seed);
-
-  for (let i = 0; i < width * height; i++) {
-    data[i] = generator.random_int();
-  }
-  return data;
-}
-
-function getMapAtLocation(location: number[][]) {
-  let data = getMapOfSeed(seed);
-  // for (let i = 0; i < location.length; i++) {
-  //   const seedAtCoord = data[location[i][1] * width + location[i][0]];
-  //   data = getMapOfSeed(seedAtCoord);
-  // }
-  return data;
-}
 
 function render(context: CanvasRenderingContext2D | null, data: number[]) {
   if (!context) return;
@@ -231,7 +162,7 @@ function render(context: CanvasRenderingContext2D | null, data: number[]) {
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
   // const imageData = context.getImageData(0, 0, width, height);
-  const imageData = new ImageData(width, height)
+  const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {

@@ -22,99 +22,28 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, Ref, ref, watchEffect } from "vue";
+import { onMounted, Ref, ref } from "vue";
+import { diskFilter } from "./filters/diskFilter";
+import { PRNG } from "./lib/prng";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 
 const hover = ref(0.45);
 const clickData = ref(0.45);
-class PRNG {
-  private state: Uint8Array;
-
-  constructor(seed: Uint8Array) {
-    if (seed.length != 16) throw new Error("seed length must be 16");
-    if (this.isAllZero(seed)) throw new Error("seed must not be all zeros");
-
-    this.state = seed.slice(0, 16);
-    // console.log(seed)
-  }
-
-  isAllZero(array: Uint8Array) {
-    for (let i = 0; i < array.length; ++i) {
-      if (array[i]) return false;
-    }
-    return true;
-  }
-
-  preventZeroState() {
-    for (let i = 0; i < 16; ++i) {
-      if (++this.state[i]) break;
-    }
-  }
-
-  shuffle() {
-    let carry = 0;
-    for (let i = 15; i > 0; --i) {
-      const result = this.state[i - 1] + this.state[i] + carry;
-      this.state[i - 1] = result & 0xff; // keep only the lower 8 bits
-      carry = result >> 8; // get the carry (upper 8 bits)
-    }
-  }
-
-  getRandomStateArray(length: number) {
-    const result: Uint8Array[] = new Array(length);
-    for (let i = 0; i < result.length; i++) {
-      result[i] = this.random_state();
-    }
-    return result;
-  }
-
-  random_state(): Uint8Array {
-    this.shuffle();
-    return this.state.slice(0, 16); // TODO this will be slow :/
-  }
-
-  random_int(): number {
-    this.shuffle();
-    this.preventZeroState();
-
-    const value =
-      (this.state[0] << 24) |
-      (this.state[1] << 16) |
-      (this.state[2] << 8) |
-      this.state[3];
-    return value >>> 0;
-  }
-
-  random_byte(): number {
-    this.shuffle();
-
-    this.preventZeroState();
-
-    return this.state[0];
-  }
-}
-
-interface Props {
-  // seed: 0;
-}
+const details = ref("");
 
 const seed = new TextEncoder().encode("This is the seed");
 
-const props = defineProps<Props>();
-
 const width = 256;
 const height = 256;
-const channels = 4;
-
-const details = ref("");
 
 const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
 const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
+
 function getCells(seed: Uint8Array, totalWeight: number) {
   const generator = new PRNG(seed);
-  const cellStates = generator.getRandomStateArray(width * height);
+  const cellStates = generator.getStateArray(width * height);
   const cellIntegers = cellStates.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
@@ -122,7 +51,7 @@ function getCells(seed: Uint8Array, totalWeight: number) {
   let cellWeights = cellIntegers.map(
     (v) => ((totalWeight * v) / sumCellIntegers) as number
   );
-  let layerState = generator.random_state();
+  let layerState = generator.getState();
   return {
     cellWeights,
     cellIntegers,
@@ -140,35 +69,8 @@ function makeUniverseMap(weightMap: number[]) {
 }
 
 function makePlanetMap(weightMap: number[], weight: number) {
-  const blurMore = [
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-    [1, 1, 1, 1, 1],
-  ];
-  const blur = [
-    [1, 1, 1],
-    [1, 1, 1],
-    [1, 1, 1],
-  ];
-  const blurAmount = 25; // must be odd
-  const reallyBlur = new Array(blurAmount)
-    .fill(0)
-    .map((v, x) =>
-      new Array(blurAmount)
-        .fill(0)
-        .map(
-          (v, y) =>
-            ((blurAmount - 1) / 2) ** 2 -
-            Math.abs((y - (blurAmount - 1) / 2) * (x - (blurAmount - 1) / 2))
-        )
-    );
-  // console.log(reallyBlur)
-  const filt = reallyBlur;
-  const norm = sum(filt.map((v) => sum(v)));
-  console.log("norm", norm);
-  const size = (filt.length - 1) / 2;
+  const filter = diskFilter(10);
+  const size = (filter.length - 1) / 2;
   const result = weightMap.map((v, i, a) => {
     const x = i % width;
     const y = Math.floor(i / height);
@@ -176,53 +78,19 @@ function makePlanetMap(weightMap: number[], weight: number) {
     if (y < size || y >= width - size) return 0;
 
     let output = 0;
-    for (let fy = 0; fy < filt.length; ++fy) {
-      for (let fx = 0; fx < filt[fy].length; ++fx) {
-        const mult = filt[fy][fx];
+    for (let fy = 0; fy < filter.length; ++fy) {
+      for (let fx = 0; fx < filter[fy].length; ++fx) {
+        const mult = filter[fy][fx];
         const coord = (y + fy - size) * width + (x + fx - size);
         const i2 = weightMap[coord];
-        output += (i2 * mult) / norm;
+        output += i2 * mult;
       }
     }
     const value = (output - 0xffffffff / 2) * 8 + 0xffffffff / 2; //* totalWeight / universeWeightKg;
     const out2 = value * (weight / 0xffffffff) * 2; //value + weight //* 255 * 255 * 255; // + (value << 8) + (value << 16) + (value << 24);
     return Math.max(Math.min(out2, 0xffffffff), 0);
   });
-  console.log("point", result[127 * width + 127], weight);
-  // console.log(totalWeight, (255 * 255 * totalWeight) / universeWeightKg);
 
-  // console.log(result)
-  // const minMax = result.reduce(
-  //   (p, v, i) => {
-  //     const x = i % width;
-  //     const y = Math.floor(i / height);
-  //     if (x < size || x >= width - size) return p;
-  //     if (y < size || y >= width - size) return p;
-
-  //     return {
-  //       min: Math.min(p.min, Math.abs(v) & 0xff),
-  //       max: Math.max(p.max, Math.abs(v) & 0xff),
-  //     };
-  //   },
-  //   {
-  //     min: 255,
-  //     max: 0,
-  //   }
-  // );
-
-  // console.log(minMax);
-  // const result2 = result.map((v, i) => {
-  //   const x = i % width;
-  //   const y = Math.floor(i / height);
-  //   if (x < size || x >= width - size) return v;
-  //   if (y < size || y >= width - size) return v;
-
-  //   const out = ((v - minMax.min) / (minMax.max - minMax.min)) * 255;
-  //   // return out < 127 ? 0 : out;
-  //   return out;
-  // });
-
-  // console.log(result2);
   return result;
 }
 
@@ -244,33 +112,20 @@ onMounted(async () => {
   const coord = 100 * 100 + 127;
 
   // universe
+  // galaxy
+  // solar system
+  // star
+  // planet
+  // continent
+  // country
+  // city
+  // house
+
   universe = getCells(seed, universeWeightKg);
   data.push("universeWeight:" + universe.stats.totalWeight);
   data.push("cells1:" + universe.cellWeights[coord]);
 
-  // // galaxy
-  // const cells2 = getCells(
-  //   xor(cells1.stats.layerState, cells1.cellStates[coord]),
-  //   cells1.cellWeights[coord]
-  // );
-  // data.push("cells2:" + cells2.cellWeights[coord]);
-
-  // // solar system
-  // const cells3 = getCells(
-  //   xor(cells2.stats.layerState, cells2.cellStates[coord]),
-  //   cells2.cellWeights[coord]
-  // );
-  // data.push("cells3:" + cells3.cellWeights[coord]);
-
-  // // star
-  // const cells4 = getCells(
-  //   xor(cells3.stats.layerState, cells3.cellStates[coord]),
-  //   cells3.cellWeights[coord]
-  // );
-  // data.push("cells4:" + cells4.cellWeights[coord]);
-
   const universeMap = makeUniverseMap(universe.cellIntegers);
-  // console.log(heightMap);
 
   details.value = data.join("\n");
   renderUniverse(getContext(universeCanvas), universeMap);
@@ -284,18 +139,17 @@ function renderUniverse(
 
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-  // const imageData = context.getImageData(0, 0, width, height);
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
-      const o = (y * width + x) * channels;
+      const o = (y * width + x) * 4;
       pixelData[o + 0] = ((data[i] / 0xffffffff) * 255) & 0xff;
       pixelData[o + 1] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 8) & 0xff;
       pixelData[o + 2] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 16) & 0xff;
 
-      pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
+      pixelData[o + 3] = 255; 
     }
   }
 
@@ -310,13 +164,12 @@ function renderPlanet(
 
   context.clearRect(0, 0, context.canvas.width, context.canvas.height);
 
-  // const imageData = context.getImageData(0, 0, width, height);
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
-      const o = (y * width + x) * channels;
+      const o = (y * width + x) * 4;
 
       const vv = ((data[i] / 0xffffffff) * 255) & 0xff;
       if (vv > 127) {

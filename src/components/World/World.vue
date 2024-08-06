@@ -17,24 +17,23 @@
     <div class="canvas-wrap">
       <canvas ref="planetCanvas" class="canvas"></canvas>
     </div>
-    <pre>{{ details }}</pre>
   </section>
 </template>
 
 <script lang="ts" setup>
 import { onMounted, Ref, ref } from "vue";
-import { diskFilter } from "./filters/diskFilter";
-import { PRNG } from "./lib/prng";
 import { makeUniverseMap, renderUniverse } from "./maps/universeMap";
 import { makePlanetMap, renderPlanet } from "./maps/planetMap";
 import { Cells, getCells, xor } from "./lib/other";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
+let universeContext: CanvasRenderingContext2D | null;
+
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
+let planetContext: CanvasRenderingContext2D | null;
 
 const hover = ref(0.45);
 const clickData = ref(0.45);
-const details = ref("");
 
 const seed = new TextEncoder().encode("This is the seed");
 
@@ -43,10 +42,14 @@ const height = 256;
 
 let universe: Cells;
 const universeWeightKg = 1e53;
-onMounted(async () => {
-  let data: string[] = [];
 
-  const coord = 100 * 100 + 127;
+onMounted(async () => {
+  universeContext = getContext(universeCanvas, width, height);
+  planetContext = getContext(planetCanvas, width, height);
+
+  universe = getCells(seed, universeWeightKg);
+  const universeMap = makeUniverseMap(universe.cellIntegers);
+  renderUniverse(universeContext, universeMap);
 
   // universe
   // galaxy
@@ -57,21 +60,12 @@ onMounted(async () => {
   // country
   // city
   // house
-
-  universe = getCells(seed, universeWeightKg);
-  data.push("universeWeight:" + universe.stats.totalWeight);
-  data.push("cells1:" + universe.cellWeights[coord]);
-
-  const universeMap = makeUniverseMap(universe.cellIntegers);
-
-  details.value = data.join("\n");
-  renderUniverse(getContext(universeCanvas), universeMap);
 });
 
-function getContext(canvas: Ref<HTMLCanvasElement>) {
+function getContext(canvas: Ref<HTMLCanvasElement>, width: number, height: number) {
   if (!canvas.value) return null;
-  canvas.value.width = canvas.value.offsetWidth;
-  canvas.value.height = canvas.value.offsetHeight;
+  canvas.value.width = width;
+  canvas.value.height = height;
   return canvas.value.getContext("2d", {
     willReadFrequently: true,
   });
@@ -107,7 +101,7 @@ const clickUniverse = (event: MouseEvent) => {
     planet.cellIntegers,
     universe.cellIntegers[coord]
   );
-  renderPlanet(getContext(planetCanvas), planetMap);
+  renderPlanet(planetContext, planetMap);
 };
 </script>
 

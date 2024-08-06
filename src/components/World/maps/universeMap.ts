@@ -1,15 +1,15 @@
 import { Cells, getCells } from "../lib/other";
 
-export function makeUniverseMap(width: number, height: number, seed: Uint8Array) {
+export function makeUniverseMap(
+  width: number,
+  height: number,
+  seed: Uint8Array,
+  weight: number
+) {
   let universe: Cells;
-  const universeWeightKg = 1e53;
-  universe = getCells(seed, universeWeightKg);
-
+  universe = getCells(width, height, seed, weight);
   return universe;
 }
-
-const width = 256;
-const height = 256;
 
 export function renderUniverse(
   context: CanvasRenderingContext2D | null,
@@ -17,7 +17,9 @@ export function renderUniverse(
 ) {
   if (!context) return;
 
-  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  const width = context.canvas.width;
+  const height = context.canvas.height;
+  context.clearRect(0, 0, width, height);
 
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;

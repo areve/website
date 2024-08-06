@@ -1,21 +1,11 @@
 import { diskFilter } from "../filters/diskFilter";
 import { Cells, getCells } from "../lib/other";
 
-const width = 256;
-const height = 256;
-
 export function makePlanetMap(width: number, height: number, seed: Uint8Array, weight: number, integer: number) {
-  // let universe: Cells;
-  // const universeWeightKg = 1e53;
-  // universe = getCells(seed, universeWeightKg);
-
-  // return universe;
-  const planet = getCells(
-    seed,
-    weight
-  );
+  const planet = getCells(width, height, seed, weight);
 
   const planetMap = makePlanetMapInternal(
+    width, height, 
     planet.cellIntegers,
     integer
   );
@@ -24,7 +14,7 @@ export function makePlanetMap(width: number, height: number, seed: Uint8Array, w
   return planet
 }
 
-function makePlanetMapInternal(weightMap: number[], weight: number) {
+function makePlanetMapInternal(width: number, height: number, weightMap: number[], weight: number) {
   const filter = diskFilter(10);
   const size = (filter.length - 1) / 2;
   const result = weightMap.map((v, i, a) => {
@@ -56,7 +46,9 @@ export function renderPlanet(
 ) {
   if (!context) return;
 
-  context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+  const width = context.canvas.width;
+  const height = context.canvas.height;
+  context.clearRect(0, 0, width, height);
 
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;

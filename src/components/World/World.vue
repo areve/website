@@ -24,7 +24,7 @@
 import { onMounted, Ref, ref } from "vue";
 import { makeUniverseMap, renderUniverse } from "./maps/universeMap";
 import { makePlanetMap, renderPlanet } from "./maps/planetMap";
-import { Cells, getCells, xor } from "./lib/other";
+import { Cells, xor } from "./lib/other";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
@@ -46,17 +46,14 @@ onMounted(async () => {
   universeContext = getContext(universeCanvas, width, height);
   planetContext = getContext(planetCanvas, width, height);
 
-  universeMap = makeUniverseMap(width, height, seed);
+  const universeWeightKg = 1e53;
+
+  universeMap = makeUniverseMap(width, height, seed, universeWeightKg);
   renderUniverse(universeContext, universeMap.cellIntegers);
 
-  planetMap = makePlanetMap(
-    width,
-    height,
-    xor(universeMap.stats.layerState, universeMap.cellStates[0]),
-    universeMap.cellWeights[0],
-    universeMap.cellIntegers[0],
-  );
-  renderPlanet(planetContext, planetMap.cellIntegers);
+  updatePlanet(0);
+
+  // Hierachy is approximately
   // universe
   // galaxy
   // solar system
@@ -67,6 +64,36 @@ onMounted(async () => {
   // city
   // house
 });
+
+const hoverUniverse = (event: MouseEvent) => {
+  const point = {
+    x: event.offsetX,
+    y: event.offsetY,
+  };
+  const coord = point.y * width + point.x;
+  hover.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
+};
+
+const clickUniverse = (event: MouseEvent) => {
+  const point = {
+    x: event.offsetX,
+    y: event.offsetY,
+  };
+  const coord = point.y * width + point.x;
+  clickData.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
+  updatePlanet(coord);
+};
+
+function updatePlanet(coord: number) {
+  planetMap = makePlanetMap(
+    width,
+    height,
+    xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
+    universeMap.cellWeights[coord],
+    universeMap.cellIntegers[coord]
+  );
+  renderPlanet(planetContext, planetMap.cellIntegers);
+}
 
 function getContext(
   canvas: Ref<HTMLCanvasElement>,
@@ -80,47 +107,6 @@ function getContext(
     willReadFrequently: true,
   });
 }
-
-const hoverUniverse = (event: MouseEvent) => {
-  // console.log(hoverUniverse)
-  const clickPoint = {
-    x: event.offsetX,
-    y: event.offsetY,
-  };
-  const coord = clickPoint.y * width + clickPoint.x;
-  // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
-  hover.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
-};
-
-const clickUniverse = (event: MouseEvent) => {
-  const clickPoint = {
-    x: event.offsetX,
-    y: event.offsetY,
-  };
-  const coord = clickPoint.y * width + clickPoint.x;
-  clickData.value = (universeMap.cellIntegers[coord] / 0xffffffff) * 255;
-  // console.log(clickPoint, universe.cellIntegers[coord] & 0xff);
-
-  // planet
-  // const planet = getCells(
-  //   xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
-  //   universeMap.cellWeights[coord]
-  // );
-
-  // const planetMap = makePlanetMap(
-  //   planet.cellIntegers,
-  //   universeMap.cellIntegers[coord]
-  // );
-  // renderPlanet(planetContext, planetMap);
-  planetMap = makePlanetMap(
-    width,
-    height,
-    xor(universeMap.stats.layerState, universeMap.cellStates[coord]),
-    universeMap.cellWeights[coord],
-    universeMap.cellIntegers[coord],
-  );
-  renderPlanet(planetContext, planetMap.cellIntegers);
-};
 </script>
 
 <style scoped>

@@ -4,11 +4,8 @@ export const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
 export const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 
 
-const width = 256;
-const height = 256;
 
-
-export function getCells(seed: Uint8Array, totalWeight: number) {
+export function getCells(width: number, height: number, seed: Uint8Array, totalWeight: number) {
   const generator = new PRNG(seed);
   const cellStates = generator.getStateArray(width * height);
   const cellIntegers = cellStates.map(

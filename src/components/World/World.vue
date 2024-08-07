@@ -16,6 +16,8 @@
       <div class="notes">
         <div class="title">universe</div>
         <div class="info">each dot is a galaxy</div>
+        <hr />
+        <div>weight: {{ universeMap?.weight.toFixed(3) }}</div>
         <div>{{ universeHover.toFixed(3) }}</div>
       </div>
     </section>
@@ -57,7 +59,10 @@
       </div>
       <div class="notes">
         <div class="title">planet</div>
-        <div class="info">each dot is a point on a point on the planet sized region of the solar system</div>
+        <div class="info">
+          each dot is a point on a point on the planet sized region of the solar
+          system
+        </div>
         <div>{{ planetData.toFixed(3) }}</div>
       </div>
     </section>
@@ -82,7 +87,7 @@ import {
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
-let universeMap: UniverseMapData;
+const universeMap = ref<UniverseMapData>();
 interface UniverseSeedData {
   seed: Uint8Array;
   weight: number;
@@ -92,7 +97,7 @@ const universeHover = ref(0);
 
 const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
 let galaxyContext: CanvasRenderingContext2D | null;
-let galaxyMap: GalaxyMapData;
+const galaxyMap = ref<GalaxyMapData>();
 interface GalaxySeedData {
   seed: Uint8Array;
   weight: number;
@@ -103,7 +108,7 @@ const galaxyData = ref(0);
 
 const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
 let solarSystemContext: CanvasRenderingContext2D | null;
-let solarSystemMap: SolarSystemMapData;
+const solarSystemMap = ref<SolarSystemMapData>();
 interface SolarSystemSeedData {
   seed: Uint8Array;
   weight: number;
@@ -114,7 +119,7 @@ const solarSystemData = ref(0);
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
-let planetMap: PlanetMapData;
+const planetMap = ref<PlanetMapData>();
 interface PlanetSeedData {
   seed: Uint8Array;
   weight: number;
@@ -136,7 +141,7 @@ onMounted(async () => {
 watch(universeSeedData, updateUniverseSeedData);
 function updateUniverseSeedData(universeSeedData?: UniverseSeedData) {
   if (!universeSeedData) return;
-  universeMap = makeUniverseMap(
+  universeMap.value = makeUniverseMap(
     width,
     height,
     universeSeedData.seed,
@@ -144,14 +149,15 @@ function updateUniverseSeedData(universeSeedData?: UniverseSeedData) {
   );
   universeContext =
     universeContext ?? getContext(universeCanvas, width, height);
-  renderUniverse(universeContext, universeMap);
+  renderUniverse(universeContext, universeMap.value);
   updateGalaxy(0);
 }
 
 function updateGalaxy(coord: number) {
+  if (!universeMap.value) return;
   galaxySeedData.value = {
-    seed: xor(universeMap.state, universeMap.states[coord]),
-    weight: universeMap.weights[coord],
+    seed: xor(universeMap.value.state, universeMap.value.states[coord]),
+    weight: universeMap.value.weights[coord],
   };
 }
 
@@ -159,21 +165,22 @@ watch(galaxySeedData, updateGalaxySeedData);
 function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
   if (!galaxySeedData) return;
   galaxyData.value = (galaxySeedData.weight / 0xffffffff) * 255;
-  galaxyMap = makeGalaxyMap(
+  galaxyMap.value = makeGalaxyMap(
     width,
     height,
     galaxySeedData.seed,
     galaxySeedData.weight
   );
   galaxyContext = galaxyContext ?? getContext(galaxyCanvas, width, height);
-  renderGalaxy(galaxyContext, galaxyMap);
+  renderGalaxy(galaxyContext, galaxyMap.value);
   updateSolarSystem(0);
 }
 
 function updateSolarSystem(coord: number) {
+  if (!galaxyMap.value) return;
   solarSystemSeedData.value = {
-    seed: xor(galaxyMap.state, galaxyMap.states[coord]),
-    weight: galaxyMap.weights[coord],
+    seed: xor(galaxyMap.value.state, galaxyMap.value.states[coord]),
+    weight: galaxyMap.value.weights[coord],
   };
 }
 
@@ -181,7 +188,7 @@ watch(solarSystemSeedData, updateSolarSystemSeedData);
 function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
   if (!solarSystemSeedData) return;
   solarSystemData.value = (solarSystemSeedData.weight / 0xffffffff) * 255;
-  solarSystemMap = makeSolarSystemMap(
+  solarSystemMap.value = makeSolarSystemMap(
     width,
     height,
     solarSystemSeedData.seed,
@@ -189,14 +196,15 @@ function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
   );
   solarSystemContext =
     solarSystemContext ?? getContext(solarSystemCanvas, width, height);
-  renderSolarSystem(solarSystemContext, solarSystemMap);
+  renderSolarSystem(solarSystemContext, solarSystemMap.value);
   updatePlanet(0);
 }
 
 function updatePlanet(coord: number) {
+  if (!solarSystemMap.value) return;
   planetSeedData.value = {
-    seed: xor(solarSystemMap.state, solarSystemMap.states[coord]),
-    weight: solarSystemMap.weights[coord],
+    seed: xor(solarSystemMap.value.state, solarSystemMap.value.states[coord]),
+    weight: solarSystemMap.value.weights[coord],
   };
 }
 
@@ -204,36 +212,42 @@ watch(planetSeedData, updatePlanetSeedData);
 function updatePlanetSeedData(planetSeedData?: PlanetSeedData) {
   if (!planetSeedData) return;
   planetData.value = (planetSeedData.weight / 0xffffffff) * 255;
-  planetMap = makePlanetMap(
+  planetMap.value = makePlanetMap(
     width,
     height,
     planetSeedData.seed,
     planetSeedData.weight
   );
   planetContext = planetContext ?? getContext(planetCanvas, width, height);
-  renderPlanet(planetContext, planetMap);
+  renderPlanet(planetContext, planetMap.value);
 }
 
 const coordFromEvent = (event: MouseEvent) =>
   event.offsetY * width + event.offsetX;
 
-const hoverUniverse = (event: MouseEvent) =>
-  (universeHover.value =
-    (universeMap.weights[coordFromEvent(event)] / 0xffffffff) * 255);
+const hoverUniverse = (event: MouseEvent) => {
+  if (!universeMap.value) return;
+  universeHover.value =
+    (universeMap.value.weights[coordFromEvent(event)] / 0xffffffff) * 255;
+};
 
 const clickUniverse = (event: MouseEvent) =>
   updateGalaxy(coordFromEvent(event));
 
-const hoverGalaxy = (event: MouseEvent) =>
-  (galaxyHover.value =
-    (galaxyMap.weights[coordFromEvent(event)] / 0xffffffff) * 255);
+const hoverGalaxy = (event: MouseEvent) => {
+  if (!galaxyMap.value) return;
+  galaxyHover.value =
+    (galaxyMap.value.weights[coordFromEvent(event)] / 0xffffffff) * 255;
+};
 
 const clickGalaxy = (event: MouseEvent) =>
   updateSolarSystem(coordFromEvent(event));
 
-const hoverSolarSystem = (event: MouseEvent) =>
-  (solarSystemHover.value =
-    (solarSystemMap.weights[coordFromEvent(event)] / 0xffffffff) * 255);
+const hoverSolarSystem = (event: MouseEvent) => {
+  if (!solarSystemMap.value) return;
+  solarSystemHover.value =
+    (solarSystemMap.value.weights[coordFromEvent(event)] / 0xffffffff) * 255;
+};
 
 const clickSolarSystem = (event: MouseEvent) =>
   updatePlanet(coordFromEvent(event));

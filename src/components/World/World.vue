@@ -17,7 +17,7 @@
         <div class="title">universe</div>
         <div class="info">each dot is a galaxy</div>
         <hr />
-        <div>weight: {{ universeMap?.weight.toFixed(3) }}</div>
+        <div>weight: {{ universeMap?.weight.toPrecision(3) }}</div>
         <div>{{ universeHover.toFixed(3) }}</div>
       </div>
     </section>
@@ -33,7 +33,8 @@
       <div class="notes">
         <div class="title">galaxy</div>
         <div class="info">each dot is a solar system</div>
-        <div>{{ galaxyData.toFixed(3) }}</div>
+        <hr />
+        <div>weight: {{ galaxyMap?.weight.toPrecision(3) }}</div>
         <div>{{ galaxyHover.toFixed(3) }}</div>
       </div>
     </section>
@@ -49,7 +50,8 @@
       <div class="notes">
         <div class="title">solar system</div>
         <div class="info">each dot is a sun, planet, moon, astroid</div>
-        <div>{{ solarSystemData.toFixed(3) }}</div>
+        <hr />
+        <div>weight: {{ solarSystemMap?.weight.toPrecision(3) }}</div>
         <div>{{ solarSystemHover.toFixed(3) }}</div>
       </div>
     </section>
@@ -63,7 +65,8 @@
           each dot is a point on a point on the planet sized region of the solar
           system
         </div>
-        <div>{{ planetData.toFixed(3) }}</div>
+        <hr />
+        <div>weight: {{ planetMap?.weight.toPrecision(3) }}</div>
       </div>
     </section>
   </section>
@@ -85,47 +88,44 @@ import {
   renderSolarSystem,
 } from "./maps/solarSystemMap";
 
-const universeCanvas = ref<HTMLCanvasElement>(undefined!);
-let universeContext: CanvasRenderingContext2D | null;
-const universeMap = ref<UniverseMapData>();
 interface UniverseSeedData {
   seed: Uint8Array;
   weight: number;
 }
+const universeCanvas = ref<HTMLCanvasElement>(undefined!);
+let universeContext: CanvasRenderingContext2D | null;
+const universeMap = ref<UniverseMapData>();
 const universeSeedData = ref<UniverseSeedData>();
 const universeHover = ref(0);
 
-const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
-let galaxyContext: CanvasRenderingContext2D | null;
-const galaxyMap = ref<GalaxyMapData>();
 interface GalaxySeedData {
   seed: Uint8Array;
   weight: number;
 }
+const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
+let galaxyContext: CanvasRenderingContext2D | null;
+const galaxyMap = ref<GalaxyMapData>();
 const galaxySeedData = ref<GalaxySeedData>();
 const galaxyHover = ref(0);
-const galaxyData = ref(0);
 
-const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
-let solarSystemContext: CanvasRenderingContext2D | null;
-const solarSystemMap = ref<SolarSystemMapData>();
 interface SolarSystemSeedData {
   seed: Uint8Array;
   weight: number;
 }
+const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
+let solarSystemContext: CanvasRenderingContext2D | null;
+const solarSystemMap = ref<SolarSystemMapData>();
 const solarSystemSeedData = ref<SolarSystemSeedData>();
 const solarSystemHover = ref(0);
-const solarSystemData = ref(0);
 
-const planetCanvas = ref<HTMLCanvasElement>(undefined!);
-let planetContext: CanvasRenderingContext2D | null;
-const planetMap = ref<PlanetMapData>();
 interface PlanetSeedData {
   seed: Uint8Array;
   weight: number;
 }
+const planetCanvas = ref<HTMLCanvasElement>(undefined!);
+let planetContext: CanvasRenderingContext2D | null;
+const planetMap = ref<PlanetMapData>();
 const planetSeedData = ref<PlanetSeedData>();
-const planetData = ref(0);
 
 const width = 256;
 const height = 256;
@@ -164,7 +164,6 @@ function updateGalaxy(coord: number) {
 watch(galaxySeedData, updateGalaxySeedData);
 function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
   if (!galaxySeedData) return;
-  galaxyData.value = (galaxySeedData.weight / 0xffffffff) * 255;
   galaxyMap.value = makeGalaxyMap(
     width,
     height,
@@ -187,7 +186,6 @@ function updateSolarSystem(coord: number) {
 watch(solarSystemSeedData, updateSolarSystemSeedData);
 function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
   if (!solarSystemSeedData) return;
-  solarSystemData.value = (solarSystemSeedData.weight / 0xffffffff) * 255;
   solarSystemMap.value = makeSolarSystemMap(
     width,
     height,
@@ -211,7 +209,6 @@ function updatePlanet(coord: number) {
 watch(planetSeedData, updatePlanetSeedData);
 function updatePlanetSeedData(planetSeedData?: PlanetSeedData) {
   if (!planetSeedData) return;
-  planetData.value = (planetSeedData.weight / 0xffffffff) * 255;
   planetMap.value = makePlanetMap(
     width,
     height,

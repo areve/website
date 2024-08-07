@@ -72,13 +72,13 @@ export function renderPlanet(
 
       const vv = ((data[i] / 0xffffffff) * 255) & 0xff;
       if (vv > 127) {
-        pixelData[o + 0] = vv;
-        pixelData[o + 1] = vv * 2 - 127; //(data[i] >> 8) & 0xff;
+        pixelData[o + 0] = 127 - vv / 2;
+        pixelData[o + 1] = vv - 63; //(data[i] >> 8) & 0xff;
         pixelData[o + 2] = 0; //(data[i] >> 16) & 0xff;
       } else {
-        pixelData[o + 0] = 0;
-        pixelData[o + 1] = vv; //(data[i] >> 8) & 0xff;
-        pixelData[o + 2] = vv * 2; //(data[i] >> 16) & 0xff;
+        pixelData[o + 0] = 63;
+        pixelData[o + 1] = 127; //(data[i] >> 8) & 0xff;
+        pixelData[o + 2] = vv + 127; //(data[i] >> 16) & 0xff;
       }
 
       pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;

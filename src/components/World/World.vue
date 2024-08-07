@@ -22,17 +22,17 @@
 
 <script lang="ts" setup>
 import { onMounted, Ref, ref } from "vue";
-import { makeUniverseMap, renderUniverse } from "./maps/universeMap";
-import { makePlanetMap, renderPlanet } from "./maps/planetMap";
+import { makeUniverseMap, renderUniverse, UniverseMapData } from "./maps/universeMap";
+import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
 import { MapData, xor } from "./lib/other";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
-let universeMap: MapData;
+let universeMap: UniverseMapData;
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
-let planetMap: MapData;
+let planetMap: PlanetMapData;
 
 const hover = ref(0.45);
 const clickData = ref(0.45);
@@ -70,7 +70,7 @@ const hoverUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = point.y * width + point.x;
-  hover.value = (universeMap.integers[coord] / 0xffffffff) * 255;
+  hover.value = (universeMap.weights[coord] / 0xffffffff) * 255;
 };
 
 const clickUniverse = (event: MouseEvent) => {
@@ -79,7 +79,7 @@ const clickUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = point.y * width + point.x;
-  clickData.value = (universeMap.integers[coord] / 0xffffffff) * 255;
+  clickData.value = (universeMap.weights[coord] / 0xffffffff) * 255;
   updatePlanet(coord);
 };
 
@@ -88,7 +88,7 @@ function updatePlanet(coord: number) {
     width,
     height,
     xor(universeMap.state, universeMap.states[coord]),
-    universeMap.integers[coord]
+    universeMap.weights[coord]
   );
   renderPlanet(planetContext, planetMap);
 }

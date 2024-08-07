@@ -3,7 +3,7 @@ import { MapData, makeMap } from "../lib/other";
 
 export interface PlanetMapData extends MapData {
   weight: number;
-  integers: Uint32Array;
+  heights: Uint32Array;
 }
 
 export function makePlanetMap(
@@ -19,17 +19,17 @@ export function makePlanetMap(
       (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
     )
   );
-  const betterIntegers = makePlanetMapInternal(width, height, integers, weight);
+  const heights = getHeights(width, height, integers, weight);
   const planetMap: PlanetMapData = {
     ...map,
-    integers: betterIntegers,
+    heights,
     weight,
   };
 
   return planetMap;
 }
 
-function makePlanetMapInternal(
+function getHeights(
   width: number,
   height: number,
   weightMap: Uint32Array,
@@ -72,7 +72,7 @@ export function renderPlanet(
 
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
-  const data = map.integers;
+  const data = map.heights;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;

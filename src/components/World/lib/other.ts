@@ -16,7 +16,9 @@ export function makeMap(
   const generator = new PRNG(seed);
   let state = generator.getState();
   const states = generator.getStateArray(width * height);
-  
+  const integers = new Uint32Array(
+    states.map((v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0)
+  );
   return {
     states,
     state,

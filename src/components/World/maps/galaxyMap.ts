@@ -13,9 +13,15 @@ export function makeGalaxyMap(
 ) {
   let map = makeMap(width, height, seed);
   const weights = new Uint32Array(
-    map.states.map(
-      (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
-    )
+    map.states.map((v) => {
+      const integer = ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0;
+      let vv = integer / 0xffffffff
+      let pow = weight / 0xffffffff;
+      pow =  32/pow
+      vv = (vv ** pow) * 0xffffffff;
+
+      return vv & 0xffffffff;
+    })
   );
   let galaxy: GalaxyMapData = {
     ...map,
@@ -43,9 +49,11 @@ export function renderGalaxy(
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
       const o = (y * width + x) * 4;
-      pixelData[o + 0] = ((data[i] / 0xffffffff) * 255) & 0xff;
-      pixelData[o + 1] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 8) & 0xff;
-      pixelData[o + 2] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 16) & 0xff;
+
+      let vv = data[i] / 0xffffffff * 255 & 0xff;
+      pixelData[o + 0] = vv;
+      pixelData[o + 1] = vv;
+      pixelData[o + 2] = vv;
 
       pixelData[o + 3] = 255;
     }

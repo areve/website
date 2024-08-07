@@ -14,15 +14,25 @@
         ></canvas>
       </div>
       <div class="notes">
-        <div>{{ Math.floor(universeHover) }}</div>
+        <div class="title">universe</div>
+        <div>each dot is a galaxy</div>
+        <div>{{ universeHover.toFixed(3) }}</div>
       </div>
     </section>
     <section class="group">
       <div class="canvas-wrap">
-        <canvas ref="galaxyCanvas" class="canvas"></canvas>
+        <canvas
+          ref="galaxyCanvas"
+          class="canvas"
+          @click="clickGalaxy"
+          @mousemove="hoverGalaxy"
+        ></canvas>
       </div>
       <div class="notes">
-        <div>{{ Math.floor(galaxyData) }}</div>
+        <div class="title">galaxy</div>
+        <div>each dot is a solar system</div>
+        <div>{{ galaxyData.toFixed(3) }}</div>
+        <div>{{ galaxyHover.toFixed(3) }}</div>
       </div>
     </section>
     <section class="group">
@@ -30,7 +40,7 @@
         <canvas ref="planetCanvas" class="canvas"></canvas>
       </div>
       <div class="notes">
-        <div>{{ Math.floor(planetData) }}</div>
+        <div>{{ planetData.toFixed(3) }}</div>
       </div>
     </section>
   </section>
@@ -44,7 +54,7 @@ import {
   UniverseMapData,
 } from "./maps/universeMap";
 import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
-import { MapData, xor } from "./lib/other";
+import { xor } from "./lib/other";
 import { GalaxyMapData, makeGalaxyMap, renderGalaxy } from "./maps/galaxyMap";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
@@ -61,6 +71,7 @@ let planetMap: PlanetMapData;
 
 const universeHover = ref(0);
 const planetData = ref(0);
+const galaxyHover = ref(0);
 const galaxyData = ref(0);
 
 const seed = new TextEncoder().encode("This is the seed");
@@ -78,7 +89,6 @@ onMounted(async () => {
   renderUniverse(universeContext, universeMap);
 
   updateGalaxy(0);
-
   updatePlanet(0);
 
   // Hierachy is approximately
@@ -92,6 +102,26 @@ onMounted(async () => {
   // city
   // house
 });
+
+const hoverGalaxy = (event: MouseEvent) => {
+  const point = {
+    x: event.offsetX,
+    y: event.offsetY,
+  };
+  const coord = point.y * width + point.x;
+  galaxyHover.value = (galaxyMap.weights[coord] / 0xffffffff) * 255;
+};
+
+const clickGalaxy = (event: MouseEvent) => {
+  const point = {
+    x: event.offsetX,
+    y: event.offsetY,
+  };
+  const coord = point.y * width + point.x;
+
+  updatePlanet(coord);
+  planetData.value = (galaxyMap.weights[coord] / 0xffffffff) * 255;
+};
 
 const hoverUniverse = (event: MouseEvent) => {
   const point = {
@@ -108,10 +138,12 @@ const clickUniverse = (event: MouseEvent) => {
     y: event.offsetY,
   };
   const coord = point.y * width + point.x;
-  planetData.value = (universeMap.weights[coord] / 0xffffffff) * 255;
-  galaxyData.value = (universeMap.weights[coord] / 0xffffffff) * 255;
-  updatePlanet(coord);
+
   updateGalaxy(coord);
+  galaxyData.value = (universeMap.weights[coord] / 0xffffffff) * 255;
+
+  updatePlanet(coord);
+  planetData.value = (universeMap.weights[coord] / 0xffffffff) * 255;
 };
 
 function updateGalaxy(coord: number) {
@@ -151,6 +183,9 @@ function getContext(
 .group {
   display: flex;
   margin-bottom: 5px;
+}
+.title {
+  font-weight: 500;
 }
 .notes {
   flex: 1 1;

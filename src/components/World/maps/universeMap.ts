@@ -43,9 +43,11 @@ export function renderUniverse(
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
       const o = (y * width + x) * 4;
-      pixelData[o + 0] = ((data[i] / 0xffffffff) * 255) & 0xff;
-      pixelData[o + 1] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 8) & 0xff;
-      pixelData[o + 2] = ((data[i] / 0xffffffff) * 255) & 0xff; //(data[i] >> 16) & 0xff;
+      const vv = ((data[i] / 0xffffffff) * 255) & 0xff;
+
+      pixelData[o + 0] = vv;
+      pixelData[o + 1] = vv;
+      pixelData[o + 2] = vv;
 
       pixelData[o + 3] = 255;
     }

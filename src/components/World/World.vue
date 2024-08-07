@@ -15,7 +15,7 @@
       </div>
       <div class="notes">
         <div class="title">universe</div>
-        <div>each dot is a galaxy</div>
+        <div class="info">each dot is a galaxy</div>
         <div>{{ universeHover.toFixed(3) }}</div>
       </div>
     </section>
@@ -30,7 +30,7 @@
       </div>
       <div class="notes">
         <div class="title">galaxy</div>
-        <div>each dot is a solar system</div>
+        <div class="info">each dot is a solar system</div>
         <div>{{ galaxyData.toFixed(3) }}</div>
         <div>{{ galaxyHover.toFixed(3) }}</div>
       </div>
@@ -46,7 +46,7 @@
       </div>
       <div class="notes">
         <div class="title">solar system</div>
-        <div>each dots is a sun, planet, moon, astroid</div>
+        <div class="info">each dot is a sun, planet, moon, astroid</div>
         <div>{{ solarSystemData.toFixed(3) }}</div>
         <div>{{ solarSystemHover.toFixed(3) }}</div>
       </div>
@@ -56,6 +56,8 @@
         <canvas ref="planetCanvas" class="canvas"></canvas>
       </div>
       <div class="notes">
+        <div class="title">planet</div>
+        <div class="info">each dot is a point on a point on the planet sized region of the solar system</div>
         <div>{{ planetData.toFixed(3) }}</div>
       </div>
     </section>
@@ -257,6 +259,10 @@ function getContext(
 }
 .title {
   font-weight: 500;
+}
+.info {
+  font-size: 0.9em;
+  line-height: 1.2em;
 }
 .notes {
   flex: 1 1;

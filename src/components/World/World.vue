@@ -18,7 +18,7 @@
         <div class="info">each dot is a galaxy</div>
         <hr />
         <div>weight: {{ universeMap?.weight.toPrecision(3) }}</div>
-        <div>{{ universeHover.toFixed(3) }}</div>
+        <div>{{ universeHover.toPrecision(3) }}</div>
       </div>
     </section>
     <section class="group">
@@ -35,7 +35,7 @@
         <div class="info">each dot is a solar system</div>
         <hr />
         <div>weight: {{ galaxyMap?.weight.toPrecision(3) }}</div>
-        <div>{{ galaxyHover.toFixed(3) }}</div>
+        <div>{{ galaxyHover.toPrecision(3) }}</div>
       </div>
     </section>
     <section class="group">
@@ -52,7 +52,7 @@
         <div class="info">each dot is a sun, planet, moon, astroid</div>
         <hr />
         <div>weight: {{ solarSystemMap?.weight.toPrecision(3) }}</div>
-        <div>{{ solarSystemHover.toFixed(3) }}</div>
+        <div>{{ solarSystemHover.toPrecision(3) }}</div>
       </div>
     </section>
     <section class="group">
@@ -131,10 +131,12 @@ const width = 256;
 const height = 256;
 
 onMounted(async () => {
-  const universeWeightKg = 1e53;
+  // const actualUniverseWeightKg = 1e53;
+  const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way 
+  // const milkyWayWeightKg = 2.7e27;
   universeSeedData.value = {
     seed: new TextEncoder().encode("This is the seed"),
-    weight: universeWeightKg,
+    weight: thisUniverseWeightKg,
   };
 });
 
@@ -224,8 +226,7 @@ const coordFromEvent = (event: MouseEvent) =>
 
 const hoverUniverse = (event: MouseEvent) => {
   if (!universeMap.value) return;
-  universeHover.value =
-    (universeMap.value.weights[coordFromEvent(event)] / 0xffffffff) * 255;
+  universeHover.value = universeMap.value.weights[coordFromEvent(event)];
 };
 
 const clickUniverse = (event: MouseEvent) =>
@@ -233,8 +234,7 @@ const clickUniverse = (event: MouseEvent) =>
 
 const hoverGalaxy = (event: MouseEvent) => {
   if (!galaxyMap.value) return;
-  galaxyHover.value =
-    (galaxyMap.value.weights[coordFromEvent(event)] / 0xffffffff) * 255;
+  galaxyHover.value = galaxyMap.value.weights[coordFromEvent(event)];
 };
 
 const clickGalaxy = (event: MouseEvent) =>
@@ -242,8 +242,7 @@ const clickGalaxy = (event: MouseEvent) =>
 
 const hoverSolarSystem = (event: MouseEvent) => {
   if (!solarSystemMap.value) return;
-  solarSystemHover.value =
-    (solarSystemMap.value.weights[coordFromEvent(event)] / 0xffffffff) * 255;
+  solarSystemHover.value = solarSystemMap.value.weights[coordFromEvent(event)];
 };
 
 const clickSolarSystem = (event: MouseEvent) =>

@@ -1,8 +1,10 @@
-import { MapData, makeMap } from "../lib/other";
+import { MapData, makeMap, sum } from "../lib/other";
 
 export interface GalaxyMapData extends MapData {
   weight: number;
-  weights: Uint32Array;
+  width: number;
+  height: number;
+  weights: number[];
 }
 
 export function makeGalaxyMap(
@@ -12,20 +14,17 @@ export function makeGalaxyMap(
   weight: number
 ) {
   let map = makeMap(width, height, seed);
-  const weights = new Uint32Array(
-    map.states.map((v) => {
-      const integer = ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0;
-      let vv = integer / 0xffffffff
-      let pow = weight / 0xffffffff;
-      pow =  32/pow
-      vv = (vv ** pow) * 0xffffffff;
-
-      return vv & 0xffffffff;
-    })
+  const integers = map.states.map(
+    (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
+  const sumIntegers = sum(integers);
+  const weights = integers.map((v) => ((v / sumIntegers) * weight) as number);
+
   let galaxy: GalaxyMapData = {
     ...map,
     weights,
+    width,
+    height,
     weight,
   };
 
@@ -43,6 +42,7 @@ export function renderGalaxy(
   context.clearRect(0, 0, width, height);
 
   const data = map.weights;
+  const rangeMax = map.weight / (map.width * map.height);
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {
@@ -50,10 +50,12 @@ export function renderGalaxy(
       const i = y * width + x;
       const o = (y * width + x) * 4;
 
-      let vv = data[i] / 0xffffffff * 255 & 0xff;
-      pixelData[o + 0] = vv;
-      pixelData[o + 1] = vv;
-      pixelData[o + 2] = vv;
+      let value = ((data[i] / rangeMax) / 2);
+      value = value ** 20
+      //  console.assert(value < 1)
+      pixelData[o + 0] = (value * 0xff) & 0xff;
+      pixelData[o + 1] = (value * 0xff) & 0xff;
+      pixelData[o + 2] = (value * 0xff) & 0xff;
 
       pixelData[o + 3] = 255;
     }

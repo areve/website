@@ -1,24 +1,32 @@
 import { diskFilter } from "../filters/diskFilter";
 import { MapData, makeMap } from "../lib/other";
 
+export interface PlanetMapData extends MapData {
+  weight: number;
+  integers: Uint32Array;
+}
+
 export function makePlanetMap(
   width: number,
   height: number,
   seed: Uint8Array,
   weight: number
 ) {
-  const planet = makeMap(width, height, seed);
+  const map = makeMap(width, height, seed);
 
-  const planetMap = makePlanetMapInternal(
-    width,
-    height,
-    planet.integers,
-    weight
+  const integers = new Uint32Array(
+    map.states.map(
+      (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
+    )
   );
+  const betterIntegers = makePlanetMapInternal(width, height, integers, weight);
+  const planetMap: PlanetMapData = {
+    ...map,
+    integers: betterIntegers,
+    weight,
+  };
 
-  planet.integers = planetMap;
-  (planet as any).weight = weight; // TODO do it better
-  return planet;
+  return planetMap;
 }
 
 function makePlanetMapInternal(
@@ -54,7 +62,7 @@ function makePlanetMapInternal(
 
 export function renderPlanet(
   context: CanvasRenderingContext2D | null,
-  map: MapData
+  map: PlanetMapData
 ) {
   if (!context) return;
 

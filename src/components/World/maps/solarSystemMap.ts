@@ -1,29 +1,39 @@
-import { MapData, makeMap } from "../lib/other";
+import { MapData, MapDataProps, makeMap } from "../lib/other";
+import { GalaxyMapDataProps } from "./galaxyMap";
+
+export interface SolarSystemMapDataProps extends MapDataProps {
+  weight: number;
+  parentProps: GalaxyMapDataProps;
+}
 
 export interface SolarSystemMapData extends MapData {
-  weight: number;
-  weights: Uint32Array;
+  props: SolarSystemMapDataProps;
+  weights: number[];
 }
 
 export function makeSolarSystemMap(
   width: number,
   height: number,
   seed: Uint8Array,
-  weight: number
+  weight: number,
+  parentProps: GalaxyMapDataProps
 ) {
   let map = makeMap(width, height, seed);
-  const weights = new Uint32Array(
-    map.states.map((v) => {
-      const integer = ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0;
-      let vv = integer;
+  const weights = map.states.map((v) => {
+    const integer = ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0;
+    let vv = integer;
 
-      return vv & 0xffffffff;
-    })
-  );
+    return vv & 0xffffffff;
+  });
+
   let solarSystem: SolarSystemMapData = {
     ...map,
     weights,
-    weight,
+    props: {
+      ...map.props,
+      parentProps,
+      weight,
+    },
   };
 
   return solarSystem;

@@ -1,29 +1,38 @@
 import { diskFilter } from "../filters/diskFilter";
-import { MapData, makeMap } from "../lib/other";
+import { MapData, MapDataProps, makeMap } from "../lib/other";
+import { SolarSystemMapDataProps } from "./solarSystemMap";
+
+export interface PlanetMapDataProps extends MapDataProps {
+  weight: number;
+  parentProps: SolarSystemMapDataProps;
+}
 
 export interface PlanetMapData extends MapData {
-  weight: number;
-  heights: Uint32Array;
+  props: PlanetMapDataProps;
+  heights: number[];
 }
 
 export function makePlanetMap(
   width: number,
   height: number,
   seed: Uint8Array,
-  weight: number
+  weight: number,
+  parentProps: SolarSystemMapDataProps
 ) {
   const map = makeMap(width, height, seed);
 
-  const integers = new Uint32Array(
-    map.states.map(
-      (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
-    )
+  const integers = map.states.map(
+    (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
   const heights = getHeights(width, height, integers, weight);
   const planetMap: PlanetMapData = {
     ...map,
     heights,
-    weight,
+    props: {
+      ...map.props,
+      parentProps,
+      weight,
+    },
   };
 
   return planetMap;
@@ -32,12 +41,12 @@ export function makePlanetMap(
 function getHeights(
   width: number,
   height: number,
-  weightMap: Uint32Array,
+  integers: number[],
   weight: number
 ) {
   const filter = diskFilter(10);
   const size = (filter.length - 1) / 2;
-  const result = weightMap.map((v, i, a) => {
+  const result = integers.map((v, i, a) => {
     const x = i % width;
     const y = Math.floor(i / height);
     if (x < size || x >= width - size) return 0;
@@ -48,7 +57,7 @@ function getHeights(
       for (let fx = 0; fx < filter[fy].length; ++fx) {
         const mult = filter[fy][fx];
         const coord = (y + fy - size) * width + (x + fx - size);
-        const i2 = weightMap[coord];
+        const i2 = integers[coord];
         output += i2 * mult;
       }
     }

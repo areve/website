@@ -51,7 +51,7 @@
         <div class="title">solar system</div>
         <div class="info">each dot is a sun, planet, moon, astroid</div>
         <hr />
-        <div>weight: {{ solarSystemMap?.weight.toPrecision(3) }}</div>
+        <div>weight: {{ solarSystemMap?.props.weight.toPrecision(3) }}</div>
         <div>{{ solarSystemHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -66,7 +66,7 @@
           system
         </div>
         <hr />
-        <div>weight: {{ planetMap?.weight.toPrecision(3) }}</div>
+        <div>weight: {{ planetMap?.props.weight.toPrecision(3) }}</div>
       </div>
     </section>
   </section>
@@ -78,13 +78,19 @@ import {
   makeUniverseMap,
   renderUniverse,
   UniverseMapData,
-UniverseMapDataProps,
+  UniverseMapDataProps,
 } from "./maps/universeMap";
 import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
 import { clamp } from "./lib/other";
-import { GalaxyMapData, makeGalaxyMap, renderGalaxy } from "./maps/galaxyMap";
+import {
+  GalaxyMapData,
+  GalaxyMapDataProps,
+  makeGalaxyMap,
+  renderGalaxy,
+} from "./maps/galaxyMap";
 import {
   SolarSystemMapData,
+  SolarSystemMapDataProps,
   makeSolarSystemMap,
   renderSolarSystem,
 } from "./maps/solarSystemMap";
@@ -113,6 +119,7 @@ const galaxyHover = ref(0);
 interface SolarSystemSeedData {
   seed: Uint8Array;
   weight: number;
+  parentProps: GalaxyMapDataProps;
 }
 const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
 let solarSystemContext: CanvasRenderingContext2D | null;
@@ -123,6 +130,7 @@ const solarSystemHover = ref(0);
 interface PlanetSeedData {
   seed: Uint8Array;
   weight: number;
+  parentProps: SolarSystemMapDataProps;
 }
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
@@ -186,6 +194,7 @@ function updateSolarSystem(coord: number) {
   solarSystemSeedData.value = {
     seed: galaxyMap.value.props.seed,
     weight: galaxyMap.value.weights[coord],
+    parentProps: galaxyMap.value.props,
   };
 }
 
@@ -196,7 +205,8 @@ function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
     width,
     height,
     solarSystemSeedData.seed,
-    solarSystemSeedData.weight
+    solarSystemSeedData.weight,
+    solarSystemSeedData.parentProps
   );
   solarSystemContext =
     solarSystemContext ?? getContext(solarSystemCanvas, width, height);
@@ -209,6 +219,7 @@ function updatePlanet(coord: number) {
   planetSeedData.value = {
     seed: solarSystemMap.value.props.seed,
     weight: solarSystemMap.value.weights[coord],
+    parentProps: solarSystemMap.value.props,
   };
 }
 
@@ -219,7 +230,8 @@ function updatePlanetSeedData(planetSeedData?: PlanetSeedData) {
     width,
     height,
     planetSeedData.seed,
-    planetSeedData.weight
+    planetSeedData.weight,
+    planetSeedData.parentProps
   );
   planetContext = planetContext ?? getContext(planetCanvas, width, height);
   renderPlanet(planetContext, planetMap.value);

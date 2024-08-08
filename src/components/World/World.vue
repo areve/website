@@ -17,7 +17,7 @@
         <div class="title">universe</div>
         <div class="info">each dot is a galaxy</div>
         <hr />
-        <div>weight: {{ universeMap?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ universeLayer?.props.weight.toPrecision(3) }}</div>
         <div>{{ universeHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -34,7 +34,7 @@
         <div class="title">galaxy</div>
         <div class="info">each dot is a solar system</div>
         <hr />
-        <div>weight: {{ galaxyMap?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ galaxyLayer?.props.weight.toPrecision(3) }}</div>
         <div>{{ galaxyHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -51,7 +51,7 @@
         <div class="title">solar system</div>
         <div class="info">each dot is a sun, planet, moon, astroid</div>
         <hr />
-        <div>weight: {{ solarSystemMap?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ solarSystemLayer?.props.weight.toPrecision(3) }}</div>
         <div>{{ solarSystemHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -66,7 +66,7 @@
           system
         </div>
         <hr />
-        <div>weight: {{ planetMap?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ planetLayer?.props.weight.toPrecision(3) }}</div>
       </div>
     </section>
   </section>
@@ -102,142 +102,166 @@ import {
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
-const universeMap = ref<UniverseLayer>();
-const universeSeedData = ref<UniverseProps>();
+const universeLayer = ref<UniverseLayer>();
+const universeProps = ref<UniverseProps>();
 const universeHover = ref(0);
 
 const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
 let galaxyContext: CanvasRenderingContext2D | null;
-const galaxyMap = ref<GalaxyLayer>();
-const galaxySeedData = ref<GalaxyProps>();
+const galaxyLayer = ref<GalaxyLayer>();
+const galaxyProps = ref<GalaxyProps>();
 const galaxyHover = ref(0);
 
 const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
 let solarSystemContext: CanvasRenderingContext2D | null;
-const solarSystemMap = ref<SolarSystemLayer>();
-const solarSystemSeedData = ref<SolarSystemProps>();
+const solarSystemLayer = ref<SolarSystemLayer>();
+const solarSystemProps = ref<SolarSystemProps>();
 const solarSystemHover = ref(0);
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
-const planetMap = ref<PlanetLayer>();
-const planetSeedData = ref<PlanetProps>();
-
-const width = 256;
-const height = 256;
+const planetLayer = ref<PlanetLayer>();
+const planetProps = ref<PlanetProps>();
 
 onMounted(async () => {
   // const actualUniverseWeightKg = 1e53;
   const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
   // const milkyWayWeightKg = 2.7e27;
-  universeSeedData.value = {
-    width,
-    height,
+  universeProps.value = {
+    width: 256,
+    height: 256,
     seed: new TextEncoder().encode("This is the seed"),
     weight: thisUniverseWeightKg,
   };
 });
 
-watch(universeSeedData, updateUniverseSeedData);
-function updateUniverseSeedData(universeSeedData?: UniverseProps) {
-  if (!universeSeedData) return;
-  universeMap.value = makeUniverseLayer(universeSeedData);
+watch(universeProps, updateUniverseProps);
+function updateUniverseProps(universeProps?: UniverseProps) {
+  if (!universeProps) return;
+  universeLayer.value = makeUniverseLayer(universeProps);
   universeContext =
-    universeContext ?? getContext(universeCanvas, width, height);
-  renderUniverse(universeContext, universeMap.value);
+    universeContext ??
+    getContext(universeCanvas, universeProps.width, universeProps.height);
+  renderUniverse(universeContext, universeLayer.value);
   updateGalaxy(0);
 }
 
 function updateGalaxy(coord: number) {
-  if (!universeMap.value) return;
-  galaxySeedData.value = {
-    width,
-    height,
-    seed: universeMap.value.states[coord],
-    weight: universeMap.value.weights[coord],
-    universeProps: toRaw(universeMap.value.props),
+  if (!universeLayer.value) return;
+  galaxyProps.value = {
+    width: universeLayer.value.props.width,
+    height: universeLayer.value.props.height,
+    seed: universeLayer.value.states[coord],
+    weight: universeLayer.value.weights[coord],
+    universeProps: toRaw(universeLayer.value.props),
   };
 }
 
-watch(galaxySeedData, updateGalaxySeedData);
-function updateGalaxySeedData(galaxySeedData?: GalaxyProps) {
-  if (!galaxySeedData) return;
-  galaxyMap.value = makeGalaxyLayer(galaxySeedData);
-  galaxyContext = galaxyContext ?? getContext(galaxyCanvas, width, height);
-  renderGalaxy(galaxyContext, galaxyMap.value);
+watch(galaxyProps, updateGalaxyProps);
+function updateGalaxyProps(galaxyProps?: GalaxyProps) {
+  if (!galaxyProps) return;
+  galaxyLayer.value = makeGalaxyLayer(galaxyProps);
+  galaxyContext =
+    galaxyContext ??
+    getContext(galaxyCanvas, galaxyProps.width, galaxyProps.height);
+  renderGalaxy(galaxyContext, galaxyLayer.value);
   updateSolarSystem(0);
 }
 
 function updateSolarSystem(coord: number) {
-  if (!galaxyMap.value) return;
-  solarSystemSeedData.value = {
-    width,
-    height,
-    seed: galaxyMap.value.states[coord],
-    weight: galaxyMap.value.weights[coord],
-    galaxyProps: toRaw(galaxyMap.value.props),
+  if (!galaxyLayer.value) return;
+  solarSystemProps.value = {
+    width: galaxyLayer.value.props.width,
+    height: galaxyLayer.value.props.height,
+    seed: galaxyLayer.value.states[coord],
+    weight: galaxyLayer.value.weights[coord],
+    galaxyProps: toRaw(galaxyLayer.value.props),
   };
 }
 
-watch(solarSystemSeedData, updateSolarSystemSeedData);
-function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemProps) {
-  if (!solarSystemSeedData) return;
-  solarSystemMap.value = makeSolarSystemLayer(solarSystemSeedData);
+watch(solarSystemProps, updateSolarSystemProps);
+function updateSolarSystemProps(solarSystemProps?: SolarSystemProps) {
+  if (!solarSystemProps) return;
+  solarSystemLayer.value = makeSolarSystemLayer(solarSystemProps);
   solarSystemContext =
-    solarSystemContext ?? getContext(solarSystemCanvas, width, height);
-  renderSolarSystem(solarSystemContext, solarSystemMap.value);
+    solarSystemContext ??
+    getContext(
+      solarSystemCanvas,
+      solarSystemProps.width,
+      solarSystemProps.height
+    );
+  renderSolarSystem(solarSystemContext, solarSystemLayer.value);
   updatePlanet(0);
 }
 
 function updatePlanet(coord: number) {
-  if (!solarSystemMap.value) return;
-  planetSeedData.value = {
-    width,
-    height,
-    seed: solarSystemMap.value.props.seed,
-    weight: solarSystemMap.value.weights[coord],
-    solarSystemProps: toRaw(solarSystemMap.value.props),
+  if (!solarSystemLayer.value) return;
+  planetProps.value = {
+    width: solarSystemLayer.value.props.width,
+    height: solarSystemLayer.value.props.height,
+    seed: solarSystemLayer.value.states[coord],
+    weight: solarSystemLayer.value.weights[coord],
+    solarSystemProps: toRaw(solarSystemLayer.value.props),
   };
 }
 
-watch(planetSeedData, updatePlanetSeedData);
-function updatePlanetSeedData(planetSeedData?: PlanetProps) {
-  if (!planetSeedData) return;
-  planetMap.value = makePlanetMap(planetSeedData);
-  planetContext = planetContext ?? getContext(planetCanvas, width, height);
-  renderPlanet(planetContext, planetMap.value);
+watch(planetProps, updatePlanetProps);
+function updatePlanetProps(planetProps?: PlanetProps) {
+  if (!planetProps) return;
+  planetLayer.value = makePlanetMap(planetProps);
+  planetContext =
+    planetContext ??
+    getContext(planetCanvas, planetProps.width, planetProps.height);
+  renderPlanet(planetContext, planetLayer.value);
 }
 
-const coordFromEvent = (event: MouseEvent) => {
+const coordFromEvent = (
+  event: MouseEvent,
+  dimensions: { width: number; height: number }
+) => {
   return (
-    Math.round(clamp(event.offsetY, 0, height - 1)) * width +
-    Math.round(clamp(event.offsetX, 0, width - 1))
+    Math.round(clamp(event.offsetY, 0, dimensions.height - 1)) *
+      dimensions.width +
+    Math.round(clamp(event.offsetX, 0, dimensions.width - 1))
   );
 };
 
 const hoverUniverse = (event: MouseEvent) => {
-  if (!universeMap.value) return;
-  universeHover.value = universeMap.value.weights[coordFromEvent(event)];
+  if (!universeLayer.value) return;
+  universeHover.value =
+    universeLayer.value.weights[
+      coordFromEvent(event, universeLayer.value.props)
+    ];
 };
 
-const clickUniverse = (event: MouseEvent) =>
-  updateGalaxy(coordFromEvent(event));
+const clickUniverse = (event: MouseEvent) => {
+  if (!universeLayer.value) return;
+  updateGalaxy(coordFromEvent(event, universeLayer.value.props));
+};
 
 const hoverGalaxy = (event: MouseEvent) => {
-  if (!galaxyMap.value) return;
-  galaxyHover.value = galaxyMap.value.weights[coordFromEvent(event)];
+  if (!galaxyLayer.value) return;
+  galaxyHover.value =
+    galaxyLayer.value.weights[coordFromEvent(event, galaxyLayer.value.props)];
 };
 
-const clickGalaxy = (event: MouseEvent) =>
-  updateSolarSystem(coordFromEvent(event));
+const clickGalaxy = (event: MouseEvent) => {
+  if (!galaxyLayer.value) return;
+  updateSolarSystem(coordFromEvent(event, galaxyLayer.value.props));
+};
 
 const hoverSolarSystem = (event: MouseEvent) => {
-  if (!solarSystemMap.value) return;
-  solarSystemHover.value = solarSystemMap.value.weights[coordFromEvent(event)];
+  if (!solarSystemLayer.value) return;
+  solarSystemHover.value =
+    solarSystemLayer.value.weights[
+      coordFromEvent(event, solarSystemLayer.value.props)
+    ];
 };
 
-const clickSolarSystem = (event: MouseEvent) =>
-  updatePlanet(coordFromEvent(event));
+const clickSolarSystem = (event: MouseEvent) => {
+  if (!solarSystemLayer.value) return;
+  updatePlanet(coordFromEvent(event, solarSystemLayer.value.props));
+};
 
 function getContext(
   canvas: Ref<HTMLCanvasElement>,

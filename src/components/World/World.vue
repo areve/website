@@ -287,7 +287,6 @@ function getContext(
 }
 .notes {
   flex: 1 1;
-  /* border: 1px solid red; */
   background-color: #eee;
   margin-left: 5px;
   padding: 5px;

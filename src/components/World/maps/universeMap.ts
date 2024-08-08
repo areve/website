@@ -1,13 +1,9 @@
-import { MapData, makeMap, sum } from "../lib/other";
+import { MapData, makeMap, sum, max, min } from "../lib/other";
 
 export interface UniverseMapData extends MapData {
-  weight: number;
-  // range: {
-  //   min: number
-  //   max: number
-  // },
   width: number;
   height: number;
+  weight: number;
   weights: number[];
 }
 
@@ -24,13 +20,13 @@ export function makeUniverseMap(
 
   const sumIntegers = sum(integers);
   const weights = integers.map((v) => ((v / sumIntegers) * weight) as number);
-
+  
   let universe: UniverseMapData = {
     ...map,
     weights,
     width,
     height,
-    weight,
+    weight
   };
 
   return universe;
@@ -47,7 +43,9 @@ export function renderUniverse(
   context.clearRect(0, 0, width, height);
 
   const data = map.weights;
-  const rangeMax = map.weight / (map.width * map.height);
+  const maxWeight = max(map.weights);
+  const minWeight = min(map.weights);
+  const range = maxWeight - minWeight
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {
@@ -55,7 +53,7 @@ export function renderUniverse(
       const i = y * width + x;
       const o = (y * width + x) * 4;
 
-      const value = ((data[i] / rangeMax) * 0xff) & 0xff;
+      const value = ((data[i] / range) * 0xff) & 0xff;
       pixelData[o + 0] = value;
       pixelData[o + 1] = value;
       pixelData[o + 2] = value;

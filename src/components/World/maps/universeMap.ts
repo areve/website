@@ -1,7 +1,11 @@
-import { MapData, makeMap, sum, max, min } from "../lib/other";
+import { MapData, makeMap, sum, max, min, MapDataProps } from "../lib/other";
+
+export interface UniverseMapDataProps extends MapDataProps {
+  weight: number;
+}
 
 export interface UniverseMapData extends MapData {
-  weight: number;
+  props: UniverseMapDataProps;
   weights: number[];
 }
 
@@ -22,7 +26,10 @@ export function makeUniverseMap(
   let universe: UniverseMapData = {
     ...map,
     weights,
-    weight, 
+    props: {
+      ...map.props,
+      weight,
+    },
   };
 
   return universe;

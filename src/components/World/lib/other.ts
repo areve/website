@@ -1,9 +1,12 @@
 import { PRNG } from "./prng";
 
-export interface MapData {
+export interface MapDataProps {
   seed: Uint8Array;
   width: number;
   height: number;
+}
+export interface MapData {
+  props: MapDataProps;
   states: Uint8Array[];
 }
 
@@ -27,9 +30,11 @@ export function makeMap(
     .getStateArray(width * height)
     .map((v) => xor(v, seed));
   return {
-    seed,
-    width,
-    height,
+    props: {
+      seed,
+      width,
+      height,
+    },
     states,
   };
 }

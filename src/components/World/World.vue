@@ -17,7 +17,7 @@
         <div class="title">universe</div>
         <div class="info">each dot is a galaxy</div>
         <hr />
-        <div>weight: {{ universeMap?.weight.toPrecision(3) }}</div>
+        <div>weight: {{ universeMap?.props.weight.toPrecision(3) }}</div>
         <div>{{ universeHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -34,7 +34,7 @@
         <div class="title">galaxy</div>
         <div class="info">each dot is a solar system</div>
         <hr />
-        <div>weight: {{ galaxyMap?.weight.toPrecision(3) }}</div>
+        <div>weight: {{ galaxyMap?.props.weight.toPrecision(3) }}</div>
         <div>{{ galaxyHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -78,6 +78,7 @@ import {
   makeUniverseMap,
   renderUniverse,
   UniverseMapData,
+UniverseMapDataProps,
 } from "./maps/universeMap";
 import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
 import { clamp } from "./lib/other";
@@ -101,6 +102,7 @@ const universeHover = ref(0);
 interface GalaxySeedData {
   seed: Uint8Array;
   weight: number;
+  parentProps: UniverseMapDataProps;
 }
 const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
 let galaxyContext: CanvasRenderingContext2D | null;
@@ -160,6 +162,7 @@ function updateGalaxy(coord: number) {
   galaxySeedData.value = {
     seed: universeMap.value.states[coord],
     weight: universeMap.value.weights[coord],
+    parentProps: universeMap.value.props,
   };
 }
 
@@ -170,7 +173,8 @@ function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
     width,
     height,
     galaxySeedData.seed,
-    galaxySeedData.weight
+    galaxySeedData.weight,
+    galaxySeedData.parentProps
   );
   galaxyContext = galaxyContext ?? getContext(galaxyCanvas, width, height);
   renderGalaxy(galaxyContext, galaxyMap.value);
@@ -180,7 +184,7 @@ function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
 function updateSolarSystem(coord: number) {
   if (!galaxyMap.value) return;
   solarSystemSeedData.value = {
-    seed: galaxyMap.value.seed,
+    seed: galaxyMap.value.props.seed,
     weight: galaxyMap.value.weights[coord],
   };
 }
@@ -203,7 +207,7 @@ function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
 function updatePlanet(coord: number) {
   if (!solarSystemMap.value) return;
   planetSeedData.value = {
-    seed: solarSystemMap.value.seed,
+    seed: solarSystemMap.value.props.seed,
     weight: solarSystemMap.value.weights[coord],
   };
 }

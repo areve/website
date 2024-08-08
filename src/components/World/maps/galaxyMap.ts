@@ -1,9 +1,13 @@
-import { MapData, makeMap, max, min, sum } from "../lib/other";
+import { MapData, MapDataProps, makeMap, max, min, sum } from "../lib/other";
+import { UniverseMapDataProps } from "./universeMap";
+
+export interface GalaxyMapDataProps extends MapDataProps {
+  weight: number;
+  parentProps: UniverseMapDataProps;
+}
 
 export interface GalaxyMapData extends MapData {
-  width: number;
-  height: number;
-  weight: number;
+  props: GalaxyMapDataProps;
   weights: number[];
 }
 
@@ -11,7 +15,8 @@ export function makeGalaxyMap(
   width: number,
   height: number,
   seed: Uint8Array,
-  weight: number
+  weight: number,
+  parentProps: UniverseMapDataProps
 ) {
   let map = makeMap(width, height, seed);
   const integers = map.states.map(
@@ -23,9 +28,11 @@ export function makeGalaxyMap(
   let galaxy: GalaxyMapData = {
     ...map,
     weights,
-    width,
-    height,
-    weight,
+    props: {
+      ...map.props,
+      parentProps,
+      weight,
+    },
   };
 
   return galaxy;
@@ -47,16 +54,19 @@ export function renderGalaxy(
   const range = maxWeight - minWeight;
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
-  const avg = map.weight / 256 / 256;
-  // console.log(map.weight, avg);
+  const parentAvg =
+    map.props.parentProps.weight /
+    map.props.parentProps.width /
+    map.props.parentProps.height;
+
+  const parentAvgDiff = map.props.weight / parentAvg;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
       const o = (y * width + x) * 4;
 
       let value = data[i] / range;
-      value = value ** 20;
-      //  console.assert(value < 1)
+      value = value ** (20 / parentAvgDiff);
       pixelData[o + 0] = (value * 0xff) & 0xff;
       pixelData[o + 1] = (value * 0xff) & 0xff;
       pixelData[o + 2] = (value * 0xff) & 0xff;

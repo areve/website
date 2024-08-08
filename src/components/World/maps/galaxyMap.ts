@@ -1,38 +1,28 @@
 import { MapData, MapDataProps, makeMap, max, min, sum } from "../lib/other";
-import { UniverseMapDataProps } from "./universeMap";
+import { UniverseProps } from "./universeMap";
 
-export interface GalaxyMapDataProps extends MapDataProps {
+export interface GalaxyProps extends MapDataProps {
   weight: number;
-  parentProps: UniverseMapDataProps;
+  parentProps: UniverseProps;
 }
 
 export interface GalaxyMapData extends MapData {
-  props: GalaxyMapDataProps;
+  props: GalaxyProps;
   weights: number[];
 }
 
-export function makeGalaxyMap(
-  width: number,
-  height: number,
-  seed: Uint8Array,
-  weight: number,
-  parentProps: UniverseMapDataProps
-) {
-  let map = makeMap(width, height, seed);
+export function makeGalaxyMap(props: GalaxyProps) {
+  let map = makeMap(props);
   const integers = map.states.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
   const sumIntegers = sum(integers);
-  const weights = integers.map((v) => ((v / sumIntegers) * weight) as number);
+  const weights = integers.map((v) => ((v / sumIntegers) * props.weight) as number);
 
   let galaxy: GalaxyMapData = {
     ...map,
+    props,
     weights,
-    props: {
-      ...map.props,
-      parentProps,
-      weight,
-    },
   };
 
   return galaxy;

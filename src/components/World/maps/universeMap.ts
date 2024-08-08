@@ -1,35 +1,28 @@
 import { MapData, makeMap, sum, max, min, MapDataProps } from "../lib/other";
 
-export interface UniverseMapDataProps extends MapDataProps {
+
+export interface UniverseProps extends MapDataProps {
   weight: number;
 }
 
 export interface UniverseMapData extends MapData {
-  props: UniverseMapDataProps;
+  props: UniverseProps;
   weights: number[];
 }
 
-export function makeUniverseMap(
-  width: number,
-  height: number,
-  seed: Uint8Array,
-  weight: number
-) {
-  let map = makeMap(width, height, seed);
+export function makeUniverseMap(props: UniverseProps) {
+  let map = makeMap(props);
   const integers = map.states.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
 
   const sumIntegers = sum(integers);
-  const weights = integers.map((v) => ((v / sumIntegers) * weight) as number);
+  const weights = integers.map((v) => ((v / sumIntegers) * props.weight) as number);
 
   let universe: UniverseMapData = {
     ...map,
+    props,
     weights,
-    props: {
-      ...map.props,
-      weight,
-    },
   };
 
   return universe;

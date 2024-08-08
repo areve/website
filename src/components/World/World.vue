@@ -73,69 +73,55 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, Ref, ref, watch } from "vue";
+import { onMounted, Ref, ref, toRaw, watch } from "vue";
 import {
   makeUniverseMap,
   renderUniverse,
   UniverseMapData,
-  UniverseMapDataProps,
+  UniverseProps,
 } from "./maps/universeMap";
-import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
+import {
+  makePlanetMap,
+  PlanetMapData,
+  PlanetProps,
+  renderPlanet,
+} from "./maps/planetMap";
 import { clamp } from "./lib/other";
 import {
   GalaxyMapData,
-  GalaxyMapDataProps,
+  GalaxyProps,
   makeGalaxyMap,
   renderGalaxy,
 } from "./maps/galaxyMap";
 import {
   SolarSystemMapData,
-  SolarSystemMapDataProps,
+  SolarSystemProps,
   makeSolarSystemMap,
   renderSolarSystem,
 } from "./maps/solarSystemMap";
 
-interface UniverseSeedData {
-  seed: Uint8Array;
-  weight: number;
-}
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
 const universeMap = ref<UniverseMapData>();
-const universeSeedData = ref<UniverseSeedData>();
+const universeSeedData = ref<UniverseProps>();
 const universeHover = ref(0);
 
-interface GalaxySeedData {
-  seed: Uint8Array;
-  weight: number;
-  parentProps: UniverseMapDataProps;
-}
 const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
 let galaxyContext: CanvasRenderingContext2D | null;
 const galaxyMap = ref<GalaxyMapData>();
-const galaxySeedData = ref<GalaxySeedData>();
+const galaxySeedData = ref<GalaxyProps>();
 const galaxyHover = ref(0);
 
-interface SolarSystemSeedData {
-  seed: Uint8Array;
-  weight: number;
-  parentProps: GalaxyMapDataProps;
-}
 const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
 let solarSystemContext: CanvasRenderingContext2D | null;
 const solarSystemMap = ref<SolarSystemMapData>();
-const solarSystemSeedData = ref<SolarSystemSeedData>();
+const solarSystemSeedData = ref<SolarSystemProps>();
 const solarSystemHover = ref(0);
 
-interface PlanetSeedData {
-  seed: Uint8Array;
-  weight: number;
-  parentProps: SolarSystemMapDataProps;
-}
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
 const planetMap = ref<PlanetMapData>();
-const planetSeedData = ref<PlanetSeedData>();
+const planetSeedData = ref<PlanetProps>();
 
 const width = 256;
 const height = 256;
@@ -145,20 +131,17 @@ onMounted(async () => {
   const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
   // const milkyWayWeightKg = 2.7e27;
   universeSeedData.value = {
+    width,
+    height,
     seed: new TextEncoder().encode("This is the seed"),
     weight: thisUniverseWeightKg,
   };
 });
 
 watch(universeSeedData, updateUniverseSeedData);
-function updateUniverseSeedData(universeSeedData?: UniverseSeedData) {
+function updateUniverseSeedData(universeSeedData?: UniverseProps) {
   if (!universeSeedData) return;
-  universeMap.value = makeUniverseMap(
-    width,
-    height,
-    universeSeedData.seed,
-    universeSeedData.weight
-  );
+  universeMap.value = makeUniverseMap(universeSeedData);
   universeContext =
     universeContext ?? getContext(universeCanvas, width, height);
   renderUniverse(universeContext, universeMap.value);
@@ -168,22 +151,18 @@ function updateUniverseSeedData(universeSeedData?: UniverseSeedData) {
 function updateGalaxy(coord: number) {
   if (!universeMap.value) return;
   galaxySeedData.value = {
+    width,
+    height,
     seed: universeMap.value.states[coord],
     weight: universeMap.value.weights[coord],
-    parentProps: universeMap.value.props,
+    parentProps: toRaw(universeMap.value.props),
   };
 }
 
 watch(galaxySeedData, updateGalaxySeedData);
-function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
+function updateGalaxySeedData(galaxySeedData?: GalaxyProps) {
   if (!galaxySeedData) return;
-  galaxyMap.value = makeGalaxyMap(
-    width,
-    height,
-    galaxySeedData.seed,
-    galaxySeedData.weight,
-    galaxySeedData.parentProps
-  );
+  galaxyMap.value = makeGalaxyMap(galaxySeedData);
   galaxyContext = galaxyContext ?? getContext(galaxyCanvas, width, height);
   renderGalaxy(galaxyContext, galaxyMap.value);
   updateSolarSystem(0);
@@ -192,22 +171,19 @@ function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
 function updateSolarSystem(coord: number) {
   if (!galaxyMap.value) return;
   solarSystemSeedData.value = {
-    seed: galaxyMap.value.props.seed,
+    width,
+    height,
+    seed: galaxyMap.value.states[coord],
     weight: galaxyMap.value.weights[coord],
-    parentProps: galaxyMap.value.props,
+    parentProps: toRaw(galaxyMap.value.props),
   };
 }
 
 watch(solarSystemSeedData, updateSolarSystemSeedData);
-function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
+function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemProps) {
+  console.log("solarSystemSeedData", solarSystemSeedData?.seed);
   if (!solarSystemSeedData) return;
-  solarSystemMap.value = makeSolarSystemMap(
-    width,
-    height,
-    solarSystemSeedData.seed,
-    solarSystemSeedData.weight,
-    solarSystemSeedData.parentProps
-  );
+  solarSystemMap.value = makeSolarSystemMap(solarSystemSeedData);
   solarSystemContext =
     solarSystemContext ?? getContext(solarSystemCanvas, width, height);
   renderSolarSystem(solarSystemContext, solarSystemMap.value);
@@ -217,22 +193,18 @@ function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
 function updatePlanet(coord: number) {
   if (!solarSystemMap.value) return;
   planetSeedData.value = {
+    width,
+    height,
     seed: solarSystemMap.value.props.seed,
     weight: solarSystemMap.value.weights[coord],
-    parentProps: solarSystemMap.value.props,
+    parentProps: toRaw(solarSystemMap.value.props),
   };
 }
 
 watch(planetSeedData, updatePlanetSeedData);
-function updatePlanetSeedData(planetSeedData?: PlanetSeedData) {
+function updatePlanetSeedData(planetSeedData?: PlanetProps) {
   if (!planetSeedData) return;
-  planetMap.value = makePlanetMap(
-    width,
-    height,
-    planetSeedData.seed,
-    planetSeedData.weight,
-    planetSeedData.parentProps
-  );
+  planetMap.value = makePlanetMap(planetSeedData);
   planetContext = planetContext ?? getContext(planetCanvas, width, height);
   renderPlanet(planetContext, planetMap.value);
 }

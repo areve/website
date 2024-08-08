@@ -1,38 +1,28 @@
 import { diskFilter } from "../filters/diskFilter";
 import { MapData, MapDataProps, makeMap } from "../lib/other";
-import { SolarSystemMapDataProps } from "./solarSystemMap";
+import { SolarSystemProps } from "./solarSystemMap";
 
-export interface PlanetMapDataProps extends MapDataProps {
+export interface PlanetProps extends MapDataProps {
   weight: number;
-  parentProps: SolarSystemMapDataProps;
+  parentProps: SolarSystemProps;
 }
 
 export interface PlanetMapData extends MapData {
-  props: PlanetMapDataProps;
+  props: PlanetProps;
   heights: number[];
 }
 
-export function makePlanetMap(
-  width: number,
-  height: number,
-  seed: Uint8Array,
-  weight: number,
-  parentProps: SolarSystemMapDataProps
-) {
-  const map = makeMap(width, height, seed);
+export function makePlanetMap(props: PlanetProps) {
+  const map = makeMap(props);
 
   const integers = map.states.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
-  const heights = getHeights(width, height, integers, weight);
+  const heights = getHeights(props.width, props.height, integers, props.weight);
   const planetMap: PlanetMapData = {
     ...map,
+    props,
     heights,
-    props: {
-      ...map.props,
-      parentProps,
-      weight,
-    },
   };
 
   return planetMap;

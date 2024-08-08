@@ -20,21 +20,13 @@ export const min = (array: number[]) =>
   array.reduce((p, c) => Math.min(p, c), Infinity);
 export const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 
-export function makeMap(
-  width: number,
-  height: number,
-  seed: Uint8Array
-): MapData {
-  const generator = new PRNG(seed);
+export function makeMap(props: MapDataProps): MapData {
+  const generator = new PRNG(props.seed);
   const states = generator
-    .getStateArray(width * height)
-    .map((v) => xor(v, seed));
+    .getStateArray(props.width * props.height)
+    .map((v) => xor(v, props.seed));
   return {
-    props: {
-      seed,
-      width,
-      height,
-    },
+    props,
     states,
   };
 }

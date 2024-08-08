@@ -1,4 +1,4 @@
-import { Layer, makeLayer, sum, max, min, LayerProps } from "../lib/other";
+import { getStates, sum, max, min, LayerProps, seedToInt, Layer } from "../lib/other";
 
 export interface UniverseProps extends LayerProps {
   weight: number;
@@ -10,21 +10,11 @@ export interface UniverseLayer extends Layer {
 }
 
 export function makeUniverseLayer(props: UniverseProps) {
-  let layer = makeLayer(props);
-  const integers = layer.states.map(
-    (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
-  );
-
-  const sumIntegers = sum(integers);
-  const weights = integers.map(
-    (v) => ((v / sumIntegers) * props.weight) as number
-  );
-
-  return {
-    ...layer,
-    props,
-    weights,
-  } as UniverseLayer;
+  let states = getStates(props);
+  let integers = states.map(seedToInt);
+  const scale = props.weight / sum(integers);
+  const weights = integers.map((v) => (v * scale) as number);
+  return { states, props, weights } as UniverseLayer;
 }
 
 export function renderUniverse(

@@ -1,4 +1,12 @@
-import { Layer, LayerProps, makeLayer, max, min, sum } from "../lib/other";
+import {
+  Layer,
+  LayerProps,
+  getStates,
+  max,
+  min,
+  seedToInt,
+  sum,
+} from "../lib/other";
 import { UniverseProps } from "./universeMap";
 
 export interface GalaxyProps extends LayerProps {
@@ -12,20 +20,11 @@ export interface GalaxyLayer extends Layer {
 }
 
 export function makeGalaxyLayer(props: GalaxyProps) {
-  let layer = makeLayer(props);
-  const integers = layer.states.map(
-    (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
-  );
-  const sumIntegers = sum(integers);
-  const weights = integers.map(
-    (v) => ((v / sumIntegers) * props.weight) as number
-  );
-
-  return {
-    ...layer,
-    props,
-    weights,
-  } as GalaxyLayer;
+  let states = getStates(props);
+  let integers = states.map(seedToInt);
+  const scale = props.weight / sum(integers);
+  const weights = integers.map((v) => (v * scale) as number);
+  return { states, props, weights } as GalaxyLayer;
 }
 
 export function renderGalaxy(

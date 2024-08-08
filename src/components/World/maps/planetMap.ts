@@ -1,5 +1,5 @@
 import { diskFilter } from "../filters/diskFilter";
-import { Layer, LayerProps, makeLayer } from "../lib/other";
+import { Layer, LayerProps, getStates, seedToInt } from "../lib/other";
 import { SolarSystemProps } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerProps {
@@ -12,18 +12,11 @@ export interface PlanetLayer extends Layer {
   heights: number[];
 }
 
-export function makePlanetMap(props: PlanetProps) {
-  const layer = makeLayer(props);
-
-  const integers = layer.states.map(
-    (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
-  );
+export function makePlanetLayer(props: PlanetProps) {
+  let states = getStates(props);
+  let integers = states.map(seedToInt);
   const heights = getHeights(props.width, props.height, integers, props.weight);
-  return {
-    ...layer,
-    props,
-    heights,
-  } as PlanetLayer;
+  return { states, props, heights } as PlanetLayer;
 }
 
 function getHeights(

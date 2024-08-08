@@ -81,7 +81,7 @@ import {
   UniverseProps,
 } from "./maps/universeMap";
 import {
-  makePlanetMap,
+  makePlanetLayer,
   PlanetLayer,
   PlanetProps,
   renderPlanet,
@@ -198,7 +198,7 @@ function updatePlanet(coord: number) {
 watch(planetProps, updatePlanetProps);
 function updatePlanetProps(planetProps?: PlanetProps) {
   if (!planetProps) return;
-  planetLayer = makePlanetMap(planetProps);
+  planetLayer = makePlanetLayer(planetProps);
   planetContext ??= getContext(planetCanvas, planetProps);
   renderPlanet(planetContext, planetLayer);
 }

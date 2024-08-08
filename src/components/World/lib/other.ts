@@ -23,8 +23,7 @@ export const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 export function makeLayer(props: LayerProps): Layer {
   const generator = new PRNG(props.seed);
   const states = generator
-    .getStateArray(props.width * props.height)
-    .map((v) => xor(v, props.seed));
+    .getStateArray(props.width * props.height);
   return {
     props,
     states,

@@ -128,8 +128,8 @@ onMounted(async () => {
   const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
   // const milkyWayWeightKg = 2.7e27;
   universeProps.value = {
-    width: 256,
-    height: 256,
+    width: 200,
+    height: 200,
     seed: new TextEncoder().encode("This is the seed"),
     weight: thisUniverseWeightKg,
   };
@@ -294,8 +294,8 @@ function getContext(
 }
 .canvas-wrap {
   position: relative;
-  height: 256px;
-  width: 256px;
+  height: 200px;
+  width: 200px;
 }
 .canvas {
   position: absolute;

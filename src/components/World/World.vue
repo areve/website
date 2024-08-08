@@ -155,7 +155,7 @@ function updateGalaxy(coord: number) {
     height,
     seed: universeMap.value.states[coord],
     weight: universeMap.value.weights[coord],
-    parentProps: toRaw(universeMap.value.props),
+    universeProps: toRaw(universeMap.value.props),
   };
 }
 
@@ -175,7 +175,7 @@ function updateSolarSystem(coord: number) {
     height,
     seed: galaxyMap.value.states[coord],
     weight: galaxyMap.value.weights[coord],
-    parentProps: toRaw(galaxyMap.value.props),
+    galaxyProps: toRaw(galaxyMap.value.props),
   };
 }
 
@@ -196,7 +196,7 @@ function updatePlanet(coord: number) {
     height,
     seed: solarSystemMap.value.props.seed,
     weight: solarSystemMap.value.weights[coord],
-    parentProps: toRaw(solarSystemMap.value.props),
+    solarSystemProps: toRaw(solarSystemMap.value.props),
   };
 }
 

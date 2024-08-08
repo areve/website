@@ -4,7 +4,7 @@ import { SolarSystemProps } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerProps {
   weight: number;
-  parentProps: SolarSystemProps;
+  solarSystemProps: SolarSystemProps;
 }
 
 export interface PlanetLayer extends Layer {

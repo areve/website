@@ -3,7 +3,7 @@ import { UniverseProps } from "./universeMap";
 
 export interface GalaxyProps extends LayerProps {
   weight: number;
-  parentProps: UniverseProps;
+  universeProps: UniverseProps;
 }
 
 export interface GalaxyLayer extends Layer {
@@ -45,9 +45,9 @@ export function renderGalaxy(
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   const parentAvg =
-    layer.props.parentProps.weight /
-    layer.props.parentProps.width /
-    layer.props.parentProps.height;
+    layer.props.universeProps.weight /
+    layer.props.universeProps.width /
+    layer.props.universeProps.height;
 
   const parentAvgDiff = layer.props.weight / parentAvg;
   for (let y = 0; y < height; y++) {

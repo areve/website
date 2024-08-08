@@ -3,7 +3,7 @@ import { GalaxyProps } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerProps {
   weight: number;
-  parentProps: GalaxyProps;
+  galaxyProps: GalaxyProps;
 }
 
 export interface SolarSystemLayer extends Layer {
@@ -12,15 +12,15 @@ export interface SolarSystemLayer extends Layer {
 }
 
 export function makeSolarSystemLayer(props: SolarSystemProps) {
-  let layre = makeLayer(props);
-  const weights = layre.states.map((v) => {
+  let layer = makeLayer(props);
+  const weights = layer.states.map((v) => {
     const integer = ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0;
     let vv = integer;
     return vv & 0xffffffff;
   });
 
   return {
-    ...layre,
+    ...layer,
     props,
     weights,
   } as SolarSystemLayer;

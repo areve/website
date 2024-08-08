@@ -1,0 +1,1 @@
+import{_ as e}from"./index.df99daf2.js";import{o,c as s,e as t}from"./vendor.9f49e745.js";const c={},n=t("h1",null,"Bible",-1),r=[n];function a(_,d){return o(),s("section",null,r)}var l=e(c,[["render",a]]);export{l as default};

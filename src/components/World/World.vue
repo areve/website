@@ -17,7 +17,7 @@
         <div class="title">universe</div>
         <div class="info">each dot is a galaxy</div>
         <hr />
-        <div>weight: {{ universeLayer?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ universeProps?.weight.toPrecision(3) }}</div>
         <div>{{ universeHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -34,7 +34,7 @@
         <div class="title">galaxy</div>
         <div class="info">each dot is a solar system</div>
         <hr />
-        <div>weight: {{ galaxyLayer?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ galaxyProps?.weight.toPrecision(3) }}</div>
         <div>{{ galaxyHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -51,7 +51,7 @@
         <div class="title">solar system</div>
         <div class="info">each dot is a sun, planet, moon, astroid</div>
         <hr />
-        <div>weight: {{ solarSystemLayer?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ solarSystemProps?.weight.toPrecision(3) }}</div>
         <div>{{ solarSystemHover.toPrecision(3) }}</div>
       </div>
     </section>
@@ -66,7 +66,7 @@
           system
         </div>
         <hr />
-        <div>weight: {{ planetLayer?.props.weight.toPrecision(3) }}</div>
+        <div>weight: {{ planetProps?.weight.toPrecision(3) }}</div>
       </div>
     </section>
   </section>
@@ -102,25 +102,25 @@ import {
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
-const universeLayer = ref<UniverseLayer>();
+let universeLayer: UniverseLayer;
 const universeProps = ref<UniverseProps>();
 const universeHover = ref(0);
 
 const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
 let galaxyContext: CanvasRenderingContext2D | null;
-const galaxyLayer = ref<GalaxyLayer>();
+let galaxyLayer: GalaxyLayer;
 const galaxyProps = ref<GalaxyProps>();
 const galaxyHover = ref(0);
 
 const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
 let solarSystemContext: CanvasRenderingContext2D | null;
-const solarSystemLayer = ref<SolarSystemLayer>();
+let solarSystemLayer: SolarSystemLayer;
 const solarSystemProps = ref<SolarSystemProps>();
 const solarSystemHover = ref(0);
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
-const planetLayer = ref<PlanetLayer>();
+let planetLayer: PlanetLayer;
 const planetProps = ref<PlanetProps>();
 
 onMounted(async () => {
@@ -138,51 +138,51 @@ onMounted(async () => {
 watch(universeProps, updateUniverseProps);
 function updateUniverseProps(universeProps?: UniverseProps) {
   if (!universeProps) return;
-  universeLayer.value = makeUniverseLayer(universeProps);
+  universeLayer = makeUniverseLayer(universeProps);
   universeContext =
     universeContext ??
     getContext(universeCanvas, universeProps.width, universeProps.height);
-  renderUniverse(universeContext, universeLayer.value);
+  renderUniverse(universeContext, universeLayer);
   updateGalaxy(0);
 }
 
 function updateGalaxy(coord: number) {
-  if (!universeLayer.value) return;
+  if (!universeLayer) return;
   galaxyProps.value = {
-    width: universeLayer.value.props.width,
-    height: universeLayer.value.props.height,
-    seed: universeLayer.value.states[coord],
-    weight: universeLayer.value.weights[coord],
-    universeProps: toRaw(universeLayer.value.props),
+    width: universeLayer.props.width,
+    height: universeLayer.props.height,
+    seed: universeLayer.states[coord],
+    weight: universeLayer.weights[coord],
+    universeProps: toRaw(universeLayer.props),
   };
 }
 
 watch(galaxyProps, updateGalaxyProps);
 function updateGalaxyProps(galaxyProps?: GalaxyProps) {
   if (!galaxyProps) return;
-  galaxyLayer.value = makeGalaxyLayer(galaxyProps);
+  galaxyLayer = makeGalaxyLayer(galaxyProps);
   galaxyContext =
     galaxyContext ??
     getContext(galaxyCanvas, galaxyProps.width, galaxyProps.height);
-  renderGalaxy(galaxyContext, galaxyLayer.value);
+  renderGalaxy(galaxyContext, galaxyLayer);
   updateSolarSystem(0);
 }
 
 function updateSolarSystem(coord: number) {
-  if (!galaxyLayer.value) return;
+  if (!galaxyLayer) return;
   solarSystemProps.value = {
-    width: galaxyLayer.value.props.width,
-    height: galaxyLayer.value.props.height,
-    seed: galaxyLayer.value.states[coord],
-    weight: galaxyLayer.value.weights[coord],
-    galaxyProps: toRaw(galaxyLayer.value.props),
+    width: galaxyLayer.props.width,
+    height: galaxyLayer.props.height,
+    seed: galaxyLayer.states[coord],
+    weight: galaxyLayer.weights[coord],
+    galaxyProps: toRaw(galaxyLayer.props),
   };
 }
 
 watch(solarSystemProps, updateSolarSystemProps);
 function updateSolarSystemProps(solarSystemProps?: SolarSystemProps) {
   if (!solarSystemProps) return;
-  solarSystemLayer.value = makeSolarSystemLayer(solarSystemProps);
+  solarSystemLayer = makeSolarSystemLayer(solarSystemProps);
   solarSystemContext =
     solarSystemContext ??
     getContext(
@@ -190,29 +190,29 @@ function updateSolarSystemProps(solarSystemProps?: SolarSystemProps) {
       solarSystemProps.width,
       solarSystemProps.height
     );
-  renderSolarSystem(solarSystemContext, solarSystemLayer.value);
+  renderSolarSystem(solarSystemContext, solarSystemLayer);
   updatePlanet(0);
 }
 
 function updatePlanet(coord: number) {
-  if (!solarSystemLayer.value) return;
+  if (!solarSystemLayer) return;
   planetProps.value = {
-    width: solarSystemLayer.value.props.width,
-    height: solarSystemLayer.value.props.height,
-    seed: solarSystemLayer.value.states[coord],
-    weight: solarSystemLayer.value.weights[coord],
-    solarSystemProps: toRaw(solarSystemLayer.value.props),
+    width: solarSystemLayer.props.width,
+    height: solarSystemLayer.props.height,
+    seed: solarSystemLayer.states[coord],
+    weight: solarSystemLayer.weights[coord],
+    solarSystemProps: toRaw(solarSystemLayer.props),
   };
 }
 
 watch(planetProps, updatePlanetProps);
 function updatePlanetProps(planetProps?: PlanetProps) {
   if (!planetProps) return;
-  planetLayer.value = makePlanetMap(planetProps);
+  planetLayer = makePlanetMap(planetProps);
   planetContext =
     planetContext ??
     getContext(planetCanvas, planetProps.width, planetProps.height);
-  renderPlanet(planetContext, planetLayer.value);
+  renderPlanet(planetContext, planetLayer);
 }
 
 const coordFromEvent = (
@@ -227,40 +227,36 @@ const coordFromEvent = (
 };
 
 const hoverUniverse = (event: MouseEvent) => {
-  if (!universeLayer.value) return;
+  if (!universeLayer) return;
   universeHover.value =
-    universeLayer.value.weights[
-      coordFromEvent(event, universeLayer.value.props)
-    ];
+    universeLayer.weights[coordFromEvent(event, universeLayer.props)];
 };
 
 const clickUniverse = (event: MouseEvent) => {
-  if (!universeLayer.value) return;
-  updateGalaxy(coordFromEvent(event, universeLayer.value.props));
+  if (!universeLayer) return;
+  updateGalaxy(coordFromEvent(event, universeLayer.props));
 };
 
 const hoverGalaxy = (event: MouseEvent) => {
-  if (!galaxyLayer.value) return;
+  if (!galaxyLayer) return;
   galaxyHover.value =
-    galaxyLayer.value.weights[coordFromEvent(event, galaxyLayer.value.props)];
+    galaxyLayer.weights[coordFromEvent(event, galaxyLayer.props)];
 };
 
 const clickGalaxy = (event: MouseEvent) => {
-  if (!galaxyLayer.value) return;
-  updateSolarSystem(coordFromEvent(event, galaxyLayer.value.props));
+  if (!galaxyLayer) return;
+  updateSolarSystem(coordFromEvent(event, galaxyLayer.props));
 };
 
 const hoverSolarSystem = (event: MouseEvent) => {
-  if (!solarSystemLayer.value) return;
+  if (!solarSystemLayer) return;
   solarSystemHover.value =
-    solarSystemLayer.value.weights[
-      coordFromEvent(event, solarSystemLayer.value.props)
-    ];
+    solarSystemLayer.weights[coordFromEvent(event, solarSystemLayer.props)];
 };
 
 const clickSolarSystem = (event: MouseEvent) => {
-  if (!solarSystemLayer.value) return;
-  updatePlanet(coordFromEvent(event, solarSystemLayer.value.props));
+  if (!solarSystemLayer) return;
+  updatePlanet(coordFromEvent(event, solarSystemLayer.props));
 };
 
 function getContext(

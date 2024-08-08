@@ -139,9 +139,7 @@ watch(universeProps, updateUniverseProps);
 function updateUniverseProps(universeProps?: UniverseProps) {
   if (!universeProps) return;
   universeLayer = makeUniverseLayer(universeProps);
-  universeContext =
-    universeContext ??
-    getContext(universeCanvas, universeProps.width, universeProps.height);
+  universeContext ??= getContext(universeCanvas, universeProps);
   renderUniverse(universeContext, universeLayer);
   updateGalaxy(0);
 }
@@ -161,9 +159,7 @@ watch(galaxyProps, updateGalaxyProps);
 function updateGalaxyProps(galaxyProps?: GalaxyProps) {
   if (!galaxyProps) return;
   galaxyLayer = makeGalaxyLayer(galaxyProps);
-  galaxyContext =
-    galaxyContext ??
-    getContext(galaxyCanvas, galaxyProps.width, galaxyProps.height);
+  galaxyContext ??= getContext(galaxyCanvas, galaxyProps);
   renderGalaxy(galaxyContext, galaxyLayer);
   updateSolarSystem(0);
 }
@@ -183,13 +179,7 @@ watch(solarSystemProps, updateSolarSystemProps);
 function updateSolarSystemProps(solarSystemProps?: SolarSystemProps) {
   if (!solarSystemProps) return;
   solarSystemLayer = makeSolarSystemLayer(solarSystemProps);
-  solarSystemContext =
-    solarSystemContext ??
-    getContext(
-      solarSystemCanvas,
-      solarSystemProps.width,
-      solarSystemProps.height
-    );
+  solarSystemContext ??= getContext(solarSystemCanvas, solarSystemProps);
   renderSolarSystem(solarSystemContext, solarSystemLayer);
   updatePlanet(0);
 }
@@ -209,9 +199,7 @@ watch(planetProps, updatePlanetProps);
 function updatePlanetProps(planetProps?: PlanetProps) {
   if (!planetProps) return;
   planetLayer = makePlanetMap(planetProps);
-  planetContext =
-    planetContext ??
-    getContext(planetCanvas, planetProps.width, planetProps.height);
+  planetContext ??= getContext(planetCanvas, planetProps);
   renderPlanet(planetContext, planetLayer);
 }
 
@@ -261,12 +249,11 @@ const clickSolarSystem = (event: MouseEvent) => {
 
 function getContext(
   canvas: Ref<HTMLCanvasElement>,
-  width: number,
-  height: number
+  dimensions: { width: number; height: number }
 ) {
   if (!canvas.value) return null;
-  canvas.value.width = width;
-  canvas.value.height = height;
+  canvas.value.width = dimensions.width;
+  canvas.value.height = dimensions.height;
   return canvas.value.getContext("2d", {
     willReadFrequently: true,
   });

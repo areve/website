@@ -75,52 +75,52 @@
 <script lang="ts" setup>
 import { onMounted, Ref, ref, toRaw, watch } from "vue";
 import {
-  makeUniverseMap,
+  makeUniverseLayer,
   renderUniverse,
-  UniverseMapData,
+  UniverseLayer,
   UniverseProps,
 } from "./maps/universeMap";
 import {
   makePlanetMap,
-  PlanetMapData,
+  PlanetLayer,
   PlanetProps,
   renderPlanet,
 } from "./maps/planetMap";
 import { clamp } from "./lib/other";
 import {
-  GalaxyMapData,
+  GalaxyLayer,
   GalaxyProps,
-  makeGalaxyMap,
+  makeGalaxyLayer,
   renderGalaxy,
 } from "./maps/galaxyMap";
 import {
-  SolarSystemMapData,
+  SolarSystemLayer,
   SolarSystemProps,
-  makeSolarSystemMap,
+  makeSolarSystemLayer,
   renderSolarSystem,
 } from "./maps/solarSystemMap";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
 let universeContext: CanvasRenderingContext2D | null;
-const universeMap = ref<UniverseMapData>();
+const universeMap = ref<UniverseLayer>();
 const universeSeedData = ref<UniverseProps>();
 const universeHover = ref(0);
 
 const galaxyCanvas = ref<HTMLCanvasElement>(undefined!);
 let galaxyContext: CanvasRenderingContext2D | null;
-const galaxyMap = ref<GalaxyMapData>();
+const galaxyMap = ref<GalaxyLayer>();
 const galaxySeedData = ref<GalaxyProps>();
 const galaxyHover = ref(0);
 
 const solarSystemCanvas = ref<HTMLCanvasElement>(undefined!);
 let solarSystemContext: CanvasRenderingContext2D | null;
-const solarSystemMap = ref<SolarSystemMapData>();
+const solarSystemMap = ref<SolarSystemLayer>();
 const solarSystemSeedData = ref<SolarSystemProps>();
 const solarSystemHover = ref(0);
 
 const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
-const planetMap = ref<PlanetMapData>();
+const planetMap = ref<PlanetLayer>();
 const planetSeedData = ref<PlanetProps>();
 
 const width = 256;
@@ -141,7 +141,7 @@ onMounted(async () => {
 watch(universeSeedData, updateUniverseSeedData);
 function updateUniverseSeedData(universeSeedData?: UniverseProps) {
   if (!universeSeedData) return;
-  universeMap.value = makeUniverseMap(universeSeedData);
+  universeMap.value = makeUniverseLayer(universeSeedData);
   universeContext =
     universeContext ?? getContext(universeCanvas, width, height);
   renderUniverse(universeContext, universeMap.value);
@@ -162,7 +162,7 @@ function updateGalaxy(coord: number) {
 watch(galaxySeedData, updateGalaxySeedData);
 function updateGalaxySeedData(galaxySeedData?: GalaxyProps) {
   if (!galaxySeedData) return;
-  galaxyMap.value = makeGalaxyMap(galaxySeedData);
+  galaxyMap.value = makeGalaxyLayer(galaxySeedData);
   galaxyContext = galaxyContext ?? getContext(galaxyCanvas, width, height);
   renderGalaxy(galaxyContext, galaxyMap.value);
   updateSolarSystem(0);
@@ -181,9 +181,8 @@ function updateSolarSystem(coord: number) {
 
 watch(solarSystemSeedData, updateSolarSystemSeedData);
 function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemProps) {
-  console.log("solarSystemSeedData", solarSystemSeedData?.seed);
   if (!solarSystemSeedData) return;
-  solarSystemMap.value = makeSolarSystemMap(solarSystemSeedData);
+  solarSystemMap.value = makeSolarSystemLayer(solarSystemSeedData);
   solarSystemContext =
     solarSystemContext ?? getContext(solarSystemCanvas, width, height);
   renderSolarSystem(solarSystemContext, solarSystemMap.value);

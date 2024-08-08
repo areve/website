@@ -1,31 +1,29 @@
 import { diskFilter } from "../filters/diskFilter";
-import { MapData, MapDataProps, makeMap } from "../lib/other";
+import { Layer, LayerProps, makeLayer } from "../lib/other";
 import { SolarSystemProps } from "./solarSystemMap";
 
-export interface PlanetProps extends MapDataProps {
+export interface PlanetProps extends LayerProps {
   weight: number;
   parentProps: SolarSystemProps;
 }
 
-export interface PlanetMapData extends MapData {
+export interface PlanetLayer extends Layer {
   props: PlanetProps;
   heights: number[];
 }
 
 export function makePlanetMap(props: PlanetProps) {
-  const map = makeMap(props);
+  const layer = makeLayer(props);
 
-  const integers = map.states.map(
+  const integers = layer.states.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
   const heights = getHeights(props.width, props.height, integers, props.weight);
-  const planetMap: PlanetMapData = {
-    ...map,
+  return {
+    ...layer,
     props,
     heights,
-  };
-
-  return planetMap;
+  } as PlanetLayer;
 }
 
 function getHeights(
@@ -61,7 +59,7 @@ function getHeights(
 
 export function renderPlanet(
   context: CanvasRenderingContext2D | null,
-  map: PlanetMapData
+  layer: PlanetLayer
 ) {
   if (!context) return;
 
@@ -71,7 +69,7 @@ export function renderPlanet(
 
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
-  const data = map.heights;
+  const data = layer.heights;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;

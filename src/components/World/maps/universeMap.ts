@@ -1,36 +1,35 @@
-import { MapData, makeMap, sum, max, min, MapDataProps } from "../lib/other";
+import { Layer, makeLayer, sum, max, min, LayerProps } from "../lib/other";
 
-
-export interface UniverseProps extends MapDataProps {
+export interface UniverseProps extends LayerProps {
   weight: number;
 }
 
-export interface UniverseMapData extends MapData {
+export interface UniverseLayer extends Layer {
   props: UniverseProps;
   weights: number[];
 }
 
-export function makeUniverseMap(props: UniverseProps) {
-  let map = makeMap(props);
-  const integers = map.states.map(
+export function makeUniverseLayer(props: UniverseProps) {
+  let layer = makeLayer(props);
+  const integers = layer.states.map(
     (v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0
   );
 
   const sumIntegers = sum(integers);
-  const weights = integers.map((v) => ((v / sumIntegers) * props.weight) as number);
+  const weights = integers.map(
+    (v) => ((v / sumIntegers) * props.weight) as number
+  );
 
-  let universe: UniverseMapData = {
-    ...map,
+  return {
+    ...layer,
     props,
     weights,
-  };
-
-  return universe;
+  } as UniverseLayer;
 }
 
 export function renderUniverse(
   context: CanvasRenderingContext2D | null,
-  map: UniverseMapData
+  layer: UniverseLayer
 ) {
   if (!context) return;
 
@@ -38,9 +37,9 @@ export function renderUniverse(
   const height = context.canvas.height;
   context.clearRect(0, 0, width, height);
 
-  const data = map.weights;
-  const maxWeight = max(map.weights);
-  const minWeight = min(map.weights);
+  const data = layer.weights;
+  const maxWeight = max(layer.weights);
+  const minWeight = min(layer.weights);
   const range = maxWeight - minWeight;
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;

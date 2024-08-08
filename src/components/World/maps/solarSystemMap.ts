@@ -1,37 +1,34 @@
-import { MapData, MapDataProps, makeMap } from "../lib/other";
+import { Layer, LayerProps, makeLayer } from "../lib/other";
 import { GalaxyProps } from "./galaxyMap";
 
-export interface SolarSystemProps extends MapDataProps {
+export interface SolarSystemProps extends LayerProps {
   weight: number;
   parentProps: GalaxyProps;
 }
 
-export interface SolarSystemMapData extends MapData {
+export interface SolarSystemLayer extends Layer {
   props: SolarSystemProps;
   weights: number[];
 }
 
-export function makeSolarSystemMap(props: SolarSystemProps) {
-  let map = makeMap(props);
-  const weights = map.states.map((v) => {
+export function makeSolarSystemLayer(props: SolarSystemProps) {
+  let layre = makeLayer(props);
+  const weights = layre.states.map((v) => {
     const integer = ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0;
     let vv = integer;
-
     return vv & 0xffffffff;
   });
 
-  let solarSystem: SolarSystemMapData = {
-    ...map,
+  return {
+    ...layre,
     props,
     weights,
-  };
-
-  return solarSystem;
+  } as SolarSystemLayer;
 }
 
 export function renderSolarSystem(
   context: CanvasRenderingContext2D | null,
-  map: SolarSystemMapData
+  layer: SolarSystemLayer
 ) {
   if (!context) return;
 
@@ -39,7 +36,7 @@ export function renderSolarSystem(
   const height = context.canvas.height;
   context.clearRect(0, 0, width, height);
 
-  const data = map.weights;
+  const data = layer.weights;
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
   for (let y = 0; y < height; y++) {

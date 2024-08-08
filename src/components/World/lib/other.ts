@@ -5,6 +5,9 @@ export interface MapData {
   state: Uint8Array;
 }
 
+export const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
 export const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
 export const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 

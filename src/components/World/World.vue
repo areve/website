@@ -80,7 +80,7 @@ import {
   UniverseMapData,
 } from "./maps/universeMap";
 import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
-import { xor } from "./lib/other";
+import { clamp, xor } from "./lib/other";
 import { GalaxyMapData, makeGalaxyMap, renderGalaxy } from "./maps/galaxyMap";
 import {
   SolarSystemMapData,
@@ -132,7 +132,7 @@ const height = 256;
 
 onMounted(async () => {
   // const actualUniverseWeightKg = 1e53;
-  const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way 
+  const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
   // const milkyWayWeightKg = 2.7e27;
   universeSeedData.value = {
     seed: new TextEncoder().encode("This is the seed"),
@@ -221,8 +221,12 @@ function updatePlanetSeedData(planetSeedData?: PlanetSeedData) {
   renderPlanet(planetContext, planetMap.value);
 }
 
-const coordFromEvent = (event: MouseEvent) =>
-  event.offsetY * width + event.offsetX;
+const coordFromEvent = (event: MouseEvent) => {
+  return (
+    Math.round(clamp(event.offsetY, 0, height - 1)) * width +
+    Math.round(clamp(event.offsetX, 0, width - 1))
+  );
+};
 
 const hoverUniverse = (event: MouseEvent) => {
   if (!universeMap.value) return;

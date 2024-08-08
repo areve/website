@@ -1,9 +1,9 @@
-import { MapData, makeMap, sum } from "../lib/other";
+import { MapData, makeMap, max, min, sum } from "../lib/other";
 
 export interface GalaxyMapData extends MapData {
-  weight: number;
   width: number;
   height: number;
+  weight: number;
   weights: number[];
 }
 
@@ -42,16 +42,20 @@ export function renderGalaxy(
   context.clearRect(0, 0, width, height);
 
   const data = map.weights;
-  const rangeMax = map.weight / (map.width * map.height);
+  const maxWeight = max(map.weights);
+  const minWeight = min(map.weights);
+  const range = maxWeight - minWeight;
   const imageData = new ImageData(width, height);
   const pixelData = imageData.data;
+  const avg = map.weight / 256 / 256;
+  // console.log(map.weight, avg);
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = y * width + x;
       const o = (y * width + x) * 4;
 
-      let value = ((data[i] / rangeMax) / 2);
-      value = value ** 20
+      let value = data[i] / range;
+      value = value ** 20;
       //  console.assert(value < 1)
       pixelData[o + 0] = (value * 0xff) & 0xff;
       pixelData[o + 1] = (value * 0xff) & 0xff;

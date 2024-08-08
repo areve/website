@@ -80,7 +80,7 @@ import {
   UniverseMapData,
 } from "./maps/universeMap";
 import { makePlanetMap, PlanetMapData, renderPlanet } from "./maps/planetMap";
-import { clamp, xor } from "./lib/other";
+import { clamp } from "./lib/other";
 import { GalaxyMapData, makeGalaxyMap, renderGalaxy } from "./maps/galaxyMap";
 import {
   SolarSystemMapData,
@@ -158,7 +158,7 @@ function updateUniverseSeedData(universeSeedData?: UniverseSeedData) {
 function updateGalaxy(coord: number) {
   if (!universeMap.value) return;
   galaxySeedData.value = {
-    seed: xor(universeMap.value.state, universeMap.value.states[coord]),
+    seed: universeMap.value.states[coord],
     weight: universeMap.value.weights[coord],
   };
 }
@@ -180,7 +180,7 @@ function updateGalaxySeedData(galaxySeedData?: GalaxySeedData) {
 function updateSolarSystem(coord: number) {
   if (!galaxyMap.value) return;
   solarSystemSeedData.value = {
-    seed: xor(galaxyMap.value.state, galaxyMap.value.states[coord]),
+    seed: galaxyMap.value.seed,
     weight: galaxyMap.value.weights[coord],
   };
 }
@@ -203,7 +203,7 @@ function updateSolarSystemSeedData(solarSystemSeedData?: SolarSystemSeedData) {
 function updatePlanet(coord: number) {
   if (!solarSystemMap.value) return;
   planetSeedData.value = {
-    seed: xor(solarSystemMap.value.state, solarSystemMap.value.states[coord]),
+    seed: solarSystemMap.value.seed,
     weight: solarSystemMap.value.weights[coord],
   };
 }

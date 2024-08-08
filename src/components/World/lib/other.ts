@@ -1,16 +1,20 @@
 import { PRNG } from "./prng";
 
 export interface MapData {
+  seed: Uint8Array;
+  width: number;
+  height: number;
   states: Uint8Array[];
-  state: Uint8Array;
 }
 
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
 export const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
-export const max = (array: number[]) => array.reduce((p, c) => Math.max(p, c), -Infinity);
-export const min = (array: number[]) => array.reduce((p, c) => Math.min(p, c), Infinity);
+export const max = (array: number[]) =>
+  array.reduce((p, c) => Math.max(p, c), -Infinity);
+export const min = (array: number[]) =>
+  array.reduce((p, c) => Math.min(p, c), Infinity);
 export const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 
 export function makeMap(
@@ -19,13 +23,13 @@ export function makeMap(
   seed: Uint8Array
 ): MapData {
   const generator = new PRNG(seed);
-  let state = generator.getState();
-  const states = generator.getStateArray(width * height);
-  const integers = new Uint32Array(
-    states.map((v) => ((v[0] << 24) | (v[1] << 16) | (v[2] << 8) | v[3]) >>> 0)
-  );
+  const states = generator
+    .getStateArray(width * height)
+    .map((v) => xor(v, seed));
   return {
+    seed,
+    width,
+    height,
     states,
-    state,
   };
 }

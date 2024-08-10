@@ -1,3 +1,4 @@
+import { extend } from "hammerjs";
 import { diskFilter } from "../filters/diskFilter";
 import { applyFilter, seedToFloat, stretchContrast } from "../lib/other";
 import { LayerProps, Layer, getStates } from "../lib/prng";
@@ -17,11 +18,10 @@ export function makePlanetLayer(props: PlanetProps) {
   const states = getStates(props);
   const floats = states.map(seedToFloat);
   const filter = diskFilter(10);
-  const blurred = applyFilter(floats, props.width, filter)
-  const heights = stretchContrast(blurred)
+  const blurred = applyFilter(floats, props.width, filter);
+  const heights = stretchContrast(blurred);
   return { states, props, heights } as PlanetLayer;
 }
-
 
 export const getPlanetPixels = (layer: PlanetLayer) =>
   layer.heights.map((v) => {

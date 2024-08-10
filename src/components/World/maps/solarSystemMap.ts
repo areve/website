@@ -1,4 +1,4 @@
-import { Layer, LayerProps, getStates, render, seedToInt } from "../lib/other";
+import { Layer, LayerProps, getStates, seedToInt } from "../lib/other";
 import { GalaxyProps } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerProps {
@@ -12,8 +12,8 @@ export interface SolarSystemLayer extends Layer {
 }
 
 export function makeSolarSystemLayer(props: SolarSystemProps) {
-  let states = getStates(props);
-  let weights = states.map(seedToInt);
+  const states = getStates(props);
+  const weights = states.map(seedToInt);
   return { props, states, weights } as SolarSystemLayer;
 }
 

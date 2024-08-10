@@ -4,7 +4,6 @@ import {
   getStates,
   max,
   min,
-  render,
   seedToInt,
   sum,
 } from "../lib/other";
@@ -21,8 +20,8 @@ export interface GalaxyLayer extends Layer {
 }
 
 export function makeGalaxyLayer(props: GalaxyProps) {
-  let states = getStates(props);
-  let integers = states.map(seedToInt);
+  const states = getStates(props);
+  const integers = states.map(seedToInt);
   const scale = props.weight / sum(integers);
   const weights = integers.map((v) => (v * scale) as number);
   return { states, props, weights } as GalaxyLayer;
@@ -40,4 +39,3 @@ export function getGalaxyPixels(layer: GalaxyLayer) {
     return [n, n, n];
   });
 }
-

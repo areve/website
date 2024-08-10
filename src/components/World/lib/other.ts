@@ -1,16 +1,3 @@
-import { PRNG } from "./prng";
-
-export interface LayerProps {
-  seed: Uint8Array;
-  width: number;
-  height: number;
-}
-
-export interface Layer {
-  props: LayerProps;
-  states: Uint8Array[];
-}
-
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -29,13 +16,11 @@ export const seedToInt = (seed: Uint8Array) =>
 
 export const seedToFloat = (seed: Uint8Array) => seedToInt(seed) / 0xffffffff;
 
-export function getStates(props: LayerProps) {
-  const generator = new PRNG(props.seed);
-  return generator.getStateArray(props.width * props.height);
-}
-
-
-export function applyFilter(pixels: number[], width: number, filter: number[][]): number[] {
+export function applyFilter(
+  pixels: number[],
+  width: number,
+  filter: number[][]
+): number[] {
   const height = Math.floor(pixels.length / width);
   const filterHeight = filter.length;
   const filterWidth = filter[0].length;
@@ -44,26 +29,29 @@ export function applyFilter(pixels: number[], width: number, filter: number[][])
   const padWidth = Math.floor(filterWidth / 2);
 
   function getPixel(x: number, y: number): number {
-      // Wrap around: if x or y are out of bounds, wrap them around the image
-      x = (x + width) % width;
-      y = (y + height) % height;
-      return pixels[y * width + x];
+    // Wrap around: if x or y are out of bounds, wrap them around the image
+    x = (x + width) % width;
+    y = (y + height) % height;
+    return pixels[y * width + x];
   }
 
   return pixels.map((_, index) => {
-      const x = index % width;
-      const y = Math.floor(index / width);
+    const x = index % width;
+    const y = Math.floor(index / width);
 
-      // Calculate the new pixel value by applying the filter
-      const sum = filter.reduce((acc, row, fy) => {
-          return acc + row.reduce((accRow, weight, fx) => {
-              const imageX = x + fx - padWidth;
-              const imageY = y + fy - padHeight;
-              return accRow + getPixel(imageX, imageY) * weight;
-          }, 0);
-      }, 0);
+    // Calculate the new pixel value by applying the filter
+    const sum = filter.reduce((acc, row, fy) => {
+      return (
+        acc +
+        row.reduce((accRow, weight, fx) => {
+          const imageX = x + fx - padWidth;
+          const imageY = y + fy - padHeight;
+          return accRow + getPixel(imageX, imageY) * weight;
+        }, 0)
+      );
+    }, 0);
 
-      return sum;
+    return sum;
   });
 }
 

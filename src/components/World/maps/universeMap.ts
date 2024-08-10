@@ -1,12 +1,5 @@
-import {
-  getStates,
-  sum,
-  max,
-  min,
-  LayerProps,
-  seedToInt,
-  Layer,
-} from "../lib/other";
+import { sum, max, min, seedToInt } from "../lib/other";
+import { LayerProps, Layer, getStates } from "../lib/prng";
 
 export interface UniverseProps extends LayerProps {
   weight: number;

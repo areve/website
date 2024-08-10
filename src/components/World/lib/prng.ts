@@ -1,3 +1,14 @@
+export interface LayerProps {
+  seed: Uint8Array;
+  width: number;
+  height: number;
+}
+
+export interface Layer {
+  props: LayerProps;
+  states: Uint8Array[];
+}
+
 function preventZeroState(state: Uint8Array) {
   for (let i = 0; i < state.length; ++i) {
     if (++state[i]) break;
@@ -44,4 +55,9 @@ export class PRNG {
     shuffle(this.state);
     return this.state.slice(0, 16);
   }
+}
+
+export function getStates(props: LayerProps) {
+  const generator = new PRNG(props.seed);
+  return generator.getStateArray(props.width * props.height);
 }

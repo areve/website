@@ -1,4 +1,5 @@
-import { Layer, LayerProps, getStates, seedToInt } from "../lib/other";
+import { seedToInt } from "../lib/other";
+import { LayerProps, Layer, getStates } from "../lib/prng";
 import { GalaxyProps } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerProps {

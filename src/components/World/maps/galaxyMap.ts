@@ -1,12 +1,5 @@
-import {
-  Layer,
-  LayerProps,
-  getStates,
-  max,
-  min,
-  seedToInt,
-  sum,
-} from "../lib/other";
+import { max, min, seedToInt, sum } from "../lib/other";
+import { getStates, Layer, LayerProps } from "../lib/prng";
 import { UniverseProps } from "./universeMap";
 
 export interface GalaxyProps extends LayerProps {

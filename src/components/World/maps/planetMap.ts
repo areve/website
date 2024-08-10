@@ -22,8 +22,8 @@ export function makePlanetLayer(props: PlanetProps) {
 
 function getHeights(width: number, floats: number[]) {
   const filter = diskFilter(10);
-  const result = applyFilter(floats, width, filter).map((v) => v / 0xffffffff);
-  return stretchContrast(result);
+  const blurred = applyFilter(floats, width, filter)
+  return stretchContrast(blurred);
 }
 
 export const getPlanetPixels = (layer: PlanetLayer) =>

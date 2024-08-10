@@ -86,7 +86,7 @@ import {
   PlanetProps,
   getPlanetPixels,
 } from "./maps/planetMap";
-import { clamp, render } from "./lib/other";
+import { clamp } from "./lib/other";
 import {
   GalaxyLayer,
   GalaxyProps,
@@ -257,6 +257,19 @@ function getContext(
   return canvas.value.getContext("2d", {
     willReadFrequently: true,
   });
+}
+
+function render(
+  context: CanvasRenderingContext2D | null,
+  pixels: number[][]
+) {
+  if (!context) return;
+  const imageData = new ImageData(context.canvas.width, context.canvas.height);
+  imageData.data.forEach((_, i, a) => {
+    const v = pixels[(i / 4) >> 0][i % 4];
+    a[i] = (v ?? 1) * 255;
+  });
+  context.putImageData(imageData, 0, 0);
 }
 </script>
 

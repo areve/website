@@ -32,15 +32,3 @@ export function getStates(props: LayerProps) {
   return generator.getStateArray(props.width * props.height);
 }
 
-export function render(
-  context: CanvasRenderingContext2D | null,
-  pixels: number[][]
-) {
-  if (!context) return;
-  const imageData = new ImageData(context.canvas.width, context.canvas.height);
-  imageData.data.forEach((_, i, a) => {
-    const v = pixels[(i / 4) >> 0][i % 4];
-    a[i] = (v ?? 1) * 255;
-  });
-  context.putImageData(imageData, 0, 0);
-}

@@ -33,36 +33,18 @@ export function renderGalaxy(
 ) {
   if (!context) return;
 
-  const width = context.canvas.width;
-  const height = context.canvas.height;
-  context.clearRect(0, 0, width, height);
-
-  const data = layer.weights;
-  const maxWeight = max(layer.weights);
-  const minWeight = min(layer.weights);
-  const range = maxWeight - minWeight;
-  const imageData = new ImageData(width, height);
-  const pixelData = imageData.data;
-  const parentAvg =
+  const universeGalaxyAvgerageWeight =
     layer.props.universeProps.weight /
     layer.props.universeProps.width /
     layer.props.universeProps.height;
+  const weightDiffToAverage = layer.props.weight / universeGalaxyAvgerageWeight;
+  const weightRange = max(layer.weights) - min(layer.weights);
+  let pixels = layer.weights.map((v) => {
+    const scaled = (v / weightRange) ** (20 / weightDiffToAverage);
+    return [scaled * 255, scaled * 255, scaled * 255, 255];
+  });
 
-  const parentAvgDiff = layer.props.weight / parentAvg;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      const o = (y * width + x) * 4;
-
-      let value = data[i] / range;
-      value = value ** (20 / parentAvgDiff);
-      pixelData[o + 0] = (value * 0xff) & 0xff;
-      pixelData[o + 1] = (value * 0xff) & 0xff;
-      pixelData[o + 2] = (value * 0xff) & 0xff;
-
-      pixelData[o + 3] = 255;
-    }
-  }
-
+  const imageData = new ImageData(context.canvas.width, context.canvas.height);
+  imageData.data.forEach((_, i, a) => (a[i] = pixels[(i / 4) >> 0][i % 4]));
   context.putImageData(imageData, 0, 0);
 }

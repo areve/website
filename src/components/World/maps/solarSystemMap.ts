@@ -17,14 +17,9 @@ export function makeSolarSystemLayer(props: SolarSystemProps) {
   return { props, states, weights } as SolarSystemLayer;
 }
 
-export function renderSolarSystem(
-  context: CanvasRenderingContext2D | null,
-  layer: SolarSystemLayer
-) {
-  const pixels = layer.weights.map((v) => {
+export function getSolarSystemPixels(layer: SolarSystemLayer) {
+  return layer.weights.map((v) => {
     const n = v / 0xffffffff;
     return [n, 0, n];
   });
-
-  render(context, pixels);
 }

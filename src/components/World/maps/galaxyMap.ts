@@ -28,20 +28,16 @@ export function makeGalaxyLayer(props: GalaxyProps) {
   return { states, props, weights } as GalaxyLayer;
 }
 
-export function renderGalaxy(
-  context: CanvasRenderingContext2D | null,
-  layer: GalaxyLayer
-) {
+export function getGalaxyPixels(layer: GalaxyLayer) {
   const universeGalaxyAvgerageWeight =
     layer.props.universeProps.weight /
     layer.props.universeProps.width /
     layer.props.universeProps.height;
   const weightDiffToAverage = layer.props.weight / universeGalaxyAvgerageWeight;
   const weightRange = max(layer.weights) - min(layer.weights);
-  const pixels = layer.weights.map((v) => {
+  return layer.weights.map((v) => {
     const n = (v / weightRange) ** (20 / weightDiffToAverage);
     return [n, n, n];
   });
-
-  render(context, pixels);
 }
+

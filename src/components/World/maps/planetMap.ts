@@ -50,16 +50,10 @@ function getHeights(
   return result;
 }
 
-export function renderPlanet(
-  context: CanvasRenderingContext2D | null,
-  layer: PlanetLayer
-) {
-  const pixels = layer.heights.map((v) => {
+export const getPlanetPixels = (layer: PlanetLayer) =>
+  layer.heights.map((v) => {
     const n = v / 0xffffffff;
     return n > 0.5 //
       ? [n - 0.5, n - 0.25, 0]
       : [0.25, 0.5, n + 0.5];
   });
-
-  render(context, pixels);
-}

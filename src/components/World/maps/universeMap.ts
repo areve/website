@@ -26,15 +26,10 @@ export function makeUniverseLayer(props: UniverseProps) {
   return { states, props, weights } as UniverseLayer;
 }
 
-export function renderUniverse(
-  context: CanvasRenderingContext2D | null,
-  layer: UniverseLayer
-) {
+export function getUniversePixels(layer: UniverseLayer) {
   const weightRange = max(layer.weights) - min(layer.weights);
-  const pixels = layer.weights.map((v) => {
+  return layer.weights.map((v) => {
     const n = v / weightRange;
     return [n, n, n];
   });
-
-  render(context, pixels);
 }

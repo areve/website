@@ -76,7 +76,7 @@
 import { onMounted, Ref, ref, toRaw, watch } from "vue";
 import {
   makeUniverseLayer,
-  renderUniverse,
+  getUniversePixels,
   UniverseLayer,
   UniverseProps,
 } from "./maps/universeMap";
@@ -84,20 +84,20 @@ import {
   makePlanetLayer,
   PlanetLayer,
   PlanetProps,
-  renderPlanet,
+  getPlanetPixels,
 } from "./maps/planetMap";
-import { clamp } from "./lib/other";
+import { clamp, render } from "./lib/other";
 import {
   GalaxyLayer,
   GalaxyProps,
   makeGalaxyLayer,
-  renderGalaxy,
+  getGalaxyPixels,
 } from "./maps/galaxyMap";
 import {
   SolarSystemLayer,
   SolarSystemProps,
   makeSolarSystemLayer,
-  renderSolarSystem,
+  getSolarSystemPixels,
 } from "./maps/solarSystemMap";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
@@ -140,7 +140,7 @@ function updateUniverseProps(universeProps?: UniverseProps) {
   if (!universeProps) return;
   universeLayer = makeUniverseLayer(universeProps);
   universeContext ??= getContext(universeCanvas, universeProps);
-  renderUniverse(universeContext, universeLayer);
+  render(universeContext, getUniversePixels(universeLayer));
   updateGalaxy(0);
 }
 
@@ -160,7 +160,7 @@ function updateGalaxyProps(galaxyProps?: GalaxyProps) {
   if (!galaxyProps) return;
   galaxyLayer = makeGalaxyLayer(galaxyProps);
   galaxyContext ??= getContext(galaxyCanvas, galaxyProps);
-  renderGalaxy(galaxyContext, galaxyLayer);
+  render(galaxyContext, getGalaxyPixels(galaxyLayer));
   updateSolarSystem(0);
 }
 
@@ -180,7 +180,7 @@ function updateSolarSystemProps(solarSystemProps?: SolarSystemProps) {
   if (!solarSystemProps) return;
   solarSystemLayer = makeSolarSystemLayer(solarSystemProps);
   solarSystemContext ??= getContext(solarSystemCanvas, solarSystemProps);
-  renderSolarSystem(solarSystemContext, solarSystemLayer);
+  render(solarSystemContext, getSolarSystemPixels(solarSystemLayer));
   updatePlanet(0);
 }
 
@@ -200,7 +200,7 @@ function updatePlanetProps(planetProps?: PlanetProps) {
   if (!planetProps) return;
   planetLayer = makePlanetLayer(planetProps);
   planetContext ??= getContext(planetCanvas, planetProps);
-  renderPlanet(planetContext, planetLayer);
+  render(planetContext, getPlanetPixels(planetLayer));
 }
 
 const coordFromEvent = (

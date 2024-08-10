@@ -49,7 +49,7 @@
       </div>
       <div class="notes">
         <div class="title">solar system</div>
-        <div class="info">each dot is a sun, planet, moon, astroid</div>
+        <div class="info">each dot is a sun, planet, moon, asteroid</div>
         <hr />
         <div>weight: {{ solarSystemProps?.weight.toPrecision(3) }}</div>
         <div>{{ solarSystemHover.toPrecision(3) }}</div>

@@ -16,15 +16,12 @@ export interface PlanetLayer extends Layer {
 export function makePlanetLayer(props: PlanetProps) {
   const states = getStates(props);
   const floats = states.map(seedToFloat);
-  const heights = getHeights(props.width, floats);
+  const filter = diskFilter(10);
+  const blurred = applyFilter(floats, props.width, filter)
+  const heights = stretchContrast(blurred)
   return { states, props, heights } as PlanetLayer;
 }
 
-function getHeights(width: number, floats: number[]) {
-  const filter = diskFilter(10);
-  const blurred = applyFilter(floats, width, filter)
-  return stretchContrast(blurred);
-}
 
 export const getPlanetPixels = (layer: PlanetLayer) =>
   layer.heights.map((v) => {

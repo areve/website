@@ -4,6 +4,7 @@ import {
   getStates,
   max,
   min,
+  render,
   seedToInt,
   sum,
 } from "../lib/other";
@@ -31,20 +32,16 @@ export function renderGalaxy(
   context: CanvasRenderingContext2D | null,
   layer: GalaxyLayer
 ) {
-  if (!context) return;
-
   const universeGalaxyAvgerageWeight =
     layer.props.universeProps.weight /
     layer.props.universeProps.width /
     layer.props.universeProps.height;
   const weightDiffToAverage = layer.props.weight / universeGalaxyAvgerageWeight;
   const weightRange = max(layer.weights) - min(layer.weights);
-  let pixels = layer.weights.map((v) => {
-    const scaled = (v / weightRange) ** (20 / weightDiffToAverage);
-    return [scaled * 255, scaled * 255, scaled * 255, 255];
+  const pixels = layer.weights.map((v) => {
+    const n = (v / weightRange) ** (20 / weightDiffToAverage);
+    return [n, n, n];
   });
 
-  const imageData = new ImageData(context.canvas.width, context.canvas.height);
-  imageData.data.forEach((_, i, a) => (a[i] = pixels[(i / 4) >> 0][i % 4]));
-  context.putImageData(imageData, 0, 0);
+  render(context, pixels);
 }

@@ -1,5 +1,5 @@
 import { diskFilter } from "../filters/diskFilter";
-import { Layer, LayerProps, getStates, seedToInt } from "../lib/other";
+import { Layer, LayerProps, getStates, render, seedToInt } from "../lib/other";
 import { SolarSystemProps } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerProps {
@@ -54,34 +54,12 @@ export function renderPlanet(
   context: CanvasRenderingContext2D | null,
   layer: PlanetLayer
 ) {
-  if (!context) return;
+  const pixels = layer.heights.map((v) => {
+    const n = v / 0xffffffff;
+    return n > 0.5 //
+      ? [n - 0.5, n - 0.25, 0]
+      : [0.25, 0.5, n + 0.5];
+  });
 
-  const width = context.canvas.width;
-  const height = context.canvas.height;
-  context.clearRect(0, 0, width, height);
-
-  const imageData = new ImageData(width, height);
-  const pixelData = imageData.data;
-  const data = layer.heights;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = y * width + x;
-      const o = (y * width + x) * 4;
-
-      const vv = ((data[i] / 0xffffffff) * 255) & 0xff;
-      if (vv > 127) {
-        pixelData[o + 0] = vv - 127;
-        pixelData[o + 1] = vv - 63; //(data[i] >> 8) & 0xff;
-        pixelData[o + 2] = 0; //(data[i] >> 16) & 0xff;
-      } else {
-        pixelData[o + 0] = 63;
-        pixelData[o + 1] = 127; //(data[i] >> 8) & 0xff;
-        pixelData[o + 2] = vv + 127; //(data[i] >> 16) & 0xff;
-      }
-
-      pixelData[o + 3] = 255; //(data[i] >> 24) & 0xff;
-    }
-  }
-
-  context.putImageData(imageData, 0, 0);
+  render(context, pixels);
 }

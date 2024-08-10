@@ -13,7 +13,7 @@ export interface GalaxyLayer extends Layer {
 }
 
 export function makeGalaxyLayer(props: GalaxyProps) {
-  const states = getStates(props);
+  const states = getStates(props.seed, props.width * props.height);
   const integers = states.map(seedToInt);
   const scale = props.weight / sum(integers);
   const weights = integers.map((v) => (v * scale) as number);

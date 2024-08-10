@@ -13,7 +13,7 @@ export interface SolarSystemLayer extends Layer {
 }
 
 export function makeSolarSystemLayer(props: SolarSystemProps) {
-  const states = getStates(props);
+  const states = getStates(props.seed, props.width * props.height);
   const weights = states.map(seedToInt);
   return { props, states, weights } as SolarSystemLayer;
 }

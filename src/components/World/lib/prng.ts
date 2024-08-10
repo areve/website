@@ -1,3 +1,5 @@
+import { xor } from "./other";
+
 export interface LayerProps {
   seed: Uint8Array;
   width: number;
@@ -57,7 +59,9 @@ export class PRNG {
   }
 }
 
-export function getStates(props: LayerProps) {
-  const generator = new PRNG(props.seed);
-  return generator.getStateArray(props.width * props.height);
+export function getStates(seed: Uint8Array, count: number) {
+  const generator = new PRNG(seed);
+  const states = generator.getStateArray(count);
+  const state = generator.getState();
+  return states.map((v) => xor(v, state));
 }

@@ -15,7 +15,7 @@ export interface PlanetLayer extends Layer {
 }
 
 export function makePlanetLayer(props: PlanetProps) {
-  const states = getStates(props);
+  const states = getStates(props.seed, props.width * props.height);
   const floats = states.map(seedToFloat);
   const filter = diskFilter(10);
   const blurred = applyFilter(floats, props.width, filter);

@@ -25,10 +25,11 @@ export function makePlanetLayer(props: PlanetProps) {
   return { states, props, heights } as PlanetLayer;
 }
 
-export const getPlanetPixels = (layer: PlanetLayer) =>
-  layer.heights.map((v) => {
+export function getPlanetPixels(layer: PlanetLayer) {
+  return layer.heights.map((v) => {
     const n = v;
     return n > 0.5 //
       ? [n - 0.5, n - 0.25, 0]
       : [0, n, n + 0.5];
   });
+}

@@ -11,57 +11,50 @@ export interface Layer {
   states: Uint8Array[];
 }
 
-function preventZeroState(state: Uint8Array) {
-  for (let i = 0; i < state.length; ++i) {
-    if (++state[i]) break;
-  }
-}
+class PRNG {
+  private _state: Uint8Array;
 
-function shuffle(state: Uint8Array) {
-  let carry = 0;
-  const len = state.length;
-  const lenMinus1 = state.length - 1;
-  for (let i = lenMinus1; i >= 0; --i) {
-    const result = state[(i + lenMinus1) % len] + state[i] + carry;
-    state[(i + lenMinus1) % len] = result & 0xff;
-    carry = result >> 8;
-  }
-  preventZeroState(state);
-}
-
-function isAllZero(state: Uint8Array) {
-  for (let i = 0; i < state.length; ++i) {
-    if (state[i]) return false;
-  }
-  return true;
-}
-
-export class PRNG {
-  private state: Uint8Array;
-
-  constructor(seed: Uint8Array) {
-    if (seed.length != 16) throw new Error("seed length must be 16");
-    if (isAllZero(seed)) throw new Error("seed must not be all zeros");
-    this.state = seed.slice(0, 16);
+  constructor(seed: Uint8Array | number) {
+    this._state =
+      typeof seed === "number" //
+        ? new Uint8Array(
+            new BigUint64Array([BigInt(seed), BigInt(seed)]).buffer
+          )
+        : seed.slice(0, 16);
+    if (this._state.length != 16) throw new Error("seed length must be 16");
+    if (this.isAllZero()) throw new Error("seed must not be all zeros");
   }
 
-  getStateArray(length: number) {
-    const result: Uint8Array[] = new Array(length);
-    for (let i = 0; i < result.length; i++) {
-      result[i] = this.getState();
+  private isAllZero = () =>
+    this._state.reduce<boolean>((p, v) => p && v === 0, true);
+
+  private preventZeroState = () => {
+    for (let i = 0, max = this._state.length; i < max; ++i)
+      if (++this._state[i]) return;
+  };
+
+  private next = () => {
+    let carry = 0;
+    const state = this._state;
+    const len = state.length;
+    const lenMinus1 = state.length - 1;
+    for (let i = lenMinus1; i >= 0; --i) {
+      const result = state[(i + lenMinus1) % len] + state[i] + carry;
+      state[(i + lenMinus1) % len] = result & 0xff;
+      carry = result >> 8;
     }
-    return result;
-  }
+    this.preventZeroState();
+    return this._state;
+  };
 
-  getState(): Uint8Array {
-    shuffle(this.state);
-    return this.state.slice(0, 16);
-  }
+  state = () => this.next().slice(0, 16);
+  float32 = () => new Float32Array(this.next().buffer)[0];
+  float64 = () => new Float64Array(this.next().buffer)[0];
 }
 
 export function getStates(seed: Uint8Array, count: number) {
   const generator = new PRNG(seed);
-  const states = generator.getStateArray(count);
-  const state = generator.getState();
+  const states = new Array(count).fill(0).map(generator.state);
+  const state = generator.state();
   return states.map((v) => xor(v, state));
 }

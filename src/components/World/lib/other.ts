@@ -16,4 +16,17 @@ export const seedToInt = (seed: Uint8Array) =>
 
 export const seedToFloat = (seed: Uint8Array) => seedToInt(seed) / 0xffffffff;
 
-
+export function hsv2rgb(
+  h: number,
+  s: number,
+  v: number
+): [r: number, g: number, b: number] {
+  const hue = (((h * 360) % 360) + 360) % 360;
+  const sector = Math.floor(hue / 60);
+  const sectorFloat = hue / 60 - sector;
+  const x = v * (1 - s);
+  const y = v * (1 - s * sectorFloat);
+  const z = v * (1 - s * (1 - sectorFloat));
+  const rgb = [x, x, z, v, v, y, x, x, z, v];
+  return [rgb[sector + 4], rgb[sector + 2], rgb[sector]];
+}

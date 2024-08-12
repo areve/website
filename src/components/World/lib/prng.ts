@@ -51,10 +51,43 @@ class PRNG {
   int = () => new Int32Array(this.next().buffer)[0];
 }
 
-export function getStates(seed: Uint8Array, count: number) {
+export function getStates_(seed: Uint8Array, count: number) {
   const generator = new PRNG(seed);
   const states = new Array(count).fill(0).map(generator.state);
   const state = generator.state();
   return states.map((v) => xor(v, state));
 }
+
+function prng2DWithSeed(x: number, y: number, seed: number): number {
+  // Combine the coordinates with the seed
+  const combinedSeed = seed + x * 374761393 + y * 668265263; // Use large primes to reduce collisions
+  const mixedSeed = (combinedSeed ^ (combinedSeed >> 13)) * 1274126177;
+
+  // Convert the mixedSeed into a pseudo-random number in the range [0, 1)
+  const result = ((mixedSeed ^ (mixedSeed >> 16)) >>> 0) / 4294967296;
+
+  return result;
+}
+
+export function getStates(seed: Uint8Array, count: number) {
+  const width = Math.sqrt(count);
+  const n = seedToInt(seed);
+  // const height = Math.sqrt(count);
+  // const foo = (i: number) => {};
+  const r =  new Array(count).fill(0).map((_, i) => {
+    const r = prng2DWithSeed(Math.floor(i / width), i % width, n) * 0xffffffff;
+    
+    return new Uint32Array([r, r, r, r]);
+  });
+ // console.log(width, r)
+  return r
+  // const generator = new PRNG(seed);
+  // const states = new Array(count).fill(0).map(generator.state);
+  // const state = generator.state();
+  // return states.map((v) => xor(v, state));
+}
+
+// console.log(prng2D(1, 2)); // Consistently returns the same value for (1, 2)
+// console.log(prng2D(3, 4)); // Consistently returns the same value for (3, 4)
+// console.log(prng2D(3, 5)); // Consistently returns the same value for (3, 4)
 

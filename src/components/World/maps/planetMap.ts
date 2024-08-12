@@ -14,7 +14,9 @@ export interface PlanetLayer extends Layer {
 
 export function makePlanetLayer(props: PlanetProps) {
   const generator = new PointGenerator(props.seed);
-  const filter = diskFilter(10);
+  const filterRadius = 15;
+  const filter = diskFilter(filterRadius);
+  const scale = props.weight / 3.6e+22; // multiplying heights by this makes planets all water or land, which is like what I want but not today, the number was just somewhere in the middle of expected values
   const heights = (x: number, y: number) => {
     const padHeight = Math.floor(filter.length / 2);
     const padWidth = Math.floor(filter[0].length / 2);
@@ -26,7 +28,7 @@ export function makePlanetLayer(props: PlanetProps) {
         sum += filter[fy][fx] * generator.getPoint(px, py);
       }
     }
-    return (sum - 0.5) * 5 + 0.5;
+    return ((sum - 0.5) * filterRadius / 2 + 0.5);
   };
   const pixel = (x: number, y: number) => {
     const n = heights(x, y);

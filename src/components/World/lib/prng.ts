@@ -37,14 +37,14 @@ class PRNG {
     let carry = 0;
     const state = this._state;
     const len = state.length;
-    const lenMinus1 = state.length - 1;
+    const lenMinus1 = len - 1;
     for (let i = lenMinus1; i >= 0; --i) {
       const result = state[(i + lenMinus1) % len] + state[i] + carry;
       state[(i + lenMinus1) % len] = result & 0xff;
       carry = result >> 8;
     }
     this.preventZeroState();
-    return this._state;
+    return state;
   };
 
   state = () => this.next().slice(0, 16);

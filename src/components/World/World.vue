@@ -57,7 +57,11 @@
     </section>
     <section class="group">
       <div class="canvas-wrap">
-        <canvas ref="planetCanvas" class="canvas"></canvas>
+        <canvas
+          ref="planetCanvas"
+          class="canvas"
+          @mousemove="hoverPlanet"
+        ></canvas>
       </div>
       <div class="notes">
         <div class="title">planet</div>
@@ -67,6 +71,7 @@
         </div>
         <hr />
         <div>weight: {{ planetProps?.weight.toPrecision(3) }}</div>
+        <div>{{ planetHover.toPrecision(3) }}</div>
       </div>
     </section>
   </section>
@@ -80,11 +85,7 @@ import {
   UniverseLayer,
   UniverseProps,
 } from "./maps/universeMap";
-import {
-  makePlanetLayer,
-  PlanetLayer,
-  PlanetProps,
-} from "./maps/planetMap";
+import { makePlanetLayer, PlanetLayer, PlanetProps } from "./maps/planetMap";
 import { clamp } from "./lib/other";
 import { GalaxyLayer, GalaxyProps, makeGalaxyLayer } from "./maps/galaxyMap";
 import {
@@ -115,6 +116,7 @@ const planetCanvas = ref<HTMLCanvasElement>(undefined!);
 let planetContext: CanvasRenderingContext2D | null;
 let planetLayer: PlanetLayer;
 const planetProps = ref<PlanetProps>();
+const planetHover = ref(0);
 
 onMounted(async () => {
   // const actualUniverseWeightKg = 1e53;
@@ -257,6 +259,13 @@ const hoverSolarSystem = (event: MouseEvent) => {
 const clickSolarSystem = (event: MouseEvent) => {
   if (!solarSystemLayer) return;
   updatePlanet(coordFromEvent(event, solarSystemLayer.props));
+};
+
+const hoverPlanet = (event: MouseEvent) => {
+  if (!universeLayer) return;
+  planetHover.value = planetLayer.heights(
+    ...coordFromEvent2(event, planetLayer.props)
+  );
 };
 
 function getContext(

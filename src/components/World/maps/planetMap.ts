@@ -1,6 +1,4 @@
 import { diskFilter } from "../filters/diskFilter";
-import { stretchContrast } from "../lib/stretchContrast";
-import { applyFilter } from "../lib/applyFilter";
 import { LayerProps, Layer, PointGenerator } from "../lib/prng";
 import { SolarSystemProps } from "./solarSystemMap";
 
@@ -11,26 +9,30 @@ export interface PlanetProps extends LayerProps {
 
 export interface PlanetLayer extends Layer {
   props: PlanetProps;
+  heights: (x: number, y: number) => number;
 }
 
 export function makePlanetLayer(props: PlanetProps) {
   const generator = new PointGenerator(props.seed);
-  const scale = props.weight / props.height / props.width;
-  const data: number[][] = new Array(props.height) //
-    .fill(0)
-    .map((_, x) =>
-      new Array(props.width) //
-        .fill(0)
-        .map((_, y) => generator.getPoint(x, y))
-    );
   const filter = diskFilter(10);
-  const blurred = applyFilter(data, filter);
-  const heights = stretchContrast(blurred);
+  const heights = (x: number, y: number) => {
+    const padHeight = Math.floor(filter.length / 2);
+    const padWidth = Math.floor(filter[0].length / 2);
+    let sum = 0;
+    for (let fy = 0; fy < filter.length; fy++) {
+      for (let fx = 0; fx < filter[0].length; fx++) {
+        const px = x + fx - padWidth;
+        const py = y + fy - padHeight;
+        sum += filter[fy][fx] * generator.getPoint(px, py);
+      }
+    }
+    return (sum - 0.5) * 5 + 0.5;
+  };
   const pixel = (x: number, y: number) => {
-    const n = heights[y][x];
+    const n = heights(x, y);
     return n > 0.5 //
       ? [n - 0.5, n - 0.25, 0]
       : [0, n, n + 0.5];
   };
-  return { props, pixel } as PlanetLayer;
+  return { props, heights, pixel } as PlanetLayer;
 }

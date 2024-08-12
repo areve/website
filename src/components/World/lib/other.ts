@@ -11,8 +11,7 @@ export const min = (array: number[]) =>
 
 export const xor = (a: Uint8Array, b: Uint8Array) => a.map((v, i) => v ^ b[i]);
 
-export const seedToInt = (seed: Uint8Array) =>
-  ((seed[0] << 24) | (seed[1] << 16) | (seed[2] << 8) | seed[3]) >>> 0;
+export const seedToInt = (seed: Uint8Array) => new Uint32Array(seed.buffer)[0];
 
 export const seedToFloat = (seed: Uint8Array) => seedToInt(seed) / 0xffffffff;
 

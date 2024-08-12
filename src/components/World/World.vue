@@ -2,7 +2,7 @@
   <section>
     <h1>World</h1>
     <p>A psuedo random number generated world map</p>
-    <p>click the top map to see the detail</p>
+    <p>click the maps to select a location, press W, A, S, D to pan the planet</p>
 
     <section class="group">
       <div class="canvas-wrap">
@@ -134,6 +134,7 @@ onMounted(async () => {
     seed: 1234567890,
     weight: thisUniverseWeightKg,
   };
+  document.addEventListener("keydown", onKeyDown);
 });
 
 watch(universeProps, updateUniverseProps);
@@ -193,6 +194,10 @@ function updatePlanet(width: number, height: number) {
     seed: solarSystemLayer.weights(width, height),
     weight: solarSystemLayer.weights(width, height),
     solarSystemProps: toRaw(solarSystemLayer.props),
+    camera: {
+      x: 0,
+      y: 0,
+    },
   };
 }
 
@@ -201,7 +206,7 @@ function updatePlanetProps(planetProps?: PlanetProps) {
   if (!planetProps) return;
   planetLayer = makePlanetLayer(planetProps);
   planetContext ??= getContext(planetCanvas, planetProps);
-  render(planetContext, planetLayer);
+  render(planetContext, planetLayer, planetProps.camera);
 }
 
 const coordFromEvent = (event: MouseEvent, dimensions: Area) => {
@@ -247,6 +252,26 @@ const clickSolarSystem = (event: MouseEvent) => {
   updatePlanet(...coordFromEvent(event, solarSystemLayer.props));
 };
 
+const onKeyDown = (event: KeyboardEvent) => {
+  let x;
+  let y;
+
+  if (event.key === "a") x = (planetProps.value?.camera.x ?? 0) - 50;
+  if (event.key === "d") x = (planetProps.value?.camera.x ?? 0) + 50;
+  if (event.key === "w") y = (planetProps.value?.camera.y ?? 0) - 50;
+  if (event.key === "s") y = (planetProps.value?.camera.y ?? 0) + 50;
+
+  if (x !== undefined || y !== undefined) {
+    if (!planetProps.value) return;
+    planetProps.value = Object.assign({}, toRaw(planetProps.value), {
+      camera: {
+        x: x ?? planetProps.value?.camera.x ?? 0,
+        y: y ?? planetProps.value?.camera.y ?? 0,
+      },
+    });
+  }
+};
+
 const hoverPlanet = (event: MouseEvent) => {
   if (!planetLayer) return;
   planetHover.value = planetLayer.heights(
@@ -263,7 +288,11 @@ function getContext(canvas: Ref<HTMLCanvasElement>, dimensions: Area) {
   });
 }
 
-function render(context: CanvasRenderingContext2D | null, layer: Layer) {
+function render(
+  context: CanvasRenderingContext2D | null,
+  layer: Layer,
+  camera?: { x: number; y: number }
+) {
   if (!context) return;
   const width = context.canvas.width;
   const height = context.canvas.height;
@@ -271,9 +300,11 @@ function render(context: CanvasRenderingContext2D | null, layer: Layer) {
   const data = imageData.data;
   const xMax = layer.props.width;
   const yMax = layer.props.height;
+  const cameraX = camera?.x ?? 0;
+  const cameraY = camera?.y ?? 0;
   for (let x = 0; x < xMax; ++x) {
     for (let y = 0; y < yMax; ++y) {
-      const v = layer.pixel(x, y);
+      const v = layer.pixel(x + cameraX, y + cameraY);
       const i = (x + y * width) * 4;
       data[i] = (v[0] * 0xff) >>> 0;
       data[i + 1] = (v[1] * 0xff) >>> 0;

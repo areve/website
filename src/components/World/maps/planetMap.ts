@@ -5,6 +5,10 @@ import { SolarSystemProps } from "./solarSystemMap";
 export interface PlanetProps extends LayerProps {
   weight: number;
   solarSystemProps: SolarSystemProps;
+  camera: {
+    x: number,
+    y: number
+  }
 }
 
 export interface PlanetLayer extends Layer {
@@ -23,8 +27,8 @@ export function makePlanetLayer(props: PlanetProps) {
     let sum = 0;
     for (let fy = 0; fy < filter.length; fy++) {
       for (let fx = 0; fx < filter[0].length; fx++) {
-        const px = x + fx - padWidth;
-        const py = y + fy - padHeight;
+        const px = x + 20 + fx - padWidth;
+        const py = y + 20 +  fy - padHeight;
         sum += filter[fy][fx] * generator.getPoint(px, py);
       }
     }

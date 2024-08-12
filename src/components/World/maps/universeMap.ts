@@ -1,4 +1,3 @@
-import { seedToInt } from "../lib/other";
 import { LayerProps, PointGenerator, Layer } from "../lib/prng";
 
 export interface UniverseProps extends LayerProps {

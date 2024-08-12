@@ -127,6 +127,7 @@ onMounted(async () => {
   // const actualUniverseWeightKg = 1e53;
   const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
   // const milkyWayWeightKg = 2.7e27;
+  // const earthWeightKg = 5.9e24;
   universeProps.value = {
     width: 200,
     height: 200,
@@ -315,4 +316,3 @@ function render(context: CanvasRenderingContext2D | null, layer: Layer) {
   border: 0px solid #999;
 }
 </style>
-./maps/planetMap

@@ -6,11 +6,8 @@ export interface LayerProps {
   height: number;
 }
 
+
 export interface Layer {
-  props: LayerProps;
-  states: Uint8Array[];
-}
-export interface Layer2 {
   props: LayerProps;
   pixel: (x: number, y: number) => number[];
 }
@@ -29,7 +26,8 @@ function prng2DWithSeed(x: number, y: number, seed: number): number {
 export class PointGenerator {
   private seed: number;
   constructor(seed: number) {
-    this.seed = seed;
+    const n = new Uint32Array(new Float64Array([seed]).buffer);
+    this.seed = n[0] ^ n[1];
   }
 
   getPoint(x: number, y: number): number {

@@ -1,9 +1,7 @@
-import { extend } from "hammerjs";
 import { diskFilter } from "../filters/diskFilter";
-import { seedToFloat } from "../lib/other";
 import { stretchContrast } from "../lib/stretchContrast";
 import { applyFilter } from "../lib/applyFilter";
-import { LayerProps, Layer, getStates } from "../lib/prng";
+import { LayerProps, getStates, Layer, PointGenerator } from "../lib/prng";
 import { SolarSystemProps } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerProps {
@@ -13,23 +11,26 @@ export interface PlanetProps extends LayerProps {
 
 export interface PlanetLayer extends Layer {
   props: PlanetProps;
-  heights: number[];
 }
 
 export function makePlanetLayer(props: PlanetProps) {
-  const states = getStates(props.seed, props.width * props.height);
-  const floats = states.map(seedToFloat);
+  const generator = new PointGenerator(props.seed);
+  const scale = props.weight / props.height / props.width;
+  const data: number[][] = new Array(props.height) //
+    .fill(0)
+    .map((_, x) =>
+      new Array(props.width) //
+        .fill(0)
+        .map((_, y) => generator.getPoint(x, y))
+    );
   const filter = diskFilter(10);
-  const blurred = applyFilter(floats, props.width, props.height, filter);
+  const blurred = applyFilter(data, filter);
   const heights = stretchContrast(blurred);
-  return { states, props, heights } as PlanetLayer;
-}
-
-export function getPlanetPixels(layer: PlanetLayer) {
-  return layer.heights.map((v) => {
-    const n = v;
+  const pixel = (x: number, y: number) => {
+    const n = heights[y][x];
     return n > 0.5 //
       ? [n - 0.5, n - 0.25, 0]
       : [0, n, n + 0.5];
-  });
+  };
+  return { props, pixel } as PlanetLayer;
 }

@@ -74,7 +74,7 @@
 
 <script lang="ts" setup>
 import { onMounted, Ref, ref, toRaw, watch } from "vue";
-import { Layer2 } from "./lib/prng";
+import { Layer } from "./lib/prng";
 import {
   makeUniverseLayer,
   UniverseLayer,
@@ -84,20 +84,13 @@ import {
   makePlanetLayer,
   PlanetLayer,
   PlanetProps,
-  getPlanetPixels,
 } from "./maps/planetMap";
 import { clamp } from "./lib/other";
-import {
-  GalaxyLayer,
-  GalaxyProps,
-  makeGalaxyLayer,
-  getGalaxyPixels,
-} from "./maps/galaxyMap";
+import { GalaxyLayer, GalaxyProps, makeGalaxyLayer } from "./maps/galaxyMap";
 import {
   SolarSystemLayer,
   SolarSystemProps,
   makeSolarSystemLayer,
-  getSolarSystemPixels,
 } from "./maps/solarSystemMap";
 
 const universeCanvas = ref<HTMLCanvasElement>(undefined!);
@@ -140,8 +133,7 @@ function updateUniverseProps(universeProps?: UniverseProps) {
   if (!universeProps) return;
   universeLayer = makeUniverseLayer(universeProps);
   universeContext ??= getContext(universeCanvas, universeProps);
-  // render(universeContext, getUniversePixels(universeLayer));
-  render2(universeContext, universeLayer);
+  render(universeContext, universeLayer);
   updateGalaxy(0);
 }
 
@@ -163,17 +155,19 @@ function updateGalaxyProps(galaxyProps?: GalaxyProps) {
   if (!galaxyProps) return;
   galaxyLayer = makeGalaxyLayer(galaxyProps);
   galaxyContext ??= getContext(galaxyCanvas, galaxyProps);
-  render(galaxyContext, getGalaxyPixels(galaxyLayer));
+  render(galaxyContext, galaxyLayer);
   updateSolarSystem(0);
 }
 
 function updateSolarSystem(coord: number) {
   if (!galaxyLayer) return;
+  const width = coord % 200;
+  const height = (coord / 200) % 200;
   solarSystemProps.value = {
     width: galaxyLayer.props.width,
     height: galaxyLayer.props.height,
-    seed: galaxyLayer.states[coord],
-    weight: galaxyLayer.weights[coord],
+    seed: galaxyLayer.weights(width, height),
+    weight: galaxyLayer.weights(width, height),
     galaxyProps: toRaw(galaxyLayer.props),
   };
 }
@@ -183,17 +177,19 @@ function updateSolarSystemProps(solarSystemProps?: SolarSystemProps) {
   if (!solarSystemProps) return;
   solarSystemLayer = makeSolarSystemLayer(solarSystemProps);
   solarSystemContext ??= getContext(solarSystemCanvas, solarSystemProps);
-  render(solarSystemContext, getSolarSystemPixels(solarSystemLayer));
+  render(solarSystemContext, solarSystemLayer);
   updatePlanet(0);
 }
 
 function updatePlanet(coord: number) {
   if (!solarSystemLayer) return;
+  const width = coord % 200;
+  const height = (coord / 200) % 200;
   planetProps.value = {
     width: solarSystemLayer.props.width,
     height: solarSystemLayer.props.height,
-    seed: solarSystemLayer.states[coord],
-    weight: solarSystemLayer.weights[coord],
+    seed: solarSystemLayer.weights(width, height),
+    weight: solarSystemLayer.weights(width, height),
     solarSystemProps: toRaw(solarSystemLayer.props),
   };
 }
@@ -203,7 +199,7 @@ function updatePlanetProps(planetProps?: PlanetProps) {
   if (!planetProps) return;
   planetLayer = makePlanetLayer(planetProps);
   planetContext ??= getContext(planetCanvas, planetProps);
-  render(planetContext, getPlanetPixels(planetLayer));
+  render(planetContext, planetLayer);
 }
 
 const coordFromEvent = (
@@ -241,8 +237,9 @@ const clickUniverse = (event: MouseEvent) => {
 
 const hoverGalaxy = (event: MouseEvent) => {
   if (!galaxyLayer) return;
-  galaxyHover.value =
-    galaxyLayer.weights[coordFromEvent(event, galaxyLayer.props)];
+  galaxyHover.value = galaxyLayer.weights(
+    ...coordFromEvent2(event, galaxyLayer.props)
+  );
 };
 
 const clickGalaxy = (event: MouseEvent) => {
@@ -252,8 +249,9 @@ const clickGalaxy = (event: MouseEvent) => {
 
 const hoverSolarSystem = (event: MouseEvent) => {
   if (!solarSystemLayer) return;
-  solarSystemHover.value =
-    solarSystemLayer.weights[coordFromEvent(event, solarSystemLayer.props)];
+  solarSystemHover.value = solarSystemLayer.weights(
+    ...coordFromEvent2(event, solarSystemLayer.props)
+  );
 };
 
 const clickSolarSystem = (event: MouseEvent) => {
@@ -273,17 +271,7 @@ function getContext(
   });
 }
 
-function render(context: CanvasRenderingContext2D | null, pixels: number[][]) {
-  if (!context) return;
-  const imageData = new ImageData(context.canvas.width, context.canvas.height);
-  imageData.data.forEach((_, i, a) => {
-    const v = pixels[(i / 4) >> 0][i % 4];
-    a[i] = (v ?? 1) * 255;
-  });
-  context.putImageData(imageData, 0, 0);
-}
-
-function render2(context: CanvasRenderingContext2D | null, layer: Layer2) {
+function render(context: CanvasRenderingContext2D | null, layer: Layer) {
   if (!context) return;
   const width = context.canvas.width;
   const height = context.canvas.height;

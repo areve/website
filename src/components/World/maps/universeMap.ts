@@ -1,11 +1,11 @@
 import { seedToInt } from "../lib/other";
-import { LayerProps, PointGenerator, Layer2 } from "../lib/prng";
+import { LayerProps, PointGenerator, Layer } from "../lib/prng";
 
 export interface UniverseProps extends LayerProps {
   weight: number;
 }
 
-export interface UniverseLayer extends Layer2 {
+export interface UniverseLayer extends Layer {
   props: UniverseProps;
   weights: (x: number, y: number) => number;
 }
@@ -18,9 +18,5 @@ export function makeUniverseLayer(props: UniverseProps) {
     const n = generator.getPoint(x, y);
     return [n, n, n];
   };
-  return {
-    props,
-    weights,
-    pixel,
-  } as UniverseLayer;
+  return { props, weights, pixel } as UniverseLayer;
 }

@@ -1,7 +1,7 @@
 import { diskFilter } from "../filters/diskFilter";
 import { stretchContrast } from "../lib/stretchContrast";
 import { applyFilter } from "../lib/applyFilter";
-import { LayerProps, getStates, Layer, PointGenerator } from "../lib/prng";
+import { LayerProps, Layer, PointGenerator } from "../lib/prng";
 import { SolarSystemProps } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerProps {

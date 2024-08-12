@@ -74,9 +74,9 @@
 
 <script lang="ts" setup>
 import { onMounted, Ref, ref, toRaw, watch } from "vue";
+import { Layer2 } from "./lib/prng";
 import {
   makeUniverseLayer,
-  getUniversePixels,
   UniverseLayer,
   UniverseProps,
 } from "./maps/universeMap";
@@ -130,7 +130,7 @@ onMounted(async () => {
   universeProps.value = {
     width: 200,
     height: 200,
-    seed: new TextEncoder().encode("This is the seed"),
+    seed: 1234567890,
     weight: thisUniverseWeightKg,
   };
 });
@@ -140,17 +140,20 @@ function updateUniverseProps(universeProps?: UniverseProps) {
   if (!universeProps) return;
   universeLayer = makeUniverseLayer(universeProps);
   universeContext ??= getContext(universeCanvas, universeProps);
-  render(universeContext, getUniversePixels(universeLayer));
+  // render(universeContext, getUniversePixels(universeLayer));
+  render2(universeContext, universeLayer);
   updateGalaxy(0);
 }
 
 function updateGalaxy(coord: number) {
   if (!universeLayer) return;
+  const width = coord % 200;
+  const height = (coord / 200) % 200;
   galaxyProps.value = {
     width: universeLayer.props.width,
     height: universeLayer.props.height,
-    seed: universeLayer.states[coord],
-    weight: universeLayer.weights[coord],
+    seed: universeLayer.weights(width, height),
+    weight: universeLayer.weights(width, height),
     universeProps: toRaw(universeLayer.props),
   };
 }
@@ -214,10 +217,21 @@ const coordFromEvent = (
   );
 };
 
+const coordFromEvent2 = (
+  event: MouseEvent,
+  dimensions: { width: number; height: number }
+) => {
+  return [
+    Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
+    Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
+  ] as [x: number, y: number];
+};
+
 const hoverUniverse = (event: MouseEvent) => {
   if (!universeLayer) return;
-  universeHover.value =
-    universeLayer.weights[coordFromEvent(event, universeLayer.props)];
+  universeHover.value = universeLayer.weights(
+    ...coordFromEvent2(event, universeLayer.props)
+  );
 };
 
 const clickUniverse = (event: MouseEvent) => {
@@ -259,16 +273,35 @@ function getContext(
   });
 }
 
-function render(
-  context: CanvasRenderingContext2D | null,
-  pixels: number[][]
-) {
+function render(context: CanvasRenderingContext2D | null, pixels: number[][]) {
   if (!context) return;
   const imageData = new ImageData(context.canvas.width, context.canvas.height);
   imageData.data.forEach((_, i, a) => {
     const v = pixels[(i / 4) >> 0][i % 4];
     a[i] = (v ?? 1) * 255;
   });
+  context.putImageData(imageData, 0, 0);
+}
+
+function render2(context: CanvasRenderingContext2D | null, layer: Layer2) {
+  if (!context) return;
+  const width = context.canvas.width;
+  const height = context.canvas.height;
+  const imageData = new ImageData(width, height);
+  const data = imageData.data;
+  const xMax = layer.props.width;
+  const yMax = layer.props.height;
+  for (let x = 0; x < xMax; ++x) {
+    for (let y = 0; y < yMax; ++y) {
+      const v = layer.pixel(x, y);
+      const i = (x + y * width) * 4;
+      data[i] = (v[0] * 0xff) >>> 0;
+      data[i + 1] = (v[1] * 0xff) >>> 0;
+      data[i + 2] = (v[2] * 0xff) >>> 0;
+      data[i + 3] = ((v[3] ?? 1) * 0xff) >>> 0;
+    }
+  }
+
   context.putImageData(imageData, 0, 0);
 }
 </script>

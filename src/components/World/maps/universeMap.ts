@@ -1,27 +1,26 @@
-import { sum, max, min, seedToInt } from "../lib/other";
-import { LayerProps, Layer, getStates } from "../lib/prng";
+import { seedToInt } from "../lib/other";
+import { LayerProps, PointGenerator, Layer2 } from "../lib/prng";
 
 export interface UniverseProps extends LayerProps {
   weight: number;
 }
 
-export interface UniverseLayer extends Layer {
+export interface UniverseLayer extends Layer2 {
   props: UniverseProps;
-  weights: number[];
+  weights: (x: number, y: number) => number;
 }
 
 export function makeUniverseLayer(props: UniverseProps) {
-  const states = getStates(props.seed, props.width * props.height);
-  const integers = states.map(seedToInt);
-  const scale = props.weight / sum(integers);
-  const weights = integers.map((v) => (v * scale) as number);
-  return { states, props, weights } as UniverseLayer;
-}
-
-export function getUniversePixels(layer: UniverseLayer) {
-  const weightRange = max(layer.weights) - min(layer.weights);
-  return layer.weights.map((v) => {
-    const n = v / weightRange;
+  const generator = new PointGenerator(props.seed);
+  const scale = props.weight / props.height / props.width;
+  const weights = (x: number, y: number) => generator.getPoint(x, y) * scale;
+  const pixel = (x: number, y: number) => {
+    const n = generator.getPoint(x, y);
     return [n, n, n];
-  });
+  };
+  return {
+    props,
+    weights,
+    pixel,
+  } as UniverseLayer;
 }

@@ -262,7 +262,7 @@ const clickSolarSystem = (event: MouseEvent) => {
 };
 
 const hoverPlanet = (event: MouseEvent) => {
-  if (!universeLayer) return;
+  if (!planetLayer) return;
   planetHover.value = planetLayer.heights(
     ...coordFromEvent2(event, planetLayer.props)
   );

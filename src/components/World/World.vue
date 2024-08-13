@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, Ref, ref, toRaw, watch } from "vue";
+import { onMounted, Ref, ref, toRaw } from "vue";
 import { Layerx } from "./lib/prng";
 import {
   makeUniverseLayer,
@@ -42,11 +42,6 @@ import {
   SolarSystemProps,
   makeSolarSystemLayer,
 } from "./maps/solarSystemMap";
-
-interface Area {
-  width: number;
-  height: number;
-}
 
 // TODO Layerx is a name that is being replace by this, but not ready yet
 interface Layer {
@@ -228,7 +223,13 @@ const layers = [
   new PlanetLayer(),
 ];
 
-const coordFromEvent = (event: MouseEvent, dimensions: Area) => {
+const coordFromEvent = (
+  event: MouseEvent,
+  dimensions: {
+    width: number;
+    height: number;
+  }
+) => {
   return [
     Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
     Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
@@ -253,7 +254,13 @@ const onKeyDown = (event: KeyboardEvent) => {
   // }
 };
 
-function getContext(canvas: HTMLCanvasElement | undefined, dimensions: Area) {
+function getContext(
+  canvas: HTMLCanvasElement | undefined,
+  dimensions: {
+    width: number;
+    height: number;
+  }
+) {
   if (!canvas) return null;
   canvas.width = dimensions.width;
   canvas.height = dimensions.height;

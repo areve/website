@@ -1,13 +1,13 @@
 import { seedToInt, xor } from "./other";
 
-export interface LayerProps {
+export interface LayerxProps {
   seed: number;
   width: number;
   height: number;
 }
 
-export interface Layer {
-  props: LayerProps;
+export interface Layerx {
+  props: LayerxProps;
   pixel: (x: number, y: number) => number[];
 }
 

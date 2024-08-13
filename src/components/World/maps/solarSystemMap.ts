@@ -1,13 +1,13 @@
 import { hsv2rgb } from "../lib/other";
-import { LayerProps, Layer, PointGenerator } from "../lib/prng";
+import { LayerxProps, Layerx, PointGenerator } from "../lib/prng";
 import { GalaxyProps } from "./galaxyMap";
 
-export interface SolarSystemProps extends LayerProps {
+export interface SolarSystemProps extends LayerxProps {
   weight: number;
   galaxyProps: GalaxyProps;
 }
 
-export interface SolarSystemLayer extends Layer {
+export interface SolarSystemLayerx extends Layerx {
   props: SolarSystemProps;
   weights: (x: number, y: number) => number;
   hues: (x: number, y: number) => number;

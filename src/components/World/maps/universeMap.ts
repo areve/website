@@ -1,10 +1,10 @@
-import { LayerProps, PointGenerator, Layer } from "../lib/prng";
+import { LayerxProps, PointGenerator, Layerx } from "../lib/prng";
 
-export interface UniverseProps extends LayerProps {
+export interface UniverseProps extends LayerxProps {
   weight: number;
 }
 
-export interface UniverseLayer extends Layer {
+export interface UniverseLayerx extends Layerx {
   props: UniverseProps;
   weights: (x: number, y: number) => number;
 }
@@ -17,5 +17,5 @@ export function makeUniverseLayer(props: UniverseProps) {
     const n = generator.getPoint(x, y);
     return [n, n, n];
   };
-  return { props, weights, pixel } as UniverseLayer;
+  return { props, weights, pixel } as UniverseLayerx;
 }

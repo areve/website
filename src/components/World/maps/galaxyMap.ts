@@ -1,12 +1,12 @@
-import { Layer, LayerProps, PointGenerator } from "../lib/prng";
+import { Layerx, LayerxProps, PointGenerator } from "../lib/prng";
 import { UniverseProps } from "./universeMap";
 
-export interface GalaxyProps extends LayerProps {
+export interface GalaxyProps extends LayerxProps {
   weight: number;
   universeProps: UniverseProps;
 }
 
-export interface GalaxyLayer extends Layer {
+export interface GalaxyLayerx extends Layerx {
   props: GalaxyProps;
   weights: (x: number, y: number) => number;
 }
@@ -26,5 +26,5 @@ export function makeGalaxyLayer(props: GalaxyProps) {
     const n = (v / weightRange) ** (20 / weightDiffToAverage);
     return [n, n, n];
   };
-  return { props, weights, pixel } as GalaxyLayer;
+  return { props, weights, pixel } as GalaxyLayerx;
 }

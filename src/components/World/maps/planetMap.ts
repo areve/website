@@ -1,8 +1,8 @@
 import { diskFilter } from "../filters/diskFilter";
-import { LayerProps, Layer, PointGenerator } from "../lib/prng";
+import { LayerxProps, Layerx, PointGenerator } from "../lib/prng";
 import { SolarSystemProps } from "./solarSystemMap";
 
-export interface PlanetProps extends LayerProps {
+export interface PlanetProps extends LayerxProps {
   weight: number;
   solarSystemProps: SolarSystemProps;
   camera: {
@@ -11,7 +11,7 @@ export interface PlanetProps extends LayerProps {
   }
 }
 
-export interface PlanetLayer extends Layer {
+export interface PlanetLayerx extends Layerx {
   props: PlanetProps;
   heights: (x: number, y: number) => number;
 }

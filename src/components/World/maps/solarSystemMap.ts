@@ -4,7 +4,7 @@ import { GalaxyProps } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerxProps {
   weight: number;
-  galaxyProps: GalaxyProps;
+  // galaxyProps: GalaxyProps;
 }
 
 export interface SolarSystemLayerx extends Layerx {

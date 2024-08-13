@@ -3,7 +3,8 @@ import { UniverseProps } from "./universeMap";
 
 export interface GalaxyProps extends LayerxProps {
   weight: number;
-  universeProps: UniverseProps;
+  // universeProps: UniverseProps;
+  galaxyAvgerageWeight: number
 }
 
 export interface GalaxyLayerx extends Layerx {

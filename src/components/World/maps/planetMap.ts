@@ -4,7 +4,7 @@ import { SolarSystemProps } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerxProps {
   weight: number;
-  solarSystemProps: SolarSystemProps;
+  // solarSystemProps: SolarSystemProps;
   camera: {
     x: number,
     y: number
@@ -40,5 +40,5 @@ export function makePlanetLayer(props: PlanetProps) {
       ? [n - 0.5, n - 0.25, 0]
       : [0, n, n + 0.5];
   };
-  return { props, heights, pixel } as PlanetLayer;
+  return { props, heights, pixel } as PlanetLayerx;
 }

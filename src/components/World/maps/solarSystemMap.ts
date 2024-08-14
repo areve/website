@@ -49,7 +49,7 @@ export const makeSolarSystem = (actions: {
       description: "each dot is a sun, planet, moon, asteroid",
     },
     props: ref<SolarSystemProps>({
-      height: 200,
+      height: 20  0,
       width: 200,
       seed: 0,
       weight: 0,

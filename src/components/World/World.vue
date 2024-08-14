@@ -28,23 +28,25 @@
 
 <script lang="ts" setup>
 import { onMounted, watch } from "vue";
-import { makeUniverse } from "./maps/universeMap";
-import { makePlanet } from "./maps/planetMap";
-import { makeGalaxy } from "./maps/galaxyMap";
-import { makeSolarSystem } from "./maps/solarSystemMap";
+import { makeUniverse, UniverseLayer } from "./maps/universeMap";
+import { makePlanet, PlanetProps } from "./maps/planetMap";
+import { GalaxyLayer, GalaxyProps, makeGalaxy } from "./maps/galaxyMap";
+import {
+  makeSolarSystem,
+  SolarSystemLayer,
+  SolarSystemProps,
+} from "./maps/solarSystemMap";
 import { Dimension, Coord } from "./maps/makeLayer";
 import { clone } from "./lib/other";
 
 const universe = makeUniverse({
   hover(coord: Coord) {
-    console.log(coord);
+    // console.log(coord);
   },
   select(coord: Coord) {
-    const weight = universe.data.weights(coord.x, coord.y);
-    const props = clone(galaxy.props.value);
-    props.seed = weight;
-    props.weight = weight;
-    galaxy.props.value = props;
+    galaxy.props.value = makeGalaxyProps(universe, coord);
+    solarSystem.props.value = makeSolarSystemProps(galaxy, coord);
+    planet.props.value = makePlanetProps(solarSystem, coord);
   },
 });
 watch([universe.canvas.element, universe.props], ([canvas, props]) =>
@@ -52,14 +54,11 @@ watch([universe.canvas.element, universe.props], ([canvas, props]) =>
 );
 const galaxy = makeGalaxy({
   hover(coord: Coord) {
-    console.log(coord);
+    // console.log(coord);
   },
   select(coord: Coord) {
-    const weight = universe.data.weights(coord.x, coord.y);
-    const props = clone(solarSystem.props.value);
-    props.seed = weight;
-    props.weight = weight;
-    solarSystem.props.value = props;
+    solarSystem.props.value = makeSolarSystemProps(galaxy, coord);
+    planet.props.value = makePlanetProps(solarSystem, coord);
   },
 });
 watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
@@ -67,14 +66,10 @@ watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
 );
 const solarSystem = makeSolarSystem({
   hover(coord: Coord) {
-    console.log(coord);
+    // console.log(coord);
   },
   select(coord: Coord) {
-    const weight = universe.data.weights(coord.x, coord.y);
-    const props = clone(planet.props.value);
-    props.seed = weight;
-    props.weight = weight;
-    planet.props.value = props;
+    planet.props.value = makePlanetProps(solarSystem, coord);
   },
 });
 watch([solarSystem.canvas.element, solarSystem.props], ([canvas, props]) =>
@@ -82,10 +77,10 @@ watch([solarSystem.canvas.element, solarSystem.props], ([canvas, props]) =>
 );
 const planet = makePlanet({
   hover(coord: Coord) {
-    console.log(coord);
+    // console.log(coord);
   },
   select(coord: Coord) {
-    console.log(coord);
+    // console.log(coord);
   },
 });
 watch([planet.canvas.element, planet.props], ([canvas, props]) =>
@@ -99,33 +94,48 @@ const layers = {
   planet,
 };
 
-onMounted(async () => {
-  galaxy.props.value = {
-    height: universe.props.value.height,
+function makeGalaxyProps(universe: UniverseLayer, coord: Coord): GalaxyProps {
+  return {
     width: universe.props.value.width,
-    seed: universe.data.weights(0, 0),
-    weight: universe.data.weights(0, 0),
+    height: universe.props.value.height,
     galaxyAvgerageWeight:
       universe.props.value.weight /
       universe.props.value.width /
       universe.props.value.height,
+    seed: universe.data.weights(coord.x, coord.y),
+    weight: universe.data.weights(coord.x, coord.y),
   };
+}
 
-  solarSystem.props.value = {
-    height: galaxy.props.value.height,
+function makeSolarSystemProps(
+  galaxy: GalaxyLayer,
+  coord: Coord
+): SolarSystemProps {
+  return {
     width: galaxy.props.value.width,
-    seed: galaxy.data.weights(0, 0),
-    weight: galaxy.data.weights(0, 0),
+    height: galaxy.props.value.height,
+    seed: galaxy.data.weights(coord.x, coord.y),
+    weight: galaxy.data.weights(coord.x, coord.y),
   };
+}
 
-  planet.props.value = {
-    height: solarSystem.props.value.height,
+function makePlanetProps(
+  solarSystem: SolarSystemLayer,
+  coord: Coord
+): PlanetProps {
+  return {
     width: solarSystem.props.value.width,
-    seed: solarSystem.data.weights(0, 0),
-    weight: solarSystem.data.weights(0, 0),
+    height: solarSystem.props.value.height,
+    seed: solarSystem.data.weights(coord.x, coord.y),
+    weight: solarSystem.data.weights(coord.x, coord.y),
     camera: { x: 0, y: 0 },
   };
+}
 
+onMounted(async () => {
+  galaxy.props.value = makeGalaxyProps(universe, { x: 0, y: 0 });
+  solarSystem.props.value = makeSolarSystemProps(galaxy, { x: 0, y: 0 });
+  planet.props.value = makePlanetProps(solarSystem, { x: 0, y: 0 });
   document.addEventListener("keydown", onKeyDown);
 });
 
@@ -170,7 +180,6 @@ function render(
   const yMax = dimensions.height;
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
-  console.log("#2", cameraX, cameraY);
   for (let x = 0; x < xMax; ++x) {
     for (let y = 0; y < yMax; ++y) {
       const v = pixel(x + cameraX, y + cameraY);

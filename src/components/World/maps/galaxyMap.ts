@@ -1,6 +1,7 @@
 import { ref } from "vue";
 import { LayerData, LayerProps, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
+import { UniverseLayer } from "./universeMap";
 
 export interface GalaxyProps extends LayerProps {
   weight: number;
@@ -13,6 +14,23 @@ export interface GalaxyData extends LayerData {
 
 export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps> {}
 
+export function makeGalaxyProps(
+  universe?: UniverseLayer,
+  coord?: Coord
+): GalaxyProps {
+  return {
+    width: universe?.props.value.width ?? 0,
+    height: universe?.props.value.height ?? 0,
+    galaxyAvgerageWeight: universe
+      ? universe?.props.value.weight /
+        universe?.props.value.width /
+        universe?.props.value.height
+      : 0,
+    seed: universe?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    weight: universe?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+  };
+}
+
 export const makeGalaxy = (actions: {
   hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
@@ -22,13 +40,7 @@ export const makeGalaxy = (actions: {
       title: "galaxy",
       description: "each dot is a solar system",
     },
-    props: ref<GalaxyProps>({
-      height: 200,
-      width: 200,
-      seed: 0,
-      weight: 0,
-      galaxyAvgerageWeight: 0,
-    }),
+    props: ref<GalaxyProps>(makeGalaxyProps()),
     data: {
       weights: (x, y) => {
         const generator = new PointGenerator(galaxy.props.value.seed);

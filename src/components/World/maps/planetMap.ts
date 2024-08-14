@@ -2,6 +2,7 @@ import { diskFilter } from "../filters/diskFilter";
 import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 import { ref } from "vue";
+import { SolarSystemLayer } from "./solarSystemMap";
 
 export interface PlanetProps extends LayerProps {
   weight: number;
@@ -18,6 +19,18 @@ export interface PlanetLayer extends LayerData {
 export interface PlanetRenderLayer
   extends RenderLayer<PlanetLayer, PlanetProps> {}
 
+export function makePlanetProps(
+  solarSystem?: SolarSystemLayer,
+  coord?: Coord
+): PlanetProps {
+  return {
+    width: solarSystem?.props.value.width ?? 0,
+    height: solarSystem?.props.value.height ?? 0,
+    seed: solarSystem?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    weight: solarSystem?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    camera: { x: 0, y: 0 },
+  };
+}
 export const makePlanet = (actions: {
   select: (coord: Coord) => void;
   hover: (coord: Coord) => void;
@@ -51,13 +64,7 @@ export const makePlanet = (actions: {
       description:
         "each dot is a point on a point on the planet sized region of the solar system",
     },
-    props: ref<PlanetProps>({
-      height: 200,
-      width: 200,
-      seed: 0,
-      weight: 0,
-      camera: { x: 0, y: 0 },
-    }),
+    props: ref<PlanetProps>(makePlanetProps()),
     data: {
       heights,
     },

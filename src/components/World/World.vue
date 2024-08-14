@@ -29,10 +29,16 @@
 <script lang="ts" setup>
 import { onMounted, watch } from "vue";
 import { makeUniverse, UniverseLayer } from "./maps/universeMap";
-import { makePlanet, PlanetProps } from "./maps/planetMap";
-import { GalaxyLayer, GalaxyProps, makeGalaxy } from "./maps/galaxyMap";
+import { makePlanet, makePlanetProps, PlanetProps } from "./maps/planetMap";
+import {
+  GalaxyLayer,
+  GalaxyProps,
+  makeGalaxy,
+  makeGalaxyProps,
+} from "./maps/galaxyMap";
 import {
   makeSolarSystem,
+  makeSolarSystemProps,
   SolarSystemLayer,
   SolarSystemProps,
 } from "./maps/solarSystemMap";
@@ -93,44 +99,6 @@ const layers = {
   solarSystem,
   planet,
 };
-
-function makeGalaxyProps(universe: UniverseLayer, coord: Coord): GalaxyProps {
-  return {
-    width: universe.props.value.width,
-    height: universe.props.value.height,
-    galaxyAvgerageWeight:
-      universe.props.value.weight /
-      universe.props.value.width /
-      universe.props.value.height,
-    seed: universe.data.weights(coord.x, coord.y),
-    weight: universe.data.weights(coord.x, coord.y),
-  };
-}
-
-function makeSolarSystemProps(
-  galaxy: GalaxyLayer,
-  coord: Coord
-): SolarSystemProps {
-  return {
-    width: galaxy.props.value.width,
-    height: galaxy.props.value.height,
-    seed: galaxy.data.weights(coord.x, coord.y),
-    weight: galaxy.data.weights(coord.x, coord.y),
-  };
-}
-
-function makePlanetProps(
-  solarSystem: SolarSystemLayer,
-  coord: Coord
-): PlanetProps {
-  return {
-    width: solarSystem.props.value.width,
-    height: solarSystem.props.value.height,
-    seed: solarSystem.data.weights(coord.x, coord.y),
-    weight: solarSystem.data.weights(coord.x, coord.y),
-    camera: { x: 0, y: 0 },
-  };
-}
 
 onMounted(async () => {
   galaxy.props.value = makeGalaxyProps(universe, { x: 0, y: 0 });

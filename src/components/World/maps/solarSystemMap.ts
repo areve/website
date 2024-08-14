@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { hsv2rgb } from "../lib/other";
 import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
+import { GalaxyLayer } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerProps {
   weight: number;
@@ -14,6 +15,18 @@ export interface SolarSystemData extends LayerData {
 
 export interface SolarSystemLayer
   extends RenderLayer<SolarSystemData, SolarSystemProps> {}
+
+export function makeSolarSystemProps(
+  galaxy?: GalaxyLayer,
+  coord?: Coord
+): SolarSystemProps {
+  return {
+    width: galaxy?.props.value.width ?? 1,
+    height: galaxy?.props.value.height ?? 1,
+    seed: galaxy?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    weight: galaxy?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+  };
+}
 
 export const makeSolarSystem = (actions: {
   hover: (coord: Coord) => void;
@@ -48,12 +61,7 @@ export const makeSolarSystem = (actions: {
       title: "solar system",
       description: "each dot is a sun, planet, moon, asteroid",
     },
-    props: ref<SolarSystemProps>({
-      height: 20  0,
-      width: 200,
-      seed: 0,
-      weight: 0,
-    }),
+    props: ref<SolarSystemProps>(makeSolarSystemProps()),
     data: {
       weights,
       hues,

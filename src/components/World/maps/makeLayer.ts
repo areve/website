@@ -21,7 +21,8 @@ export interface RenderLayer<T1, T2> {
     element: Ref<HTMLCanvasElement>;
     context: CanvasRenderingContext2D | null;
     pixel: (x: number, y: number) => number[];
-    click: (event: MouseEvent, layer: RenderLayer<any, any>) => void;
+    click: (event: MouseEvent) => void;
+    mousemove: (event: MouseEvent) => void;
   };
 }
 

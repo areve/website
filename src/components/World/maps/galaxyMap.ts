@@ -16,6 +16,7 @@ export interface GalaxyData extends LayerData {
 export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps> {}
 
 export const makeGalaxy = (actions: {
+  hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): GalaxyLayer => {
   //     const generator = new PointGenerator(props.seed);
@@ -61,7 +62,11 @@ export const makeGalaxy = (actions: {
 
         return [n, n, n];
       },
-      click(event, layer) {
+      mousemove(event) {
+        const coord = coordFromEvent(event, galaxy.props.value);
+        actions.hover(coord);
+      },
+      click(event) {
         const coord = coordFromEvent(event, galaxy.props.value);
         actions.select(coord);
       },

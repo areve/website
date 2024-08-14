@@ -16,6 +16,7 @@ export interface SolarSystemLayer
   extends RenderLayer<SolarSystemData, SolarSystemProps> {}
 
 export const makeSolarSystem = (actions: {
+  hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): SolarSystemLayer => {
   function hues(x: number, y: number) {
@@ -66,7 +67,11 @@ export const makeSolarSystem = (actions: {
         const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
         return [v * r, v * g, v * b];
       },
-      click(event, layer) {
+      mousemove(event) {
+        const coord = coordFromEvent(event, solarSystem.props.value);
+        actions.hover(coord);
+      },
+      click(event) {
         const coord = coordFromEvent(event, solarSystem.props.value);
         actions.select(coord);
       },

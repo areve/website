@@ -18,6 +18,7 @@ export interface UniverseLayer
   extends RenderLayer<UniverseData, UniverseProps> {}
 
 export const makeUniverse = (actions: {
+  hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): // galaxy: GalaxyLayer,
 // solarSystem: SolarSystemLayer
@@ -93,7 +94,11 @@ UniverseLayer => {
         const n = generator.getPoint(x, y);
         return [n, n, n];
       },
-      click(event, layer) {
+      mousemove(event) {
+        const coord = coordFromEvent(event, universe.props.value);
+        actions.hover(coord);
+      },
+      click(event) {
         const coord = coordFromEvent(event, universe.props.value);
         actions.select(coord);
       },

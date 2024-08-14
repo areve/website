@@ -11,10 +11,9 @@
         <canvas
           :ref="layer.canvas.element"
           class="canvas"
-          @click="layer.canvas.click($event, layer)"
+          @mousemove="layer.canvas.mousemove"
+          @click="layer.canvas.click"
         ></canvas>
-        <!-- @mousemove="layer.canvas.hover($event)" -->
-        <!-- @click="layer.canvas.click($event)" -->
       </div>
       <div class="notes">
         <div class="title">{{ layer.meta.title }}</div>
@@ -37,6 +36,9 @@ import { Dimension, Coord } from "./maps/makeLayer";
 import { clone } from "./lib/other";
 
 const universe = makeUniverse({
+  hover(coord: Coord) {
+    console.log(coord);
+  },
   select(coord: Coord) {
     const weight = universe.data.weights(coord.x, coord.y);
     const props = clone(galaxy.props.value);
@@ -49,6 +51,9 @@ watch([universe.canvas.element, universe.props], ([canvas, props]) =>
   render(canvas, props, universe.canvas.pixel)
 );
 const galaxy = makeGalaxy({
+  hover(coord: Coord) {
+    console.log(coord);
+  },
   select(coord: Coord) {
     const weight = universe.data.weights(coord.x, coord.y);
     const props = clone(solarSystem.props.value);
@@ -61,6 +66,9 @@ watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
   render(canvas, props, galaxy.canvas.pixel)
 );
 const solarSystem = makeSolarSystem({
+  hover(coord: Coord) {
+    console.log(coord);
+  },
   select(coord: Coord) {
     const weight = universe.data.weights(coord.x, coord.y);
     const props = clone(planet.props.value);
@@ -73,6 +81,9 @@ watch([solarSystem.canvas.element, solarSystem.props], ([canvas, props]) =>
   render(canvas, props, solarSystem.canvas.pixel)
 );
 const planet = makePlanet({
+  hover(coord: Coord) {
+    console.log(coord);
+  },
   select(coord: Coord) {
     console.log(coord);
   },

@@ -22,6 +22,7 @@ export interface PlanetRenderLayer
 
 export const makePlanet = (actions: {
   select: (coord: Coord) => void;
+  hover: (coord: Coord) => void;
 }): PlanetRenderLayer => {
   const filterRadius = 10;
   const filter = diskFilter(filterRadius);
@@ -66,7 +67,11 @@ export const makePlanet = (actions: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
       pixel,
-      click(event, layer) {
+      mousemove(event) {
+        const coord = coordFromEvent(event, planet.props.value);
+        actions.hover(coord);
+      },
+      click(event) {
         const coord = coordFromEvent(event, planet.props.value);
         actions.select(coord);
       },

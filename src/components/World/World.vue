@@ -19,7 +19,8 @@
         <div class="title">{{ layer.meta.title }}</div>
         <div class="info">{{ layer.meta.description }}</div>
         <hr />
-        <!-- <div>{{ layer.data.value.hover.toPrecision(3) }}</div> -->
+        <div v-if="layer.liveData.value.weight">{{ layer.liveData.value.weight.toPrecision(3) }}</div>
+        <div v-if="layer.liveData.value.height">{{ layer.liveData.value.height.toPrecision(3) }}</div>
         <!-- <div>{{ (layer.hoverData.value ?? 0).toPrecision(3) }}</div> -->
       </div>
     </section>
@@ -37,7 +38,10 @@ import { clone } from "./lib/other";
 
 const universe = makeUniverse({
   hover(coord: Coord) {
-    // console.log(coord);
+    const weight = universe.data.weights(coord.x, coord.y);
+    universe.liveData.value = {
+      weight,
+    };
   },
   select(coord: Coord) {
     galaxy.props.value = makeGalaxyProps(universe, coord);
@@ -50,7 +54,10 @@ watch(universe.props, (props) =>
 );
 const galaxy = makeGalaxy({
   hover(coord: Coord) {
-    // console.log(coord);
+    const weight = galaxy.data.weights(coord.x, coord.y);
+    galaxy.liveData.value = {
+      weight,
+    };
   },
   select(coord: Coord) {
     solarSystem.props.value = makeSolarSystemProps(galaxy, coord);
@@ -62,7 +69,10 @@ watch(galaxy.props, (props) =>
 );
 const solarSystem = makeSolarSystem({
   hover(coord: Coord) {
-    // console.log(coord);
+    const weight = solarSystem.data.weights(coord.x, coord.y);
+    solarSystem.liveData.value = {
+      weight,
+    };
   },
   select(coord: Coord) {
     planet.props.value = makePlanetProps(solarSystem, coord);
@@ -73,7 +83,10 @@ watch(solarSystem.props, (props) =>
 );
 const planet = makePlanet({
   hover(coord: Coord) {
-    // console.log(coord);
+    const height = planet.data.heights(coord.x, coord.y);
+    planet.liveData.value = {
+      height,
+    };
   },
   select(coord: Coord) {
     // console.log(coord);

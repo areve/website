@@ -10,8 +10,11 @@ export interface UniverseData extends LayerData {
   weights: (x: number, y: number) => number;
 }
 
+export interface UniverseLiveData {
+  weight: number;
+}
 export interface UniverseLayer
-  extends RenderLayer<UniverseData, UniverseProps> {}
+  extends RenderLayer<UniverseData, UniverseProps, UniverseLiveData> {}
 
 // const actualUniverseWeightKg = 1e53;
 const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
@@ -47,6 +50,9 @@ export const makeUniverse = (actions: {
         return generator.getPoint(x, y) * scale;
       },
     },
+    liveData: ref<UniverseLiveData>({
+      weight: 0
+    }),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,

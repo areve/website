@@ -12,7 +12,11 @@ export interface GalaxyData extends LayerData {
   weights: (x: number, y: number) => number;
 }
 
-export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps> {}
+export interface GalaxyLiveData {
+  weight: number;
+}
+
+export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps, GalaxyLiveData> {}
 
 export function makeGalaxyProps(
   universe?: UniverseLayer,
@@ -47,6 +51,9 @@ export const makeGalaxy = (actions: {
         return generator.getPoint(x, y);
       },
     },
+    liveData: ref<GalaxyLiveData>({
+      weight: 0
+    }),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,

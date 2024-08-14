@@ -2,7 +2,7 @@ import { ref } from "vue";
 import { hsv2rgb } from "../lib/other";
 import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
-import { GalaxyLayer } from "./galaxyMap";
+import { GalaxyLayer, GalaxyLiveData } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerProps {
   weight: number;
@@ -13,8 +13,12 @@ export interface SolarSystemData extends LayerData {
   hues: (x: number, y: number) => number;
 }
 
+export interface SolarSystemLiveData {
+  weight: number;
+}
+
 export interface SolarSystemLayer
-  extends RenderLayer<SolarSystemData, SolarSystemProps> {}
+  extends RenderLayer<SolarSystemData, SolarSystemProps, SolarSystemLiveData> {}
 
 export function makeSolarSystemProps(
   galaxy?: GalaxyLayer,
@@ -66,6 +70,9 @@ export const makeSolarSystem = (actions: {
       weights,
       hues,
     },
+    liveData: ref<GalaxyLiveData>({
+      weight: 0
+    }),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,

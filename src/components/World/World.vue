@@ -45,8 +45,8 @@ const universe = makeUniverse({
     planet.props.value = makePlanetProps(solarSystem, coord);
   },
 });
-watch([universe.canvas.element, universe.props], ([canvas, props]) =>
-  render(canvas, props, universe.canvas.pixel)
+watch(universe.props, (props) =>
+  render(universe.canvas.element.value, props, universe.canvas.pixel)
 );
 const galaxy = makeGalaxy({
   hover(coord: Coord) {
@@ -57,8 +57,8 @@ const galaxy = makeGalaxy({
     planet.props.value = makePlanetProps(solarSystem, coord);
   },
 });
-watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
-  render(canvas, props, galaxy.canvas.pixel)
+watch(galaxy.props, (props) =>
+  render(galaxy.canvas.element.value, props, galaxy.canvas.pixel)
 );
 const solarSystem = makeSolarSystem({
   hover(coord: Coord) {
@@ -68,8 +68,8 @@ const solarSystem = makeSolarSystem({
     planet.props.value = makePlanetProps(solarSystem, coord);
   },
 });
-watch([solarSystem.canvas.element, solarSystem.props], ([canvas, props]) =>
-  render(canvas, props, solarSystem.canvas.pixel)
+watch(solarSystem.props, (props) =>
+  render(solarSystem.canvas.element.value, props, solarSystem.canvas.pixel)
 );
 const planet = makePlanet({
   hover(coord: Coord) {
@@ -79,8 +79,8 @@ const planet = makePlanet({
     // console.log(coord);
   },
 });
-watch([planet.canvas.element, planet.props], ([canvas, props]) =>
-  render(canvas, props, planet.canvas.pixel, props.camera)
+watch(planet.props, (props) =>
+  render(planet.canvas.element.value, props, planet.canvas.pixel, props.camera)
 );
 
 const layers = {

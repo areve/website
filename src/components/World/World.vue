@@ -28,20 +28,10 @@
 
 <script lang="ts" setup>
 import { onMounted, watch } from "vue";
-import { makeUniverse, UniverseLayer } from "./maps/universeMap";
-import { makePlanet, makePlanetProps, PlanetProps } from "./maps/planetMap";
-import {
-  GalaxyLayer,
-  GalaxyProps,
-  makeGalaxy,
-  makeGalaxyProps,
-} from "./maps/galaxyMap";
-import {
-  makeSolarSystem,
-  makeSolarSystemProps,
-  SolarSystemLayer,
-  SolarSystemProps,
-} from "./maps/solarSystemMap";
+import { makeUniverse } from "./maps/universeMap";
+import { makePlanet, makePlanetProps } from "./maps/planetMap";
+import { makeGalaxy, makeGalaxyProps } from "./maps/galaxyMap";
+import { makeSolarSystem, makeSolarSystemProps } from "./maps/solarSystemMap";
 import { Dimension, Coord } from "./maps/makeLayer";
 import { clone } from "./lib/other";
 

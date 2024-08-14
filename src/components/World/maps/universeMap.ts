@@ -13,26 +13,30 @@ export interface UniverseData extends LayerData {
 export interface UniverseLayer
   extends RenderLayer<UniverseData, UniverseProps> {}
 
+// const actualUniverseWeightKg = 1e53;
+const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
+// const milkyWayWeightKg = 2.7e27;
+// const earthWeightKg = 5.9e24;
+
+export function makeUniverseProps(coord?: Coord): UniverseProps {
+  return {
+    width: 200,
+    height: 200,
+    seed: 1234567890,
+    weight: thisUniverseWeightKg,
+  };
+}
+
 export const makeUniverse = (actions: {
   hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): UniverseLayer => {
-  // const actualUniverseWeightKg = 1e53;
-  const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
-  // const milkyWayWeightKg = 2.7e27;
-  // const earthWeightKg = 5.9e24;
-
   const universe: UniverseLayer = {
     meta: {
       title: "universe",
       description: "each dot is a galaxy",
     },
-    props: ref<UniverseProps>({
-      height: 200,
-      width: 200,
-      seed: 1234567890,
-      weight: thisUniverseWeightKg,
-    }),
+    props: ref<UniverseProps>(makeUniverseProps()),
     data: {
       weights: (x, y) => {
         const generator = new PointGenerator(universe.props.value.seed);

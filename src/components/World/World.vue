@@ -28,7 +28,7 @@
 
 <script lang="ts" setup>
 import { onMounted, watch } from "vue";
-import { makeUniverse } from "./maps/universeMap";
+import { makeUniverse, makeUniverseProps } from "./maps/universeMap";
 import { makePlanet, makePlanetProps } from "./maps/planetMap";
 import { makeGalaxy, makeGalaxyProps } from "./maps/galaxyMap";
 import { makeSolarSystem, makeSolarSystemProps } from "./maps/solarSystemMap";
@@ -91,6 +91,7 @@ const layers = {
 };
 
 onMounted(async () => {
+  universe.props.value = makeUniverseProps();
   galaxy.props.value = makeGalaxyProps(universe, { x: 0, y: 0 });
   solarSystem.props.value = makeSolarSystemProps(galaxy, { x: 0, y: 0 });
   planet.props.value = makePlanetProps(solarSystem, { x: 0, y: 0 });

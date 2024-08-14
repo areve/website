@@ -28,48 +28,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, watch, toRaw } from "vue";
+import { onMounted, watch } from "vue";
 import { makeUniverse } from "./maps/universeMap";
 import { makePlanet } from "./maps/planetMap";
 import { makeGalaxy } from "./maps/galaxyMap";
 import { makeSolarSystem } from "./maps/solarSystemMap";
 import { Dimension, Coord } from "./maps/makeLayer";
-import { clamp } from "./lib/other";
+import { clone } from "./lib/other";
 
-// function hover(
-//   event: MouseEvent,
-//   dimensions: Dimensions,
-//   layer: RenderLayer<any, any>
-// ) {
-//   // console.log(coordFromEvent(event, dimensions));
-// }
-
-// function click(
-//   event: MouseEvent,
-//   dimensions: Dimensions,
-//   layer: RenderLayer<any, any>
-// ) {
-//   // layer.props(...coordFromEvent(event, dimensions))
-//   // other.props.value = layer.props(...coordFromEvent(event, dimensions));
-// }
-
-const coordFromEvent = (
-  event: MouseEvent,
-  dimensions: {
-    width: number;
-    height: number;
-  }
-) => {
-  return [
-    Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
-    Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
-  ] as [x: number, y: number];
-};
-
-function clone<T>(value: T): T {
-  return JSON.parse(JSON.stringify(toRaw(value)));
-}
-// const solarSystem = makeSolarSystem(planet);
 const universe = makeUniverse({
   select(coord: Coord) {
     const weight = universe.data.weights(coord.x, coord.y);
@@ -84,7 +50,11 @@ watch([universe.canvas.element, universe.props], ([canvas, props]) =>
 );
 const galaxy = makeGalaxy({
   select(coord: Coord) {
-    console.log(coord);
+    const weight = universe.data.weights(coord.x, coord.y);
+    const props = clone(solarSystem.props.value);
+    props.seed = weight;
+    props.weight = weight;
+    solarSystem.props.value = props;
   },
 });
 watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
@@ -92,7 +62,11 @@ watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
 );
 const solarSystem = makeSolarSystem({
   select(coord: Coord) {
-    console.log(coord);
+    const weight = universe.data.weights(coord.x, coord.y);
+    const props = clone(planet.props.value);
+    props.seed = weight;
+    props.weight = weight;
+    planet.props.value = props;
   },
 });
 watch([solarSystem.canvas.element, solarSystem.props], ([canvas, props]) =>
@@ -104,7 +78,7 @@ const planet = makePlanet({
   },
 });
 watch([planet.canvas.element, planet.props], ([canvas, props]) =>
-  render(canvas, props, planet.canvas.pixel)
+  render(canvas, props, planet.canvas.pixel, props.camera)
 );
 
 const layers = {
@@ -115,25 +89,6 @@ const layers = {
 };
 
 onMounted(async () => {
-  // // const actualUniverseWeightKg = 1e53;
-  // const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
-  // // const milkyWayWeightKg = 2.7e27;
-  // // const earthWeightKg = 5.9e24;
-  // universe.props.value = {
-  //   height: 200,
-  //   width: 200,
-  //   seed: 1234567890,
-  //   weight: thisUniverseWeightKg,
-  // };
-  // universe.update({
-  //   height: 200,
-  //   width: 200,
-  //   seed: 1234567890,
-  //   weight: thisUniverseWeightKg,
-  // });
-  // galaxy.select(0, 0);
-  // solarSystem.select(0, 0);
-  // planet.select(0, 0);
   galaxy.props.value = {
     height: universe.props.value.height,
     width: universe.props.value.width,
@@ -145,20 +100,20 @@ onMounted(async () => {
       universe.props.value.height,
   };
 
-  // solarSystem.update({
-  //   height: galaxy.props.value.height,
-  //   width: galaxy.props.value.width,
-  //   seed: galaxy.engine.weights(0, 0),
-  //   weight: galaxy.engine.weights(0, 0),
-  // });
+  solarSystem.props.value = {
+    height: galaxy.props.value.height,
+    width: galaxy.props.value.width,
+    seed: galaxy.data.weights(0, 0),
+    weight: galaxy.data.weights(0, 0),
+  };
 
-  // planet.update({
-  //   height: solarSystem.props.value.height,
-  //   width: solarSystem.props.value.width,
-  //   seed: solarSystem.engine.weights(0, 0),
-  //   weight: solarSystem.engine.weights(0, 0),
-  //   camera: { x: 0, y: 0 },
-  // });
+  planet.props.value = {
+    height: solarSystem.props.value.height,
+    width: solarSystem.props.value.width,
+    seed: solarSystem.data.weights(0, 0),
+    weight: solarSystem.data.weights(0, 0),
+    camera: { x: 0, y: 0 },
+  };
 
   document.addEventListener("keydown", onKeyDown);
 });
@@ -166,19 +121,12 @@ onMounted(async () => {
 const onKeyDown = (event: KeyboardEvent) => {
   let x;
   let y;
-  // if (event.key === "a") x = (planetProps.value?.camera.x ?? 0) - 50;
-  // if (event.key === "d") x = (planetProps.value?.camera.x ?? 0) + 50;
-  // if (event.key === "w") y = (planetProps.value?.camera.y ?? 0) - 50;
-  // if (event.key === "s") y = (planetProps.value?.camera.y ?? 0) + 50;
-  // if (x !== undefined || y !== undefined) {
-  //   if (!planetProps.value) return;
-  //   planetProps.value = Object.assign({}, toRaw(planetProps.value), {
-  //     camera: {
-  //       x: x ?? planetProps.value?.camera.x ?? 0,
-  //       y: y ?? planetProps.value?.camera.y ?? 0,
-  //     },
-  //   });
-  // }
+  const props = clone(planet.props.value);
+  if (event.key === "a") props.camera.x -= 50;
+  if (event.key === "d") props.camera.x += 50;
+  if (event.key === "w") props.camera.y -= 50;
+  if (event.key === "s") props.camera.y += 50;
+  planet.props.value = props;
 };
 function getContext(
   canvas: HTMLCanvasElement | undefined,
@@ -211,6 +159,7 @@ function render(
   const yMax = dimensions.height;
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
+  console.log("#2", cameraX, cameraY);
   for (let x = 0; x < xMax; ++x) {
     for (let y = 0; y < yMax; ++y) {
       const v = pixel(x + cameraX, y + cameraY);

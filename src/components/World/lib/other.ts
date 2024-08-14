@@ -1,3 +1,5 @@
+import { toRaw } from "vue";
+
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -28,4 +30,8 @@ export function hsv2rgb(
   const z = v * (1 - s * (1 - sectorFloat));
   const rgb = [x, x, z, v, v, y, x, x, z, v];
   return [rgb[sector + 4], rgb[sector + 2], rgb[sector]];
+}
+
+export function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(toRaw(value)));
 }

@@ -8,7 +8,11 @@
 
     <section class="group" v-for="(layer, k) in layers">
       <div class="canvas-wrap">
-        <canvas :ref="layer.canvas.element" class="canvas"></canvas>
+        <canvas
+          :ref="layer.canvas.element"
+          class="canvas"
+          @click="layer.canvas.click($event, layer)"
+        ></canvas>
         <!-- @mousemove="layer.canvas.hover($event)" -->
         <!-- @click="layer.canvas.click($event)" -->
       </div>
@@ -24,28 +28,81 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, watch } from "vue";
+import { onMounted, watch, toRaw } from "vue";
 import { makeUniverse } from "./maps/universeMap";
 import { makePlanet } from "./maps/planetMap";
 import { makeGalaxy } from "./maps/galaxyMap";
 import { makeSolarSystem } from "./maps/solarSystemMap";
-import { Dimensions } from "./maps/makeLayer";
+import { Dimension, Coord } from "./maps/makeLayer";
+import { clamp } from "./lib/other";
 
-//
+// function hover(
+//   event: MouseEvent,
+//   dimensions: Dimensions,
+//   layer: RenderLayer<any, any>
+// ) {
+//   // console.log(coordFromEvent(event, dimensions));
+// }
+
+// function click(
+//   event: MouseEvent,
+//   dimensions: Dimensions,
+//   layer: RenderLayer<any, any>
+// ) {
+//   // layer.props(...coordFromEvent(event, dimensions))
+//   // other.props.value = layer.props(...coordFromEvent(event, dimensions));
+// }
+
+const coordFromEvent = (
+  event: MouseEvent,
+  dimensions: {
+    width: number;
+    height: number;
+  }
+) => {
+  return [
+    Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
+    Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
+  ] as [x: number, y: number];
+};
+
+function clone<T>(value: T): T {
+  return JSON.parse(JSON.stringify(toRaw(value)));
+}
 // const solarSystem = makeSolarSystem(planet);
-const universe = makeUniverse();
+const universe = makeUniverse({
+  select(coord: Coord) {
+    const weight = universe.data.weights(coord.x, coord.y);
+    const props = clone(galaxy.props.value);
+    props.seed = weight;
+    props.weight = weight;
+    galaxy.props.value = props;
+  },
+});
 watch([universe.canvas.element, universe.props], ([canvas, props]) =>
   render(canvas, props, universe.canvas.pixel)
 );
-const galaxy = makeGalaxy();
+const galaxy = makeGalaxy({
+  select(coord: Coord) {
+    console.log(coord);
+  },
+});
 watch([galaxy.canvas.element, galaxy.props], ([canvas, props]) =>
   render(canvas, props, galaxy.canvas.pixel)
 );
-const solarSystem = makeSolarSystem();
+const solarSystem = makeSolarSystem({
+  select(coord: Coord) {
+    console.log(coord);
+  },
+});
 watch([solarSystem.canvas.element, solarSystem.props], ([canvas, props]) =>
   render(canvas, props, solarSystem.canvas.pixel)
 );
-const planet = makePlanet();
+const planet = makePlanet({
+  select(coord: Coord) {
+    console.log(coord);
+  },
+});
 watch([planet.canvas.element, planet.props], ([canvas, props]) =>
   render(canvas, props, planet.canvas.pixel)
 );
@@ -140,7 +197,7 @@ function getContext(
 
 function render(
   canvas: HTMLCanvasElement,
-  dimensions: Dimensions,
+  dimensions: Dimension,
   pixel: (x: number, y: number) => number[],
   camera?: { x: number; y: number }
 ) {

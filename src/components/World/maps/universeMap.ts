@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { LayerProps, PointGenerator, LayerData } from "../lib/prng";
 import { GalaxyLayer } from "./galaxyMap";
-import { RenderLayer } from "./makeLayer";
+import { Coord, coordFromEvent, Dimension, RenderLayer } from "./makeLayer";
 import { SolarSystemLayer } from "./solarSystemMap";
 import { clamp } from "../lib/other";
 
@@ -17,7 +17,9 @@ export interface UniverseData extends LayerData {
 export interface UniverseLayer
   extends RenderLayer<UniverseData, UniverseProps> {}
 
-export const makeUniverse = (): // galaxy: GalaxyLayer,
+export const makeUniverse = (actions: {
+  select: (coord: Coord) => void;
+}): // galaxy: GalaxyLayer,
 // solarSystem: SolarSystemLayer
 UniverseLayer => {
   // const universe = makeLayer(
@@ -76,7 +78,6 @@ UniverseLayer => {
     data: {
       weights: (x, y) => {
         const generator = new PointGenerator(universe.props.value.seed);
-
         const scale =
           universe.props.value.weight /
           universe.props.value.height /
@@ -87,26 +88,16 @@ UniverseLayer => {
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
-      pixel: (x, y) => {
+      pixel(x, y) {
         const generator = new PointGenerator(universe.props.value.seed);
-
         const n = generator.getPoint(x, y);
         return [n, n, n];
+      },
+      click(event, layer) {
+        const coord = coordFromEvent(event, universe.props.value);
+        actions.select(coord);
       },
     },
   };
   return universe;
 };
-
-// const coordFromEvent = (
-//   event: MouseEvent,
-//   dimensions: {
-//     width: number;
-//     height: number;
-//   }
-// ) => {
-//   return [
-//     Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
-//     Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
-//   ] as [x: number, y: number];
-// };

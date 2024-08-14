@@ -1,7 +1,7 @@
 import { ref } from "vue";
 import { hsv2rgb } from "../lib/other";
 import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
-import { RenderLayer } from "./makeLayer";
+import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 
 export interface SolarSystemProps extends LayerProps {
   weight: number;
@@ -15,7 +15,9 @@ export interface SolarSystemData extends LayerData {
 export interface SolarSystemLayer
   extends RenderLayer<SolarSystemData, SolarSystemProps> {}
 
-export const makeSolarSystem = (): SolarSystemLayer => {
+export const makeSolarSystem = (actions: {
+  select: (coord: Coord) => void;
+}): SolarSystemLayer => {
   function hues(x: number, y: number) {
     const generator = new PointGenerator(
       solarSystem.props.value.seed * 136395369829
@@ -63,6 +65,10 @@ export const makeSolarSystem = (): SolarSystemLayer => {
         const h = hues(x, y);
         const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
         return [v * r, v * g, v * b];
+      },
+      click(event, layer) {
+        const coord = coordFromEvent(event, solarSystem.props.value);
+        actions.select(coord);
       },
     },
   };

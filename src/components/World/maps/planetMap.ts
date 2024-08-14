@@ -1,6 +1,6 @@
 import { diskFilter } from "../filters/diskFilter";
 import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
-import { RenderLayer } from "./makeLayer";
+import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 import { ref } from "vue";
 
 export interface PlanetProps extends LayerProps {
@@ -20,7 +20,9 @@ export interface PlanetLayer extends LayerData {
 export interface PlanetRenderLayer
   extends RenderLayer<PlanetLayer, PlanetProps> {}
 
-export const makePlanet = (): PlanetRenderLayer => {
+export const makePlanet = (actions: {
+  select: (coord: Coord) => void;
+}): PlanetRenderLayer => {
   const filterRadius = 10;
   const filter = diskFilter(filterRadius);
 
@@ -64,6 +66,10 @@ export const makePlanet = (): PlanetRenderLayer => {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
       pixel,
+      click(event, layer) {
+        const coord = coordFromEvent(event, planet.props.value);
+        actions.select(coord);
+      },
     },
   };
   return planet;

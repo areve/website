@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { LayerData, LayerProps, PointGenerator } from "../lib/prng";
-import { RenderLayer } from "./makeLayer";
+import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 
 export interface GalaxyProps extends LayerProps {
   weight: number;
@@ -15,7 +15,9 @@ export interface GalaxyData extends LayerData {
 
 export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps> {}
 
-export const makeGalaxy = (): GalaxyLayer => {
+export const makeGalaxy = (actions: {
+  select: (coord: Coord) => void;
+}): GalaxyLayer => {
   //     const generator = new PointGenerator(props.seed);
   //     const scale = props.weight / props.height / props.width;
   //     const weights = (x: number, y: number) =>
@@ -58,6 +60,10 @@ export const makeGalaxy = (): GalaxyLayer => {
         const n = (v / weightRange) ** (20 / weightDiffToAverage);
 
         return [n, n, n];
+      },
+      click(event, layer) {
+        const coord = coordFromEvent(event, galaxy.props.value);
+        actions.select(coord);
       },
     },
   };

@@ -1,16 +1,12 @@
 import { ref } from "vue";
 import { LayerProps, PointGenerator, LayerData } from "../lib/prng";
-import { GalaxyLayer } from "./galaxyMap";
-import { Coord, coordFromEvent, Dimension, RenderLayer } from "./makeLayer";
-import { SolarSystemLayer } from "./solarSystemMap";
-import { clamp } from "../lib/other";
+import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 
 export interface UniverseProps extends LayerProps {
   weight: number;
 }
 
 export interface UniverseData extends LayerData {
-  // props: UniverseProps;
   weights: (x: number, y: number) => number;
 }
 
@@ -20,46 +16,7 @@ export interface UniverseLayer
 export const makeUniverse = (actions: {
   hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
-}): // galaxy: GalaxyLayer,
-// solarSystem: SolarSystemLayer
-UniverseLayer => {
-  // const universe = makeLayer(
-  //   "universe",
-  //   "each dot is a galaxy",
-  //   (props: UniverseProps) => {
-  //     const generator = new PointGenerator(props.seed);
-  //     const scale = props.weight / props.height / props.width;
-  //     const weights = (x: number, y: number) =>
-  //       generator.getPoint(x, y) * scale;
-  //     const pixel = (x: number, y: number) => {
-  //       const n = generator.getPoint(x, y);
-  //       return [n, n, n];
-  //     };
-  //     return { props, weights, pixel } as UniverseData;
-  //   },
-  //   (engine: UniverseData, x: number, y: number) => ({
-  //     hover: engine.weights(x, y),
-  //   }),
-  //   (x: number, y: number) => {
-  //     galaxy.update({
-  //       height: universe.props.value.height,
-  //       width: universe.props.value.width,
-  //       seed: universe.engine.weights(x, y),
-  //       weight: universe.engine.weights(x, y),
-  //       galaxyAvgerageWeight:
-  //         universe.props.value.weight /
-  //         universe.props.value.width /
-  //         universe.props.value.height,
-  //     });
-  //     galaxy.select(0, 0);
-  //     solarSystem.select(0, 0);
-  //   }
-  // );
-
-  // const scale = props.weight / props.height / props.width;
-  // const weights = (x: number, y: number) =>
-  //   generator.getPoint(x, y) * scale;
-
+}): UniverseLayer => {
   // const actualUniverseWeightKg = 1e53;
   const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
   // const milkyWayWeightKg = 2.7e27;

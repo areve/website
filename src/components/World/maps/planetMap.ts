@@ -5,7 +5,6 @@ import { ref } from "vue";
 
 export interface PlanetProps extends LayerProps {
   weight: number;
-  // solarSystemProps: SolarSystemProps;
   camera: {
     x: number;
     y: number;
@@ -13,7 +12,6 @@ export interface PlanetProps extends LayerProps {
 }
 
 export interface PlanetLayer extends LayerData {
-  // props: PlanetProps;
   heights: (x: number, y: number) => number;
 }
 

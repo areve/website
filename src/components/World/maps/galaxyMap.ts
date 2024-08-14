@@ -4,12 +4,10 @@ import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 
 export interface GalaxyProps extends LayerProps {
   weight: number;
-  // universeProps: UniverseProps;
   galaxyAvgerageWeight: number;
 }
 
 export interface GalaxyData extends LayerData {
-  // props: GalaxyProps;
   weights: (x: number, y: number) => number;
 }
 
@@ -19,18 +17,6 @@ export const makeGalaxy = (actions: {
   hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): GalaxyLayer => {
-  //     const generator = new PointGenerator(props.seed);
-  //     const scale = props.weight / props.height / props.width;
-  //     const weights = (x: number, y: number) =>
-  //       generator.getPoint(x, y) * scale;
-  //     const weightDiffToAverage = props.weight / props.galaxyAvgerageWeight;
-  //     const weightRange = 1;
-  //     const pixel = (x: number, y: number) => {
-  //       const v = generator.getPoint(x, y);
-  //       const n = (v / weightRange) ** (20 / weightDiffToAverage);
-  //       return [n, n, n];
-  //     };
-
   const galaxy: GalaxyLayer = {
     meta: {
       title: "galaxy",
@@ -72,35 +58,6 @@ export const makeGalaxy = (actions: {
       },
     },
   };
-  // const galaxy = makeLayer(
-  //   "",
-  //   "",
-  //   (props: GalaxyProps) => {
-  //     const generator = new PointGenerator(props.seed);
-  //     const scale = props.weight / props.height / props.width;
-  //     const weights = (x: number, y: number) =>
-  //       generator.getPoint(x, y) * scale;
-  //     const weightDiffToAverage = props.weight / props.galaxyAvgerageWeight;
-  //     const weightRange = 1;
-  //     const pixel = (x: number, y: number) => {
-  //       const v = generator.getPoint(x, y);
-  //       const n = (v / weightRange) ** (20 / weightDiffToAverage);
-  //       return [n, n, n];
-  //     };
-  //     return { props, weights, pixel } as GalaxyData;
-  //   },
-  //   (engine: GalaxyData, x: number, y: number) => ({
-  //     hover: engine.weights(x, y),
-  //   }),
-  //   (x: number, y: number) => {
-  //     solarSystem.update({
-  //       height: galaxy.props.value.height,
-  //       width: galaxy.props.value.width,
-  //       seed: galaxy.engine.weights(x, y),
-  //       weight: galaxy.engine.weights(x, y),
-  //     });
-  //     solarSystem.select(0, 0);
-  //   }
-  // );
+
   return galaxy;
 };

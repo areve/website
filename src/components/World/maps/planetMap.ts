@@ -1,7 +1,7 @@
 import { diskFilter } from "../filters/diskFilter";
-import { LayerProps as LayerProps, LayerData as LayerData, PointGenerator } from "../lib/prng";
-import {  RenderLayer, makeLayer } from "./makeLayer";
-import { SolarSystemProps } from "./solarSystemMap";
+import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
+import { RenderLayer } from "./makeLayer";
+import { ref } from "vue";
 
 export interface PlanetProps extends LayerProps {
   weight: number;
@@ -12,47 +12,59 @@ export interface PlanetProps extends LayerProps {
   };
 }
 
-export interface PlanetData extends LayerData {
-  props: PlanetProps;
+export interface PlanetLayer extends LayerData {
+  // props: PlanetProps;
   heights: (x: number, y: number) => number;
 }
 
-export interface PlanetRenderLayer extends RenderLayer<PlanetData, PlanetProps> {}
+export interface PlanetRenderLayer
+  extends RenderLayer<PlanetLayer, PlanetProps> {}
 
 export const makePlanet = (): PlanetRenderLayer => {
-  const planet = makeLayer(
-    "planet",
-    "each dot is a point on a point on the planet sized region of the solar system",
-    (props: PlanetProps) => {
-      const generator = new PointGenerator(props.seed);
-      const filterRadius = 10;
-      const filter = diskFilter(filterRadius);
-      const scale = props.weight / 3.6e22; // multiplying heights by this makes planets all water or land, which is like what I want but not today, the number was just somewhere in the middle of expected values
-      const heights = (x: number, y: number) => {
-        const padHeight = Math.floor(filter.length / 2);
-        const padWidth = Math.floor(filter[0].length / 2);
-        let sum = 0;
-        for (let fy = 0; fy < filter.length; fy++) {
-          for (let fx = 0; fx < filter[0].length; fx++) {
-            const px = x + 20 + fx - padWidth;
-            const py = y + 20 + fy - padHeight;
-            sum += filter[fy][fx] * generator.getPoint(px, py);
-          }
-        }
-        return ((sum - 0.5) * filterRadius) / 2 + 0.5;
-      };
-      const pixel = (x: number, y: number) => {
-        const n = heights(x, y);
-        return n > 0.5 //
-          ? [n - 0.5, n - 0.25, 0]
-          : [0, n, n + 0.5];
-      };
-      return { props, heights, pixel } as PlanetData;
+  const filterRadius = 10;
+  const filter = diskFilter(filterRadius);
+
+  function heights(x: number, y: number) {
+    const generator = new PointGenerator(planet.props.value.seed);
+    const padHeight = Math.floor(filter.length / 2);
+    const padWidth = Math.floor(filter[0].length / 2);
+    let sum = 0;
+    for (let fy = 0; fy < filter.length; fy++) {
+      for (let fx = 0; fx < filter[0].length; fx++) {
+        const px = x + 20 + fx - padWidth;
+        const py = y + 20 + fy - padHeight;
+        sum += filter[fy][fx] * generator.getPoint(px, py);
+      }
+    }
+    return ((sum - 0.5) * filterRadius) / 2 + 0.5;
+  }
+  function pixel(x: number, y: number) {
+    const n = heights(x, y);
+    return n > 0.5 //
+      ? [n - 0.5, n - 0.25, 0]
+      : [0, n, n + 0.5];
+  }
+  const planet: PlanetRenderLayer = {
+    meta: {
+      title: "planet",
+      description:
+        "each dot is a point on a point on the planet sized region of the solar system",
     },
-    (engine: PlanetData, x: number, y: number) => ({
-      hover: engine.heights(x, y),
+    props: ref<PlanetProps>({
+      height: 200,
+      width: 200,
+      seed: 0,
+      weight: 0,
+      camera: { x: 0, y: 0 },
     }),
-    (x: number, y: number) => {}
-  );
+    data: {
+      heights,
+    },
+    canvas: {
+      element: ref<HTMLCanvasElement>(undefined as any),
+      context: null as CanvasRenderingContext2D | null,
+      pixel,
+    },
+  };
   return planet;
 };

@@ -1,14 +1,14 @@
-import { seedToInt, xor } from "./other";
+import { Dimensions } from "../maps/makeLayer";
 
-export interface LayerProps {
+export interface LayerProps extends Dimensions {
   seed: number;
   width: number;
   height: number;
 }
 
 export interface LayerData {
-  props: LayerProps;
-  pixel: (x: number, y: number) => number[];
+  // props: LayerProps;
+  // pixel: (x: number, y: number) => number[];
 }
 
 export class PointGenerator {

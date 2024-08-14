@@ -1,5 +1,5 @@
 import { Ref, ref, watch } from "vue";
-import { Layerx } from "../lib/prng";
+import { LayerData } from "../lib/prng";
 import { clamp } from "../lib/other";
 
 interface Dimensions {
@@ -7,9 +7,9 @@ interface Dimensions {
   height: number;
 }
 
-export interface Layer<T1, T2> {
+export interface RenderLayer<T1, T2> {
   props: Ref<T2 & Dimensions>;
-  engine: T1 & Layerx;
+  engine: T1 & LayerData;
   data: Ref<{
     hover: number;
   }>;
@@ -75,8 +75,8 @@ export function makeLayer<T1, T2>(
         );
       },
     },
-    engine: {} as T1 & Layerx,
-  } as Layer<T1, T2>;
+    engine: {} as T1 & LayerData,
+  } as RenderLayer<T1, T2>;
 
   watch(layer.props, layer.render);
   return layer;
@@ -99,7 +99,7 @@ function getContext(
 
 function render(
   context: CanvasRenderingContext2D | null,
-  layer: Layerx,
+  layer: LayerData,
   camera?: { x: number; y: number }
 ) {
   if (!context) return;

@@ -1,9 +1,9 @@
 import { diskFilter } from "../filters/diskFilter";
-import { LayerxProps, Layerx, PointGenerator } from "../lib/prng";
-import { Layer, makeLayer } from "./makeLayer";
+import { LayerProps as LayerProps, LayerData as LayerData, PointGenerator } from "../lib/prng";
+import {  RenderLayer, makeLayer } from "./makeLayer";
 import { SolarSystemProps } from "./solarSystemMap";
 
-export interface PlanetProps extends LayerxProps {
+export interface PlanetProps extends LayerProps {
   weight: number;
   // solarSystemProps: SolarSystemProps;
   camera: {
@@ -12,14 +12,14 @@ export interface PlanetProps extends LayerxProps {
   };
 }
 
-export interface PlanetLayerx extends Layerx {
+export interface PlanetData extends LayerData {
   props: PlanetProps;
   heights: (x: number, y: number) => number;
 }
 
-export interface PlanetLayer extends Layer<PlanetLayerx, PlanetProps> {}
+export interface PlanetRenderLayer extends RenderLayer<PlanetData, PlanetProps> {}
 
-export const makePlanet = (): PlanetLayer => {
+export const makePlanet = (): PlanetRenderLayer => {
   const planet = makeLayer(
     "planet",
     "each dot is a point on a point on the planet sized region of the solar system",
@@ -47,9 +47,9 @@ export const makePlanet = (): PlanetLayer => {
           ? [n - 0.5, n - 0.25, 0]
           : [0, n, n + 0.5];
       };
-      return { props, heights, pixel } as PlanetLayerx;
+      return { props, heights, pixel } as PlanetData;
     },
-    (engine: PlanetLayerx, x: number, y: number) => ({
+    (engine: PlanetData, x: number, y: number) => ({
       hover: engine.heights(x, y),
     }),
     (x: number, y: number) => {}

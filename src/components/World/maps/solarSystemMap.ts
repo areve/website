@@ -1,24 +1,23 @@
 import { hsv2rgb } from "../lib/other";
-import { LayerxProps, Layerx, PointGenerator } from "../lib/prng";
+import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
 import { GalaxyProps } from "./galaxyMap";
-import { Layer, makeLayer } from "./makeLayer";
-import { PlanetLayer, PlanetProps } from "./planetMap";
+import { RenderLayer, makeLayer } from "./makeLayer";
+import { PlanetRenderLayer, PlanetProps } from "./planetMap";
 
-export interface SolarSystemProps extends LayerxProps {
+export interface SolarSystemProps extends LayerProps {
   weight: number;
-  // galaxyProps: GalaxyProps;
 }
 
-export interface SolarSystemLayerx extends Layerx {
+export interface SolarSystemData extends LayerData {
   props: SolarSystemProps;
   weights: (x: number, y: number) => number;
   hues: (x: number, y: number) => number;
 }
 
 export interface SolarSystemLayer
-  extends Layer<SolarSystemLayerx, SolarSystemProps> {}
+  extends RenderLayer<SolarSystemData, SolarSystemProps> {}
 
-export const makeSolarSystem = (planet: PlanetLayer): SolarSystemLayer => {
+export const makeSolarSystem = (planet: PlanetRenderLayer): SolarSystemLayer => {
   const solarSystem = makeLayer(
     "solar system",
     "each dot is a sun, planet, moon, asteroid",
@@ -37,9 +36,9 @@ export const makeSolarSystem = (planet: PlanetLayer): SolarSystemLayer => {
         const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
         return [v * r, v * g, v * b];
       };
-      return { props, weights, pixel } as SolarSystemLayerx;
+      return { props, weights, pixel } as SolarSystemData;
     },
-    (engine: SolarSystemLayerx, x: number, y: number) => ({
+    (engine: SolarSystemData, x: number, y: number) => ({
       hover: engine.weights(x, y),
     }),
     (x: number, y: number) => {

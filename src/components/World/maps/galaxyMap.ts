@@ -1,20 +1,20 @@
-import { Layerx, LayerxProps, PointGenerator } from "../lib/prng";
-import { Layer, makeLayer } from "./makeLayer";
+import { LayerData, LayerProps, PointGenerator } from "../lib/prng";
+import { RenderLayer, makeLayer } from "./makeLayer";
 import { SolarSystemLayer } from "./solarSystemMap";
 import { UniverseProps } from "./universeMap";
 
-export interface GalaxyProps extends LayerxProps {
+export interface GalaxyProps extends LayerProps {
   weight: number;
   // universeProps: UniverseProps;
   galaxyAvgerageWeight: number;
 }
 
-export interface GalaxyLayerx extends Layerx {
+export interface GalaxyData extends LayerData {
   props: GalaxyProps;
   weights: (x: number, y: number) => number;
 }
 
-export interface GalaxyLayer extends Layer<GalaxyLayerx, GalaxyProps> {}
+export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps> {}
 
 export const makeGalaxy = (solarSystem: SolarSystemLayer): GalaxyLayer => {
   const galaxy = makeLayer(
@@ -32,9 +32,9 @@ export const makeGalaxy = (solarSystem: SolarSystemLayer): GalaxyLayer => {
         const n = (v / weightRange) ** (20 / weightDiffToAverage);
         return [n, n, n];
       };
-      return { props, weights, pixel } as GalaxyLayerx;
+      return { props, weights, pixel } as GalaxyData;
     },
-    (engine: GalaxyLayerx, x: number, y: number) => ({
+    (engine: GalaxyData, x: number, y: number) => ({
       hover: engine.weights(x, y),
     }),
     (x: number, y: number) => {

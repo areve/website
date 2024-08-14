@@ -1,23 +1,24 @@
-import { LayerxProps, PointGenerator, Layerx } from "../lib/prng";
+import { LayerProps, PointGenerator, LayerData } from "../lib/prng";
 import { GalaxyLayer } from "./galaxyMap";
-import { Layer, makeLayer } from "./makeLayer";
+import { RenderLayer, makeLayer } from "./makeLayer";
 import { SolarSystemLayer } from "./solarSystemMap";
 
-export interface UniverseProps extends LayerxProps {
+export interface UniverseProps extends LayerProps {
   weight: number;
 }
 
-export interface UniverseLayerx extends Layerx {
+export interface UniverseData extends LayerData {
   props: UniverseProps;
   weights: (x: number, y: number) => number;
 }
 
-export interface UniverseLayer extends Layer<UniverseLayerx, UniverseProps> {}
+export interface UniverseLayer extends RenderLayer<UniverseData, UniverseProps> {}
 
 export const makeUniverse = (
   galaxy: GalaxyLayer,
   solarSystem: SolarSystemLayer
 ): UniverseLayer => {
+
   const universe = makeLayer(
     "universe",
     "each dot is a galaxy",
@@ -30,9 +31,9 @@ export const makeUniverse = (
         const n = generator.getPoint(x, y);
         return [n, n, n];
       };
-      return { props, weights, pixel } as UniverseLayerx;
+      return { props, weights, pixel } as UniverseData;
     },
-    (engine: UniverseLayerx, x: number, y: number) => ({
+    (engine: UniverseData, x: number, y: number) => ({
       hover: engine.weights(x, y),
     }),
     (x: number, y: number) => {
@@ -50,5 +51,6 @@ export const makeUniverse = (
       solarSystem.select(0, 0);
     }
   );
+  
   return universe;
 };

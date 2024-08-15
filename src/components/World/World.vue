@@ -19,8 +19,16 @@
         <div class="title">{{ layer.meta.title }}</div>
         <div class="info">{{ layer.meta.description }}</div>
         <hr />
-        <div v-if="layer.liveData.value.weight">{{ layer.liveData.value.weight.toPrecision(3) }}</div>
-        <div v-if="layer.liveData.value.height">{{ layer.liveData.value.height.toPrecision(3) }}</div>
+        <div v-if="layer.type === 'planet'">
+          <div v-if="layer.liveData.value.height">
+            {{ layer.liveData.value.height.toPrecision(3) }}
+          </div>
+        </div>
+        <div v-else>
+          <div v-if="layer.liveData.value.weight">
+            {{ layer.liveData.value.weight.toPrecision(3) }}
+          </div>
+        </div>
         <!-- <div>{{ (layer.hoverData.value ?? 0).toPrecision(3) }}</div> -->
       </div>
     </section>

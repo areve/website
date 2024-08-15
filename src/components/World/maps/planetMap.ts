@@ -20,9 +20,10 @@ export interface PlanetLiveData {
   height: number;
 }
 
-
 export interface PlanetRenderLayer
-  extends RenderLayer<PlanetLayer, PlanetProps, PlanetLiveData> {}
+  extends RenderLayer<PlanetLayer, PlanetProps, PlanetLiveData> {
+  type: "planet";
+}
 
 export function makePlanetProps(
   solarSystem?: SolarSystemLayer,
@@ -64,6 +65,7 @@ export const makePlanet = (actions: {
       : [0, n, n + 0.5];
   }
   const planet: PlanetRenderLayer = {
+    type: "planet",
     meta: {
       title: "planet",
       description:
@@ -74,7 +76,7 @@ export const makePlanet = (actions: {
       heights,
     },
     liveData: ref<PlanetLiveData>({
-      height: 0
+      height: 0,
     }),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),

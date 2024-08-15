@@ -18,7 +18,9 @@ export interface SolarSystemLiveData {
 }
 
 export interface SolarSystemLayer
-  extends RenderLayer<SolarSystemData, SolarSystemProps, SolarSystemLiveData> {}
+  extends RenderLayer<SolarSystemData, SolarSystemProps, SolarSystemLiveData> {
+  type: "solarSystem";
+}
 
 export function makeSolarSystemProps(
   galaxy?: GalaxyLayer,
@@ -61,6 +63,7 @@ export const makeSolarSystem = (actions: {
   }
 
   const solarSystem: SolarSystemLayer = {
+    type: "solarSystem",
     meta: {
       title: "solar system",
       description: "each dot is a sun, planet, moon, asteroid",
@@ -71,7 +74,7 @@ export const makeSolarSystem = (actions: {
       hues,
     },
     liveData: ref<GalaxyLiveData>({
-      weight: 0
+      weight: 0,
     }),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),

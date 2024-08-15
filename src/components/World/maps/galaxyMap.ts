@@ -16,7 +16,9 @@ export interface GalaxyLiveData {
   weight: number;
 }
 
-export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps, GalaxyLiveData> {}
+export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps, GalaxyLiveData> {
+  type: "galaxy",
+}
 
 export function makeGalaxyProps(
   universe?: UniverseLayer,
@@ -40,6 +42,7 @@ export const makeGalaxy = (actions: {
   select: (coord: Coord) => void;
 }): GalaxyLayer => {
   const galaxy: GalaxyLayer = {
+    type: "galaxy",
     meta: {
       title: "galaxy",
       description: "each dot is a solar system",

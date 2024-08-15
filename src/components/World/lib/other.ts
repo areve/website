@@ -35,3 +35,7 @@ export function hsv2rgb(
 export function clone<T>(value: T): T {
   return JSON.parse(JSON.stringify(toRaw(value)));
 }
+
+export function cloneExtend<T>(value: T, ...sources: Partial<T>[]): T {
+  return Object.assign(JSON.parse(JSON.stringify(toRaw(value))), ...sources);
+}

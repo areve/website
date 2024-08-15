@@ -22,6 +22,7 @@ export function render(
   camera?: { x: number; y: number }
 ) {
   const context = getContext(canvas, dimensions);
+  // console.log('sss', dimensions, context)
   if (!context) return;
   const width = dimensions.width;
   const height = dimensions.height;

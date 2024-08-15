@@ -25,26 +25,30 @@ import { Dimensions, Coord, coordFromEvent } from "./maps/makeLayer";
 import { render } from "./maps/render";
 import { PointGenerator } from "./lib/prng";
 
-export interface UniverseProps {
-  seed: number;
+export interface GalaxyProps {
   weight: number;
+  seed: number;
   dimensions: Dimensions;
+  galaxyAverageWeight: number;
 }
 
-export interface UniverseCoordSelected {
+export interface GalaxyCoordSelected {
   coord: Coord;
   weight: number;
 }
 
-type UniverseType = {
-  (event: "coordSelected", value: UniverseCoordSelected): void;
+type GalaxyEmit = {
+  (
+    event: "coordSelected",
+    value: GalaxyCoordSelected
+  ): void;
 };
 
-const title = "universe";
-const description = "each dot is a galaxy";
+const title = "galaxy";
+const description = "each dot is a solar system";
 
-const props = defineProps<UniverseProps>();
-const emit = defineEmits<UniverseType>();
+const props = defineProps<GalaxyProps>();
+const emit = defineEmits<GalaxyEmit>();
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const hover = ref({ weight: 0, coord: { x: 0, y: 0 } });
@@ -57,7 +61,10 @@ const weights = (coord: Coord) => {
 };
 
 const pixel = (x: number, y: number) => {
-  const n = generator.getPoint(x, y);
+  const v = generator.getPoint(x, y);
+  const weightRange = 1;
+  const weightDiffToAverage = props.weight / props.galaxyAverageWeight;
+  const n = (v / weightRange) ** (20 / weightDiffToAverage);
   return [n, n, n];
 };
 

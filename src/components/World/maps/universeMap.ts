@@ -44,8 +44,8 @@ export const makeUniverse = (actions: {
   let universe: UniverseLayer;
   function data(x: number, y: number): UniverseData {
     return {
-      title: "universe",
-      description: "each dot is a galaxy",
+        title: "universe",
+        description: "each dot is a galaxy",
       weight: universe?.props.value.weight ?? 0,
       hover: {
         weight: universe?.methods.weights(x, y) ?? 0,

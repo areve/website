@@ -1,6 +1,6 @@
-import { Dimension } from "../maps/makeLayer";
+import { Dimensions } from "../maps/makeLayer";
 
-export interface LayerProps extends Dimension {
+export interface LayerProps extends Dimensions {
   seed: number;
   width: number;
   height: number;

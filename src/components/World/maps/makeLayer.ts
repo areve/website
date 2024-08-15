@@ -1,10 +1,11 @@
 import { Ref } from "vue";
 import { clamp } from "../lib/other";
 
-export interface Dimension {
+export interface Dimensions {
   width: number;
   height: number;
 }
+
 export interface Coord {
   x: number;
   y: number;

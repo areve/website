@@ -38,10 +38,7 @@ export interface GalaxyCoordSelected {
 }
 
 type GalaxyEmit = {
-  (
-    event: "coordSelected",
-    value: GalaxyCoordSelected
-  ): void;
+  (event: "coordSelected", value: GalaxyCoordSelected): void;
 };
 
 const title = "galaxy";
@@ -53,7 +50,7 @@ const emit = defineEmits<GalaxyEmit>();
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const hover = ref({ weight: 0, coord: { x: 0, y: 0 } });
 
-const generator = new PointGenerator(props.seed);
+let generator: PointGenerator;
 
 const weights = (coord: Coord) => {
   const scale = props.weight / props.dimensions.height / props.dimensions.width;
@@ -76,8 +73,7 @@ const mousemove = (event: MouseEvent) => {
   };
 };
 
-const click = (event: MouseEvent) => {
-  const coord = coordFromEvent(event, props.dimensions);
+const selectionChanged = (coord: Coord) => {
   const weight = weights(coord);
   emit("coordSelected", {
     coord,
@@ -85,16 +81,20 @@ const click = (event: MouseEvent) => {
   });
 };
 
-const update = () => render(canvas.value, props.dimensions, pixel);
+const click = (event: MouseEvent) => {
+  selectionChanged(coordFromEvent(event, props.dimensions));
+};
+
+const update = () => {
+  generator = new PointGenerator(props.seed);
+  render(canvas.value, props.dimensions, pixel);
+};
+
 onMounted(() => {
   update();
-  const coord = { x: 0, y: 0 };
-  const weight = weights(coord);
-  emit("coordSelected", {
-    coord,
-    weight,
-  });
+  selectionChanged({ x: 0, y: 0 })
 });
+
 watch(props, update);
 </script>
 

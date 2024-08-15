@@ -21,7 +21,7 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from "vue";
-import { Dimensions, Coord, coordFromEvent } from "./maps/makeLayer";
+import { Dimensions, Coord, coordFromEvent } from "./maps/render";
 import { render } from "./maps/render";
 import { PointGenerator } from "./lib/prng";
 

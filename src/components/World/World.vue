@@ -45,7 +45,6 @@
 
 <script lang="ts" setup>
 import { onMounted, ref } from "vue";
-import { Coord, Dimensions } from "./maps/makeLayer";
 import { clone, cloneExtend } from "./lib/other";
 import UniverseLayer, {
   UniverseCoordSelected,

@@ -1,4 +1,14 @@
-import { Dimensions } from "./makeLayer";
+import { clamp } from "../lib/other";
+
+export interface Dimensions {
+  width: number;
+  height: number;
+}
+
+export interface Coord {
+  x: number;
+  y: number;
+}
 
 function getContext(
   canvas: HTMLCanvasElement | undefined,
@@ -45,3 +55,16 @@ export function render(
 
   context.putImageData(imageData, 0, 0);
 }
+
+export const coordFromEvent = (
+  event: MouseEvent,
+  dimensions: {
+    width: number;
+    height: number;
+  }
+) => {
+  return {
+    x: Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
+    y: Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
+  } as Coord;
+};

@@ -11,7 +11,13 @@ export interface UniverseMethods extends LayerMethods {
 }
 
 export interface UniverseData {
+  title: string;
+  description: string;
   weight: number;
+  hover: {
+    weight: number;
+    coord: { x: number; y: number };
+  };
 }
 export interface UniverseLayer
   extends RenderLayer<UniverseMethods, UniverseProps, UniverseData> {
@@ -33,15 +39,22 @@ export function makeUniverseProps(coord?: Coord): UniverseProps {
 }
 
 export const makeUniverse = (actions: {
-  hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): UniverseLayer => {
-  const universe: UniverseLayer = {
-    type: "universe",
-    meta: {
+  let universe: UniverseLayer;
+  function data(x: number, y: number): UniverseData {
+    return {
       title: "universe",
       description: "each dot is a galaxy",
-    },
+      weight: universe?.props.value.weight ?? 0,
+      hover: {
+        weight: universe?.methods.weights(x, y) ?? 0,
+        coord: { x, y },
+      },
+    };
+  }
+  universe = {
+    type: "universe",
     props: ref<UniverseProps>(makeUniverseProps()),
     methods: {
       weights: (x, y) => {
@@ -58,15 +71,13 @@ export const makeUniverse = (actions: {
         return [n, n, n];
       },
     },
-    data: ref<UniverseData>({
-      weight: 0,
-    }),
+    data: ref<UniverseData>(data(0, 0)),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, universe.props.value);
-        actions.hover(coord);
+        universe.data.value = data(coord.x, coord.y)
       },
       click(event) {
         const coord = coordFromEvent(event, universe.props.value);

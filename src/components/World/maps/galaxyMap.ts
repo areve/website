@@ -5,19 +5,27 @@ import { UniverseLayer } from "./universeMap";
 
 export interface GalaxyProps extends LayerProps {
   weight: number;
-  galaxyAvgerageWeight: number;
+  galaxyAverageWeight: number;
 }
 
 export interface GalaxyMethods extends LayerMethods {
   weights: (x: number, y: number) => number;
+  data: (x: number, y: number) => GalaxyData;
 }
 
 export interface GalaxyData {
+  title: string;
+  description: string;
   weight: number;
+  hover: {
+    weight: number;
+    coord: { x: number; y: number };
+  };
 }
 
-export interface GalaxyLayer extends RenderLayer<GalaxyMethods, GalaxyProps, GalaxyData> {
-  type: "galaxy",
+export interface GalaxyLayer
+  extends RenderLayer<GalaxyMethods, GalaxyProps, GalaxyData> {
+  type: "galaxy";
 }
 
 export function makeGalaxyProps(
@@ -27,7 +35,7 @@ export function makeGalaxyProps(
   return {
     width: universe?.props.value.width ?? 0,
     height: universe?.props.value.height ?? 0,
-    galaxyAvgerageWeight: universe
+    galaxyAverageWeight: universe
       ? universe?.props.value.weight /
         universe?.props.value.width /
         universe?.props.value.height
@@ -38,41 +46,51 @@ export function makeGalaxyProps(
 }
 
 export const makeGalaxy = (actions: {
-  hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): GalaxyLayer => {
-  const galaxy: GalaxyLayer = {
-    type: "galaxy",
-    meta: {
+  let galaxy: GalaxyLayer;
+  function data(x: number, y: number): GalaxyData {
+    return {
       title: "galaxy",
       description: "each dot is a solar system",
-    },
+      weight: galaxy?.props.value.weight ?? 0,
+      hover: {
+        weight: galaxy?.methods.weights(x, y) ?? 0,
+        coord: { x, y },
+      },
+    };
+  }
+  galaxy = {
+    type: "galaxy",
     props: ref<GalaxyProps>(makeGalaxyProps()),
     methods: {
       weights: (x, y) => {
         const generator = new PointGenerator(galaxy.props.value.seed);
-        return generator.getPoint(x, y);
+        const scale =
+          galaxy.props.value.weight /
+          galaxy.props.value.height /
+          galaxy.props.value.width;
+        return generator.getPoint(x, y) * scale;
       },
       pixel: (x, y) => {
         const generator = new PointGenerator(galaxy.props.value.seed);
         const v = generator.getPoint(x, y);
         const weightRange = 1;
         const weightDiffToAverage =
-          galaxy.props.value.weight / galaxy.props.value.galaxyAvgerageWeight;
+          galaxy.props.value.weight / galaxy.props.value.galaxyAverageWeight;
         const n = (v / weightRange) ** (20 / weightDiffToAverage);
 
         return [n, n, n];
       },
+      data,
     },
-    data: ref<GalaxyData>({
-      weight: 0
-    }),
+    data: ref<GalaxyData>(data(0, 0)),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, galaxy.props.value);
-        actions.hover(coord);
+        galaxy.data.value = data(coord.x, coord.y);
       },
       click(event) {
         const coord = coordFromEvent(event, galaxy.props.value);

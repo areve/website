@@ -11,18 +11,21 @@ export interface SolarSystemProps extends LayerProps {
 export interface SolarSystemMethods extends LayerMethods {
   weights: (x: number, y: number) => number;
   hues: (x: number, y: number) => number;
+  data: (x: number, y: number) => SolarSystemData;
 }
 
 export interface SolarSystemData {
+  title: string;
+  description: string;
   weight: number;
+  hover: {
+    weight: number;
+    coord: { x: number; y: number };
+  };
 }
 
 export interface SolarSystemLayer
-  extends RenderLayer<
-    SolarSystemMethods,
-    SolarSystemProps,
-    SolarSystemData
-  > {
+  extends RenderLayer<SolarSystemMethods, SolarSystemProps, SolarSystemData> {
   type: "solarSystem";
 }
 
@@ -39,7 +42,6 @@ export function makeSolarSystemProps(
 }
 
 export const makeSolarSystem = (actions: {
-  hover: (coord: Coord) => void;
   select: (coord: Coord) => void;
 }): SolarSystemLayer => {
   function hues(x: number, y: number) {
@@ -66,12 +68,21 @@ export const makeSolarSystem = (actions: {
     return generator.getPoint(x, y) ** 100;
   }
 
-  const solarSystem: SolarSystemLayer = {
-    type: "solarSystem",
-    meta: {
+  let solarSystem: SolarSystemLayer;
+  function data(x: number, y: number): SolarSystemData {
+    
+    return {
       title: "solar system",
       description: "each dot is a sun, planet, moon, asteroid",
-    },
+      weight: solarSystem?.props.value.weight ?? 0,
+      hover: {
+        weight: solarSystem?.methods.weights(x, y) ?? 0,
+        coord: { x, y },
+      },
+    };
+  }
+  solarSystem = {
+    type: "solarSystem",
     props: ref<SolarSystemProps>(makeSolarSystemProps()),
     methods: {
       weights,
@@ -82,16 +93,15 @@ export const makeSolarSystem = (actions: {
         const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
         return [v * r, v * g, v * b];
       },
+      data,
     },
-    data: ref<GalaxyData>({
-      weight: 0,
-    }),
+    data: ref<GalaxyData>(data(0, 0)),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, solarSystem.props.value);
-        actions.hover(coord);
+        solarSystem.data.value = data(coord.x, coord.y)
       },
       click(event) {
         const coord = coordFromEvent(event, solarSystem.props.value);

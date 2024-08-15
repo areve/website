@@ -14,10 +14,17 @@ export interface PlanetProps extends LayerProps {
 
 export interface PlanetMethods extends LayerMethods {
   heights: (x: number, y: number) => number;
+  data: (x: number, y: number) => PlanetData;
 }
 
 export interface PlanetData {
-  height: number;
+  title: string;
+  description: string;
+  weight: number;
+  hover: {
+    height: number;
+    coord: { x: number; y: number };
+  };
 }
 
 export interface PlanetRenderLayer
@@ -39,7 +46,6 @@ export function makePlanetProps(
 }
 export const makePlanet = (actions: {
   select: (coord: Coord) => void;
-  hover: (coord: Coord) => void;
 }): PlanetRenderLayer => {
   const filterRadius = 10;
   const filter = diskFilter(filterRadius);
@@ -64,27 +70,35 @@ export const makePlanet = (actions: {
       ? [n - 0.5, n - 0.25, 0]
       : [0, n, n + 0.5];
   }
-  const planet: PlanetRenderLayer = {
-    type: "planet",
-    meta: {
+  let planet: PlanetRenderLayer;
+  function data(x: number, y: number): PlanetData {
+    return {
       title: "planet",
       description:
         "each dot is a point on a point on the planet sized region of the solar system",
-    },
+      weight: planet?.props.value.weight ?? 0,
+      hover: {
+        height: planet?.methods.heights(x, y) ?? 0,
+        coord: { x, y },
+      },
+    };
+  }
+
+  planet = {
+    type: "planet",
     props: ref<PlanetProps>(makePlanetProps()),
     methods: {
       pixel,
       heights,
+      data,
     },
-    data: ref<PlanetData>({
-      height: 0,
-    }),
+    data: ref<PlanetData>(data(0, 0)),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, planet.props.value);
-        actions.hover(coord);
+        planet.data.value = data(coord.x, coord.y)
       },
       click(event) {
         const coord = coordFromEvent(event, planet.props.value);

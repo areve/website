@@ -16,17 +16,21 @@
         ></canvas>
       </div>
       <div class="notes">
-        <div class="title">{{ layer.meta.title }}</div>
-        <div class="info">{{ layer.meta.description }}</div>
+        <div class="title">{{ layer.data.value.title }}</div>
+        <div class="info">{{ layer.data.value.description }}</div>
         <hr />
         <div v-if="layer.type === 'planet'">
-          <div v-if="layer.data.value.height">
-            {{ layer.data.value.height.toPrecision(3) }}
+          <div class="data">
+            <div>{{ layer.data.value.weight.toPrecision(3) }}</div>
+            <div>{{ layer.data.value.hover.height.toPrecision(3) }}</div>
+            <div>{{ layer.data.value.hover.coord }}</div>
           </div>
         </div>
         <div v-else>
-          <div v-if="layer.data.value.weight">
-            {{ layer.data.value.weight.toPrecision(3) }}
+          <div class="data">
+            <div>{{ layer.data.value.weight.toPrecision(3) }}</div>
+            <div>{{ layer.data.value.hover.weight.toPrecision(3) }}</div>
+            <div>{{ layer.data.value.hover.coord }}</div>
           </div>
         </div>
       </div>
@@ -44,12 +48,6 @@ import { Dimension, Coord } from "./maps/makeLayer";
 import { clone } from "./lib/other";
 
 const universe = makeUniverse({
-  hover(coord: Coord) {
-    const weight = universe.methods.weights(coord.x, coord.y);
-    universe.data.value = {
-      weight,
-    };
-  },
   select(coord: Coord) {
     galaxy.props.value = makeGalaxyProps(universe, coord);
     solarSystem.props.value = makeSolarSystemProps(galaxy, coord);
@@ -60,12 +58,6 @@ watch(universe.props, (props) =>
   render(universe.canvas.element.value, props, universe.methods.pixel)
 );
 const galaxy = makeGalaxy({
-  hover(coord: Coord) {
-    const weight = galaxy.methods.weights(coord.x, coord.y);
-    galaxy.data.value = {
-      weight,
-    };
-  },
   select(coord: Coord) {
     solarSystem.props.value = makeSolarSystemProps(galaxy, coord);
     planet.props.value = makePlanetProps(solarSystem, coord);
@@ -75,12 +67,6 @@ watch(galaxy.props, (props) =>
   render(galaxy.canvas.element.value, props, galaxy.methods.pixel)
 );
 const solarSystem = makeSolarSystem({
-  hover(coord: Coord) {
-    const weight = solarSystem.methods.weights(coord.x, coord.y);
-    solarSystem.data.value = {
-      weight,
-    };
-  },
   select(coord: Coord) {
     planet.props.value = makePlanetProps(solarSystem, coord);
   },
@@ -89,15 +75,7 @@ watch(solarSystem.props, (props) =>
   render(solarSystem.canvas.element.value, props, solarSystem.methods.pixel)
 );
 const planet = makePlanet({
-  hover(coord: Coord) {
-    const height = planet.methods.heights(coord.x, coord.y);
-    planet.data.value = {
-      height,
-    };
-  },
-  select(coord: Coord) {
-    // console.log(coord);
-  },
+  select(coord: Coord) {},
 });
 watch(planet.props, (props) =>
   render(planet.canvas.element.value, props, planet.methods.pixel, props.camera)
@@ -119,8 +97,6 @@ onMounted(async () => {
 });
 
 const onKeyDown = (event: KeyboardEvent) => {
-  let x;
-  let y;
   const props = clone(planet.props.value);
   if (event.key === "a") props.camera.x -= 50;
   if (event.key === "d") props.camera.x += 50;
@@ -183,6 +159,10 @@ function render(
   font-weight: 500;
 }
 .info {
+  font-size: 0.9em;
+  line-height: 1.2em;
+}
+.data {
   font-size: 0.9em;
   line-height: 1.2em;
 }

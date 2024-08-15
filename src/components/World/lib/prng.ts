@@ -7,7 +7,6 @@ export interface LayerProps extends Dimension {
 }
 
 export interface LayerMethods {
-  // props: LayerProps;
   pixel: (x: number, y: number) => number[];
 }
 

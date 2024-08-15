@@ -11,10 +11,6 @@ export interface Coord {
 }
 
 export interface RenderLayer<T1, T2, T3> {
-  meta: {
-    title: string;
-    description: string;
-  };
   props: Ref<T2>;
   methods: T1;
   data: Ref<T3>;

@@ -37,6 +37,7 @@
         :dimensions="planet.dimensions"
         @coordSelected="planetCoordSelected"
         :weight="planet.weight"
+        :camera="planet.camera"
       ></PlanetLayer>
     </div>
   </section>
@@ -94,6 +95,7 @@ const planet = ref<PlanetProps>({
   weight: 0,
   seed: 0,
   dimensions: solarSystem.value.dimensions,
+  camera: { x: 0, y: 0 },
 });
 
 const universeCoordSelected = (args: UniverseCoordSelected) => {
@@ -124,12 +126,12 @@ onMounted(async () => {
 });
 
 const onKeyDown = (event: KeyboardEvent) => {
-  // const props = clone(planet.props.value);
-  // if (event.key === "a") props.camera.x -= 50;
-  // if (event.key === "d") props.camera.x += 50;
-  // if (event.key === "w") props.camera.y -= 50;
-  // if (event.key === "s") props.camera.y += 50;
-  // planet.props.value = props;
+  const props = clone(planet.value);
+  if (event.key === "a") props.camera.x -= 50;
+  if (event.key === "d") props.camera.x += 50;
+  if (event.key === "w") props.camera.y -= 50;
+  if (event.key === "s") props.camera.y += 50;
+  planet.value = props;
 };
 </script>
 

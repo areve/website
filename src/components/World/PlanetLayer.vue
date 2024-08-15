@@ -13,7 +13,7 @@
     <hr />
     <div class="data">
       <div>{{ weight.toPrecision(3) }}</div>
-      <div>{{ hover.weight.toPrecision(3) }}</div>
+      <div>{{ hover.height.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
   </div>
@@ -30,6 +30,7 @@ export interface PlanetProps {
   weight: number;
   seed: number;
   dimensions: Dimensions;
+  camera: Coord;
 }
 
 export interface PlanetCoordSelected {
@@ -49,7 +50,7 @@ const props = defineProps<PlanetProps>();
 const emit = defineEmits<PlanetEmit>();
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
-const hover = ref({ weight: 0, coord: { x: 0, y: 0 } });
+const hover = ref({ height: 0, coord: { x: 0, y: 0 } });
 
 let generator: PointGenerator;
 
@@ -101,7 +102,7 @@ const click = (event: MouseEvent) => {
 
 const update = () => {
   generator = new PointGenerator(props.seed);
-  render(canvas.value, props.dimensions, pixel);
+  render(canvas.value, props.dimensions, pixel, props.camera);
   selectionChanged({ x: 0, y: 0 });
 };
 

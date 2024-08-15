@@ -54,22 +54,22 @@ let generator: PointGenerator;
 let hueGenerator: PointGenerator;
 
 function hues(coord: Coord) {
-  return hueGenerator.getPoint(coord.x, coord.y);
+  return hueGenerator.point(coord);
 }
 
 function weights(coord: Coord) {
   const scale = props.weight / props.dimensions.height / props.dimensions.width;
-  return generator.getPoint(coord.x, coord.y) * scale;
+  return generator.point(coord) * scale;
 }
 
 function floats(coord: Coord) {
   const generator = new PointGenerator(props.seed);
-  return generator.getPoint(coord.x, coord.y) ** 100;
+  return generator.point(coord) ** 100;
 }
 
-const pixel = (x: number, y: number) => {
-  const v = floats({ x, y });
-  const h = hues({ x, y });
+const pixel = (coord: Coord) => {
+  const v = floats(coord);
+  const h = hues(coord);
   const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
   return [v * r, v * g, v * b];
 };

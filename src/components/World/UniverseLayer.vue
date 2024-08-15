@@ -53,11 +53,11 @@ let generator: PointGenerator; // = new (props.seed);
 
 const weights = (coord: Coord) => {
   const scale = props.weight / props.dimensions.height / props.dimensions.width;
-  return generator.getPoint(coord.x, coord.y) * scale;
+  return generator.point(coord) * scale;
 };
 
-const pixel = (x: number, y: number) => {
-  const n = generator.getPoint(x, y);
+const pixel = (coord: Coord) => {
+  const n = generator.point(coord);
   return [n, n, n];
 };
 

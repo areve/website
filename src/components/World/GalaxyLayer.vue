@@ -54,11 +54,11 @@ let generator: PointGenerator;
 
 const weights = (coord: Coord) => {
   const scale = props.weight / props.dimensions.height / props.dimensions.width;
-  return generator.getPoint(coord.x, coord.y) * scale;
+  return generator.point(coord) * scale;
 };
 
-const pixel = (x: number, y: number) => {
-  const v = generator.getPoint(x, y);
+const pixel = (coord: Coord) => {
+  const v = generator.point(coord);
   const weightRange = 1;
   const weightDiffToAverage = props.weight / props.galaxyAverageWeight;
   const n = (v / weightRange) ** (20 / weightDiffToAverage);

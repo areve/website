@@ -1,4 +1,4 @@
-import { Dimensions } from "../maps/makeLayer";
+import { Coord, Dimensions } from "../maps/render";
 
 export interface LayerProps extends Dimensions {
   seed: number;
@@ -17,8 +17,8 @@ export class PointGenerator {
     this.seed = n[0] ^ n[1];
   }
 
-  getPoint(x: number, y: number): number {
-    const n = this.seed + x * 374761393 + y * 668265263;
+  point(coord: Coord): number {
+    const n = this.seed + coord.x * 374761393 + coord.y * 668265263;
     const m = (n ^ (n >> 13)) * 1274126177;
     return (m >>> 0) / 0xffffffff;
   }

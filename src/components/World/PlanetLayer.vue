@@ -67,14 +67,14 @@ function heights(coord: Coord) {
     for (let fx = 0; fx < filter[0].length; fx++) {
       const px = x + 20 + fx - padWidth;
       const py = y + 20 + fy - padHeight;
-      sum += filter[fy][fx] * generator.getPoint(px, py);
+      sum += filter[fy][fx] * generator.point({ x: px, y: py });
     }
   }
   return ((sum - 0.5) * filterRadius) / 2 + 0.5;
 }
 
-function pixel(x: number, y: number) {
-  const n = heights({ x, y });
+function pixel(coord: Coord) {
+  const n = heights(coord);
   return n > 0.5 //
     ? [n - 0.5, n - 0.25, 0]
     : [0, n, n + 0.5];

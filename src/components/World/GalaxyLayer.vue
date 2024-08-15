@@ -88,12 +88,10 @@ const click = (event: MouseEvent) => {
 const update = () => {
   generator = new PointGenerator(props.seed);
   render(canvas.value, props.dimensions, pixel);
+  selectionChanged({ x: 0, y: 0 });
 };
 
-onMounted(() => {
-  update();
-  selectionChanged({ x: 0, y: 0 })
-});
+onMounted(update);
 
 watch(props, update);
 </script>

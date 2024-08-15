@@ -98,12 +98,10 @@ const update = () => {
   generator = new PointGenerator(props.seed);
   hueGenerator = new PointGenerator(props.seed * 136395369829);
   render(canvas.value, props.dimensions, pixel);
+  selectionChanged({ x: 0, y: 0 });
 };
 
-onMounted(() => {
-  update();
-  selectionChanged({ x: 0, y: 0 });
-});
+onMounted(update);
 
 watch(props, update);
 </script>

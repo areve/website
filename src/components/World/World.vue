@@ -20,16 +20,15 @@
         <div class="info">{{ layer.meta.description }}</div>
         <hr />
         <div v-if="layer.type === 'planet'">
-          <div v-if="layer.liveData.value.height">
-            {{ layer.liveData.value.height.toPrecision(3) }}
+          <div v-if="layer.data.value.height">
+            {{ layer.data.value.height.toPrecision(3) }}
           </div>
         </div>
         <div v-else>
-          <div v-if="layer.liveData.value.weight">
-            {{ layer.liveData.value.weight.toPrecision(3) }}
+          <div v-if="layer.data.value.weight">
+            {{ layer.data.value.weight.toPrecision(3) }}
           </div>
         </div>
-        <!-- <div>{{ (layer.hoverData.value ?? 0).toPrecision(3) }}</div> -->
       </div>
     </section>
   </section>
@@ -46,8 +45,8 @@ import { clone } from "./lib/other";
 
 const universe = makeUniverse({
   hover(coord: Coord) {
-    const weight = universe.data.weights(coord.x, coord.y);
-    universe.liveData.value = {
+    const weight = universe.methods.weights(coord.x, coord.y);
+    universe.data.value = {
       weight,
     };
   },
@@ -58,12 +57,12 @@ const universe = makeUniverse({
   },
 });
 watch(universe.props, (props) =>
-  render(universe.canvas.element.value, props, universe.canvas.pixel)
+  render(universe.canvas.element.value, props, universe.methods.pixel)
 );
 const galaxy = makeGalaxy({
   hover(coord: Coord) {
-    const weight = galaxy.data.weights(coord.x, coord.y);
-    galaxy.liveData.value = {
+    const weight = galaxy.methods.weights(coord.x, coord.y);
+    galaxy.data.value = {
       weight,
     };
   },
@@ -73,12 +72,12 @@ const galaxy = makeGalaxy({
   },
 });
 watch(galaxy.props, (props) =>
-  render(galaxy.canvas.element.value, props, galaxy.canvas.pixel)
+  render(galaxy.canvas.element.value, props, galaxy.methods.pixel)
 );
 const solarSystem = makeSolarSystem({
   hover(coord: Coord) {
-    const weight = solarSystem.data.weights(coord.x, coord.y);
-    solarSystem.liveData.value = {
+    const weight = solarSystem.methods.weights(coord.x, coord.y);
+    solarSystem.data.value = {
       weight,
     };
   },
@@ -87,12 +86,12 @@ const solarSystem = makeSolarSystem({
   },
 });
 watch(solarSystem.props, (props) =>
-  render(solarSystem.canvas.element.value, props, solarSystem.canvas.pixel)
+  render(solarSystem.canvas.element.value, props, solarSystem.methods.pixel)
 );
 const planet = makePlanet({
   hover(coord: Coord) {
-    const height = planet.data.heights(coord.x, coord.y);
-    planet.liveData.value = {
+    const height = planet.methods.heights(coord.x, coord.y);
+    planet.data.value = {
       height,
     };
   },
@@ -101,7 +100,7 @@ const planet = makePlanet({
   },
 });
 watch(planet.props, (props) =>
-  render(planet.canvas.element.value, props, planet.canvas.pixel, props.camera)
+  render(planet.canvas.element.value, props, planet.methods.pixel, props.camera)
 );
 
 const layers = {

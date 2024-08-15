@@ -6,9 +6,9 @@ export interface LayerProps extends Dimension {
   height: number;
 }
 
-export interface LayerData {
+export interface LayerMethods {
   // props: LayerProps;
-  // pixel: (x: number, y: number) => number[];
+  pixel: (x: number, y: number) => number[];
 }
 
 export class PointGenerator {

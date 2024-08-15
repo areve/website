@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import { LayerData, LayerProps, PointGenerator } from "../lib/prng";
+import { LayerMethods, LayerProps, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 import { UniverseLayer } from "./universeMap";
 
@@ -8,15 +8,15 @@ export interface GalaxyProps extends LayerProps {
   galaxyAvgerageWeight: number;
 }
 
-export interface GalaxyData extends LayerData {
+export interface GalaxyMethods extends LayerMethods {
   weights: (x: number, y: number) => number;
 }
 
-export interface GalaxyLiveData {
+export interface GalaxyData {
   weight: number;
 }
 
-export interface GalaxyLayer extends RenderLayer<GalaxyData, GalaxyProps, GalaxyLiveData> {
+export interface GalaxyLayer extends RenderLayer<GalaxyMethods, GalaxyProps, GalaxyData> {
   type: "galaxy",
 }
 
@@ -32,8 +32,8 @@ export function makeGalaxyProps(
         universe?.props.value.width /
         universe?.props.value.height
       : 0,
-    seed: universe?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
-    weight: universe?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    seed: universe?.methods.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    weight: universe?.methods.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
   };
 }
 
@@ -48,18 +48,11 @@ export const makeGalaxy = (actions: {
       description: "each dot is a solar system",
     },
     props: ref<GalaxyProps>(makeGalaxyProps()),
-    data: {
+    methods: {
       weights: (x, y) => {
         const generator = new PointGenerator(galaxy.props.value.seed);
         return generator.getPoint(x, y);
       },
-    },
-    liveData: ref<GalaxyLiveData>({
-      weight: 0
-    }),
-    canvas: {
-      element: ref<HTMLCanvasElement>(undefined as any),
-      context: null as CanvasRenderingContext2D | null,
       pixel: (x, y) => {
         const generator = new PointGenerator(galaxy.props.value.seed);
         const v = generator.getPoint(x, y);
@@ -70,6 +63,13 @@ export const makeGalaxy = (actions: {
 
         return [n, n, n];
       },
+    },
+    data: ref<GalaxyData>({
+      weight: 0
+    }),
+    canvas: {
+      element: ref<HTMLCanvasElement>(undefined as any),
+      context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, galaxy.props.value);
         actions.hover(coord);

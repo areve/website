@@ -1,5 +1,5 @@
 import { diskFilter } from "../filters/diskFilter";
-import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
+import { LayerProps, LayerMethods, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 import { ref } from "vue";
 import { SolarSystemLayer } from "./solarSystemMap";
@@ -12,16 +12,16 @@ export interface PlanetProps extends LayerProps {
   };
 }
 
-export interface PlanetLayer extends LayerData {
+export interface PlanetMethods extends LayerMethods {
   heights: (x: number, y: number) => number;
 }
 
-export interface PlanetLiveData {
+export interface PlanetData {
   height: number;
 }
 
 export interface PlanetRenderLayer
-  extends RenderLayer<PlanetLayer, PlanetProps, PlanetLiveData> {
+  extends RenderLayer<PlanetMethods, PlanetProps, PlanetData> {
   type: "planet";
 }
 
@@ -32,8 +32,8 @@ export function makePlanetProps(
   return {
     width: solarSystem?.props.value.width ?? 0,
     height: solarSystem?.props.value.height ?? 0,
-    seed: solarSystem?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
-    weight: solarSystem?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    seed: solarSystem?.methods.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    weight: solarSystem?.methods.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
     camera: { x: 0, y: 0 },
   };
 }
@@ -72,16 +72,16 @@ export const makePlanet = (actions: {
         "each dot is a point on a point on the planet sized region of the solar system",
     },
     props: ref<PlanetProps>(makePlanetProps()),
-    data: {
+    methods: {
+      pixel,
       heights,
     },
-    liveData: ref<PlanetLiveData>({
+    data: ref<PlanetData>({
       height: 0,
     }),
     canvas: {
       element: ref<HTMLCanvasElement>(undefined as any),
       context: null as CanvasRenderingContext2D | null,
-      pixel,
       mousemove(event) {
         const coord = coordFromEvent(event, planet.props.value);
         actions.hover(coord);

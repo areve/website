@@ -1,24 +1,28 @@
 import { ref } from "vue";
 import { hsv2rgb } from "../lib/other";
-import { LayerProps, LayerData, PointGenerator } from "../lib/prng";
+import { LayerProps, LayerMethods, PointGenerator } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
-import { GalaxyLayer, GalaxyLiveData } from "./galaxyMap";
+import { GalaxyLayer, GalaxyData } from "./galaxyMap";
 
 export interface SolarSystemProps extends LayerProps {
   weight: number;
 }
 
-export interface SolarSystemData extends LayerData {
+export interface SolarSystemMethods extends LayerMethods {
   weights: (x: number, y: number) => number;
   hues: (x: number, y: number) => number;
 }
 
-export interface SolarSystemLiveData {
+export interface SolarSystemData {
   weight: number;
 }
 
 export interface SolarSystemLayer
-  extends RenderLayer<SolarSystemData, SolarSystemProps, SolarSystemLiveData> {
+  extends RenderLayer<
+    SolarSystemMethods,
+    SolarSystemProps,
+    SolarSystemData
+  > {
   type: "solarSystem";
 }
 
@@ -29,8 +33,8 @@ export function makeSolarSystemProps(
   return {
     width: galaxy?.props.value.width ?? 1,
     height: galaxy?.props.value.height ?? 1,
-    seed: galaxy?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
-    weight: galaxy?.data.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    seed: galaxy?.methods.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
+    weight: galaxy?.methods.weights(coord?.x ?? 0, coord?.y ?? 0) ?? 0,
   };
 }
 
@@ -69,22 +73,22 @@ export const makeSolarSystem = (actions: {
       description: "each dot is a sun, planet, moon, asteroid",
     },
     props: ref<SolarSystemProps>(makeSolarSystemProps()),
-    data: {
+    methods: {
       weights,
       hues,
-    },
-    liveData: ref<GalaxyLiveData>({
-      weight: 0,
-    }),
-    canvas: {
-      element: ref<HTMLCanvasElement>(undefined as any),
-      context: null as CanvasRenderingContext2D | null,
       pixel: (x, y) => {
         const v = floats(x, y);
         const h = hues(x, y);
         const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
         return [v * r, v * g, v * b];
       },
+    },
+    data: ref<GalaxyData>({
+      weight: 0,
+    }),
+    canvas: {
+      element: ref<HTMLCanvasElement>(undefined as any),
+      context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, solarSystem.props.value);
         actions.hover(coord);

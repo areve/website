@@ -16,12 +16,11 @@ export interface RenderLayer<T1, T2, T3> {
     description: string;
   };
   props: Ref<T2>;
-  data: T1;
-  liveData: Ref<T3>;
+  methods: T1;
+  data: Ref<T3>;
   canvas: {
     element: Ref<HTMLCanvasElement>;
     context: CanvasRenderingContext2D | null;
-    pixel: (x: number, y: number) => number[];
     click: (event: MouseEvent) => void;
     mousemove: (event: MouseEvent) => void;
   };

@@ -1,20 +1,20 @@
 import { ref } from "vue";
-import { LayerProps, PointGenerator, LayerData } from "../lib/prng";
+import { LayerProps, PointGenerator, LayerMethods } from "../lib/prng";
 import { Coord, coordFromEvent, RenderLayer } from "./makeLayer";
 
 export interface UniverseProps extends LayerProps {
   weight: number;
 }
 
-export interface UniverseData extends LayerData {
+export interface UniverseMethods extends LayerMethods {
   weights: (x: number, y: number) => number;
 }
 
-export interface UniverseLiveData {
+export interface UniverseData {
   weight: number;
 }
 export interface UniverseLayer
-  extends RenderLayer<UniverseData, UniverseProps, UniverseLiveData> {
+  extends RenderLayer<UniverseMethods, UniverseProps, UniverseData> {
   type: "universe";
 }
 
@@ -43,7 +43,7 @@ export const makeUniverse = (actions: {
       description: "each dot is a galaxy",
     },
     props: ref<UniverseProps>(makeUniverseProps()),
-    data: {
+    methods: {
       weights: (x, y) => {
         const generator = new PointGenerator(universe.props.value.seed);
         const scale =
@@ -52,18 +52,18 @@ export const makeUniverse = (actions: {
           universe.props.value.width;
         return generator.getPoint(x, y) * scale;
       },
-    },
-    liveData: ref<UniverseLiveData>({
-      weight: 0,
-    }),
-    canvas: {
-      element: ref<HTMLCanvasElement>(undefined as any),
-      context: null as CanvasRenderingContext2D | null,
       pixel(x, y) {
         const generator = new PointGenerator(universe.props.value.seed);
         const n = generator.getPoint(x, y);
         return [n, n, n];
       },
+    },
+    data: ref<UniverseData>({
+      weight: 0,
+    }),
+    canvas: {
+      element: ref<HTMLCanvasElement>(undefined as any),
+      context: null as CanvasRenderingContext2D | null,
       mousemove(event) {
         const coord = coordFromEvent(event, universe.props.value);
         actions.hover(coord);

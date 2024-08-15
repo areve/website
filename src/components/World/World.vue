@@ -11,14 +11,14 @@
         :seed="universe.seed"
         :weight="universe.weight"
         :dimensions="universe.dimensions"
-        @coordSelected="galaxySelected"
+        @coordSelected="universeCoordSelected"
       ></UniverseLayer>
     </div>
     <div class="row">
       <GalaxyLayer
         :seed="galaxy.seed"
         :dimensions="galaxy.dimensions"
-        @coordSelected="solarSystemSelected"
+        @coordSelected="galaxyCoordSelected"
         :weight="galaxy.weight"
         :galaxyAverageWeight="galaxy.galaxyAverageWeight"
       ></GalaxyLayer>
@@ -27,9 +27,17 @@
       <SolarSystemLayer
         :seed="solarSystem.seed"
         :dimensions="solarSystem.dimensions"
-        @coordSelected="planetSelected"
+        @coordSelected="solarSystemCoordSelected"
         :weight="solarSystem.weight"
       ></SolarSystemLayer>
+    </div>
+    <div class="row">
+      <PlanetLayer
+        :seed="planet.seed"
+        :dimensions="planet.dimensions"
+        @coordSelected="planetCoordSelected"
+        :weight="planet.weight"
+      ></PlanetLayer>
     </div>
   </section>
 </template>
@@ -50,6 +58,10 @@ import SolarSystemLayer, {
   SolarSystemCoordSelected,
   SolarSystemProps,
 } from "./SolarSystemLayer.vue";
+import PlanetLayer, {
+  PlanetCoordSelected,
+  PlanetProps,
+} from "./PlanetLayer.vue";
 
 const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
 // const actualUniverseWeightKg = 1e53;
@@ -75,30 +87,37 @@ const galaxy = ref<GalaxyProps>({
 const solarSystem = ref<SolarSystemProps>({
   weight: 0,
   seed: 0,
-  dimensions: universe.value.dimensions,
+  dimensions: galaxy.value.dimensions,
 });
 
-const galaxySelected = (args: UniverseCoordSelected) => {
+const planet = ref<PlanetProps>({
+  weight: 0,
+  seed: 0,
+  dimensions: solarSystem.value.dimensions,
+});
+
+const universeCoordSelected = (args: UniverseCoordSelected) => {
   galaxy.value = cloneExtend(galaxy.value, {
     seed: args.weight,
     weight: args.weight,
   });
 };
 
-const solarSystemSelected = (args: GalaxyCoordSelected) => {
+const galaxyCoordSelected = (args: GalaxyCoordSelected) => {
   solarSystem.value = cloneExtend(solarSystem.value, {
     seed: args.weight,
     weight: args.weight,
   });
 };
 
-const planetSelected = (args: SolarSystemCoordSelected) => {
-  console.log(args);
-  // galaxy.value = cloneExtend(galaxy.value, {
-  //   seed: 122,
-  //   weight: 1234,
-  // });
+const solarSystemCoordSelected = (args: SolarSystemCoordSelected) => {
+  planet.value = cloneExtend(planet.value, {
+    seed: args.weight,
+    weight: args.weight,
+  });
 };
+
+const planetCoordSelected = (args: PlanetCoordSelected) => {};
 
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);

@@ -23,6 +23,14 @@
         :galaxyAverageWeight="galaxy.galaxyAverageWeight"
       ></GalaxyLayer>
     </div>
+    <div class="row">
+      <SolarSystemLayer
+        :seed="solarSystem.seed"
+        :dimensions="solarSystem.dimensions"
+        @coordSelected="planetSelected"
+        :weight="solarSystem.weight"
+      ></SolarSystemLayer>
+    </div>
   </section>
 </template>
 
@@ -30,8 +38,18 @@
 import { onMounted, ref } from "vue";
 import { Coord, Dimensions } from "./maps/makeLayer";
 import { clone, cloneExtend } from "./lib/other";
-import UniverseLayer, { UniverseCoordSelected, UniverseProps } from "./UniverseLayer.vue";
-import GalaxyLayer,  { GalaxyCoordSelected, GalaxyProps }  from "./GalaxyLayer.vue";
+import UniverseLayer, {
+  UniverseCoordSelected,
+  UniverseProps,
+} from "./UniverseLayer.vue";
+import GalaxyLayer, {
+  GalaxyCoordSelected,
+  GalaxyProps,
+} from "./GalaxyLayer.vue";
+import SolarSystemLayer, {
+  SolarSystemCoordSelected,
+  SolarSystemProps,
+} from "./SolarSystemLayer.vue";
 
 const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
 // const actualUniverseWeightKg = 1e53;
@@ -54,6 +72,12 @@ const galaxy = ref<GalaxyProps>({
     universe.value.dimensions.width,
 });
 
+const solarSystem = ref<SolarSystemProps>({
+  weight: 0,
+  seed: 0,
+  dimensions: universe.value.dimensions,
+});
+
 const galaxySelected = (args: UniverseCoordSelected) => {
   galaxy.value = cloneExtend(galaxy.value, {
     seed: args.weight,
@@ -62,6 +86,13 @@ const galaxySelected = (args: UniverseCoordSelected) => {
 };
 
 const solarSystemSelected = (args: GalaxyCoordSelected) => {
+  solarSystem.value = cloneExtend(solarSystem.value, {
+    seed: args.weight,
+    weight: args.weight,
+  });
+};
+
+const planetSelected = (args: SolarSystemCoordSelected) => {
   console.log(args);
   // galaxy.value = cloneExtend(galaxy.value, {
   //   seed: 122,

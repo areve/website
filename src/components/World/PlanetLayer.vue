@@ -88,9 +88,31 @@ function pixel(coord: Coord) {
   const t = temperature(coord);
   const m = moisture(coord);
   // return [m, t, h];
-  return h > 0.5 //
-    ? [h - 0.5, h - 0.25, t]
-    : [m, h, h + 0.5];
+  if (h > 0.5) {
+    if (t < 0.33) {
+      // frozen land
+      return [h - 0.5 + 0.3, h - 0.25+ 0.3, 0+ 0.3];
+    } else {
+      // land
+      if (m > 0.5) {
+        // hydrated land
+        return [h - 0.5, h - 0.25, 0];
+      }else{
+        // dry land
+        return [h - 0.1, h - 0.25, 0];
+
+      }
+    }
+  } else {
+    if (t < 0.33) {
+      // frozen sea
+      // return [0, 0, 0];
+      return [(1 - t) * h + 0.5, (1 - t) * h + 0.5, (1 - t) * h + 0.5];
+    } else {
+      // sea
+      return [0, h, h + 0.5];
+    }
+  }
 }
 
 const mousemove = (event: MouseEvent) => {

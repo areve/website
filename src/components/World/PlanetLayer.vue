@@ -12,7 +12,7 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ weight.toPrecision(3) }}</div>
+      <div>{{ size.toPrecision(3) }}</div>
       <div>{{ hover.height.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
@@ -27,7 +27,7 @@ import { PointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
 
 export interface PlanetProps {
-  weight: number;
+  size: number;
   seed: number;
   dimensions: Dimensions;
   camera: Coord;
@@ -35,7 +35,7 @@ export interface PlanetProps {
 
 export interface PlanetCoordSelected {
   coord: Coord;
-  height: number;
+  size: number;
 }
 
 type PlanetEmit = {
@@ -57,6 +57,10 @@ let generator: PointGenerator;
 const filterRadius = 10;
 const filter = diskFilter(filterRadius);
 
+const sizes = (coord: Coord) => {
+  const scale = props.size / props.dimensions.height / props.dimensions.width;
+  return generator.point(coord) * scale;
+};
 function heights(coord: Coord) {
   const generator = new PointGenerator(props.seed);
   const padHeight = Math.floor(filter.length / 2);
@@ -89,11 +93,8 @@ const mousemove = (event: MouseEvent) => {
 };
 
 const selectionChanged = (coord: Coord) => {
-  const height = heights(coord);
-  emit("coordSelected", {
-    coord,
-    height,
-  });
+  const size = sizes(coord);
+  emit("coordSelected", { coord, size });
 };
 
 const click = (event: MouseEvent) => {

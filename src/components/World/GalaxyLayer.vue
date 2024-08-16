@@ -12,7 +12,7 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ weight.toPrecision(3) }}</div>
+      <div>{{ size.toPrecision(3) }}</div>
       <div>{{ hover.weight.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
@@ -26,7 +26,7 @@ import { coordFromEvent, render } from "./lib/render";
 import { PointGenerator } from "./lib/prng";
 
 export interface GalaxyProps {
-  weight: number;
+  size: number;
   seed: number;
   dimensions: Dimensions;
   galaxyAverageWeight: number;
@@ -34,7 +34,7 @@ export interface GalaxyProps {
 
 export interface GalaxyCoordSelected {
   coord: Coord;
-  weight: number;
+  size: number;
 }
 
 type GalaxyEmit = {
@@ -53,14 +53,14 @@ const hover = ref({ weight: 0, coord: { x: 0, y: 0 } });
 let generator: PointGenerator;
 
 const weights = (coord: Coord) => {
-  const scale = props.weight / props.dimensions.height / props.dimensions.width;
+  const scale = props.size / props.dimensions.height / props.dimensions.width;
   return generator.point(coord) * scale;
 };
 
 const pixel = (coord: Coord) => {
   const v = generator.point(coord);
   const weightRange = 1;
-  const weightDiffToAverage = props.weight / props.galaxyAverageWeight;
+  const weightDiffToAverage = props.size / props.galaxyAverageWeight;
   const n = (v / weightRange) ** (20 / weightDiffToAverage);
   return [n, n, n];
 };
@@ -77,7 +77,7 @@ const selectionChanged = (coord: Coord) => {
   const weight = weights(coord);
   emit("coordSelected", {
     coord,
-    weight,
+    size: weight,
   });
 };
 

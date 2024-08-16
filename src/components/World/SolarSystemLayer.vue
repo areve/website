@@ -12,7 +12,7 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ weight.toPrecision(3) }}</div>
+      <div>{{ size.toPrecision(3) }}</div>
       <div>{{ hover.weight.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
@@ -27,14 +27,14 @@ import { PointGenerator } from "./lib/prng";
 import { hsv2rgb } from "./lib/other";
 
 export interface SolarSystemProps {
-  weight: number;
+  size: number;
   seed: number;
   dimensions: Dimensions;
 }
 
 export interface SolarSystemCoordSelected {
   coord: Coord;
-  weight: number;
+  size: number;
 }
 
 type SolarSystemEmit = {
@@ -58,7 +58,7 @@ function hues(coord: Coord) {
 }
 
 function weights(coord: Coord) {
-  const scale = props.weight / props.dimensions.height / props.dimensions.width;
+  const scale = props.size / props.dimensions.height / props.dimensions.width;
   return generator.point(coord) * scale;
 }
 
@@ -86,7 +86,7 @@ const selectionChanged = (coord: Coord) => {
   const weight = weights(coord);
   emit("coordSelected", {
     coord,
-    weight,
+    size: weight,
   });
 };
 

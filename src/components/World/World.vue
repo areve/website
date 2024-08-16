@@ -9,7 +9,7 @@
     <div class="row">
       <UniverseLayer
         :seed="universe.seed"
-        :weight="universe.weight"
+        :size="universe.size"
         :dimensions="universe.dimensions"
         @coordSelected="universeCoordSelected"
       ></UniverseLayer>
@@ -19,7 +19,7 @@
         :seed="galaxy.seed"
         :dimensions="galaxy.dimensions"
         @coordSelected="galaxyCoordSelected"
-        :weight="galaxy.weight"
+        :size="galaxy.size"
         :galaxyAverageWeight="galaxy.galaxyAverageWeight"
       ></GalaxyLayer>
     </div>
@@ -28,7 +28,7 @@
         :seed="solarSystem.seed"
         :dimensions="solarSystem.dimensions"
         @coordSelected="solarSystemCoordSelected"
-        :weight="solarSystem.weight"
+        :size="solarSystem.size"
       ></SolarSystemLayer>
     </div>
     <div class="row">
@@ -36,7 +36,7 @@
         :seed="planet.seed"
         :dimensions="planet.dimensions"
         @coordSelected="planetCoordSelected"
-        :weight="planet.weight"
+        :size="planet.size"
         :camera="planet.camera"
       ></PlanetLayer>
     </div>
@@ -45,7 +45,7 @@
         :seed="country.seed"
         :dimensions="country.dimensions"
         @coordSelected="countryCoordSelected"
-        :weight="country.weight"
+        :size="country.size"
         :camera="country.camera"
       ></CountryLayer>
     </div>
@@ -83,35 +83,35 @@ const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight 
 
 const universe = ref<UniverseProps>({
   seed: 123.456,
-  weight: thisUniverseWeightKg,
+  size: 1,
   dimensions: { width: 200, height: 200 },
 });
 
 const galaxy = ref<GalaxyProps>({
-  weight: 0,
+  size: 0,
   seed: 0,
   dimensions: universe.value.dimensions,
   galaxyAverageWeight:
-    universe.value.weight /
+    universe.value.size /
     universe.value.dimensions.height /
     universe.value.dimensions.width,
 });
 
 const solarSystem = ref<SolarSystemProps>({
-  weight: 0,
+  size: 0,
   seed: 0,
   dimensions: galaxy.value.dimensions,
 });
 
 const planet = ref<PlanetProps>({
-  weight: 0,
+  size: 0,
   seed: 0,
   dimensions: solarSystem.value.dimensions,
   camera: { x: 0, y: 0 },
 });
 
 const country = ref<CountryProps>({
-  weight: 0,
+  size: 0,
   seed: 0,
   dimensions: planet.value.dimensions,
   camera: { x: 0, y: 0 },
@@ -119,29 +119,29 @@ const country = ref<CountryProps>({
 
 const universeCoordSelected = (args: UniverseCoordSelected) => {
   galaxy.value = cloneExtend(galaxy.value, {
-    seed: args.weight,
-    weight: args.weight,
+    seed: args.size,
+    size: args.size,
   });
 };
 
 const galaxyCoordSelected = (args: GalaxyCoordSelected) => {
   solarSystem.value = cloneExtend(solarSystem.value, {
-    seed: args.weight,
-    weight: args.weight,
+    seed: args.size,
+    size: args.size,
   });
 };
 
 const solarSystemCoordSelected = (args: SolarSystemCoordSelected) => {
   planet.value = cloneExtend(planet.value, {
-    seed: args.weight,
-    weight: args.weight,
+    seed: args.size,
+    size: args.size,
   });
 };
 
 const planetCoordSelected = (args: PlanetCoordSelected) => {
   country.value = cloneExtend(country.value, {
-    seed: args.height,
-    weight: args.height,
+    seed: args.size,
+    size: args.size,
   });
 };
 const countryCoordSelected = (args: CountryCoordSelected) => {};

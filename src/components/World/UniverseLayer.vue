@@ -12,7 +12,7 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ weight.toPrecision(3) }}</div>
+      <div>{{ size.toPrecision(3) }}</div>
       <div>{{ hover.weight.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
@@ -27,13 +27,13 @@ import { PointGenerator } from "./lib/prng";
 
 export interface UniverseProps {
   seed: number;
-  weight: number;
+  size: number;
   dimensions: Dimensions;
 }
 
 export interface UniverseCoordSelected {
   coord: Coord;
-  weight: number;
+  size: number;
 }
 
 type UniverseType = {
@@ -51,8 +51,8 @@ const hover = ref({ weight: 0, coord: { x: 0, y: 0 } });
 
 let generator: PointGenerator; // = new (props.seed);
 
-const weights = (coord: Coord) => {
-  const scale = props.weight / props.dimensions.height / props.dimensions.width;
+const sizes = (coord: Coord) => {
+  const scale = props.size / props.dimensions.height / props.dimensions.width;
   return generator.point(coord) * scale;
 };
 
@@ -64,16 +64,16 @@ const pixel = (coord: Coord) => {
 const mousemove = (event: MouseEvent) => {
   const coord = coordFromEvent(event, props.dimensions);
   hover.value = {
-    weight: weights(coord),
+    weight: sizes(coord),
     coord,
   };
 };
 
 const selectionChanged = (coord: Coord) => {
-  const weight = weights(coord);
+  const weight = sizes(coord);
   emit("coordSelected", {
     coord,
-    weight,
+    size: weight,
   });
 };
 

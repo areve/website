@@ -12,7 +12,7 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ weight.toPrecision(3) }}</div>
+      <div>{{ size.toPrecision(3) }}</div>
       <div>{{ hover.height.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
@@ -27,7 +27,7 @@ import { PointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
 
 export interface CountryProps {
-  weight: number;
+  size: number;
   seed: number;
   dimensions: Dimensions;
   camera: Coord;
@@ -35,7 +35,7 @@ export interface CountryProps {
 
 export interface CountryCoordSelected {
   coord: Coord;
-  height: number;
+  size: number;
 }
 
 type CountryEmit = {
@@ -77,7 +77,7 @@ function pixel(coord: Coord) {
   const n = heights(coord);
   return n > 0.5 //
     ? [n - 0.5, n - 0.25, 0]
-    : [0, n, n + 0.5];
+    : [n + 0.1, n + 0, 0];
 }
 
 const mousemove = (event: MouseEvent) => {
@@ -92,7 +92,7 @@ const selectionChanged = (coord: Coord) => {
   const height = heights(coord);
   emit("coordSelected", {
     coord,
-    height,
+    size: height,
   });
 };
 

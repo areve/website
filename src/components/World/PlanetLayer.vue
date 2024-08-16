@@ -64,10 +64,7 @@ const sizes = (coord: Coord) => {
   return generator(coord) * scale;
 };
 
-const dimensions = computed(() => props.dimensions);
-
-const temperature = (coord: Coord) =>
-  bicubic(coord, dimensions.value, 1 / 40, generator);
+const temperature = (coord: Coord) => bicubic(coord, 1 / 40, generator);
 
 function heights(coord: Coord) {
   const { x, y } = coord;

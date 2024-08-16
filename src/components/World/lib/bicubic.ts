@@ -51,14 +51,10 @@ export function bicubic(
   for (let i = 0; i < 4; i++) {
     const row: number[] = [];
     for (let j = 0; j < 4; j++) {
-      // Clamp the coordinates to ensure they stay within valid bounds
-      const xj = Math.min(Math.max(x0 + j, 0), oldWidth - 1);
-      const yi = Math.min(Math.max(y0 + i, 0), oldHeight - 1);
-      row.push(getPixel({ x: xj, y: yi }));
+      row.push(getPixel({ x: x0 + j, y: y0 + i }));
     }
     grid.push(row);
   }
-  // console.log(grid)
 
   // Perform bicubic interpolation on the grid
   const colValues = [];

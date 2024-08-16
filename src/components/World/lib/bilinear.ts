@@ -18,9 +18,9 @@ export function bilinear(
 
   // Calculate the coordinates of the surrounding pixels
   const x0 = Math.floor(x);
-  const x1 = Math.min(x0 + 1, oldHeight - 1);
+  const x1 = x0 + 1;
   const y0 = Math.floor(y);
-  const y1 = Math.min(y0 + 1, oldWidth - 1);
+  const y1 = y0 + 1;
 
   // Calculate the differences
   const dx = x - x0;

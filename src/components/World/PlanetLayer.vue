@@ -61,8 +61,8 @@ const sizes = (coord: Coord) => {
   const scale = props.size / props.dimensions.height / props.dimensions.width;
   return generator.point(coord) * scale;
 };
+
 function heights(coord: Coord) {
-  const generator = new PointGenerator(props.seed);
   const padHeight = Math.floor(filter.length / 2);
   const padWidth = Math.floor(filter[0].length / 2);
   const { x, y } = coord;

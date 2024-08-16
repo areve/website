@@ -58,7 +58,6 @@ const filterRadius = 10;
 const filter = diskFilter(filterRadius);
 
 function heights(coord: Coord) {
-  const generator = new PointGenerator(props.seed);
   const padHeight = Math.floor(filter.length / 2);
   const padWidth = Math.floor(filter[0].length / 2);
   const { x, y } = coord;

@@ -63,7 +63,6 @@ function weights(coord: Coord) {
 }
 
 function floats(coord: Coord) {
-  const generator = new PointGenerator(props.seed);
   return generator.point(coord) ** 100;
 }
 

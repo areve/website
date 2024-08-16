@@ -113,4 +113,3 @@ watch(props, update);
 </script>
 
 <style scoped></style>
-./lib/render./lib/render

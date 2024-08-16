@@ -13,3 +13,10 @@ export class PointGenerator {
     return (m >>> 0) / 0xffffffff;
   }
 }
+
+// TODO SUPER SLOW, don't know why yet
+export const pointGenerator = (coord: Coord, seed: number) => {
+  const n = seed + coord.x * 374761393 + coord.y * 668265263;
+  const m = (n ^ (n >> 13)) * 1274126177;
+  return (m >>> 0) / 0xffffffff;
+};

@@ -64,7 +64,11 @@ const sizes = (coord: Coord) => {
   return generator(coord) * scale;
 };
 
-const temperature = (coord: Coord) => bicubic(coord, 1 / 40, generator);
+const temperature = (coord: Coord) => bicubic(coord, 1 / 43, generator);
+const moisture = (coord: Coord) =>
+  bicubic(coord, 1 / 67, (coord: Coord) =>
+    generator({ x: coord.x - 127.5, y: coord.y - 127.5 })
+  );
 
 function heights(coord: Coord) {
   const { x, y } = coord;
@@ -80,12 +84,13 @@ function heights(coord: Coord) {
 }
 
 function pixel(coord: Coord) {
-  const n = heights(coord);
+  const h = heights(coord);
   const t = temperature(coord);
-  // return [t, t, t];
-  return n > 0.5 //
-    ? [n - 0.5, n - 0.25, t]
-    : [t, n, n + 0.5];
+  const m = moisture(coord);
+  // return [m, t, h];
+  return h > 0.5 //
+    ? [h - 0.5, h - 0.25, t]
+    : [m, h, h + 0.5];
 }
 
 const mousemove = (event: MouseEvent) => {

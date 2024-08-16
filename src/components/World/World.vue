@@ -40,6 +40,15 @@
         :camera="planet.camera"
       ></PlanetLayer>
     </div>
+    <div class="row">
+      <CountryLayer
+        :seed="country.seed"
+        :dimensions="country.dimensions"
+        @coordSelected="countryCoordSelected"
+        :weight="country.weight"
+        :camera="country.camera"
+      ></CountryLayer>
+    </div>
   </section>
 </template>
 
@@ -62,6 +71,10 @@ import PlanetLayer, {
   PlanetCoordSelected,
   PlanetProps,
 } from "./PlanetLayer.vue";
+import CountryLayer, {
+  CountryCoordSelected,
+  CountryProps,
+} from "./CountryLayer.vue";
 
 const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight similar to milky way
 // const actualUniverseWeightKg = 1e53;
@@ -97,6 +110,13 @@ const planet = ref<PlanetProps>({
   camera: { x: 0, y: 0 },
 });
 
+const country = ref<CountryProps>({
+  weight: 0,
+  seed: 0,
+  dimensions: planet.value.dimensions,
+  camera: { x: 0, y: 0 },
+});
+
 const universeCoordSelected = (args: UniverseCoordSelected) => {
   galaxy.value = cloneExtend(galaxy.value, {
     seed: args.weight,
@@ -118,7 +138,13 @@ const solarSystemCoordSelected = (args: SolarSystemCoordSelected) => {
   });
 };
 
-const planetCoordSelected = (args: PlanetCoordSelected) => {};
+const planetCoordSelected = (args: PlanetCoordSelected) => {
+  country.value = cloneExtend(country.value, {
+    seed: args.height,
+    weight: args.height,
+  });
+};
+const countryCoordSelected = (args: CountryCoordSelected) => {};
 
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);

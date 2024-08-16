@@ -53,36 +53,51 @@ const emit = defineEmits<PlanetEmit>();
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const hover = ref({ height: 0, coord: { x: 0, y: 0 } });
 
-let generator: any;
+let generator: (coord: Coord) => number;
 
-const filterRadius = 10;
-const filter = diskFilter(filterRadius);
+const heightFilterRadius = 10;
+const heightFilter = diskFilter(heightFilterRadius);
+const tempFilterRadius = 20;
+const tempFilter = diskFilter(tempFilterRadius);
 
 const sizes = (coord: Coord) => {
   const scale = props.size / props.dimensions.height / props.dimensions.width;
   return generator(coord) * scale;
 };
 
-function heights(coord: Coord) {
-  const padHeight = Math.floor(filter.length / 2);
-  const padWidth = Math.floor(filter[0].length / 2);
+function temperature(coord: Coord) {
   const { x, y } = coord;
   let sum = 0;
-  for (let fy = 0; fy < filter.length; fy++) {
-    for (let fx = 0; fx < filter[0].length; fx++) {
-      const px = x + 20 + fx - padWidth;
-      const py = y + 20 + fy - padHeight;
-      sum += filter[fy][fx] * generator({ x: px, y: py });
+  for (let fy = 0; fy < tempFilter.length; fy++) {
+    for (let fx = 0; fx < tempFilter[0].length; fx++) {
+      const px = ((x + 20 + fx) / 30) >>> 0;
+      const py = ((y + 20 + fy) / 30) >>> 0;
+      sum += tempFilter[fy][fx] * generator({ x: px * 999999, y: py * 999999});
     }
   }
-  return ((sum - 0.5) * filterRadius) / 2 + 0.5;
+  return sum;
+}
+
+function heights(coord: Coord) {
+  const { x, y } = coord;
+  let sum = 0;
+  for (let fy = 0; fy < heightFilter.length; fy++) {
+    for (let fx = 0; fx < heightFilter[0].length; fx++) {
+      const px = x + 20 + fx;
+      const py = y + 20 + fy;
+      sum += heightFilter[fy][fx] * generator({ x: px, y: py });
+    }
+  }
+  return ((sum - 0.5) * heightFilterRadius) / 2 + 0.5;
 }
 
 function pixel(coord: Coord) {
   const n = heights(coord);
+  const t = temperature(coord);
+  // return [t, t, t];
   return n > 0.5 //
-    ? [n - 0.5, n - 0.25, 0]
-    : [0, n, n + 0.5];
+    ? [n - 0.5, n - 0.25, t]
+    : [t, n, n + 0.5];
 }
 
 const mousemove = (event: MouseEvent) => {
@@ -105,7 +120,6 @@ const click = (event: MouseEvent) => {
 const update = () => {
   console.log("planet update");
   generator = makePointGenerator(props.seed);
-
   render(canvas.value, props.dimensions, pixel, props.camera);
   selectionChanged({ x: 0, y: 0 });
 };

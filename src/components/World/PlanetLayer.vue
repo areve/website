@@ -20,11 +20,12 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
-import { PointGenerator } from "./lib/prng";
+import { makePointGenerator, PointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
+import { clone } from "./lib/other";
 
 export interface PlanetProps {
   size: number;
@@ -52,14 +53,14 @@ const emit = defineEmits<PlanetEmit>();
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const hover = ref({ height: 0, coord: { x: 0, y: 0 } });
 
-let generator: PointGenerator;
+let generator: any;
 
 const filterRadius = 10;
 const filter = diskFilter(filterRadius);
 
 const sizes = (coord: Coord) => {
   const scale = props.size / props.dimensions.height / props.dimensions.width;
-  return generator.point(coord) * scale;
+  return generator(coord) * scale;
 };
 
 function heights(coord: Coord) {
@@ -71,7 +72,7 @@ function heights(coord: Coord) {
     for (let fx = 0; fx < filter[0].length; fx++) {
       const px = x + 20 + fx - padWidth;
       const py = y + 20 + fy - padHeight;
-      sum += filter[fy][fx] * generator.point({ x: px, y: py });
+      sum += filter[fy][fx] * generator({ x: px, y: py });
     }
   }
   return ((sum - 0.5) * filterRadius) / 2 + 0.5;
@@ -102,7 +103,9 @@ const click = (event: MouseEvent) => {
 };
 
 const update = () => {
-  generator = new PointGenerator(props.seed);
+  console.log("planet update");
+  generator = makePointGenerator(props.seed);
+
   render(canvas.value, props.dimensions, pixel, props.camera);
   selectionChanged({ x: 0, y: 0 });
 };

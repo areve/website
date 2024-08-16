@@ -161,38 +161,38 @@ const onKeyDown = (event: KeyboardEvent) => {
 </script>
 
 <style>
-.world {
-  .row {
+
+.world .row {
     display: flex;
     margin-bottom: 5px;
   }
-  .title {
+.world .title {
     font-weight: 500;
   }
-  .info {
+.world .info {
     font-size: 0.9em;
     line-height: 1.2em;
   }
-  .data {
+.world .data {
     font-size: 0.9em;
     line-height: 1.2em;
   }
-  .notes {
+.world .notes {
     flex: 1 1;
     background-color: #eee;
     margin-left: 5px;
     padding: 5px;
   }
-  .canvas-wrap {
+.world .canvas-wrap {
     position: relative;
     height: 200px;
     width: 200px;
   }
-  .canvas {
+.world .canvas {
     position: absolute;
     width: 100%;
     height: 100%;
     border: 0px solid #999;
   }
-}
+
 </style>

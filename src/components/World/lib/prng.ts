@@ -1,14 +1,4 @@
-import { Coord, Dimensions } from "../maps/render";
-
-export interface LayerProps extends Dimensions {
-  seed: number;
-  width: number;
-  height: number;
-}
-
-export interface LayerMethods {
-  pixel: (x: number, y: number) => number[];
-}
+import { Coord } from "./interfaces";
 
 export class PointGenerator {
   private seed: number;

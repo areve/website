@@ -21,8 +21,8 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, watch } from "vue";
-import { Dimensions, Coord, coordFromEvent } from "./maps/render";
-import { render } from "./maps/render";
+import { Coord, Dimensions } from "./lib/interfaces";
+import { coordFromEvent, render } from "./lib/render";
 import { PointGenerator } from "./lib/prng";
 
 export interface UniverseProps {
@@ -93,3 +93,4 @@ watch(props, update);
 </script>
 
 <style scoped></style>
+./lib/render./lib/render

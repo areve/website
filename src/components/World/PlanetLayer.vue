@@ -170,7 +170,25 @@ const moisture = (coord: Coord) =>
 const heightFilterRadius = 20;
 const heightFilter = diskFilter(heightFilterRadius);
 
-function heights(coord: Coord) {
+function heights_faster(coord: Coord) {
+  const a = bicubic(coord, 1 / 29, (coord: Coord) =>
+    generator({ x: coord.x - 21112.5, y: coord.y - 112127.5 })
+  );
+
+  const b = bicubic(coord, 1 / 17, (coord: Coord) =>
+    generator({ x: coord.x - 2112.5, y: coord.y - 127.5 })
+  );
+
+  const c = bicubic(coord, 1 / 7, (coord: Coord) =>
+    generator({ x: coord.x - 12.5, y: coord.y - 7.5 })
+  );
+
+  const d = generator({ x: coord.x - 1.5, y: coord.y - 1.5 });
+
+  return a * 0.3 + b * 0.52 + c * 0.2 + d * 0.08;
+}
+function heights_old_slow(coord: Coord) {
+  // TODO this applyFilter is really good but so slow
   const { x, y } = coord;
   let sum = 0;
   for (let fy = 0; fy < heightFilter.length; fy++) {
@@ -183,6 +201,7 @@ function heights(coord: Coord) {
   return ((sum - 0.5) * heightFilterRadius) / 1 + 0.5;
 }
 
+const heights = heights_faster;
 const clampZeroToOne = (v: number) => clamp(v, 0, 1);
 const c = clampZeroToOne;
 function pixel(coord: Coord) {
@@ -191,7 +210,7 @@ function pixel(coord: Coord) {
   const m = c(moisture(coord));
 
   const isSea = h < 0.6;
-  const i = 0//c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
+  const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
 
   if (isSea) {
     // sea is greener in hotter areas

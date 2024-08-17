@@ -23,6 +23,14 @@
         label=""
       ></GraphMini>
     </div>
+    <hr />
+    <div class="photo">
+      <img
+        src="./assets/New-global-view.width-1000.format-webp.webp"
+        width="500"
+        height="200"
+      />
+    </div>
   </div>
 </template>
 
@@ -148,9 +156,6 @@ const hover = ref({ height: 0, coord: { x: 0, y: 0 } });
 
 let generator: (coord: Coord) => number;
 
-const heightFilterRadius = 10;
-const heightFilter = diskFilter(heightFilterRadius);
-
 const sizes = (coord: Coord) => {
   const scale = props.size / props.dimensions.height / props.dimensions.width;
   return generator(coord) * scale;
@@ -161,6 +166,9 @@ const moisture = (coord: Coord) =>
   bicubic(coord, 1 / 67, (coord: Coord) =>
     generator({ x: coord.x - 127.5, y: coord.y - 127.5 })
   );
+
+const heightFilterRadius = 20;
+const heightFilter = diskFilter(heightFilterRadius);
 
 function heights(coord: Coord) {
   const { x, y } = coord;
@@ -183,7 +191,7 @@ function pixel(coord: Coord) {
   const m = c(moisture(coord));
 
   const isSea = h < 0.6;
-  const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
+  const i = 0//c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
 
   if (isSea) {
     // sea is greener in hotter areas

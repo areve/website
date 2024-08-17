@@ -110,6 +110,16 @@ const heightIcinessCurve = (x: number) => {
   ]);
   return ret;
 };
+const seaDepthCurve = (x: number) => {
+  const ret = getValueCatmullRom(x, [
+    { x: 0, y: 0 },
+    { x: 0.05, y: 0.2 },
+    { x: 0.25, y: 0.6 },
+    { x: 0.5, y: 0.8},
+    { x: 1, y: 1 },
+  ]);
+  return ret;
+};
 const funcs = [
   // {
   //   color: [0, 1, 0],
@@ -126,6 +136,10 @@ const funcs = [
   {
     color: [1, 1, 0],
     func: heightIcinessCurve,
+  },
+  {
+    color: [0, 1, 0],
+    func: seaDepthCurve,
   },
 ];
 
@@ -225,7 +239,7 @@ function pixel(coord: Coord) {
 
   const seaLevel = 0.6;
   const isSea = h < seaLevel;
-  const sd = (1 - h / seaLevel) ** 0.2;
+  const sd = c(seaDepthCurve(1 - h / seaLevel));
   const sh = ((h - seaLevel) / (1 - seaLevel)) ** 0.5;
   const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
 
@@ -237,12 +251,12 @@ function pixel(coord: Coord) {
       // we have unused m t here
       229 / 360,
       0.47 + sd * 0.242 - 0.1 + t * 0.2,
-      0.31 + (1 - sd) * 0.33 + 0.1 - m * 0.2,
+      0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1,
     ];
     return hsv2rgb([
       seaHsv[0], //
-      c(seaHsv[1] - 0.3 * i),
-      c(seaHsv[2] + 0.6 * i),
+      c(seaHsv[1] - 0.2 * i),
+      c(seaHsv[2] + 0.2 * i),
     ]);
   } else {
     // jungle hsv(92, 41%, 23%)

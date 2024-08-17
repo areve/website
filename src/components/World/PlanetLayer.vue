@@ -20,13 +20,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
 import { bicubic } from "./lib/bicubic";
-import { bilinear } from "./lib/bilinear";
+import { hsv2rgb, Hsv, clamp } from "./lib/other";
 
 export interface PlanetProps {
   size: number;
@@ -80,33 +80,70 @@ function heights(coord: Coord) {
       sum += heightFilter[fy][fx] * generator({ x: px, y: py });
     }
   }
-  return ((sum - 0.5) * heightFilterRadius) / 2 + 0.5;
+  return ((sum - 0.5) * heightFilterRadius) / 1 + 0.5;
 }
 
+const clampZeroToOne = (v: number) => clamp(v, 0, 1);
+const c = clampZeroToOne;
 function pixel(coord: Coord) {
-  const h = heights(coord);
-  const t = temperature(coord);
-  const m = moisture(coord);
-  // return [m, t, h];
+  const h = c(heights(coord));
+  const t = c(temperature(coord));
+  const m = c(moisture(coord)); // TODO without the clamp we get some interesting glitches sometimes
+
+  const isSea = h < 0.6;
+  // const isCoastline = false; //h < 0.525;
+  // TODO get rid of isIcy and make i a curve that reflects it
+  const isIcy = t < 0.25 || h > 0.9;
+  const i = t * 3 + (h - 0.9) * 0.25;
+  // console.log(h)
+  if (isSea) {
+    // sea is greener in hotter areas
+    // sea is greyer in moister areas
+    // sea is darker when deeper
+    const seaHsv: Hsv = [0.55 + t * 0.1, 1 - m * 0.3, h + 0.4];
+    if (isIcy) {
+      // return hsv2rgb([1, 0, 1]);
+      // return hsv2rgb(seaHsv);
+      return hsv2rgb([
+        seaHsv[0],
+        c(seaHsv[1] - 0.5 + 0.5 * i),
+        c(seaHsv[2] + 0.5 - 0.5 * i),
+      ]);
+    } else {
+      return hsv2rgb(seaHsv);
+    }
+  } else {
+    // land is greener in moister areas
+    // land is blacker in higher areas
+    const landHsv: Hsv = [0.05 + m ** 0.6 * 0.2, 0.8 - h * 0.2, 1.4 - h];
+    if (isIcy) {
+      return hsv2rgb([
+        landHsv[0],
+        c(landHsv[1] - 0.5 + 0.5 * i),
+        c(landHsv[2] + 0.5 - 0.5 * i),
+      ]);
+    } else {
+      return hsv2rgb(landHsv);
+    }
+  }
+  return [0, 0, 0];
   if (h > 0.5) {
     if (t < 0.33) {
       // frozen land
-      return [h - 0.5 + 0.3, h - 0.25+ 0.3, 0+ 0.3];
+      return [h - 0.5 + 0.3, h - 0.25 + 0.3, 0 + 0.3];
     } else {
       // land
       if (m > 0.5) {
         // hydrated land
         return [h - 0.5, h - 0.25, 0];
-      }else{
+      } else {
         // dry land
         return [h - 0.1, h - 0.25, 0];
-
       }
     }
   } else {
     if (t < 0.33) {
       // frozen sea
-      // return [0, 0, 0];
       return [(1 - t) * h + 0.5, (1 - t) * h + 0.5, (1 - t) * h + 0.5];
     } else {
       // sea

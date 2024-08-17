@@ -17,11 +17,10 @@ export const seedToInt = (seed: Uint8Array) => new Uint32Array(seed.buffer)[0];
 
 export const seedToFloat = (seed: Uint8Array) => seedToInt(seed) / 0xffffffff;
 
-export function hsv2rgb(
-  h: number,
-  s: number,
-  v: number
-): [r: number, g: number, b: number] {
+export type Rgb = [r: number, g: number, b: number];
+export type Hsv = [h: number, s: number, v: number];
+export function hsv2rgb(hsv: Hsv): Rgb {
+  const [h, s, v] = hsv;
   const hue = (((h * 360) % 360) + 360) % 360;
   const sector = Math.floor(hue / 60);
   const sectorFloat = hue / 60 - sector;

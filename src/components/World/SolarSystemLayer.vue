@@ -69,7 +69,7 @@ function floats(coord: Coord) {
 const pixel = (coord: Coord) => {
   const v = floats(coord);
   const h = hues(coord);
-  const [r, g, b] = hsv2rgb(h, 1, 1).map((v) => v / 4 + 0.75);
+  const [r, g, b] = hsv2rgb([h, 1, 1]).map((v) => v / 4 + 0.75);
   return [v * r, v * g, v * b];
 };
 

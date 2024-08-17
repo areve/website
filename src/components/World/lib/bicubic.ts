@@ -7,19 +7,10 @@ function cubicInterpolate(
   p3: number,
   t: number
 ): number {
-  return (
-    p1 +
-    0.5 *
-      t *
-      (p2 -
-        p0 +
-        t *
-          (2.0 * p0 -
-            5.0 * p1 +
-            4.0 * p2 -
-            p3 +
-            t * (3.0 * (p1 - p2) + p3 - p0)))
-  );
+  const d1 = p2 - p0;
+  const d2 = 2 * p0 - 5 * p1 + 4 * p2 - p3;
+  const d3 = 3 * (p1 - p2) + p3 - p0;
+  return p1 + 0.5 * t * (d1 + t * (d2 + t * d3));
 }
 
 export function bicubic(
@@ -41,7 +32,8 @@ export function bicubic(
         getPixel({ x: x0 + 1, y: y0 + i }),
         getPixel({ x: x0 + 2, y: y0 + i }),
         getPixel({ x: x0 + 3, y: y0 + i }),
-        dx)
+        dx
+      )
     );
   }
   return cubicInterpolate(

@@ -1,7 +1,7 @@
 import { Coord, Dimensions } from "./interfaces";
 import { clamp } from "./other";
 
-function getContext(
+export function getContext(
   canvas: HTMLCanvasElement | undefined,
   dimensions: {
     width: number;
@@ -28,12 +28,10 @@ export function render(
   const height = dimensions.height;
   const imageData = new ImageData(width, height);
   const data = imageData.data;
-  const xMax = dimensions.width;
-  const yMax = dimensions.height;
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
-  for (let x = 0; x < xMax; ++x) {
-    for (let y = 0; y < yMax; ++y) {
+  for (let x = 0; x < width; ++x) {
+    for (let y = 0; y < height; ++y) {
       const v = pixel({ x: x + cameraX, y: y + cameraY });
       const i = (x + y * width) * 4;
       data[i] = (v[0] * 0xff) >>> 0;

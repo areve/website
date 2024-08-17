@@ -210,28 +210,38 @@ function pixel(coord: Coord) {
   const m = c(moisture(coord));
 
   const isSea = h < 0.6;
+  const sd = (1 - h / 0.6) ** 0.5;
+  const sh = (h - 0.6) / 0.4;
   const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
 
   if (isSea) {
-    // sea is greener in hotter areas
-    // sea is greyer in moister areas
-    // sea is darker when deeper
-    const seaHsv: Hsv = [0.55 + t * 0.1, 1 - m * 0.3, h + 0.4];
-    // if (isIcy) {
-    // return hsv2rgb([1, 0, 1]);
-    // return hsv2rgb(seaHsv);
+    // shallow hsv(229, 47%, 64%)
+    // normal water hsv(227, 70%, 35%)
+    // deep hsv(231, 71%, 31%)
+    const seaHsv: Hsv = [
+      //
+      229 / 360,
+      0.47 + sd * 0.24,
+      0.31 + (1 - sd) * 0.33,
+    ];
     return hsv2rgb([
       seaHsv[0], //
       c(seaHsv[1] - 0.5 * i),
       c(seaHsv[2] + 0.2 * i),
     ]);
-    // } else {
-    // return hsv2rgb(seaHsv);
-    // }
   } else {
-    // land is greener in moister areas
-    // land is blacker in higher areas
-    const landHsv: Hsv = [0.05 + m ** 0.6 * 0.2, 0.8 - h * 0.2, 1.4 - h];
+    // jungle hsv(92, 41%, 23%)
+    // tundra hsv(78, 24%, 27%)
+    // desert hsv(37, 35%, 89%) 
+    // australia hsv(31, 41%, 58%)
+    // grass hsv(77, 34%, 40%)
+    // mountain hsv(35, 21%, 64%)
+    const landHsv: Hsv = [
+      //
+      77 / 360 - sh * (32 / 360) - 16 / 360 + m * (50 / 360),
+      0.34 - sh * 0.13 + (1-m) * .05 + 0.1 - (1-t) * 0.2,
+      0.4 - sh * 0.24 + (1-m) * .3 - (1-t) * 0.1,
+    ]; //[0.05 + m ** 0.6 * 0.2, 0.8 - h * 0.2, 1.4 - h];
     return hsv2rgb([
       landHsv[0],
       c(landHsv[1] - 0.8 * i),

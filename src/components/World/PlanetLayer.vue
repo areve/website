@@ -88,14 +88,14 @@ const c = clampZeroToOne;
 function pixel(coord: Coord) {
   const h = c(heights(coord));
   const t = c(temperature(coord));
-  const m = c(moisture(coord)); // TODO without the clamp we get some interesting glitches sometimes
+  const m = c(moisture(coord));
 
   const isSea = h < 0.6;
-  // const isCoastline = false; //h < 0.525;
+  // const isCoastline = h > 0.6 && h < 0.63;
   // TODO get rid of isIcy and make i a curve that reflects it
   const isIcy = t < 0.25 || h > 0.9;
   const i = t * 3 + (h - 0.9) * 0.25;
-  // console.log(h)
+
   if (isSea) {
     // sea is greener in hotter areas
     // sea is greyer in moister areas
@@ -124,30 +124,6 @@ function pixel(coord: Coord) {
       ]);
     } else {
       return hsv2rgb(landHsv);
-    }
-  }
-  return [0, 0, 0];
-  if (h > 0.5) {
-    if (t < 0.33) {
-      // frozen land
-      return [h - 0.5 + 0.3, h - 0.25 + 0.3, 0 + 0.3];
-    } else {
-      // land
-      if (m > 0.5) {
-        // hydrated land
-        return [h - 0.5, h - 0.25, 0];
-      } else {
-        // dry land
-        return [h - 0.1, h - 0.25, 0];
-      }
-    }
-  } else {
-    if (t < 0.33) {
-      // frozen sea
-      return [(1 - t) * h + 0.5, (1 - t) * h + 0.5, (1 - t) * h + 0.5];
-    } else {
-      // sea
-      return [0, h, h + 0.5];
     }
   }
 }

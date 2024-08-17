@@ -41,6 +41,7 @@ import { coordFromEvent, render } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
 import { bicubic } from "./lib/bicubic";
+import { bilinear } from "./lib/bilinear";
 import { hsv2rgb, Hsv, clamp } from "./lib/other";
 import { Point } from "./lib/cubicBezier";
 import GraphMini from "./GraphMini.vue";
@@ -164,20 +165,20 @@ const sizes = (coord: Coord) => {
 const temperature = (coord: Coord) => {
   const a = bicubic(coord, 1 / 65, generator);
   const b = bicubic(coord, 1 / 33, generator);
-  const c = bicubic(coord, 1 / 15, generator);
-  const d = bicubic(coord, 1 / 9, generator);
+  const c = bicubic(coord, 1 / 9, generator);
+  const d = generator(coord);
 
-  return a * 0.5 + b * 0.3 + c * 0.2 + d * 0.1;
+  return a * 0.5 + b * 0.3 + c * 0.23 + d * 0.07;
 };
 
 const moisture = (coord: Coord) => {
-  const moistCoord = { x: coord.x - 127.5, y: coord.y - 127.5 }
+  const moistCoord = { x: coord.x - 127.5, y: coord.y - 127.5 };
   const a = bicubic(moistCoord, 1 / 65, generator);
-  const b = bicubic(moistCoord, 1 / 33, generator);
-  const c = bicubic(moistCoord, 1 / 15, generator);
-  const d = bicubic(moistCoord, 1 / 9, generator);
+  const b = bicubic(moistCoord, 1 / 28, generator);
+  const c = bicubic(moistCoord, 1 / 11, generator);
+  const d = generator(moistCoord);
 
-  return a * 0.25 + b * 0.25 + c * 0.25 + d * 0.25;
+  return a * 0.25 + b * 0.25 + c * 0.3 + d * 0.2;
 };
 
 const heightFilterRadius = 20;
@@ -222,7 +223,7 @@ function pixel(coord: Coord) {
   const t = c(temperature(coord));
   const m = c(moisture(coord));
 
-  const seaLevel = 0.6
+  const seaLevel = 0.6;
   const isSea = h < seaLevel;
   const sd = (1 - h / seaLevel) ** 0.2;
   const sh = ((h - seaLevel) / (1 - seaLevel)) ** 0.5;
@@ -233,10 +234,10 @@ function pixel(coord: Coord) {
     // normal water hsv(227, 70%, 35%)
     // deep hsv(231, 71%, 31%)
     const seaHsv: Hsv = [
-      //
+      // we have unused m t here
       229 / 360,
-      0.47 + sd * 0.24,
-      0.31 + (1 - sd) * 0.33,
+      0.47 + sd * 0.242 - 0.1 + t * 0.2,
+      0.31 + (1 - sd) * 0.33 + 0.1 - m * 0.2,
     ];
     return hsv2rgb([
       seaHsv[0], //
@@ -254,7 +255,7 @@ function pixel(coord: Coord) {
       //
       77 / 360 - sh * (32 / 360) - 16 / 360 + m * (50 / 360),
       0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-      0.4 - sh * 0.24 + (1 - m) * 0.3 - (1 - t) * 0.1,
+      0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
     ]; //[0.05 + m ** 0.6 * 0.2, 0.8 - h * 0.2, 1.4 - h];
     return hsv2rgb([
       landHsv[0],

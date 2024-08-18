@@ -1,4 +1,4 @@
-import { Coord, Dimensions } from "./interfaces";
+import { Coord, Dimensions } from "../lib/interfaces";
 
 function cubicInterpolate(
   p0: number,

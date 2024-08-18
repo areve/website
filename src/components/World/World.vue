@@ -82,7 +82,7 @@ const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight 
 // const earthWeightKg = 5.9e24;
 
 const universe = ref<UniverseProps>({
-  seed: 12345,
+  seed: 5,
   size: 1,
   dimensions: { width: 200, height: 200 },
 });

@@ -40,10 +40,10 @@ import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
-import { bicubic } from "./lib/bicubic";
-import { bilinear } from "./lib/bilinear";
+import { bicubic } from "./curves/bicubic";
+import { bilinear } from "./curves/bilinear";
 import { hsv2rgb, Hsv, clamp } from "./lib/other";
-import { Point } from "./lib/cubicBezier";
+import { Point } from "./curves/cubicBezier";
 import GraphMini from "./GraphMini.vue";
 
 function getValueCatmullRom(x: number, points: Point[]): number {

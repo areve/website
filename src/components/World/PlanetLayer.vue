@@ -41,11 +41,11 @@ import { coordFromEvent, render } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
 import { bicubic } from "./curves/bicubic";
 import { hsv2rgb, Hsv, clampZeroToOne } from "./lib/other";
-import { catmullRomCurve } from "./curves/catmullRomCurve";
+import { smoothCurve } from "./curves/smoothCurve";
 import GraphMini from "./GraphMini.vue";
 
 const temperatureIcinessCurve = (x: number) => {
-  const ret = catmullRomCurve(x, [
+  const ret = smoothCurve(x, [
     { x: 0, y: 1 },
     { x: 0.1, y: 0.99 },
     { x: 0.15, y: 0.9 },
@@ -57,7 +57,7 @@ const temperatureIcinessCurve = (x: number) => {
 };
 
 const heightIcinessCurve = (x: number) => {
-  const ret = catmullRomCurve(x, [
+  const ret = smoothCurve(x, [
     { x: 0, y: 0 },
     { x: 0.6, y: 0.02 },
     { x: 0.85, y: 0.12 },
@@ -66,12 +66,13 @@ const heightIcinessCurve = (x: number) => {
   ]);
   return ret;
 };
+
 const seaDepthCurve = (x: number) => {
-  const ret = catmullRomCurve(x, [
+  const ret = smoothCurve(x, [
     { x: 0, y: 0 },
     { x: 0.05, y: 0.2 },
     { x: 0.25, y: 0.6 },
-    { x: 0.5, y: 0.8 },
+    // { x: 0.5, y: 0.8 },
     { x: 1, y: 1 },
   ]);
   return ret;
@@ -247,3 +248,4 @@ watch(props, update);
 </script>
 
 <style scoped></style>
+./curves/smoothCurve

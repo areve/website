@@ -13,7 +13,7 @@ import { computed, onMounted, ref } from "vue";
 import { clamp, Rgb } from "./lib/other";
 import { render } from "./lib/render";
 import { Coord, Dimensions } from "./lib/interfaces";
-import { distanceFromPointToLine } from "./curves/distanceFromPointToLine";
+import { distanceFromPointToLineSegment } from "./curves/distanceFromPointToLineSegment";
 
 export interface GraphProps {
   dimensions: Dimensions;
@@ -44,12 +44,12 @@ const pixel = (coord: Coord) => {
     const y1 = func.func(x1);
     const y2 = func.func(x2);
 
-    const da = distanceFromPointToLine(
+    const da = distanceFromPointToLineSegment(
       { x, y },
       { x: x0, y: y0 },
       { x: x1, y: y1 }
     );
-    const db = distanceFromPointToLine(
+    const db = distanceFromPointToLineSegment(
       { x, y },
       { x: x1, y: y1 },
       { x: x2, y: y2 }

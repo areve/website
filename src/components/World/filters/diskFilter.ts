@@ -27,3 +27,20 @@ export function diskFilter(radius: number): number[][] {
 
   return diskFilter;
 }
+
+// example usage
+// const heightFilterRadius = 20;
+// const heightFilter = diskFilter(heightFilterRadius);
+// function heights_old_slow(coord: Coord) {
+//   // TODO this applyFilter is really good but so slow
+//   const { x, y } = coord;
+//   let sum = 0;
+//   for (let fy = 0; fy < heightFilter.length; fy++) {
+//     for (let fx = 0; fx < heightFilter[0].length; fx++) {
+//       const px = x + 20 + fx;
+//       const py = y + 20 + fy;
+//       sum += heightFilter[fy][fx] * generator({ x: px, y: py });
+//     }
+//   }
+//   return ((sum - 0.5) * heightFilterRadius) / 1 + 0.5;
+// }

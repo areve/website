@@ -3,6 +3,8 @@ import { toRaw } from "vue";
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
+export const clampZeroToOne = (v: number) => clamp(v, 0, 1);
+
 export const sum = (array: number[]) => array.reduce((p, c) => p + c, 0);
 
 export const max = (array: number[]) =>

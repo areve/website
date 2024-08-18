@@ -39,57 +39,13 @@ import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
-import { diskFilter } from "./filters/diskFilter";
 import { bicubic } from "./curves/bicubic";
-import { bilinear } from "./curves/bilinear";
-import { hsv2rgb, Hsv, clamp } from "./lib/other";
-import { Point } from "./curves/cubicBezier";
+import { hsv2rgb, Hsv, clampZeroToOne } from "./lib/other";
+import { catmullRomCurve } from "./curves/catmullRomCurve";
 import GraphMini from "./GraphMini.vue";
 
-function getValueCatmullRom(x: number, points: Point[]): number {
-  function catmullRom1D(
-    t: number,
-    p0: number,
-    p1: number,
-    p2: number,
-    p3: number
-  ): number {
-    const t2 = t * t;
-    const t3 = t2 * t;
-
-    return (
-      0.5 *
-      (2 * p1 +
-        (-p0 + p2) * t +
-        (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 +
-        (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
-    );
-  }
-
-  const n = points.length;
-
-  let i = 0;
-  while (i < n - 1 && x > points[i + 1].x) ++i;
-  i = clamp(i, 0, n - 2);
-
-  const p0 = points[i - 1] ?? {
-    x: 2 * points[0].x - points[1].x,
-    y: 2 * points[0].y - points[1].y,
-  };
-  const p1 = points[i];
-  const p2 = points[i + 1];
-  const p3 = points[i + 2] ?? {
-    x: 2 * points[n - 1].x - points[n - 2].x,
-    y: 2 * points[n - 1].y - points[n - 2].y,
-  };
-
-  const t = (x - p1.x) / (p2.x - p1.x);
-
-  return catmullRom1D(t, p0.y, p1.y, p2.y, p3.y);
-}
-
 const temperatureIcinessCurve = (x: number) => {
-  const ret = getValueCatmullRom(x, [
+  const ret = catmullRomCurve(x, [
     { x: 0, y: 1 },
     { x: 0.1, y: 0.99 },
     { x: 0.15, y: 0.9 },
@@ -101,7 +57,7 @@ const temperatureIcinessCurve = (x: number) => {
 };
 
 const heightIcinessCurve = (x: number) => {
-  const ret = getValueCatmullRom(x, [
+  const ret = catmullRomCurve(x, [
     { x: 0, y: 0 },
     { x: 0.1, y: 0.02 },
     { x: 0.85, y: 0.04 },
@@ -111,11 +67,11 @@ const heightIcinessCurve = (x: number) => {
   return ret;
 };
 const seaDepthCurve = (x: number) => {
-  const ret = getValueCatmullRom(x, [
+  const ret = catmullRomCurve(x, [
     { x: 0, y: 0 },
     { x: 0.05, y: 0.2 },
     { x: 0.25, y: 0.6 },
-    { x: 0.5, y: 0.8},
+    { x: 0.5, y: 0.8 },
     { x: 1, y: 1 },
   ]);
   return ret;
@@ -195,10 +151,7 @@ const moisture = (coord: Coord) => {
   return a * 0.25 + b * 0.25 + c * 0.3 + d * 0.2;
 };
 
-const heightFilterRadius = 20;
-const heightFilter = diskFilter(heightFilterRadius);
-
-function heights_faster(coord: Coord) {
+function heights(coord: Coord) {
   const a = bicubic(coord, 1 / 29, (coord: Coord) =>
     generator({ x: coord.x - 21112.5, y: coord.y - 112127.5 })
   );
@@ -215,22 +168,7 @@ function heights_faster(coord: Coord) {
 
   return a * 0.35 + b * 0.47 + c * 0.2 + d * 0.08;
 }
-function heights_old_slow(coord: Coord) {
-  // TODO this applyFilter is really good but so slow
-  const { x, y } = coord;
-  let sum = 0;
-  for (let fy = 0; fy < heightFilter.length; fy++) {
-    for (let fx = 0; fx < heightFilter[0].length; fx++) {
-      const px = x + 20 + fx;
-      const py = y + 20 + fy;
-      sum += heightFilter[fy][fx] * generator({ x: px, y: py });
-    }
-  }
-  return ((sum - 0.5) * heightFilterRadius) / 1 + 0.5;
-}
 
-const heights = heights_faster;
-const clampZeroToOne = (v: number) => clamp(v, 0, 1);
 const c = clampZeroToOne;
 function pixel(coord: Coord) {
   const h = c(heights(coord));

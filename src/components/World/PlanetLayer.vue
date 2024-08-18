@@ -47,7 +47,6 @@ import GraphMini from "./GraphMini.vue";
 const temperatureIcinessCurve = (x: number) => {
   const ret = smoothCurve(x, [
     { x: 0, y: 1 },
-    { x: 0.1, y: 0.99 },
     { x: 0.15, y: 0.9 },
     { x: 0.3, y: 0.4 },
     { x: 0.5, y: 0.1 },
@@ -59,7 +58,6 @@ const temperatureIcinessCurve = (x: number) => {
 const heightIcinessCurve = (x: number) => {
   const ret = smoothCurve(x, [
     { x: 0, y: 0 },
-    { x: 0.6, y: 0.02 },
     { x: 0.85, y: 0.12 },
     { x: 0.95, y: 0.9 },
     { x: 1, y: 1 },
@@ -70,9 +68,7 @@ const heightIcinessCurve = (x: number) => {
 const seaDepthCurve = (x: number) => {
   const ret = smoothCurve(x, [
     { x: 0, y: 0 },
-    { x: 0.05, y: 0.2 },
     { x: 0.25, y: 0.6 },
-    // { x: 0.5, y: 0.8 },
     { x: 1, y: 1 },
   ]);
   return ret;

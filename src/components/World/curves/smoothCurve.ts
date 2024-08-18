@@ -54,36 +54,49 @@ function generateHermiteCurve(points: Point[], segments: number = 10): Point[] {
 
   // Ensure we have at least 2 points to fit a curve
   if (points.length < 2) {
-      throw new Error("At least two points are required.");
+    throw new Error("At least two points are required.");
   }
 
   // Generate Hermite curves between each pair of points
   for (let i = 0; i < points.length - 1; i++) {
-      const p0 = points[i];
-      const p1 = points[i + 1];
-      
-      // Compute tangents for the start and end points
-      const m0 = i === 0 ? { x: (p1.x - p0.x) / 2, y: (p1.y - p0.y) / 2 } : {
-          x: (points[i + 1].x - points[i - 1].x) / 2,
-          y: (points[i + 1].y - points[i - 1].y) / 2
-      };
-      const m1 = i === points.length - 2 ? { x: (p1.x - p0.x) / 2, y: (p1.y - p0.y) / 2 } : {
-          x: (points[i + 2].x - points[i].x) / 2,
-          y: (points[i + 2].y - points[i].y) / 2
-      };
+    const p0 = points[i];
+    const p1 = points[i + 1];
 
-      // Generate points for the Hermite spline segment
-      for (let j = 0; j <= segments; j++) {
-          const t = j / segments;
-          const point = hermite(t, p0, p1, m0, m1);
-          result.push(point);
-      }
+    // Compute tangents for the start and end points
+    const m0 =
+      i === 0
+        ? { x: (p1.x - p0.x) / 2, y: (p1.y - p0.y) / 2 }
+        : {
+            x: (points[i + 1].x - points[i - 1].x) / 2,
+            y: (points[i + 1].y - points[i - 1].y) / 2,
+          };
+    const m1 =
+      i === points.length - 2
+        ? { x: (p1.x - p0.x) / 2, y: (p1.y - p0.y) / 2 }
+        : {
+            x: (points[i + 2].x - points[i].x) / 2,
+            y: (points[i + 2].y - points[i].y) / 2,
+          };
+
+    // Generate points for the Hermite spline segment
+    for (let j = 0; j <= segments; j++) {
+      const t = j / segments;
+      const point = hermite(t, p0, p1, m0, m1);
+      result.push(point);
+    }
   }
 
   return result;
 }
 
-export function smoothCurve(x: number, points: Point[], steps: number = 15): number {
-  const approx = generateHermiteCurve(points, steps);
+export function smoothCurve(
+  x: number,
+  points: Point[],
+  steps?: number
+): number {
+  const approx = generateHermiteCurve(
+    points,
+    steps === undefined ? points.length * 3 : steps
+  );
   return linearCurve(x, approx);
 }

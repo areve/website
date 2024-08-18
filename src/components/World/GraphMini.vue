@@ -11,13 +11,14 @@
 const canvas = ref<HTMLCanvasElement>(undefined!);
 import { computed, onMounted, ref } from "vue";
 import { clamp, Rgb } from "./lib/other";
-import { getContext, render } from "./lib/render";
+import { render } from "./lib/render";
 import { Coord, Dimensions } from "./lib/interfaces";
+import { distanceFromPointToLine } from "./curves/distanceFromPointToLine";
 
 export interface GraphProps {
   dimensions: Dimensions;
   label: string;
-  funcs: {  
+  funcs: {
     color: Rgb;
     func: (t: number) => number;
   }[];
@@ -28,23 +29,34 @@ const dimensions = computed(() => props.dimensions);
 const funcs = computed(() => props.funcs);
 
 const pixel = (coord: Coord) => {
-  const rx = coord.x / dimensions.value.width;
-  const ry = (dimensions.value.height - coord.y) / dimensions.value.height;
-  const dot = 1 / dimensions.value.width;
+  const x = coord.x / dimensions.value.width;
+  const y = (dimensions.value.height - coord.y) / dimensions.value.height;
+  const step = 1 / dimensions.value.width;
+  const x0 = x - step;
+  const x1 = x;
+  const x2 = x + step;
 
   const colors = [];
-  for (let j = 0; j < funcs.value.length; ++j) {
-    const func = funcs.value[j];
-    let nearest = Infinity;
-    let steps = 5; // kind of antialias steps
-    for (let i = -steps / 2; i < steps / 2; ++i) {
-      const offset = (dot / steps) * i;
-      const ax = rx + offset;
-      const y = func.func(ax);
-      const d = Math.sqrt((ax - rx) ** 2 + (y - ry) ** 2) ;
-      nearest = Math.min(d, nearest);
-    }
-    const n = 1 - clamp(nearest / dot, 0, 1);
+  for (let i = 0; i < funcs.value.length; ++i) {
+    const func = funcs.value[i];
+
+    const y0 = func.func(x0);
+    const y1 = func.func(x1);
+    const y2 = func.func(x2);
+
+    const da = distanceFromPointToLine(
+      { x, y },
+      { x: x0, y: y0 },
+      { x: x1, y: y1 }
+    );
+    const db = distanceFromPointToLine(
+      { x, y },
+      { x: x1, y: y1 },
+      { x: x2, y: y2 }
+    );
+    const nearest = Math.min(da, db);
+
+    const n = 1 - clamp(nearest / step, 0, 1);
     const color = [func.color[0] * n, func.color[1] * n, func.color[2] * n];
     colors.push(color);
   }
@@ -55,10 +67,7 @@ const pixel = (coord: Coord) => {
   return [...c, 1];
 };
 
-const update = () => {
-  render(canvas.value, props.dimensions, pixel);
-};
-
+const update = () => render(canvas.value, props.dimensions, pixel);
 onMounted(update);
 </script>
 

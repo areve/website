@@ -59,8 +59,8 @@ const temperatureIcinessCurve = (x: number) => {
 const heightIcinessCurve = (x: number) => {
   const ret = catmullRomCurve(x, [
     { x: 0, y: 0 },
-    { x: 0.1, y: 0.02 },
-    { x: 0.85, y: 0.04 },
+    { x: 0.6, y: 0.02 },
+    { x: 0.85, y: 0.12 },
     { x: 0.95, y: 0.9 },
     { x: 1, y: 1 },
   ]);

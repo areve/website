@@ -43,8 +43,7 @@ type CountryEmit = {
 };
 
 const title = "country";
-const description =
-  "each dot is a city size region";
+const description = "each dot is a city size region";
 
 const props = defineProps<CountryProps>();
 const emit = defineEmits<CountryEmit>();
@@ -110,4 +109,33 @@ onMounted(update);
 watch(props, update);
 </script>
 
-<style scoped></style>
+<style scoped>
+.title {
+  font-weight: 500;
+}
+.info {
+  font-size: 0.9em;
+  line-height: 1.2em;
+}
+.data {
+  font-size: 0.9em;
+  line-height: 1.2em;
+}
+.notes {
+  flex: 1 1;
+  background-color: #eee;
+  margin-left: 5px;
+  padding: 5px;
+}
+.canvas-wrap {
+  position: relative;
+  height: 200px;
+  width: 200px;
+}
+.canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 0px solid #999;
+}
+</style>

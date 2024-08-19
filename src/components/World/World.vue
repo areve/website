@@ -55,6 +55,7 @@
 <script lang="ts" setup>
 import { onMounted, ref } from "vue";
 import { clone, cloneExtend } from "./lib/other";
+import { getDevicePixelRatio } from "./lib/render";
 import UniverseLayer, {
   UniverseCoordSelected,
   UniverseProps,
@@ -84,7 +85,7 @@ const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight 
 const universe = ref<UniverseProps>({
   seed: 5,
   size: 1,
-  dimensions: { width: 200, height: 200 },
+  dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
 });
 
 const galaxy = ref<GalaxyProps>({
@@ -106,14 +107,14 @@ const solarSystem = ref<SolarSystemProps>({
 const planet = ref<PlanetProps>({
   size: 0,
   seed: 0,
-  dimensions: solarSystem.value.dimensions,
+  dimensions: { width: 400 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
   camera: { x: 0, y: 0 },
 });
 
 const country = ref<CountryProps>({
   size: 0,
   seed: 0,
-  dimensions: planet.value.dimensions,
+  dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
   camera: { x: 0, y: 0 },
 });
 
@@ -160,37 +161,10 @@ const onKeyDown = (event: KeyboardEvent) => {
 };
 </script>
 
-<style>
-.world .row {
+<style scoped>
+.row {
   display: flex;
   margin-bottom: 5px;
 }
-.world .title {
-  font-weight: 500;
-}
-.world .info {
-  font-size: 0.9em;
-  line-height: 1.2em;
-}
-.world .data {
-  font-size: 0.9em;
-  line-height: 1.2em;
-}
-.world .notes {
-  flex: 1 1;
-  background-color: #eee;
-  margin-left: 5px;
-  padding: 5px;
-}
-.world .canvas-wrap {
-  position: relative;
-  height: 200px;
-  width: 200px;
-}
-.world .canvas {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border: 0px solid #999;
-}
+
 </style>

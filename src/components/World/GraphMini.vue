@@ -74,8 +74,8 @@ onMounted(update);
 <style scoped>
 .graph-mini .canvas-wrap {
   position: relative;
-  height: 48px;
-  width: 48px;
+  height: calc(50px);
+  width: calc(50px);
   /* border: 2px solid #666; */
 }
 .graph-mini .canvas {

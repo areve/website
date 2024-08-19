@@ -158,7 +158,7 @@ const moisture = (coord: Coord) => {
   const c = bicubic(moistCoord, 1 / 11, generator);
   const d = generator(moistCoord);
 
-  return a * 0.25 + b * 0.25 + c * 0.3 + d * 0.2;
+  return a * 0.37 + b * 0.25 + c * 0.3 + d * 0.08;
 };
 
 function heights(coord: Coord) {
@@ -176,7 +176,7 @@ function heights(coord: Coord) {
 
   const d = generator({ x: coord.x - 1.5, y: coord.y - 1.5 });
 
-  return a * 0.35 + b * 0.47 + c * 0.2 + d * 0.08;
+  return a * 0.65 + b * 0.27 + c * 0.2 + d * 0.08;
 }
 
 const c = clampZeroToOne;
@@ -192,6 +192,7 @@ function pixel(coord: Coord) {
   const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
   const d = c(moistureDesertCurve(m) + temperatureDesertCurve(t));
 
+  // return [h, h, h]
   if (isSea) {
     // shallow hsv(229, 47%, 64%)
     // normal water hsv(227, 70%, 35%)
@@ -257,5 +258,34 @@ onMounted(update);
 watch(props, update);
 </script>
 
-<style scoped></style>
-./curves/smoothCurve
+<style scoped>
+.title {
+  font-weight: 500;
+}
+.info {
+  font-size: 0.9em;
+  line-height: 1.2em;
+}
+.data {
+  font-size: 0.9em;
+  line-height: 1.2em;
+}
+.notes {
+  flex: 1 1;
+  background-color: #eee;
+  margin-left: 5px;
+  padding: 5px;
+}
+.canvas-wrap {
+  position: relative;
+  height: 200px;
+  width: 400px;
+}
+.canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 0px solid #999;
+}
+</style>
+

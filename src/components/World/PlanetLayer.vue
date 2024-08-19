@@ -12,13 +12,16 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ size.toPrecision(3) }}</div>
-      <div>{{ hover.height.toPrecision(3) }}</div>
+      <div>size: {{ size.toPrecision(3) }}</div>
+      <div>hover height: {{ hover.height.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
     <div class="graphs">
       <GraphMini
-        :dimensions="{ width: 75 * getDevicePixelRatio(), height: 75 * getDevicePixelRatio() }"
+        :dimensions="{
+          width: 75 * getDevicePixelRatio(),
+          height: 75 * getDevicePixelRatio(),
+        }"
         :funcs="funcs"
         label=""
       ></GraphMini>
@@ -42,66 +45,32 @@ import { makePointGenerator } from "./lib/prng";
 import { bicubic } from "./curves/bicubic";
 import { hsv2rgb, Hsv, clampZeroToOne } from "./lib/other";
 import { makeSmoothCurveFunction } from "./curves/smoothCurve";
+import { heightIcinessCurve, moistureDesertCurve, planetPixel, seaDepthCurve, temperatureDesertCurve, temperatureIcinessCurve } from "./layers/planetPixel";
 import GraphMini from "./GraphMini.vue";
-
-const temperatureIcinessCurve = makeSmoothCurveFunction([
-  { x: 0, y: 1 },
-  { x: 0.2, y: 0.9 },
-  { x: 0.3, y: 0.4 },
-  { x: 0.5, y: 0.1 },
-  { x: 1, y: 0 },
-]);
-
-const heightIcinessCurve = makeSmoothCurveFunction([
-  { x: 0, y: 0 },
-  { x: 0.85, y: 0.12 },
-  { x: 0.95, y: 0.9 },
-  { x: 1, y: 1 },
-]);
-
-const temperatureDesertCurve = makeSmoothCurveFunction([
-  { x: 0, y: 0 },
-  { x: 0.7, y: 0.1 },
-  { x: 0.85, y: 0.9 },
-  { x: 1, y: 1 },
-]);
-
-const moistureDesertCurve = makeSmoothCurveFunction([
-  { x: 0, y: 1 },
-  { x: 0.15, y: 0.9 },
-  { x: 0.3, y: 0.1 },
-  { x: 1, y: 0 },
-]);
-
-const seaDepthCurve = makeSmoothCurveFunction([
-  { x: 0, y: 0 },
-  { x: 0.25, y: 0.6 },
-  { x: 1, y: 1 },
-]);
 
 const funcs = [
   {
-    label: 'temperature iciness',
+    label: "temperature iciness",
     color: [1, 0, 1],
     func: temperatureIcinessCurve,
   },
   {
-    label: 'height iciness',
+    label: "height iciness",
     color: [1, 1, 0],
     func: heightIcinessCurve,
   },
   {
-    label: 'sea depth',
+    label: "sea depth",
     color: [0, 1, 0],
     func: seaDepthCurve,
   },
   {
-    label: 'temperature desert',
+    label: "temperature desert",
     color: [1, 0, 0],
     func: temperatureDesertCurve,
   },
   {
-    label: 'moisture desert',
+    label: "moisture desert",
     color: [0, 1, 1],
     func: moistureDesertCurve,
   },
@@ -117,6 +86,9 @@ export interface PlanetProps {
 export interface PlanetCoordSelected {
   coord: Coord;
   size: number;
+  height: number;
+  moisture: number;
+  temperature: number;
 }
 
 type PlanetEmit = {
@@ -183,47 +155,7 @@ function pixel(coord: Coord) {
   const t = c(temperature(coord));
   const m = c(moisture(coord));
 
-  const seaLevel = 0.6;
-  const isSea = h < seaLevel;
-  const sd = c(seaDepthCurve(1 - h / seaLevel));
-  const sh = ((h - seaLevel) / (1 - seaLevel)) ** 0.5;
-  const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
-  const d = c(moistureDesertCurve(m) + temperatureDesertCurve(t));
-
-  if (isSea) {
-    // shallow hsv(229, 47%, 64%)
-    // normal water hsv(227, 70%, 35%)
-    // deep hsv(231, 71%, 31%)
-    const seaHsv: Hsv = [
-      // we have unused m t here
-      229 / 360,
-      0.47 + sd * 0.242 - 0.1 + t * 0.2,
-      0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1,
-    ];
-    return hsv2rgb([
-      seaHsv[0], //
-      c(seaHsv[1] - 0.2 * i),
-      c(seaHsv[2] + 0.2 * i),
-    ]);
-  } else {
-    // jungle hsv(92, 41%, 23%)
-    // tundra hsv(78, 24%, 27%)
-    // desert hsv(37, 35%, 89%)
-    // australia hsv(31, 41%, 58%)
-    // grass hsv(77, 34%, 40%)
-    // mountain hsv(35, 21%, 64%)
-    const landHsv: Hsv = [
-      //
-      77 / 360 - sh * (32 / 360) - 16 / 360 + m * (50 / 360),
-      0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-      0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
-    ]; //[0.05 + m ** 0.6 * 0.2, 0.8 - h * 0.2, 1.4 - h];
-    return hsv2rgb([
-      landHsv[0] - d * 0.1,
-      c(landHsv[1] - 0.3 * i + d * 0.1),
-      c(landHsv[2] + 0.6 * i + d * 0.45),
-    ]);
-  }
+  return planetPixel(coord, h, t, m);
 }
 
 const mousemove = (event: MouseEvent) => {
@@ -235,8 +167,13 @@ const mousemove = (event: MouseEvent) => {
 };
 
 const selectionChanged = (coord: Coord) => {
-  const size = sizes(coord);
-  emit("coordSelected", { coord, size });
+  emit("coordSelected", {
+    coord,
+    size: sizes(coord),
+    temperature: temperature(coord),
+    moisture: moisture(coord),
+    height: heights(coord),
+  });
 };
 
 const click = (event: MouseEvent) => {
@@ -285,4 +222,3 @@ watch(props, update);
   border: 0px solid #999;
 }
 </style>
-

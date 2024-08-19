@@ -47,6 +47,9 @@
         @coordSelected="countryCoordSelected"
         :size="country.size"
         :camera="country.camera"
+        :temperature="country.temperature"
+        :moisture="country.moisture"
+        :height="country.height"
       ></CountryLayer>
     </div>
   </section>
@@ -116,6 +119,9 @@ const country = ref<CountryProps>({
   seed: 0,
   dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
   camera: { x: 0, y: 0 },
+  height: 0,
+  moisture: 0,
+  temperature: 0
 });
 
 const universeCoordSelected = (args: UniverseCoordSelected) => {
@@ -143,6 +149,9 @@ const planetCoordSelected = (args: PlanetCoordSelected) => {
   country.value = cloneExtend(country.value, {
     seed: args.size,
     size: args.size,
+    height: args.height,
+    moisture: args.moisture,
+    temperature: args.temperature
   });
 };
 const countryCoordSelected = (args: CountryCoordSelected) => {};

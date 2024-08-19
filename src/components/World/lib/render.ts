@@ -34,7 +34,6 @@ export function getDevicePixelRatio() {
   return ratio;
 }
 
-
 export function render(
   canvas: HTMLCanvasElement,
   dimensions: Dimensions,
@@ -45,7 +44,7 @@ export function render(
   if (!context) return;
   const width = Math.ceil(dimensions.width);
   const height = Math.ceil(dimensions.height);
-  
+
   const imageData = new ImageData(width, height);
   const data = imageData.data;
   const cameraX = camera?.x ?? 0;
@@ -72,7 +71,11 @@ export const coordFromEvent = (
   }
 ) => {
   return {
-    x: Math.round(clamp(event.offsetY, 0, dimensions.height - 1)),
-    y: Math.round(clamp(event.offsetX, 0, dimensions.width - 1)),
+    x: Math.round(
+      clamp(event.offsetX, 0, dimensions.width - 1) * getDevicePixelRatio()
+    ),
+    y: Math.round(
+      clamp(event.offsetY, 0, dimensions.height - 1) * getDevicePixelRatio()
+    ),
   } as Coord;
 };

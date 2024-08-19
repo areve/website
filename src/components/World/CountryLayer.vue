@@ -12,7 +12,10 @@
     <div class="info">{{ description }}</div>
     <hr />
     <div class="data">
-      <div>{{ size.toPrecision(3) }}</div>
+      <div>size: {{ size.toPrecision(3) }}</div>
+      <div>height: {{ height.toPrecision(3) }}</div>
+      <div>temperature: {{ temperature.toPrecision(3) }}</div>
+      <div>moisture: {{ moisture.toPrecision(3) }}</div>
       <div>{{ hover.height.toPrecision(3) }}</div>
       <div>{{ hover.coord }}</div>
     </div>
@@ -25,12 +28,23 @@ import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
 import { PointGenerator } from "./lib/prng";
 import { diskFilter } from "./filters/diskFilter";
+import {
+  heightIcinessCurve,
+  moistureDesertCurve,
+  planetPixel,
+  seaDepthCurve,
+  temperatureDesertCurve,
+  temperatureIcinessCurve,
+} from "./layers/planetPixel";
 
 export interface CountryProps {
   size: number;
   seed: number;
   dimensions: Dimensions;
   camera: Coord;
+  height: number;
+  temperature: number;
+  moisture: number;
 }
 
 export interface CountryCoordSelected {
@@ -73,9 +87,19 @@ function heights(coord: Coord) {
 
 function pixel(coord: Coord) {
   const n = heights(coord);
-  return n > 0.5 //
-    ? [n - 0.5, n - 0.25, 0]
-    : [n + 0.1, n + 0, 0];
+
+  const base = planetPixel(
+    coord,
+    props.height,
+    props.temperature,
+    props.moisture
+  );
+
+  return [
+    base[0] + n * 0.5 - 0.25,
+    base[1] + n * 0.5 - 0.25,
+    base[2] + n * 0.5 - 0.25,
+  ];
 }
 
 const mousemove = (event: MouseEvent) => {

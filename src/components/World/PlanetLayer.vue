@@ -59,6 +59,19 @@ const heightIcinessCurve = makeSmoothCurveFunction([
   { x: 1, y: 1 },
 ]);
 
+const temperatureDesertCurve = makeSmoothCurveFunction([
+  { x: 0, y: 0 },
+  { x: 0.7, y: 0.1 },
+  { x: 0.85, y: 0.9 },
+  { x: 1, y: 1 },
+]);
+const moistureDesertCurve = makeSmoothCurveFunction([
+  { x: 0, y: 1 },
+  { x: 0.15, y: 0.9 },
+  { x: 0.3, y: 0.1 },
+  { x: 1, y: 0 },
+]);
+
 const seaDepthCurve = makeSmoothCurveFunction([
   { x: 0, y: 0 },
   { x: 0.25, y: 0.6 },
@@ -85,6 +98,14 @@ const funcs = [
   {
     color: [0, 1, 0],
     func: seaDepthCurve,
+  },
+  {
+    color: [1, 0, 0],
+    func: temperatureDesertCurve,
+  },
+  {
+    color: [0, 1, 1],
+    func: moistureDesertCurve,
   },
 ];
 
@@ -169,6 +190,7 @@ function pixel(coord: Coord) {
   const sd = c(seaDepthCurve(1 - h / seaLevel));
   const sh = ((h - seaLevel) / (1 - seaLevel)) ** 0.5;
   const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
+  const d = c(moistureDesertCurve(m) + temperatureDesertCurve(t));
 
   if (isSea) {
     // shallow hsv(229, 47%, 64%)
@@ -199,9 +221,9 @@ function pixel(coord: Coord) {
       0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
     ]; //[0.05 + m ** 0.6 * 0.2, 0.8 - h * 0.2, 1.4 - h];
     return hsv2rgb([
-      landHsv[0],
-      c(landHsv[1] - 0.3 * i),
-      c(landHsv[2] + 0.6 * i),
+      landHsv[0] - d * 0.1,
+      c(landHsv[1] - 0.3 * i + d * 0.1),
+      c(landHsv[2] + 0.6 * i + d * 0.45),
     ]);
   }
 }

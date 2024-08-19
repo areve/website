@@ -190,7 +190,6 @@ function pixel(coord: Coord) {
   const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
   const d = c(moistureDesertCurve(m) + temperatureDesertCurve(t));
 
-  // return [h, h, h]
   if (isSea) {
     // shallow hsv(229, 47%, 64%)
     // normal water hsv(227, 70%, 35%)

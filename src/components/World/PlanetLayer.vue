@@ -18,7 +18,7 @@
     </div>
     <div class="graphs">
       <GraphMini
-        :dimensions="{ width: 50, height: 50 }"
+        :dimensions="{ width: 75 * getDevicePixelRatio(), height: 75 * getDevicePixelRatio() }"
         :funcs="funcs"
         label=""
       ></GraphMini>
@@ -37,7 +37,7 @@
 <script lang="ts" setup>
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
-import { coordFromEvent, render } from "./lib/render";
+import { coordFromEvent, render, getDevicePixelRatio } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
 import { bicubic } from "./curves/bicubic";
 import { hsv2rgb, Hsv, clampZeroToOne } from "./lib/other";
@@ -46,7 +46,7 @@ import GraphMini from "./GraphMini.vue";
 
 const temperatureIcinessCurve = makeSmoothCurveFunction([
   { x: 0, y: 1 },
-  { x: 0.15, y: 0.9 },
+  { x: 0.2, y: 0.9 },
   { x: 0.3, y: 0.4 },
   { x: 0.5, y: 0.1 },
   { x: 1, y: 0 },
@@ -65,6 +65,7 @@ const temperatureDesertCurve = makeSmoothCurveFunction([
   { x: 0.85, y: 0.9 },
   { x: 1, y: 1 },
 ]);
+
 const moistureDesertCurve = makeSmoothCurveFunction([
   { x: 0, y: 1 },
   { x: 0.15, y: 0.9 },
@@ -79,31 +80,28 @@ const seaDepthCurve = makeSmoothCurveFunction([
 ]);
 
 const funcs = [
-  // {
-  //   color: [0, 1, 0],
-  //   func: (x: number) => x ** 2,
-  // },
-  // {
-  //   color: [1, 0, 0],
-  //   func: (x: number) => x,
-  // },
   {
+    label: 'temperature iciness',
     color: [1, 0, 1],
     func: temperatureIcinessCurve,
   },
   {
+    label: 'height iciness',
     color: [1, 1, 0],
     func: heightIcinessCurve,
   },
   {
+    label: 'sea depth',
     color: [0, 1, 0],
     func: seaDepthCurve,
   },
   {
+    label: 'temperature desert',
     color: [1, 0, 0],
     func: temperatureDesertCurve,
   },
   {
+    label: 'moisture desert',
     color: [0, 1, 1],
     func: moistureDesertCurve,
   },
@@ -279,7 +277,7 @@ watch(props, update);
 .canvas-wrap {
   position: relative;
   height: 200px;
-  width: 400px;
+  width: 200px;
 }
 .canvas {
   position: absolute;

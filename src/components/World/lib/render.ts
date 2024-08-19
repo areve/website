@@ -43,8 +43,9 @@ export function render(
 ) {
   const context = getContext(canvas, dimensions);
   if (!context) return;
-  const width = dimensions.width;
-  const height = dimensions.height;
+  const width = Math.ceil(dimensions.width);
+  const height = Math.ceil(dimensions.height);
+  
   const imageData = new ImageData(width, height);
   const data = imageData.data;
   const cameraX = camera?.x ?? 0;

@@ -107,7 +107,7 @@ const solarSystem = ref<SolarSystemProps>({
 const planet = ref<PlanetProps>({
   size: 0,
   seed: 0,
-  dimensions: { width: 400 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
+  dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
   camera: { x: 0, y: 0 },
 });
 

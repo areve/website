@@ -1,9 +1,20 @@
 <template>
   <div class="graph-mini">
+    <div class="title">{{ label }}</div>
     <div class="canvas-wrap">
       <canvas ref="canvas" class="canvas"></canvas>
     </div>
-    <div>{{ label }}</div>
+    <div class="key">
+      <div v-for="func in funcs">
+        <div
+          class="spot"
+          :style="{
+            backgroundColor: 'rgb(' + func.color.map((c) => c * 255) + ')',
+          }"
+        ></div>
+        {{ func.label }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -19,6 +30,7 @@ export interface GraphProps {
   dimensions: Dimensions;
   label: string;
   funcs: {
+    label: string;
     color: Rgb;
     func: (t: number) => number;
   }[];
@@ -29,9 +41,10 @@ const dimensions = computed(() => props.dimensions);
 const funcs = computed(() => props.funcs);
 
 const pixel = (coord: Coord) => {
-  const x = coord.x / dimensions.value.width;
-  const y = (dimensions.value.height - coord.y) / dimensions.value.height;
-  const step = 1 / dimensions.value.width;
+  let { width, height } = dimensions.value;
+  const x = coord.x / width;
+  const y = (height - coord.y) / height;
+  const step = 1 / width;
   const x0 = x - step;
   const x1 = x;
   const x2 = x + step;
@@ -67,21 +80,34 @@ const pixel = (coord: Coord) => {
   return [...c, 1];
 };
 
-const update = () => render(canvas.value, props.dimensions, pixel);
+const update = () => render(canvas.value, dimensions.value, pixel);
 onMounted(update);
 </script>
 
 <style scoped>
 .graph-mini .canvas-wrap {
   position: relative;
-  height: calc(50px);
-  width: calc(50px);
+  height: 75px;
+  width: 75px;
   /* border: 2px solid #666; */
+  display: inline-block;
 }
 .graph-mini .canvas {
   position: absolute;
   width: 100%;
   height: 100%;
   border: 0px solid #999;
+}
+.key {
+  font-size: 0.8em;
+  line-height: 1.2em;
+  display: inline-block;
+}
+.key .spot {
+  position: relative;
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  box-shadow: 0px 0px 3px rgba(0, 0, 0, 0.5);
 }
 </style>

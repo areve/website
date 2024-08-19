@@ -41,38 +41,30 @@ import { coordFromEvent, render } from "./lib/render";
 import { makePointGenerator } from "./lib/prng";
 import { bicubic } from "./curves/bicubic";
 import { hsv2rgb, Hsv, clampZeroToOne } from "./lib/other";
-import { smoothCurve } from "./curves/smoothCurve";
+import { makeSmoothCurveFunction } from "./curves/smoothCurve";
 import GraphMini from "./GraphMini.vue";
 
-const temperatureIcinessCurve = (x: number) => {
-  const ret = smoothCurve(x, [
-    { x: 0, y: 1 },
-    { x: 0.15, y: 0.9 },
-    { x: 0.3, y: 0.4 },
-    { x: 0.5, y: 0.1 },
-    { x: 1, y: 0 },
-  ]);
-  return ret;
-};
+const temperatureIcinessCurve = makeSmoothCurveFunction([
+  { x: 0, y: 1 },
+  { x: 0.15, y: 0.9 },
+  { x: 0.3, y: 0.4 },
+  { x: 0.5, y: 0.1 },
+  { x: 1, y: 0 },
+]);
 
-const heightIcinessCurve = (x: number) => {
-  const ret = smoothCurve(x, [
-    { x: 0, y: 0 },
-    { x: 0.85, y: 0.12 },
-    { x: 0.95, y: 0.9 },
-    { x: 1, y: 1 },
-  ]);
-  return ret;
-};
+const heightIcinessCurve = makeSmoothCurveFunction([
+  { x: 0, y: 0 },
+  { x: 0.85, y: 0.12 },
+  { x: 0.95, y: 0.9 },
+  { x: 1, y: 1 },
+]);
 
-const seaDepthCurve = (x: number) => {
-  const ret = smoothCurve(x, [
-    { x: 0, y: 0 },
-    { x: 0.25, y: 0.6 },
-    { x: 1, y: 1 },
-  ]);
-  return ret;
-};
+const seaDepthCurve = makeSmoothCurveFunction([
+  { x: 0, y: 0 },
+  { x: 0.25, y: 0.6 },
+  { x: 1, y: 1 },
+]);
+
 const funcs = [
   // {
   //   color: [0, 1, 0],

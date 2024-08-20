@@ -1,4 +1,4 @@
-import { Coord } from "./interfaces";
+import { Coord } from "../lib/interfaces";
 
 export class PointGenerator {
   private seed: number;

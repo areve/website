@@ -23,7 +23,7 @@
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
-import { makePointGenerator, PointGenerator } from "./lib/prng";
+import { makePerlinNoiseGenerator } from "./noise/perlin";
 
 export interface UniverseProps {
   seed: number;
@@ -58,6 +58,7 @@ const sizes = (coord: Coord) => {
 
 const pixel = (coord: Coord) => {
   const n = generator(coord);
+  // console.log(n)
   return [n, n, n];
 };
 
@@ -82,7 +83,7 @@ const click = (event: MouseEvent) => {
 };
 
 const update = () => {
-  generator = makePointGenerator(props.seed);
+  generator = makePerlinNoiseGenerator(props.seed);
   render(canvas.value, props.dimensions, pixel);
   selectionChanged({ x: 0, y: 0 });
 };

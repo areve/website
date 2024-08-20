@@ -23,7 +23,7 @@
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
-import { PointGenerator } from "./lib/prng";
+import { PointGenerator } from "./noise/prng";
 
 export interface GalaxyProps {
   size: number;
@@ -125,4 +125,3 @@ watch(props, update);
   height: 100%;
   border: 0px solid #999;
 }</style>
-

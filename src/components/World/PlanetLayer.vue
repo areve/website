@@ -41,7 +41,7 @@
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render, getDevicePixelRatio } from "./lib/render";
-import { makePointGenerator } from "./lib/prng";
+import { makePointGenerator } from "./noise/prng";
 import { bicubic } from "./curves/bicubic";
 import { hsv2rgb, Hsv, clampZeroToOne } from "./lib/other";
 import { makeSmoothCurveFunction } from "./curves/smoothCurve";

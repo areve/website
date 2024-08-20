@@ -23,7 +23,7 @@
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
-import { PointGenerator } from "./lib/prng";
+import { PointGenerator } from "./noise/prng";
 import { hsv2rgb } from "./lib/other";
 
 export interface SolarSystemProps {

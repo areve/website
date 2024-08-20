@@ -23,7 +23,7 @@
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
-import { makeSmoothstepAndLinearGenerator } from "./noise/smoothStep";
+import { makeMedianGenerator } from "./noise/median";
 
 export interface UniverseProps {
   seed: number;
@@ -83,7 +83,7 @@ const click = (event: MouseEvent) => {
 };
 
 const update = () => {
-  generator = makeSmoothstepAndLinearGenerator(props.seed);
+  generator = makeMedianGenerator(props.seed);
   render(canvas.value, props.dimensions, pixel);
   selectionChanged({ x: 0, y: 0 });
 };

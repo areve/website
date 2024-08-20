@@ -4,7 +4,7 @@ export const makeVoronoiNoiseGenerator = (seed: number) => {
   const noise = new WorleyNoise({
     numPoints: 25,
     /*seed: 42,*/
-    /*dim: 3,*/
+    dim: 2,//,*/
 });
 
 

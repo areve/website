@@ -7,6 +7,15 @@
     </p>
 
     <div class="row">
+      <Universe2Layer
+        :seed="universe.seed"
+        :size="universe.size"
+        :dimensions="universe.dimensions"
+        @coordSelected="universeCoordSelected"
+      ></Universe2Layer>
+    </div>
+
+    <div class="row">
       <UniverseLayer
         :seed="universe.seed"
         :size="universe.size"
@@ -63,6 +72,8 @@ import UniverseLayer, {
   UniverseCoordSelected,
   UniverseProps,
 } from "./UniverseLayer.vue";
+import Universe2Layer from "./Universe2Layer.vue";
+
 import GalaxyLayer, {
   GalaxyCoordSelected,
   GalaxyProps,
@@ -88,7 +99,10 @@ const thisUniverseWeightKg = 1e37; // 1e37 because it makes solar system weight 
 const universe = ref<UniverseProps>({
   seed: 5,
   size: 1,
-  dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
+  dimensions: {
+    width: 200 * getDevicePixelRatio(),
+    height: 200 * getDevicePixelRatio(),
+  },
 });
 
 const galaxy = ref<GalaxyProps>({
@@ -110,18 +124,24 @@ const solarSystem = ref<SolarSystemProps>({
 const planet = ref<PlanetProps>({
   size: 0,
   seed: 0,
-  dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
+  dimensions: {
+    width: 200 * getDevicePixelRatio(),
+    height: 200 * getDevicePixelRatio(),
+  },
   camera: { x: 0, y: 0 },
 });
 
 const country = ref<CountryProps>({
   size: 0,
   seed: 0,
-  dimensions: { width: 200 * getDevicePixelRatio(), height: 200 * getDevicePixelRatio()},
+  dimensions: {
+    width: 200 * getDevicePixelRatio(),
+    height: 200 * getDevicePixelRatio(),
+  },
   camera: { x: 0, y: 0 },
   height: 0,
   moisture: 0,
-  temperature: 0
+  temperature: 0,
 });
 
 const universeCoordSelected = (args: UniverseCoordSelected) => {
@@ -151,7 +171,7 @@ const planetCoordSelected = (args: PlanetCoordSelected) => {
     size: args.size,
     height: args.height,
     moisture: args.moisture,
-    temperature: args.temperature
+    temperature: args.temperature,
   });
 };
 const countryCoordSelected = (args: CountryCoordSelected) => {};
@@ -175,5 +195,4 @@ const onKeyDown = (event: KeyboardEvent) => {
   display: flex;
   margin-bottom: 5px;
 }
-
 </style>

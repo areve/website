@@ -10,11 +10,10 @@ function smootherstep(t: number): number {
 
 // Smoothstep function
 const smoothstep = (t: number): number => {
-  return t * t * (3 - 2 * t);
+  return t * t * t * (t * (t * 6 - 15) + 10);
 };
 
-
-export const makeSmoothstepGenerator = (seed: number) => {
+export const makeSmoothstepAndLinearGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
 
   // Linear interpolation function
@@ -23,18 +22,24 @@ export const makeSmoothstepGenerator = (seed: number) => {
   };
 
   return (coord: Coord): number => {
-    const x = Math.floor(coord.x / 16);
-    const y = Math.floor(coord.y / 16);
-    const fx = (coord.x % 16) / 16; // Fractional part for x
-    const fy = (coord.y % 16) / 16; // Fractional part for y
+    const x = Math.floor(coord.x / 32);
+    const y = Math.floor(coord.y / 32);
+    const fx = (coord.x % 32) / 32; // Fractional part for x
+    const fy = (coord.y % 32) / 32; // Fractional part for y
 
     const p0 = noise({ x, y });
     const p1 = noise({ x, y: y + 1 });
     const p2 = noise({ x: x + 1, y });
     const p3 = noise({ x: x + 1, y: y + 1 });
 
-    const sx = smoothstep(fx); // Apply smoothstep to fractional part of x
-    const sy = smoothstep(fy); // Apply smoothstep to fractional part of y
+    const sx = (smoothstep(fx) + fx) / 2;
+    const sy = (smoothstep(fy) + fy) / 2;
+
+    // const sx = smoothstep(fx) ;
+    // const sy = smoothstep(fy) ;
+
+    // const sx = (fx) ;
+    // const sy = (fy) ;
 
     const m1 = lerp(p0, p1, sy); // Interpolate along y-axis
     const m2 = lerp(p2, p3, sy); // Interpolate along y-axis

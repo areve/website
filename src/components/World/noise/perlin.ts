@@ -1,12 +1,12 @@
 import { Coord } from "../lib/interfaces";
 
 export const makePerlinNoiseGenerator = (seed: number) => {
-  // Usage example
   const perlin = new PerlinNoise();
   perlin.seed();
 
   return (coord: Coord): number => {
-    return (perlin.get(coord.x / Math.PI / 3, coord.y / Math.PI / 3) + 1) / 2;
+    // change the 8 to alter the scale 
+    return (perlin.get(coord.x / 8, coord.y / 8) + 1) / 2;
   };
 };
 

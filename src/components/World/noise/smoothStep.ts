@@ -2,13 +2,10 @@ import { Coord } from "../lib/interfaces";
 import { makePointGenerator } from "./prng";
 
 function smootherstep(t: number): number {
-  // Clamp t to the range [0, 1]
-  t = Math.max(0, Math.min(1, t));
-  // Apply the smoothstep function
+  // t = Math.max(0, Math.min(1, t));
   return t * t * t * (t * (t * 6 - 15) + 10);
 }
 
-// Smoothstep function
 const smoothstep = (t: number): number => {
   return t * t * (3 - t * 2);
 };

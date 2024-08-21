@@ -1,6 +1,6 @@
 <template>
   <section>
-    <h1>Bible</h1>
+    <h1>Noise</h1>
     
   </section>
 </template>

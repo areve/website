@@ -67,6 +67,12 @@
           <!-- <li>
             <router-link to="/card-game" @click="toggle()">Card Game</router-link>
           </li> -->
+          <li>
+            <router-link to="/world" @click="toggle()">World</router-link>
+          </li>
+          <li>
+            <router-link to="/noise" @click="toggle()">Noise</router-link>
+          </li>
         </ul>
       </nav>
     </div>

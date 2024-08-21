@@ -3,8 +3,8 @@ import { Coord } from "../lib/interfaces";
 export const makeOpenSimplexNoiseGenerator = (seed: number) => {
   const noise = makeNoise2D(seed);
 
-  return (coord: Coord): number => {
-    return (noise(coord.x / 8, coord.y / 8) + 1) / 2;
+  return (coord: Coord, scale: number = 8): number => {
+    return (noise(coord.x / scale, coord.y / scale) + 1) / 2;
   };
 };
 

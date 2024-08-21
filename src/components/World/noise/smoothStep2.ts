@@ -26,7 +26,7 @@ const getVectorLength = (x: number, y: number) => {
 export const makeCustomNoiseGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
 
-  return (coord: Coord, scale: number = 32): number => {
+  return (coord: Coord, scale: number = 16): number => {
     const x = Math.floor(coord.x / scale);
     const y = Math.floor(coord.y / scale);
     let fx = (coord.x % scale) / scale;
@@ -47,11 +47,10 @@ export const makeCustomNoiseGenerator = (seed: number) => {
     // console.log(n3);
 
     // Calculate the influence of each normal based on fx, fy
-    const dot0 = (n0.x * fx + n0.y * fy) * getVectorLength(n0.x, n0.y);
-    const dot1 = (n1.x * fx + n1.y * (fy - 1)) * getVectorLength(n1.x, n1.y);
-    const dot2 = (n2.x * (fx - 1) + n2.y * fy) * getVectorLength(n2.x, n2.y);
-    const dot3 =
-      (n3.x * (fx - 1) + n3.y * (fy - 1)) * getVectorLength(n3.x, n3.y);
+    const dot0 = n0.x * fx + n0.y * fy; // * getVectorLength(n0.x, n0.y);
+    const dot1 = n1.x * fx + n1.y * (fy - 1); // * getVectorLength(n1.x, n1.y);
+    const dot2 = n2.x * (fx - 1) + n2.y * fy; // * getVectorLength(n2.x, n2.y);
+    const dot3 = n3.x * (fx - 1) + n3.y * (fy - 1); // * getVectorLength(n3.x, n3.y);
 
     // Weight each noise value based on the dot product with its normal
     let w0 = (1 - fx) * (1 - fy) * dot0;
@@ -59,16 +58,22 @@ export const makeCustomNoiseGenerator = (seed: number) => {
     let w2 = fx * (1 - fy) * dot2;
     let w3 = fx * fy * dot3;
 
-    const soften = 0.0001;
+    const softenPoints = 0.0001;
     const sumW =
-      Math.abs(w0) + Math.abs(w1) + Math.abs(w2) + Math.abs(w3) + soften;
-    w0 = w0 / sumW / 2;
-    w1 = w1 / sumW / 2;
-    w2 = w2 / sumW / 2;
-    w3 = w3 / sumW / 2;
+      Math.abs(w0) + Math.abs(w1) + Math.abs(w2) + Math.abs(w3) + softenPoints;
+    w0 = (w0 / sumW) * 0.5 ;
+    w1 = (w1 / sumW) * 0.5 ;
+    w2 = (w2 / sumW) * 0.5 ;
+    w3 = (w3 / sumW) * 0.5 ;
+    const r1 = (p0 * w0 + p1 * w1 + p2 * w2 + p3 * w3) + 0.5
 
     // Sum the weighted noise values
     // return (p0 + p1 + p2 + p3) / 4
-    return p0 * w0 + p1 * w1 + p2 * w2 + p3 * w3 + 0.5;
+
+    const m1 = lerp(p0, p1, fy); // Interpolate along y-axis
+    const m2 = lerp(p2, p3, fy); // Interpolate along y-axis
+
+    const lerped =  lerp(m1, m2, fx); // Interpolate along x-axis
+    return r1//(r1 + lerped) / 2;
   };
 };

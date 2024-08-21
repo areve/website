@@ -13,7 +13,7 @@ const smoothstep = (t: number): number => {
   return t * t * (3 - t * 2);
 };
 
-export const makeSmoothstepAndLinearGenerator = (seed: number) => {
+export const makeSmoothstepGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
 
   // Linear interpolation function
@@ -32,14 +32,8 @@ export const makeSmoothstepAndLinearGenerator = (seed: number) => {
     const p2 = noise({ x: x + 1, y });
     const p3 = noise({ x: x + 1, y: y + 1 });
 
-    const sx = (smoothstep(fx) + fx) / 2;
-    const sy = (smoothstep(fy) + fy) / 2;
-
-    // const sx = smoothstep(fx) ;
-    // const sy = smoothstep(fy) ;
-
-    // const sx = (fx) ;
-    // const sy = (fy) ;
+    const sx = smoothstep(fx);
+    const sy = smoothstep(fy);
 
     const m1 = lerp(p0, p1, sy); // Interpolate along y-axis
     const m2 = lerp(p2, p3, sy); // Interpolate along y-axis

@@ -25,8 +25,9 @@ import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
 import { makeFractal2NoiseGenerator } from "./noise/fractal2";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
+import { makeCustomNoiseGenerator } from "./noise/smoothStep2";
 
-const makeNoiseGenerator = makeFractal2NoiseGenerator
+const makeNoiseGenerator = makeCustomNoiseGenerator
 export interface UniverseProps {
   seed: number;
   size: number;

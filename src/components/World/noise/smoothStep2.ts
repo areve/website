@@ -13,15 +13,11 @@ const lerp = (a: number, b: number, t: number): number => {
 
 const getNormal = (v: number) => {
   const r = v * 4719218597;
-  const x = (((r ^ (r >> 13)) * 3462567047) >> 0) / 0xffffff;
-  const y = (((r ^ (r >> 13)) * 5465562853) >> 0) / 0xffffff;
+  const x = (((r ^ (r >> 13)) * 3462567047) >> 0) / 0xffffffff;
+  const y = (((r ^ (r >> 13)) * 5465562853) >> 0) / 0xffffffff;
+
   return { x, y };
 };
-
-function normalize(vector: { x: number; y: number }): { x: number; y: number } {
-  const length = Math.sqrt(vector.x * vector.x + vector.y * vector.y);
-  return { x: vector.x / length, y: vector.y / length };
-}
 
 export const makeCustomNoiseGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
@@ -50,18 +46,20 @@ export const makeCustomNoiseGenerator = (seed: number) => {
     const dot3 = n3.x * (fx - 1) + n3.y * (fy - 1);
 
     // Weight each noise value based on the dot product with its normal
-    const w0 = (1 - fx) * (1 - fy) * dot0;
-    const w1 = (1 - fx) * fy * dot1;
-    const w2 = fx * (1 - fy) * dot2;
-    const w3 = fx * fy * dot3;
+    let w0 = (1 - fx) * (1 - fy) * dot0;
+    let w1 = (1 - fx) * fy * dot1;
+    let w2 = fx * (1 - fy) * dot2;
+    let w3 = fx * fy * dot3;
 
-    const sumW = Math.abs(w0) + Math.abs(w1) + Math.abs(w2) + Math.abs(w3);
+    const sumW =
+      Math.abs(w0) + Math.abs(w1) + Math.abs(w2) + Math.abs(w3) + 0.00000001;
+    w0 = w0 / sumW / 2;
+    w1 = w1 / sumW / 2;
+    w2 = w2 / sumW / 2;
+    w3 = w3 / sumW / 2;
 
-    // console.log(w0, w1, w2, w3)
     // Sum the weighted noise values
-    const result = (p0 * w0 + p1 * w1 + p2 * w2 + p3 * w3) / (sumW + 0.00000001);
-
-    //   console.log(result)
-    return (result + 1) / 2;
+    // return (p0 + p1 + p2 + p3) / 4
+    return (p0 * w0 + p1 * w1 + p2 * w2 + p3 * w3) + 0.5;
   };
 };

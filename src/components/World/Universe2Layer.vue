@@ -23,8 +23,10 @@
 import { onMounted, ref, watch } from "vue";
 import { Coord, Dimensions } from "./lib/interfaces";
 import { coordFromEvent, render } from "./lib/render";
+import { makeFractal2NoiseGenerator } from "./noise/fractal2";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
 
+const makeNoiseGenerator = makeFractal2NoiseGenerator
 export interface UniverseProps {
   seed: number;
   size: number;
@@ -83,7 +85,7 @@ const click = (event: MouseEvent) => {
 };
 
 const update = () => {
-  generator = makeFractalNoiseGenerator(props.seed);
+  generator = makeNoiseGenerator(props.seed);
   render(canvas.value, props.dimensions, pixel);
   selectionChanged({ x: 0, y: 0 });
 };

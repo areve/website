@@ -1,8 +1,9 @@
 import { Coord } from "../lib/interfaces";
 import { makeOpenSimplexNoiseGenerator } from "./openSimplex";
+import { makeSmoothstepAndLinearGenerator } from "./smoothstep";
 
-export const makeFractalNoiseGenerator = (seed: number) => {
-  const noise = makeOpenSimplexNoiseGenerator(seed);
+export const makeFractal2NoiseGenerator = (seed: number) => {
+  const noise = makeSmoothstepAndLinearGenerator(seed);
 
   return (coord: Coord): number => {
     const a = noise(coord, 64);

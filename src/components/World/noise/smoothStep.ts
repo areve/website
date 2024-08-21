@@ -21,11 +21,11 @@ export const makeSmoothstepAndLinearGenerator = (seed: number) => {
     return a + (b - a) * t;
   };
 
-  return (coord: Coord): number => {
-    const x = Math.floor(coord.x / 32);
-    const y = Math.floor(coord.y / 32);
-    const fx = (coord.x % 32) / 32; // Fractional part for x
-    const fy = (coord.y % 32) / 32; // Fractional part for y
+  return (coord: Coord, scale: number = 8): number => {
+    const x = Math.floor(coord.x / scale);
+    const y = Math.floor(coord.y / scale);
+    const fx = (coord.x % scale) / scale; // Fractional part for x
+    const fy = (coord.y % scale) / scale; // Fractional part for y
 
     const p0 = noise({ x, y });
     const p1 = noise({ x, y: y + 1 });

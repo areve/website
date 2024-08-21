@@ -10,7 +10,7 @@ function smootherstep(t: number): number {
 
 // Smoothstep function
 const smoothstep = (t: number): number => {
-  return t * t * t * (t * (t * 6 - 15) + 10);
+  return t * t * (3 - t * 2);
 };
 
 export const makeSmoothstepAndLinearGenerator = (seed: number) => {

@@ -1,7 +1,5 @@
 <template>
   <section>
-    <h1>This is some noise</h1>
-    <p>here are some notes about out.</p>
     <div
       class="canvas-wrap"
       :style="{
@@ -10,6 +8,9 @@
       }"
     >
       <canvas ref="canvas" class="canvas"></canvas>
+    </div>
+    <div class="noise-render-slot">
+      <slot></slot>
     </div>
   </section>
 </template>
@@ -35,10 +36,6 @@ onMounted(update);
 </script>
 
 <style scoped>
-h1{
-  font-size: 1em;
-  font-weight: 400;
-}
 .canvas-wrap {
   position: relative;
   border: 2px solid #666;
@@ -49,5 +46,12 @@ h1{
   width: 100%;
   height: 100%;
   border: 0px solid #999;
+}
+</style>
+
+<style>
+.noise-render-slot h1 {
+  font-size: 1em;
+  font-weight: 400;
 }
 </style>

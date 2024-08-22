@@ -6,8 +6,11 @@
       splines and curves.
     </p>
 
-    <NoiseRender :dimensions="{ width: 200, height: 200}"></NoiseRender>
-    <NoiseRender :dimensions="{ width: 200, height: 200}"></NoiseRender>
+    <NoiseRender :dimensions="{ width: 100, height: 100 }">
+      <h1>This is some noise</h1>
+      <p>here are some notes about out.</p>
+    </NoiseRender>
+    <NoiseRender :dimensions="{ width: 200, height: 200 }"></NoiseRender>
   </section>
 </template>
 

@@ -19,7 +19,6 @@
 </template>
 
 <script lang="ts" setup>
-const canvas = ref<HTMLCanvasElement>(undefined!);
 import { computed, onMounted, ref } from "vue";
 import { clamp, Rgb } from "./lib/other";
 import { render } from "./lib/render";
@@ -36,6 +35,7 @@ export interface GraphProps {
   }[];
 }
 
+const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<GraphProps>();
 const dimensions = computed(() => props.dimensions);
 const funcs = computed(() => props.funcs);

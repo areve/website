@@ -1,8 +1,9 @@
+import { makePointGenerator } from "./../../World/noise/prng";
 import { Coord, Vector } from "../lib/interfaces";
 
 export const makePerlinNoiseGenerator = (seed: number) => {
   const perlin = new PerlinNoise();
-  perlin.seed();
+  perlin.seed(seed);
 
   return (coord: Coord): number => {
     return perlin.get(coord.x, coord.y);
@@ -13,8 +14,9 @@ class PerlinNoise {
   private gradients: { [key: string]: Vector } = {};
   private memory: { [key: string]: number } = {};
 
-  private randVect(): Vector {
-    const theta = Math.random() * 2 * Math.PI;
+  private prng!: (coord: Coord) => number;
+  private randVect(x: number, y: number): Vector {
+    const theta = this.prng({ x, y }) * 2 * Math.PI;
     return { x: Math.cos(theta), y: Math.sin(theta) };
   }
 
@@ -25,7 +27,7 @@ class PerlinNoise {
     if (this.gradients[key]) {
       gVect = this.gradients[key];
     } else {
-      gVect = this.randVect();
+      gVect = this.randVect(x, y);
       this.gradients[key] = gVect;
     }
     return dVect.x * gVect.x + dVect.y * gVect.y;
@@ -39,7 +41,8 @@ class PerlinNoise {
     return a + this.smootherstep(x) * (b - a);
   }
 
-  public seed(): void {
+  public seed(seed: number): void {
+    this.prng = makePointGenerator(seed);
     this.gradients = {};
     this.memory = {};
   }

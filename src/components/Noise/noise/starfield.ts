@@ -40,7 +40,7 @@ export const makeStarfieldGenerator = (seed: number) => {
           )
         ) /
           s) **
-      20
+      16
     );
   };
 };

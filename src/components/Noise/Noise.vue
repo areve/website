@@ -41,6 +41,11 @@
       :pixel="smoothstepPixel"
       >Smoothstep</NoiseRender
     >
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="starfieldPixel"
+      >Starfield</NoiseRender
+    >
   </section>
 </template>
 
@@ -52,6 +57,7 @@ import { makePerlinNoiseGenerator } from "./noise/perlin";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeSmoothstepGenerator } from "./noise/smoothstep";
 import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
+import { makeStarfieldGenerator } from "./noise/starfield";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -97,6 +103,11 @@ const smoothstepPixel = (coord: Coord) => {
 const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 16, 6);
 const voronoi2Pixel = (coord: Coord) => {
   const n = voronoi2Generator(coord) * 2;
+  return [n, n, n];
+};
+const starfieldGenerator = makeStarfieldGenerator(seed);
+const starfieldPixel = (coord: Coord) => {
+  const n = starfieldGenerator(coord);
   return [n, n, n];
 };
 </script>

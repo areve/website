@@ -13,12 +13,16 @@ export const makeVoronoi2NoiseGenerator = (
   };
 };
 
+const euclidean = (dx: number, dy: number, dz: number) =>
+  dx * dx + dy * dy + dz * dz;
+
 class WorleyNoise {
   private dimension: 2 | 3;
   private size: number;
   private density: number;
   private prng!: (coord: Coord) => number;
 
+  // TODO dimension doesn't work
   constructor(seed: number, dimension: 2 | 3, size: number, density: number) {
     this.dimension = dimension;
     this.size = size;
@@ -44,18 +48,27 @@ class WorleyNoise {
         (_, i): Coord => ({
           x: anchor.x + (this.prng({ ...anchor, z: i }) - 0.5) * s,
           y: anchor.y + (this.prng({ ...anchor, w: i }) - 0.5) * s,
+          z:
+            this.dimension == 2
+              ? 0
+              : (this.prng({ ...anchor, w: i }) - 0.5) * s,
         })
       )
     );
     return (
       Math.sqrt(
-        points.reduce((minDist, p) => {
-          const dx = coord.x - p.x;
-          const dy = coord.y - p.y;
-          const dz = this.dimension === 2 ? 0 : (coord.z ?? 0) - (p.z ?? 0);
-          const dist = dx * dx + dy * dy + dz * dz;
-          return Math.min(dist, minDist);
-        }, Infinity)
+        points.reduce(
+          (p, v) =>
+            Math.min(
+              euclidean(
+                coord.x - v.x,
+                coord.y - v.y,
+                (coord.z ?? 0) - (v.z ?? 0)
+              ),
+              p
+            ),
+          Infinity
+        )
       ) / s
     );
   }

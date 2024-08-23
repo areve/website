@@ -8,7 +8,8 @@ export const makePointGenerator = (seed: number) => {
       s +
       coord.x * 374761393 +
       coord.y * 668265263 +
-      (coord.z ?? 0) * 1440662683;
+      (coord.z ?? 0) * 1440662683 +
+      (coord.w ?? 0) * 3865785317;
     const m = (n ^ (n >> 13)) * 1274126177;
     return (m >>> 0) / 0xffffffff;
   };

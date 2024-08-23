@@ -7,11 +7,6 @@
       and gives some indication of how fast they are.
     </p>
 
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="voronoi2Pixel"
-      >Voronoi2</NoiseRender
-    >
     <NoiseRender :dimensions="{ width: 500, height: 100 }">
       Random pixels (default)
     </NoiseRender>
@@ -37,6 +32,11 @@
     >
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="voronoiPixel"
       >Voronoi</NoiseRender
+    >
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="voronoi2Pixel"
+      >Voronoi2</NoiseRender
     >
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
@@ -103,7 +103,6 @@ const smoothstepPixel = (coord: Coord) => {
   const n = smoothstepGenerator(coord, 4);
   return [n, n, n];
 };
-
 
 const voronoi2Generator = makeVoronoi2NoiseGenerator(seed);
 const voronoi2Pixel = (coord: Coord) => {

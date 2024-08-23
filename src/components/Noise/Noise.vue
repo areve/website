@@ -106,8 +106,7 @@ const smoothstepPixel = (coord: Coord) => {
 
 const voronoi2Generator = makeVoronoi2NoiseGenerator(seed);
 const voronoi2Pixel = (coord: Coord) => {
-  const n = voronoi2Generator(coord);
-  // console.log(n)
+  const n = voronoi2Generator(coord) * 2;
   return [n, n, n];
 };
 </script>

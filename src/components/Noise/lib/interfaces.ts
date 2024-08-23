@@ -16,4 +16,5 @@ export interface Dimensions {
 export interface Coord {
   x: number;
   y: number;
+  z?: number
 }

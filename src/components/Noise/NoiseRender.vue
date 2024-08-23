@@ -9,30 +9,42 @@
     >
       <canvas ref="canvas" class="canvas"></canvas>
     </div>
-    <div class="noise-render-slot">
-      <slot></slot>
-    </div>
+    <div class="noise-render-slot caption"><slot></slot> ({{ ratePixelsPerSecond.toPrecision(3) }} points/sec)</div>
   </section>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import { Dimensions, Coord } from "./lib/interfaces";
 import { render } from "./lib/render";
 
 export interface NoiseRenderProps {
   dimensions: Dimensions;
+  pixel: (coord: Coord) => number[];
 }
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<NoiseRenderProps>();
 const dimensions = computed(() => props.dimensions);
-const pixel = (coord: Coord) => {
-  return [Math.random(), Math.random(), Math.random()];
-};
+const randomPixel = (coord: Coord) => [
+  Math.random(),
+  Math.random(),
+  Math.random(),
+];
+const pixel = computed(() => props.pixel ?? randomPixel);
+const ratePixelsPerSecond = ref(0)
 
-const update = () => render(canvas.value, dimensions.value, pixel);
+const update = () => {
+  const start = new Date().getTime();
+  render(canvas.value, dimensions.value, pixel.value);
+  const end = new Date().getTime();
+  const pixels = dimensions.value.height * dimensions.value.width;
+  ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
+
+  // console.log("rate", ratePixelsPerSecond, end, start);
+};
 onMounted(update);
+watch(props, update);
 </script>
 
 <style scoped>
@@ -45,7 +57,13 @@ onMounted(update);
   position: absolute;
   width: 100%;
   height: 100%;
+  margin: 0;
   border: 0px solid #999;
+}
+.caption {
+  margin-top: -0.5em;
+  font-size: 0.9em;
+  font-style: italic;
 }
 </style>
 

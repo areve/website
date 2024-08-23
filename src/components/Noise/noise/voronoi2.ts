@@ -1,9 +1,13 @@
 import { Coord } from "../lib/interfaces";
 import { makePointGenerator } from "../noise/prng";
 
-export const makeVoronoi2NoiseGenerator = (seed: number) => {
-  const noise = new WorleyNoise(seed, 2);
-
+export const makeVoronoi2NoiseGenerator = (
+  seed: number,
+  dimension: 2 | 3 = 2,
+  size: number = 64,
+  density: number = 5
+) => {
+  const noise = new WorleyNoise(seed, dimension, size, density);
   return (coord: Coord): number => {
     return noise.point({ x: coord.x, y: coord.y, z: 0 });
   };
@@ -15,12 +19,7 @@ class WorleyNoise {
   private density: number;
   private prng!: (coord: Coord) => number;
 
-  constructor(
-    seed: number,
-    dimension: 2 | 3 = 2,
-    size: number = 64,
-    density: number = 5
-  ) {
+  constructor(seed: number, dimension: 2 | 3, size: number, density: number) {
     this.dimension = dimension;
     this.size = size;
     this.density = density;

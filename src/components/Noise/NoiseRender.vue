@@ -9,7 +9,12 @@
     >
       <canvas ref="canvas" class="canvas"></canvas>
     </div>
-    <div class="noise-render-slot caption"><slot></slot> ({{ ratePixelsPerSecond.toPrecision(3) }} points/sec)</div>
+    <div class="noise-render-slot caption">
+      <slot></slot> ({{
+        (ratePixelsPerSecond / 1000000).toPrecision(3)
+      }}
+      Mpix/sec)
+    </div>
   </section>
 </template>
 
@@ -32,7 +37,7 @@ const randomPixel = (coord: Coord) => [
   Math.random(),
 ];
 const pixel = computed(() => props.pixel ?? randomPixel);
-const ratePixelsPerSecond = ref(0)
+const ratePixelsPerSecond = ref(0);
 
 const update = () => {
   const start = new Date().getTime();
@@ -40,8 +45,6 @@ const update = () => {
   const end = new Date().getTime();
   const pixels = dimensions.value.height * dimensions.value.width;
   ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
-
-  // console.log("rate", ratePixelsPerSecond, end, start);
 };
 onMounted(update);
 watch(props, update);

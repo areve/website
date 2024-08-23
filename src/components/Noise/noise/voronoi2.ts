@@ -22,7 +22,6 @@ class WorleyNoise {
   private density: number;
   private prng!: (coord: Coord) => number;
 
-  // TODO dimension doesn't work
   constructor(seed: number, dimension: 2 | 3, size: number, density: number) {
     this.dimension = dimension;
     this.size = size;
@@ -51,7 +50,7 @@ class WorleyNoise {
           z:
             this.dimension == 2
               ? 0
-              : (this.prng({ ...anchor, w: i }) - 0.5) * s,
+              : (this.prng({ ...anchor, z: i, w: i }) - 0.5) * s,
         })
       )
     );
@@ -59,14 +58,7 @@ class WorleyNoise {
       Math.sqrt(
         points.reduce(
           (p, v) =>
-            Math.min(
-              euclidean(
-                coord.x - v.x,
-                coord.y - v.y,
-                (coord.z ?? 0) - (v.z ?? 0)
-              ),
-              p
-            ),
+            Math.min(euclidean(coord.x - v.x, coord.y - v.y, v.z ?? 0), p),
           Infinity
         )
       ) / s

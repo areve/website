@@ -30,13 +30,11 @@
       :pixel="openSimplexPixel"
       >OpenSimplex</NoiseRender
     >
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="voronoiPixel"
-      >Voronoi</NoiseRender
-    >
+
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="voronoi2Pixel"
-      >Voronoi2</NoiseRender
+      >Voronoi</NoiseRender
     >
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
@@ -53,7 +51,6 @@ import { makePointGenerator } from "./noise/prng";
 import { makePerlinNoiseGenerator } from "./noise/perlin";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeSmoothstepGenerator } from "./noise/smoothstep";
-import { makeVoronoiNoiseGenerator } from "./noise/voronoi";
 import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
 
 const seed = 12345;
@@ -91,20 +88,13 @@ const openSimplexPixel = (coord: Coord) => {
   return [n, n, n];
 };
 
-const voronoiGenerator = makeVoronoiNoiseGenerator(seed);
-const voronoiPixel = (coord: Coord) => {
-  const s = { x: coord.x / 200, y: coord.y / 200 };
-  const n = voronoiGenerator(s) * 3;
-  return [n, n, n];
-};
-
 const smoothstepGenerator = makeSmoothstepGenerator(seed);
 const smoothstepPixel = (coord: Coord) => {
   const n = smoothstepGenerator(coord, 4);
   return [n, n, n];
 };
 
-const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 64, 5);
+const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 16, 6);
 const voronoi2Pixel = (coord: Coord) => {
   const n = voronoi2Generator(coord) * 2;
   return [n, n, n];

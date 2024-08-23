@@ -7,9 +7,15 @@
       and gives some indication of how fast they are.
     </p>
 
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="voronoi2Pixel"
+      >Voronoi2</NoiseRender
+    >
     <NoiseRender :dimensions="{ width: 500, height: 100 }">
       Random pixels (default)
     </NoiseRender>
+
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="randomPixel"
       >Random pixels, in grayscale.</NoiseRender
     >
@@ -48,6 +54,7 @@ import { makePerlinNoiseGenerator } from "./noise/perlin";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeSmoothstepGenerator } from "./noise/smoothstep";
 import { makeVoronoiNoiseGenerator } from "./noise/voronoi";
+import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -88,6 +95,13 @@ const voronoiGenerator = makeVoronoiNoiseGenerator(seed);
 const voronoiPixel = (coord: Coord) => {
   const s = { x: coord.x / 200, y: coord.y / 200 };
   const n = voronoiGenerator(s) * 3;
+  return [n, n, n];
+};
+
+const voronoi2Generator = makeVoronoi2NoiseGenerator(seed);
+const voronoi2Pixel = (coord: Coord) => {
+  const s = { x: coord.x / 200, y: coord.y / 200 };
+  const n = voronoi2Generator(s) * 3;
   return [n, n, n];
 };
 

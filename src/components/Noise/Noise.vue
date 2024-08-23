@@ -21,7 +21,12 @@
       >Pseudo-random pixels.</NoiseRender
     >
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlinPixel"
-      >Perlin.</NoiseRender
+      >Perlin</NoiseRender
+    >
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="smoothstepPixel"
+      >Smoothstep</NoiseRender
     >
   </section>
 </template>
@@ -31,6 +36,7 @@ import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
 import { makePerlinNoiseGenerator } from "./noise/perlin";
+import { makeSmoothstepGenerator } from "./noise/smoothstep";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -57,6 +63,11 @@ const perlinGenerator = makePerlinNoiseGenerator(seed);
 const perlinPixel = (coord: Coord) => {
   const s = { x: coord.x / 8, y: coord.y / 8 };
   const n = (perlinGenerator(s) + 1) / 2;
+  return [n, n, n];
+};
+const smoothstepGenerator = makeSmoothstepGenerator(seed);
+const smoothstepPixel = (coord: Coord) => {
+  const n = smoothstepGenerator(coord, 4);
   return [n, n, n];
 };
 </script>

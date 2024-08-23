@@ -16,5 +16,10 @@ export interface Dimensions {
 export interface Coord {
   x: number;
   y: number;
-  z?: number
+  z?: number;
+}
+
+export interface Vector {
+  x: number;
+  y: number;
 }

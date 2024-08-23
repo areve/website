@@ -20,6 +20,9 @@
       :pixel="pseudoRandomColor"
       >Pseudo-random pixels.</NoiseRender
     >
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlinPixel"
+      >Perlin.</NoiseRender
+    >
   </section>
 </template>
 
@@ -27,8 +30,10 @@
 import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
+import { makePerlinNoiseGenerator } from "./noise/perlin";
 
-const generator = makePointGenerator(12345);
+const seed = 12345;
+const generator = makePointGenerator(seed);
 
 const randomPixel = (coord: Coord) => {
   const n = Math.random();
@@ -46,6 +51,13 @@ const pseudoRandomColor = (coord: Coord) => {
     generator({ x: coord.x, y: coord.y, z: 1 }),
     generator({ x: coord.x, y: coord.y, z: 2 }),
   ];
+};
+
+const perlinGenerator = makePerlinNoiseGenerator(seed);
+const perlinPixel = (coord: Coord) => {
+  const s = { x: coord.x / 8, y: coord.y / 8 };
+  const n = (perlinGenerator(s) + 1) / 2;
+  return [n, n, n];
 };
 </script>
 

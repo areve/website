@@ -1,21 +1,13 @@
-import { Coord } from "../lib/interfaces";
+import { Coord, Vector } from "../lib/interfaces";
 
 export const makePerlinNoiseGenerator = (seed: number) => {
   const perlin = new PerlinNoise();
   perlin.seed();
 
   return (coord: Coord): number => {
-    // change the 8 to alter the scale 
-    return (perlin.get(coord.x / 8, coord.y / 8) + 1) / 2;
+    return perlin.get(coord.x, coord.y);
   };
 };
-
-("use strict");
-
-interface Vector {
-  x: number;
-  y: number;
-}
 
 class PerlinNoise {
   private gradients: { [key: string]: Vector } = {};
@@ -75,14 +67,3 @@ class PerlinNoise {
     return v;
   }
 }
-
-
-// Usage example
-const perlin = new PerlinNoise();
-perlin.seed();
-
-// Example usage: get noise value at coordinate (x, y)
-const x = 1.5;
-const y = 0.2;
-const value = perlin.get(x, y);
-console.log(value);

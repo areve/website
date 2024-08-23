@@ -98,16 +98,17 @@ const voronoiPixel = (coord: Coord) => {
   return [n, n, n];
 };
 
-const voronoi2Generator = makeVoronoi2NoiseGenerator(seed);
-const voronoi2Pixel = (coord: Coord) => {
-  const s = { x: coord.x / 200, y: coord.y / 200 };
-  const n = voronoi2Generator(s) * 3;
-  return [n, n, n];
-};
-
 const smoothstepGenerator = makeSmoothstepGenerator(seed);
 const smoothstepPixel = (coord: Coord) => {
   const n = smoothstepGenerator(coord, 4);
+  return [n, n, n];
+};
+
+
+const voronoi2Generator = makeVoronoi2NoiseGenerator(seed);
+const voronoi2Pixel = (coord: Coord) => {
+  const n = voronoi2Generator(coord);
+  // console.log(n)
   return [n, n, n];
 };
 </script>

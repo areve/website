@@ -87,7 +87,7 @@ const openSimplexPixel = (coord: Coord) => {
 const voronoiGenerator = makeVoronoiNoiseGenerator(seed);
 const voronoiPixel = (coord: Coord) => {
   const s = { x: coord.x / 200, y: coord.y / 200 };
-  const n = voronoiGenerator(s);
+  const n = voronoiGenerator(s) * 3;
   return [n, n, n];
 };
 

@@ -4,12 +4,11 @@ export const makeVoronoiNoiseGenerator = (seed: number) => {
   const noise = new WorleyNoise({
     numPoints: 25,
     /*seed: 42,*/
-    dim: 2,//,*/
-});
-
+    dim: 2, //,*/
+  });
 
   return (coord: Coord): number => {
-    return noise.getEuclidean({ x: coord.x, y: coord.y, z: 0}, 1) ;
+    return noise.getEuclidean({ x: coord.x, y: coord.y, z: 0 }, 1);
   };
 };
 
@@ -61,53 +60,6 @@ class WorleyNoise {
   }
 
   getEuclidean(coord: Point, k: number): number {
-    return Math.sqrt(this._calculateValue(coord, k, euclidean));
-  }
-
-  getManhattan(coord: Point, k: number): number {
-    return this._calculateValue(coord, k, manhattan);
-  }
-
-  renderImage(resolution: number, config: WorleyNoiseConfig = {}): number[] {
-    const step = 1 / (resolution - 1);
-    const img = new Array<number>(resolution * resolution);
-    const callback =
-      config.callback ||
-      ((e: (value: number) => number, m: (value: number) => number) => e(1));
-    const z = config.z || 0;
-
-    const e = (k: number) =>
-      Math.sqrt(this._calculateValue({ x: 0, y: 0, z }, k, euclidean));
-    const m = (k: number) =>
-      this._calculateValue({ x: 0, y: 0, z }, k, manhattan);
-
-    for (let y = 0; y < resolution; ++y) {
-      for (let x = 0; x < resolution; ++x) {
-        img[y * resolution + x] = callback(e, m);
-      }
-    }
-
-    if (!config.normalize) {
-      return img;
-    }
-
-    let min = Number.POSITIVE_INFINITY;
-    let max = Number.NEGATIVE_INFINITY;
-
-    img.forEach((v) => {
-      min = Math.min(min, v);
-      max = Math.max(max, v);
-    });
-
-    const scale = 1 / (max - min);
-    return img.map((v) => (v - min) * scale);
-  }
-
-  private _calculateValue(
-    coord: Point,
-    k: number,
-    distFn: (dx: number, dy: number, dz: number) => number
-  ): number {
     let minDist: number = 0;
     this._points.forEach((p) => {
       p.selected = false;
@@ -120,7 +72,7 @@ class WorleyNoise {
       for (let i = 0; i < this._points.length; ++i) {
         const p = this._points[i];
         const dz = this._dim === 2 ? 0 : coord.z - p.z;
-        const dist = distFn(coord.x - p.x, coord.y - p.y, dz);
+        const dist = euclidean(coord.x - p.x, coord.y - p.y, dz);
 
         if (dist < minDist && !p.selected) {
           minDist = dist;
@@ -133,13 +85,9 @@ class WorleyNoise {
       }
     }
 
-    return minDist;
+    return Math.sqrt(minDist);
   }
 }
 
 const euclidean = (dx: number, dy: number, dz: number) =>
   dx * dx + dy * dy + dz * dz;
-const manhattan = (dx: number, dy: number, dz: number) =>
-  Math.abs(dx) + Math.abs(dy) + Math.abs(dz);
-
-export default WorleyNoise;

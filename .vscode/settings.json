@@ -4,6 +4,7 @@
     "ifft",
     "lerp",
     "perlin",
-    "voronoi"
+    "voronoi",
+    "Worley"
   ]
 }

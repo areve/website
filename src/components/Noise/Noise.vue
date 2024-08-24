@@ -22,6 +22,10 @@
       :pixel="pseudoRandomColor"
       >Pseudo-random pixels.</NoiseRender
     >
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlin2Pixel"
+      >Perlin2</NoiseRender
+    >
+
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlinPixel"
       >Perlin</NoiseRender
     >
@@ -36,10 +40,11 @@
       :pixel="voronoi2Pixel"
       >Voronoi</NoiseRender
     >
+   
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="smoothstepPixel"
-      >Smoothstep</NoiseRender
+      >Smoothstep (Value Noise?)</NoiseRender
     >
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
@@ -56,6 +61,7 @@ import { makePointGenerator } from "./noise/prng";
 import { makePerlinNoiseGenerator } from "./noise/perlin";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeSmoothstepGenerator } from "./noise/smoothstep";
+import { makePerlin2Generator } from "./noise/perlin2";
 import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
 import { makeStarfieldGenerator } from "./noise/starfield";
 
@@ -97,6 +103,12 @@ const openSimplexPixel = (coord: Coord) => {
 const smoothstepGenerator = makeSmoothstepGenerator(seed);
 const smoothstepPixel = (coord: Coord) => {
   const n = smoothstepGenerator(coord, 4);
+  return [n, n, n];
+};
+
+const perlin2Generator = makePerlin2Generator(seed);
+const perlin2Pixel = (coord: Coord) => {
+  const n = perlin2Generator(coord, 8) * 0.8 + 0.6;
   return [n, n, n];
 };
 

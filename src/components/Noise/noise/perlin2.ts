@@ -1,0 +1,60 @@
+import { Coord } from "../lib/interfaces";
+import { makePointGenerator } from "./prng";
+
+function smootherstep(t: number): number {
+  return t * t * t * (t * (t * 6 - 15) + 10);
+}
+
+const smoothstep = (t: number): number => {
+  return t * t * (3 - t * 2);
+};
+
+const lerp = (a: number, b: number, t: number): number => {
+  return a + (b - a) * t;
+};
+
+export const makePerlin2Generator = (seed: number) => {
+  const noise = makePointGenerator(seed);
+  const genVector = (coord: Coord) => ({
+    x: noise({ x: coord.x, y: coord.y, z: coord.x * coord.y }) * 2 - 1, // simplify?
+    y: noise({ x: coord.x, y: coord.y, w: coord.x * coord.y }) * 2 - 1,
+  });
+
+  return (coord: Coord, scale: number = 8): number => {
+    const x = Math.floor(coord.x / scale);
+    const y = Math.floor(coord.y / scale);
+    const fx = (coord.x % scale) / scale;
+    const fy = (coord.y % scale) / scale;
+
+    const p0 = noise({ x, y });
+    const p1 = noise({ x, y: y + 1 });
+    const p2 = noise({ x: x + 1, y });
+    const p3 = noise({ x: x + 1, y: y + 1 });
+
+    const v0 = genVector({ x, y });
+    const v1 = genVector({ x, y: y + 1 });
+    const v2 = genVector({ x: x + 1, y });
+    const v3 = genVector({ x: x + 1, y: y + 1 });
+
+    // Calculate the offset vectors
+    const d0 = { x: fx, y: fy };
+    const d1 = { x: fx, y: fy - 1 };
+    const d2 = { x: fx - 1, y: fy };
+    const d3 = { x: fx - 1, y: fy - 1 };
+
+    // Calculate the dot products
+    const dot0 = v0.x * d0.x + v0.y * d0.y;
+    const dot1 = v1.x * d1.x + v1.y * d1.y;
+    const dot2 = v2.x * d2.x + v2.y * d2.y;
+    const dot3 = v3.x * d3.x + v3.y * d3.y;
+
+    const sx = smoothstep(fx);
+    const sy = smoothstep(fy);
+
+    // Interpolate between the dot products
+    const m1 = lerp(dot0, dot1, sy);
+    const m2 = lerp(dot2, dot3, sy);
+
+    return lerp(m1, m2, sx);
+  };
+};

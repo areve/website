@@ -30,8 +30,8 @@
       >Perlin</NoiseRender
     >
 
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="openSimplex2Pixel"
-      >OpenSimplex2 (WIP)</NoiseRender
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="customSimplexPixel"
+      >CustomSimplex my version of a simplex algorithm</NoiseRender
     >
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
@@ -62,7 +62,7 @@ import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlin2Generator } from "./noise/perlin2";
 import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
 import { makeStarfieldGenerator } from "./noise/starfield";
-import { makeOpenSimplex2Generator } from "./noise/openSimplex2";
+import { makeCustomSimplexGenerator } from "./noise/customSimplex";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -103,9 +103,9 @@ const perlin2Pixel = (coord: Coord) => {
   const n = perlin2Generator(coord, 8) * 0.8 + 0.6;
   return [n, n, n];
 };
-const openSimplex2Generator = makeOpenSimplex2Generator(seed);
-const openSimplex2Pixel = (coord: Coord) => {
-  const n = openSimplex2Generator(coord, 8) * 0.7 + 0.5;
+const customSimplexGenerator = makeCustomSimplexGenerator(seed);
+const customSimplexPixel = (coord: Coord) => {
+  const n = customSimplexGenerator(coord, 8) * 0.7 + 0.5;
   return [n, n, n];
 };
 
@@ -122,4 +122,3 @@ const starfieldPixel = (coord: Coord) => {
 </script>
 
 <style scoped></style>
-./noise/value

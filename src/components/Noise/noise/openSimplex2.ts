@@ -36,38 +36,25 @@ export const makeOpenSimplex2Generator = (seed: number) => {
 
     const x = Math.floor(xSkewed / scale);
     const y = Math.floor(ySkewed / scale);
-    const fx = ((xSkewed - x * scale) / scale);
-    const fy = ((ySkewed - y * scale) / scale);
+    const fx = (xSkewed - x * scale) / scale;
+    const fy = (ySkewed - y * scale) / scale;
 
     const topLeft = fx + fy < 1;
-    if (topLeft) {
-      const u = 1 - fx - fy;
-      const v = fy;
-      const w = fx;
 
-      const v0 = prngVector({ x, y });
-      const v1 = prngVector({ x, y: y + 1 });
-      const v2 = prngVector({ x: x + 1, y });
+    const v = topLeft ? fy : 1 - fx;
+    const w = topLeft ? fx : 1 - fy;
+    const u = 1 - v - w;
 
-      const p0 = v0.x * fx + v0.y * fy;
-      const p1 = v1.x * fx + v1.y * (fy - 1);
-      const p2 = v2.x * (fx - 1) + v2.y * fy;
+    const c = topLeft ? 0 : 1;
 
-      return u * p0 + v * p1 + w * p2;
-    } else {
-      const u = fx + fy - 1;
-      const v = 1 - fx;
-      const w = 1 - fy;
+    const v0 = prngVector({ x: x + c, y: y + c });
+    const v1 = prngVector({ x, y: y + 1 });
+    const v2 = prngVector({ x: x + 1, y });
 
-      const v0 = prngVector({ x: x + 1, y: y + 1 });
-      const v1 = prngVector({ x, y: y + 1 });
-      const v2 = prngVector({ x: x + 1, y });
+    const p0 = v0.x * (fx - c) + v0.y * (fy - c);
+    const p1 = v1.x * fx + v1.y * (fy - 1);
+    const p2 = v2.x * (fx - 1) + v2.y * fy;
 
-      const p0 = v0.x * (fx - 1) + v0.y * (fy - 1);
-      const p1 = v1.x * fx + v1.y * (fy - 1);
-      const p2 = v2.x * (fx - 1) + v2.y * fy;
-
-      return u * p0 + v * p1 + w * p2;
-    }
+    return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
   };
 };

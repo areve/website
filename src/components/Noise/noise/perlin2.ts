@@ -1,20 +1,20 @@
 import { Coord } from "../lib/interfaces";
 import { makePointGenerator } from "./prng";
 
-function smootherstep(t: number): number {
-  return t * t * t * (t * (t * 6 - 15) + 10);
-}
-
-const smoothstep = (t: number): number => {
-  return t * t * (3 - t * 2);
-};
-
-const lerp = (a: number, b: number, t: number): number => {
-  return a + (b - a) * t;
-};
-
 export const makePerlin2Generator = (seed: number) => {
   const noise = makePointGenerator(seed);
+
+  function smootherstep(t: number): number {
+    return t * t * t * (t * (t * 6 - 15) + 10);
+  }
+
+  const smoothstep = (t: number): number => {
+    return t * t * (3 - t * 2);
+  };
+
+  const lerp = (a: number, b: number, t: number): number => {
+    return a + (b - a) * t;
+  };
 
   const genVector = (coord: Coord) => {
     const theta = noise({ x: coord.x, y: coord.y, z: 1 }) * 2 * Math.PI;

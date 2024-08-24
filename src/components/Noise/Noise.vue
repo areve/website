@@ -6,11 +6,11 @@
       splines and curves. This page shows what different algorithms look like
       and gives some indication of how fast they are.
     </p>
-
+<!--  
     <NoiseRender :dimensions="{ width: 500, height: 100 }">
       Random pixels (default)
     </NoiseRender>
-
+-->
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="randomPixel"
       >Random pixels, in grayscale.</NoiseRender
     >
@@ -21,7 +21,7 @@
       :dimensions="{ width: 500, height: 100 }"
       :pixel="pseudoRandomColor"
       >Pseudo-random pixels.</NoiseRender
-    >
+    > 
 
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="valuePixel"
       >Value noise</NoiseRender
@@ -105,7 +105,7 @@ const perlin2Pixel = (coord: Coord) => {
 };
 const openSimplex2Generator = makeOpenSimplex2Generator(seed);
 const openSimplex2Pixel = (coord: Coord) => {
-  const n = openSimplex2Generator(coord, 8);
+  const n = openSimplex2Generator(coord, 8) * 0.5 + 0.5;
   return [n, n, n];
 };
 

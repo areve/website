@@ -6,6 +6,9 @@ export const makeOpenSimplex2Generator = (seed: number) => {
 
   const smoothstep = (t: number): number => t * t * (3 - t * 2);
 
+  const smootherstep = (t: number): number =>
+    t * t * t * (t * (t * 6 - 15) + 10);
+
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
   function barycentricInterp(
@@ -26,31 +29,45 @@ export const makeOpenSimplex2Generator = (seed: number) => {
     return { x: Math.cos(theta), y: Math.sin(theta) };
   };
 
-  return (coord: Coord, scale: number = 8): number => {
-    const x = Math.floor(coord.x / scale);
-    const y = Math.floor(coord.y / scale);
-    const fx = (coord.x % scale) / scale;
-    const fy = (coord.y % scale) / scale;
+  return (coord: Coord, scale: number = 16): number => {
+    const skewFactor = -1 / 2;
+    const xSkewed = coord.x + coord.y * skewFactor;
+    const ySkewed = coord.y;
 
-    const p3 = noise({ x: x + 1, y: y + 1 });
+    const x = Math.floor(xSkewed / scale);
+    const y = Math.floor(ySkewed / scale);
+    const fx = ((xSkewed - x * scale) / scale);
+    const fy = ((ySkewed - y * scale) / scale);
 
-    let r: number;
-    if (fx + fy < 1) {
-      const p0 = noise({ x, y });
-      const p1 = noise({ x, y: y + 1 });
-      const p2 = noise({ x: x + 1, y });
+    const topLeft = fx + fy < 1;
+    if (topLeft) {
+      const u = 1 - fx - fy;
       const v = fy;
       const w = fx;
-      const u = 1 - v - w;
-      return p0 * u + p1 * v + p2 * w;
+
+      const v0 = prngVector({ x, y });
+      const v1 = prngVector({ x, y: y + 1 });
+      const v2 = prngVector({ x: x + 1, y });
+
+      const p0 = v0.x * fx + v0.y * fy;
+      const p1 = v1.x * fx + v1.y * (fy - 1);
+      const p2 = v2.x * (fx - 1) + v2.y * fy;
+
+      return u * p0 + v * p1 + w * p2;
     } else {
-      const p1 = noise({ x, y: y + 1 });
-      const p2 = noise({ x: x + 1, y });
-      const p3 = noise({ x: x + 1, y: y + 1 });
+      const u = fx + fy - 1;
       const v = 1 - fx;
       const w = 1 - fy;
-      const u = 1 - v - w;
-      return p3 * u + p1 * v + p2 * w;
+
+      const v0 = prngVector({ x: x + 1, y: y + 1 });
+      const v1 = prngVector({ x, y: y + 1 });
+      const v2 = prngVector({ x: x + 1, y });
+
+      const p0 = v0.x * (fx - 1) + v0.y * (fy - 1);
+      const p1 = v1.x * fx + v1.y * (fy - 1);
+      const p2 = v2.x * (fx - 1) + v2.y * fy;
+
+      return u * p0 + v * p1 + w * p2;
     }
   };
 };

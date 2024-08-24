@@ -40,21 +40,30 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const fy = (ySkewed - y * scale) / scale;
 
     const topLeft = fx + fy < 1;
-
-    const v = topLeft ? fy : 1 - fx;
-    const w = topLeft ? fx : 1 - fy;
+    const v = topLeft ? fy : 1 - fy;
+    const w = topLeft ? fx : 1 - fx;
     const u = 1 - v - w;
 
-    const c = topLeft ? 0 : 1;
+    if (topLeft) {
+      const v0 = prngVector({ x: x, y: y });
+      const v1 = prngVector({ x, y: y + 1 });
+      const v2 = prngVector({ x: x + 1, y });
 
-    const v0 = prngVector({ x: x + c, y: y + c });
-    const v1 = prngVector({ x, y: y + 1 });
-    const v2 = prngVector({ x: x + 1, y });
+      const p0 = v0.x * fx + v0.y * fy;
+      const p1 = v1.x * fx + v1.y * (fy - 1);
+      const p2 = v2.x * (fx - 1) + v2.y * fy;
 
-    const p0 = v0.x * (fx - c) + v0.y * (fy - c);
-    const p1 = v1.x * fx + v1.y * (fy - 1);
-    const p2 = v2.x * (fx - 1) + v2.y * fy;
+      return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+    } else {
+      const v0 = prngVector({ x: x + 1, y: y + 1 });
+      const v1 = prngVector({ x: x + 1, y });
+      const v2 = prngVector({ x, y: y + 1 });
 
-    return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+      const p0 = v0.x * (fx - 1) + v0.y * (fy - 1);
+      const p1 = v1.x * (fx - 1) + v1.y * fy;
+      const p2 = v2.x * fx + v2.y * (fy - 1);
+
+      return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+    }
   };
 };

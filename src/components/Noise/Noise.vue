@@ -31,7 +31,7 @@
     >
 
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="openSimplex2Pixel"
-      >OpenSimplex2</NoiseRender
+      >OpenSimplex2 (WIP)</NoiseRender
     >
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
@@ -94,7 +94,7 @@ const openSimplexPixel = (coord: Coord) => {
 
 const valueGenerator = makeValueNoiseGenerator(seed);
 const valuePixel = (coord: Coord) => {
-  const n = valueGenerator(coord, 4);
+  const n = valueGenerator(coord, 8);
   return [n, n, n];
 };
 
@@ -105,7 +105,7 @@ const perlin2Pixel = (coord: Coord) => {
 };
 const openSimplex2Generator = makeOpenSimplex2Generator(seed);
 const openSimplex2Pixel = (coord: Coord) => {
-  const n = openSimplex2Generator(coord, 8) * 0.8 + 0.6;
+  const n = openSimplex2Generator(coord, 8);
   return [n, n, n];
 };
 

@@ -8,6 +8,19 @@ export const makeOpenSimplex2Generator = (seed: number) => {
 
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
+  function barycentricInterp(
+    p0: number,
+    p1: number,
+    p2: number, // Values at the three triangle vertices
+    u: number,
+    v: number // Barycentric coordinates u and v
+  ): number {
+    const w = 1 - u - v; // Barycentric coordinate w
+
+    // Return the weighted sum of the three points
+    return p0 * w + p1 * u + p2 * v;
+  }
+
   const prngVector = (coord: Coord) => {
     const theta = noise({ x: coord.x, y: coord.y, z: 1 }) * 2 * Math.PI;
     return { x: Math.cos(theta), y: Math.sin(theta) };
@@ -19,23 +32,25 @@ export const makeOpenSimplex2Generator = (seed: number) => {
     const fx = (coord.x % scale) / scale;
     const fy = (coord.y % scale) / scale;
 
-    // const v0 = prngVector({ x, y });
-    // const v1 = prngVector({ x, y: y + 1 });
-    // const v2 = prngVector({ x: x + 1, y });
-    // const v3 = prngVector({ x: x + 1, y: y + 1 });
+    const p3 = noise({ x: x + 1, y: y + 1 });
 
-    // // Calculate the dot products
-    // const dot0 = v0.x * fx + v0.y * fy;
-    // const dot1 = v1.x * fx + v1.y * (fy - 1);
-    // const dot2 = v2.x * (fx - 1) + v2.y * fy;
-    // const dot3 = v3.x * (fx - 1) + v3.y * (fy - 1);
-
-    // // Interpolate between the dot products
-    // const sx = smoothstep(fx);
-    // const sy = smoothstep(fy);
-    // const m1 = lerp(dot0, dot1, sy);
-    // const m2 = lerp(dot2, dot3, sy);
-    // return lerp(m1, m2, sx);
-    return 0.5
+    let r: number;
+    if (fx + fy < 1) {
+      const p0 = noise({ x, y });
+      const p1 = noise({ x, y: y + 1 });
+      const p2 = noise({ x: x + 1, y });
+      const v = fy;
+      const w = fx;
+      const u = 1 - v - w;
+      return p0 * u + p1 * v + p2 * w;
+    } else {
+      const p1 = noise({ x, y: y + 1 });
+      const p2 = noise({ x: x + 1, y });
+      const p3 = noise({ x: x + 1, y: y + 1 });
+      const v = 1 - fx;
+      const w = 1 - fy;
+      const u = 1 - v - w;
+      return p3 * u + p1 * v + p2 * w;
+    }
   };
 };

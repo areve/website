@@ -41,8 +41,8 @@ export const makeCustomSimplexGenerator = (seed: number) => {
 
     const topLeft = fx + fy < 1;
     if (topLeft) {
-      const v = fy;
-      const w = fx;
+      const v = smoothstep(fy);
+      const w = smoothstep(fx);
       const u = 1 - v - w;
 
       const v0 = prngVector({ x: x, y: y });
@@ -53,10 +53,10 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       const p1 = v1.x * fx + v1.y * (fy - 1);
       const p2 = v2.x * (fx - 1) + v2.y * fy;
 
-      return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+      return u * p0 + v * p1 + w * p2;
     } else {
-      const v = 1 - fy;
-      const w = 1 - fx;
+      const v = smoothstep(1 - fy);
+      const w = smoothstep(1 - fx);
       const u = 1 - v - w;
 
       const v0 = prngVector({ x: x + 1, y: y + 1 });
@@ -67,7 +67,7 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       const p1 = v1.x * (fx - 1) + v1.y * fy;
       const p2 = v2.x * fx + v2.y * (fy - 1);
 
-      return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+      return u * p0 + v * p1 + w * p2;
     }
   };
 };

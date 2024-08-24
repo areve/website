@@ -23,12 +23,9 @@
       >Pseudo-random pixels.</NoiseRender
     >
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlin2Pixel"
-      >Perlin2</NoiseRender
-    >
-
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlinPixel"
       >Perlin</NoiseRender
     >
+
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="openSimplexPixel"
@@ -58,7 +55,6 @@
 import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
-import { makePerlinNoiseGenerator } from "./noise/perlin";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeSmoothstepGenerator } from "./noise/smoothstep";
 import { makePerlin2Generator } from "./noise/perlin2";
@@ -84,13 +80,6 @@ const pseudoRandomColor = (coord: Coord) => {
     generator({ x: coord.x, y: coord.y, z: 1 }),
     generator({ x: coord.x, y: coord.y, z: 2 }),
   ];
-};
-
-const perlinGenerator = makePerlinNoiseGenerator(seed);
-const perlinPixel = (coord: Coord) => {
-  const s = { x: coord.x / 8, y: coord.y / 8 };
-  const n = (perlinGenerator(s) + 1) / 2;
-  return [n, n, n];
 };
 
 const openSimplexGenerator = makeOpenSimplexNoiseGenerator(seed);

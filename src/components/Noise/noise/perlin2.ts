@@ -4,19 +4,11 @@ import { makePointGenerator } from "./prng";
 export const makePerlin2Generator = (seed: number) => {
   const noise = makePointGenerator(seed);
 
-  function smootherstep(t: number): number {
-    return t * t * t * (t * (t * 6 - 15) + 10);
-  }
+  const smoothstep = (t: number): number => t * t * (3 - t * 2);
 
-  const smoothstep = (t: number): number => {
-    return t * t * (3 - t * 2);
-  };
+  const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-  const lerp = (a: number, b: number, t: number): number => {
-    return a + (b - a) * t;
-  };
-
-  const genVector = (coord: Coord) => {
+  const prngVector = (coord: Coord) => {
     const theta = noise({ x: coord.x, y: coord.y, z: 1 }) * 2 * Math.PI;
     return { x: Math.cos(theta), y: Math.sin(theta) };
   };
@@ -27,30 +19,22 @@ export const makePerlin2Generator = (seed: number) => {
     const fx = (coord.x % scale) / scale;
     const fy = (coord.y % scale) / scale;
 
-    const v0 = genVector({ x, y });
-    const v1 = genVector({ x, y: y + 1 });
-    const v2 = genVector({ x: x + 1, y });
-    const v3 = genVector({ x: x + 1, y: y + 1 });
-
-    // Calculate the offset vectors
-    const d0 = { x: fx, y: fy };
-    const d1 = { x: fx, y: fy - 1 };
-    const d2 = { x: fx - 1, y: fy };
-    const d3 = { x: fx - 1, y: fy - 1 };
+    const v0 = prngVector({ x, y });
+    const v1 = prngVector({ x, y: y + 1 });
+    const v2 = prngVector({ x: x + 1, y });
+    const v3 = prngVector({ x: x + 1, y: y + 1 });
 
     // Calculate the dot products
-    const dot0 = v0.x * d0.x + v0.y * d0.y;
-    const dot1 = v1.x * d1.x + v1.y * d1.y;
-    const dot2 = v2.x * d2.x + v2.y * d2.y;
-    const dot3 = v3.x * d3.x + v3.y * d3.y;
-
-    const sx = smoothstep(fx);
-    const sy = smoothstep(fy);
+    const dot0 = v0.x * fx + v0.y * fy;
+    const dot1 = v1.x * fx + v1.y * (fy - 1);
+    const dot2 = v2.x * (fx - 1) + v2.y * fy;
+    const dot3 = v3.x * (fx - 1) + v3.y * (fy - 1);
 
     // Interpolate between the dot products
+    const sx = smoothstep(fx);
+    const sy = smoothstep(fy);
     const m1 = lerp(dot0, dot1, sy);
     const m2 = lerp(dot2, dot3, sy);
-
     return lerp(m1, m2, sx);
   };
 };

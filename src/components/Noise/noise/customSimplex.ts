@@ -1,8 +1,9 @@
 import { Coord } from "../lib/interfaces";
-import { makePointGenerator } from "./prng";
+import { makePointGenerator, makePointGeneratorFast } from "./prng";
 
 export const makeCustomSimplexGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
+  const fastNoise = makePointGeneratorFast(seed);
 
   const smoothstep = (t: number): number => t * t * (3 - t * 2);
 
@@ -33,10 +34,8 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     }
   );
 
-  const prngVector = (coord: Coord) => {
-    const theta =
-      (noise({ x: coord.x, y: coord.y, z: 1 }) * vectorsCacheSize) &
-      (vectorsCacheSize - 1);
+  const prngVector = (x: number, y: number) => {
+    const theta = (fastNoise(x, y) * vectorsCacheSize) & (vectorsCacheSize - 1);
     return vectorsCache[theta];
   };
 
@@ -45,6 +44,7 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const xSkewed = coord.x + coord.y * skewFactor;
     const ySkewed = coord.y;
 
+    // try not using scale for a performance boost
     const x = Math.floor(xSkewed / scale);
     const y = Math.floor(ySkewed / scale);
     const fx = (xSkewed - x * scale) / scale;
@@ -56,12 +56,13 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       const w = smoothstep(fx);
       const u = 1 - v - w;
 
-      const v0 = prngVector({ x: x, y: y });
-      const v1 = prngVector({ x, y: y + 1 });
-      const v2 = prngVector({ x: x + 1, y });
-
+      const v0 = prngVector(x, y);
       const p0 = v0.x * fx + v0.y * fy;
+
+      const v1 = prngVector(x, y + 1);
       const p1 = v1.x * fx + v1.y * (fy - 1);
+
+      const v2 = prngVector(x + 1, y);
       const p2 = v2.x * (fx - 1) + v2.y * fy;
 
       return u * p0 + v * p1 + w * p2;
@@ -70,12 +71,13 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       const w = smoothstep(1 - fx);
       const u = 1 - v - w;
 
-      const v0 = prngVector({ x: x + 1, y: y + 1 });
-      const v1 = prngVector({ x: x + 1, y });
-      const v2 = prngVector({ x, y: y + 1 });
-
+      const v0 = prngVector(x + 1, y + 1);
       const p0 = v0.x * (fx - 1) + v0.y * (fy - 1);
+
+      const v1 = prngVector(x + 1, y);
       const p1 = v1.x * (fx - 1) + v1.y * fy;
+
+      const v2 = prngVector(x, y + 1);
       const p2 = v2.x * fx + v2.y * (fy - 1);
 
       return u * p0 + v * p1 + w * p2;

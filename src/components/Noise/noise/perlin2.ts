@@ -15,21 +15,17 @@ const lerp = (a: number, b: number, t: number): number => {
 
 export const makePerlin2Generator = (seed: number) => {
   const noise = makePointGenerator(seed);
-  const genVector = (coord: Coord) => ({
-    x: noise({ x: coord.x, y: coord.y, z: coord.x * coord.y }) * 2 - 1, // simplify?
-    y: noise({ x: coord.x, y: coord.y, w: coord.x * coord.y }) * 2 - 1,
-  });
+
+  const genVector = (coord: Coord) => {
+    const theta = noise({ x: coord.x, y: coord.y, z: 1 }) * 2 * Math.PI;
+    return { x: Math.cos(theta), y: Math.sin(theta) };
+  };
 
   return (coord: Coord, scale: number = 8): number => {
     const x = Math.floor(coord.x / scale);
     const y = Math.floor(coord.y / scale);
     const fx = (coord.x % scale) / scale;
     const fy = (coord.y % scale) / scale;
-
-    const p0 = noise({ x, y });
-    const p1 = noise({ x, y: y + 1 });
-    const p2 = noise({ x: x + 1, y });
-    const p3 = noise({ x: x + 1, y: y + 1 });
 
     const v0 = genVector({ x, y });
     const v1 = genVector({ x, y: y + 1 });

@@ -7,6 +7,12 @@
       and gives some indication of how fast they are.
     </p>
 
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="valuePixel"
+      >Value noise</NoiseRender
+    >
+
     <NoiseRender :dimensions="{ width: 500, height: 100 }">
       Random pixels (default)
     </NoiseRender>
@@ -38,11 +44,7 @@
       >Voronoi</NoiseRender
     >
    
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="smoothstepPixel"
-      >Smoothstep (Value Noise?)</NoiseRender
-    >
+
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="starfieldPixel"
@@ -56,7 +58,7 @@ import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
-import { makeSmoothstepGenerator } from "./noise/smoothstep";
+import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlin2Generator } from "./noise/perlin2";
 import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
 import { makeStarfieldGenerator } from "./noise/starfield";
@@ -89,9 +91,9 @@ const openSimplexPixel = (coord: Coord) => {
   return [n, n, n];
 };
 
-const smoothstepGenerator = makeSmoothstepGenerator(seed);
-const smoothstepPixel = (coord: Coord) => {
-  const n = smoothstepGenerator(coord, 4);
+const valueGenerator = makeValueNoiseGenerator(seed);
+const valuePixel = (coord: Coord) => {
+  const n = valueGenerator(coord, 4);
   return [n, n, n];
 };
 
@@ -114,3 +116,4 @@ const starfieldPixel = (coord: Coord) => {
 </script>
 
 <style scoped></style>
+./noise/value

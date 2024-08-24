@@ -13,12 +13,12 @@ const lerp = (a: number, b: number, t: number): number => {
   return a + (b - a) * t;
 };
 
-export const makeSmoothstepGenerator = (seed: number) => {
+export const makeValueNoiseGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
 
   return (coord: Coord, scale: number = 8): number => {
     const x = Math.floor(coord.x / scale);
-    const y = Math.floor(coord.y / scale);
+    const y = Math.floor(coord.y / scale);  
     const fx = (coord.x % scale) / scale;
     const fy = (coord.y % scale) / scale;
 
@@ -29,10 +29,8 @@ export const makeSmoothstepGenerator = (seed: number) => {
 
     const sx = smoothstep(fx);
     const sy = smoothstep(fy);
-
     const m1 = lerp(p0, p1, sy);
     const m2 = lerp(p2, p3, sy);
-
     return lerp(m1, m2, sx);
   };
 };

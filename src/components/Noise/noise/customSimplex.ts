@@ -24,9 +24,20 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     return p0 * w + p1 * u + p2 * v;
   }
 
+  const vectorsCacheSize = 256;
+  const vectorsCache: Coord[] = Array.from(
+    { length: vectorsCacheSize },
+    (_, i) => {
+      const theta = (i / vectorsCacheSize) * 2 * Math.PI;
+      return { x: Math.cos(theta), y: Math.sin(theta) };
+    }
+  );
+
   const prngVector = (coord: Coord) => {
-    const theta = noise({ x: coord.x, y: coord.y, z: 1 }) * 2 * Math.PI;
-    return { x: Math.cos(theta), y: Math.sin(theta) };
+    const theta =
+      (noise({ x: coord.x, y: coord.y, z: 1 }) * vectorsCacheSize) &
+      (vectorsCacheSize - 1);
+    return vectorsCache[theta];
   };
 
   return (coord: Coord, scale: number = 16): number => {

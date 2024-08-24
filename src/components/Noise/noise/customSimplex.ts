@@ -40,8 +40,8 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const fy = (ySkewed - y * scale) / scale;
 
     const topLeft = fx + fy < 1;
-    const v = topLeft ? fy : 1 - fy;
-    const w = topLeft ? fx : 1 - fx;
+    const v = smoothstep(topLeft ? fy : 1 - fy);
+    const w = smoothstep(topLeft ? fx : 1 - fx);
     const u = 1 - v - w;
 
     if (topLeft) {
@@ -53,7 +53,7 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       const p1 = v1.x * fx + v1.y * (fy - 1);
       const p2 = v2.x * (fx - 1) + v2.y * fy;
 
-      return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+      return u * p0 + v * p1 + w * p2;
     } else {
       const v0 = prngVector({ x: x + 1, y: y + 1 });
       const v1 = prngVector({ x: x + 1, y });
@@ -63,7 +63,7 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       const p1 = v1.x * (fx - 1) + v1.y * fy;
       const p2 = v2.x * fx + v2.y * (fy - 1);
 
-      return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
+      return u * p0 + v * p1 + w * p2;
     }
   };
 };

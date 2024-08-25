@@ -1,29 +1,10 @@
 import { Coord } from "../lib/interfaces";
-import { makePointGenerator, makePointGeneratorFast } from "./prng";
+import { makePointGeneratorFast } from "./prng";
 
 export const makeCustomSimplexGenerator = (seed: number) => {
-  const noise = makePointGenerator(seed);
   const fastNoise = makePointGeneratorFast(seed);
 
   const smoothstep = (t: number): number => t * t * (3 - t * 2);
-
-  const smootherstep = (t: number): number =>
-    t * t * t * (t * (t * 6 - 15) + 10);
-
-  const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
-
-  function barycentricInterp(
-    p0: number,
-    p1: number,
-    p2: number, // Values at the three triangle vertices
-    u: number,
-    v: number // Barycentric coordinates u and v
-  ): number {
-    const w = 1 - u - v; // Barycentric coordinate w
-
-    // Return the weighted sum of the three points
-    return p0 * w + p1 * u + p2 * v;
-  }
 
   const vectorsCacheSize = 256;
   const vectorsCache: Coord[] = Array.from(
@@ -44,7 +25,6 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const xSkewed = coord.x + coord.y * skewFactor;
     const ySkewed = coord.y;
 
-    // try not using scale for a performance boost
     const x = Math.floor(xSkewed / scale);
     const y = Math.floor(ySkewed / scale);
     const fx = (xSkewed - x * scale) / scale;

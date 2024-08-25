@@ -39,6 +39,17 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     return vectorsCache[theta];
   };
 
+  const getWeight = (
+    w: number,
+    x: number,
+    y: number,
+    fx: number,
+    fy: number
+  ) => {
+    const v0 = prngVector(x, y);
+    return (v0.x * fx + v0.y * fy) * smoothstep(w);
+  };
+
   return (coord: Coord, scale: number = 16): number => {
     const skewFactor = -1 / 2;
     const xSkewed = coord.x + coord.y * skewFactor;
@@ -52,35 +63,25 @@ export const makeCustomSimplexGenerator = (seed: number) => {
 
     const topLeft = fx + fy < 1;
     if (topLeft) {
-      const v = smoothstep(fy);
-      const w = smoothstep(fx);
+      const v = fy;
+      const w = fx;
       const u = 1 - v - w;
 
-      const v0 = prngVector(x, y);
-      const p0 = v0.x * fx + v0.y * fy;
+      const p0 = getWeight(u, x, y, fx, fy);
+      const p1 = getWeight(v, x, y + 1, fx, fy - 1);
+      const p2 = getWeight(w, x + 1, y, fx - 1, fy);
 
-      const v1 = prngVector(x, y + 1);
-      const p1 = v1.x * fx + v1.y * (fy - 1);
-
-      const v2 = prngVector(x + 1, y);
-      const p2 = v2.x * (fx - 1) + v2.y * fy;
-
-      return u * p0 + v * p1 + w * p2;
+      return p0 + p1 + p2;
     } else {
-      const v = smoothstep(1 - fy);
-      const w = smoothstep(1 - fx);
+      const v = 1 - fy;
+      const w = 1 - fx;
       const u = 1 - v - w;
 
-      const v0 = prngVector(x + 1, y + 1);
-      const p0 = v0.x * (fx - 1) + v0.y * (fy - 1);
+      const p0 = getWeight(u, x + 1, y + 1, fx - 1, fy - 1);
+      const p1 = getWeight(v, x + 1, y, fx - 1, fy);
+      const p2 = getWeight(w, x, y + 1, fx, fy - 1);
 
-      const v1 = prngVector(x + 1, y);
-      const p1 = v1.x * (fx - 1) + v1.y * fy;
-
-      const v2 = prngVector(x, y + 1);
-      const p2 = v2.x * fx + v2.y * (fy - 1);
-
-      return u * p0 + v * p1 + w * p2;
+      return p0 + p1 + p2;
     }
   };
 };

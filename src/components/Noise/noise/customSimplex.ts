@@ -4,6 +4,10 @@ import { makePointGeneratorFast } from "./prng";
 export const makeCustomSimplexGenerator = (seed: number) => {
   const fastNoise = makePointGeneratorFast(seed);
 
+  function smootherstep(t: number): number {
+    // t = Math.max(0, Math.min(1, t));
+    return t * t * t * (t * (t * 6 - 15) + 10);
+  }
   const smoothstep = (t: number): number => t * t * (3 - t * 2);
 
   const vectorsCacheSize = 256;
@@ -35,14 +39,14 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const fy = (ySkewed - y * scale) / scale;
 
     // Determine which simplex triangle the point is in
-    const bottomLeft = fx > fy;
+    const topRight = fx > fy;
 
     // Initialize the barycentric coordinates
     let u, v, w;
     let v0, v1, v2;
     let p0, p1, p2;
 
-    if (bottomLeft) {
+    if (topRight) {
       // Coordinates for bottom-left triangle
       u = 1 - fx;
       w = fy;
@@ -58,6 +62,7 @@ export const makeCustomSimplexGenerator = (seed: number) => {
       p1 = v1.x * (fx - 1) + v1.y * fy;
       p2 = v2.x * (fx - 1) + v2.y * (fy - 1);
     } else {
+      // return 0
       // Coordinates for top-right triangle
       u = 1 - fy;
       w = fx;

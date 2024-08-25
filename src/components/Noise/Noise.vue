@@ -6,7 +6,7 @@
       splines and curves. This page shows what different algorithms look like
       and gives some indication of how fast they are.
     </p>
-<!--  
+    <!--  
     <NoiseRender :dimensions="{ width: 500, height: 100 }">
       Random pixels (default)
     </NoiseRender>
@@ -21,7 +21,7 @@
       :dimensions="{ width: 500, height: 100 }"
       :pixel="pseudoRandomColor"
       >Pseudo-random pixels.</NoiseRender
-    > 
+    >
 
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="valuePixel"
       >Value noise</NoiseRender
@@ -30,7 +30,9 @@
       >Perlin</NoiseRender
     >
 
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="customSimplexPixel"
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="customSimplexPixel"
       >CustomSimplex my version of a simplex algorithm</NoiseRender
     >
     <NoiseRender
@@ -56,6 +58,7 @@
 <script lang="ts" setup>
 import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
+import { clamp } from "./lib/other";
 import { makePointGenerator } from "./noise/prng";
 import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeValueNoiseGenerator } from "./noise/value";
@@ -105,7 +108,7 @@ const perlin2Pixel = (coord: Coord) => {
 };
 const customSimplexGenerator = makeCustomSimplexGenerator(seed);
 const customSimplexPixel = (coord: Coord) => {
-  const n = customSimplexGenerator(coord, 16) * 0.8 + 0.6;
+  const n = customSimplexGenerator(coord, 8) * 0.8 + 0.6;
   return [n, n, n];
 };
 

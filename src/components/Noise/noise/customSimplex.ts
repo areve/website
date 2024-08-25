@@ -21,44 +21,60 @@ export const makeCustomSimplexGenerator = (seed: number) => {
   };
 
   return (coord: Coord, scale: number = 16): number => {
-    const skewFactor = -1 / 2;
-    const xSkewed = coord.x + coord.y * skewFactor;
-    const ySkewed = coord.y;
+    // Skewing factor to transform the input space into simplex space
+    const skewFactor = (coord.x + coord.y) * (Math.sqrt(3.0) - 1.0) * 0.5;
 
+    // Skew the input coordinates
+    const xSkewed = coord.x + skewFactor;
+    const ySkewed = coord.y + skewFactor;
+
+    // Determine the grid cell in the skewed space
     const x = Math.floor(xSkewed / scale);
     const y = Math.floor(ySkewed / scale);
     const fx = (xSkewed - x * scale) / scale;
     const fy = (ySkewed - y * scale) / scale;
 
-    const topLeft = fx + fy < 1;
-    if (topLeft) {
-      const v = smoothstep(fy);
-      const w = smoothstep(fx);
-      const u = 1 - v - w;
+    // Determine which simplex triangle the point is in
+    const bottomLeft = fx > fy;
 
-      const v0 = prngVector(x, y);
-      const v1 = prngVector(x, y + 1);
-      const v2 = prngVector(x + 1, y);
+    // Initialize the barycentric coordinates
+    let u, v, w;
+    let v0, v1, v2;
+    let p0, p1, p2;
 
-      const p0 = v0.x * fx + v0.y * fy;
-      const p1 = v1.x * fx + v1.y * (fy - 1);
-      const p2 = v2.x * (fx - 1) + v2.y * fy;
+    if (bottomLeft) {
+      // Coordinates for bottom-left triangle
+      u = 1 - fx;
+      w = fy;
+      v = 1 - u - w;
 
-      return u * p0 + v * p1 + w * p2;
+      // Get the gradient vectors at the corners of the triangle
+      v0 = prngVector(x, y);
+      v1 = prngVector(x + 1, y);
+      v2 = prngVector(x + 1, y + 1);
+
+      // Calculate the dot products
+      p0 = v0.x * fx + v0.y * fy;
+      p1 = v1.x * (fx - 1) + v1.y * fy;
+      p2 = v2.x * (fx - 1) + v2.y * (fy - 1);
     } else {
-      const v = smoothstep(1 - fy);
-      const w = smoothstep(1 - fx);
-      const u = 1 - v - w;
+      // Coordinates for top-right triangle
+      u = 1 - fy;
+      w = fx;
+      v = 1 - u - w;
 
-      const v0 = prngVector(x + 1, y + 1);
-      const v1 = prngVector(x + 1, y);
-      const v2 = prngVector(x, y + 1);
+      // Get the gradient vectors at the corners of the triangle
+      v0 = prngVector(x, y);
+      v1 = prngVector(x, y + 1);
+      v2 = prngVector(x + 1, y + 1);
 
-      const p0 = v0.x * (fx - 1) + v0.y * (fy - 1);
-      const p1 = v1.x * (fx - 1) + v1.y * fy;
-      const p2 = v2.x * fx + v2.y * (fy - 1);
-
-      return u * p0 + v * p1 + w * p2;
+      // Calculate the dot products
+      p0 = v0.x * fx + v0.y * fy;
+      p1 = v1.x * fx + v1.y * (fy - 1);
+      p2 = v2.x * (fx - 1) + v2.y * (fy - 1);
     }
+
+    // Return the weighted sum of the dot products
+    return smoothstep(u) * p0 + smoothstep(v) * p1 + smoothstep(w) * p2;
   };
 };

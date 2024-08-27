@@ -46,7 +46,6 @@ export const makeVoronoi2NoiseGenerator = (
   ) {
     const hash = `${ix}+${cx },${iy}+${cy },${dimensions},${density}`;
     // const hash = `${ix+cx },${iy+cy }`; // this hash won't work because points are relative and will be from the 0,0 point not the 1,1 or whatever
-    //console.log(hash)
     if (cache[hash]) return cache[hash]
 
     const points = Array.from({ length: density }).map((_): Coord => {

@@ -32,44 +32,48 @@ class WorleyNoise {
   }
 
   point(coord: Coord): number {
-    const s = this.size;
-    const d = this.density;
+    
+    const x = Math.floor(coord.x / this.size);
+    const y = Math.floor(coord.y / this.size);
+    const fx = (coord.x / this.size - x) * this.size;
+    const fy = (coord.y / this.size - y) * this.size;
 
-    const x = Math.floor(coord.x / s);
-    const y = Math.floor(coord.y / s);
-    const fx = coord.x / s - x;
-    const fy = coord.y / s - y;
 
-    const dimension = this.dimension;
+    function makePoints(
+      ix: number,
+      iy: number,
+      cx: number,
+      cy: number,
+      dimension: number,
+      density: number,
+      size: number
+    ) {
+      const ax = cx * size;
+      const ay = cy * size;
 
-    function makePoints(ix: number, iy: number, cx: number, cy: number) {
-      const ax = (ix + cx) * s;
-      const ay = (iy + cy) * s;
-
-      return Array.from({ length: d }).map((_, i): Coord => {
+      return Array.from({ length: density }).map((_, i): Coord => {
         const h = noise(ix + cx, iy + cy) * 0xffffff;
-        const x = ax + ((h & 0xff) / 0xff - 0.5) * s;
-        const y = ay + (((h >> 8) & 0xff) / 0xff - 0.5) * s;
-        const z = dimension == 2 ? 0 : (((h >> 16) & 0xff) / 0xff - 0.5) * s;
+        const x = ax + ((h & 0xff) / 0xff - 0.5) * size;
+        const y = ay + (((h >> 8) & 0xff) / 0xff - 0.5) * size;
+        const z = dimension == 2 ? 0 : (((h >> 16) & 0xff) / 0xff - 0.5) * size;
         return { x, y, z };
       });
     }
 
     const points = [
-      makePoints(x, y, 0, 0),
-      makePoints(x, y, 1, 0),
-      makePoints(x, y, 0, 1),
-      makePoints(x, y, 1, 1),
+      makePoints(x, y, 0, 0, this.dimension, this.density, this.size),
+      makePoints(x, y, 1, 0, this.dimension, this.density, this.size),
+      makePoints(x, y, 0, 1, this.dimension, this.density, this.size),
+      makePoints(x, y, 1, 1, this.dimension, this.density, this.size),
     ].flat();
 
     return (
       Math.sqrt(
         points.reduce(
-          (p, v) =>
-            Math.min(euclidean(coord.x - v.x, coord.y - v.y, v.z ?? 0), p),
+          (p, v) => Math.min(euclidean(fx - v.x, fy - v.y, v.z ?? 0), p),
           Infinity
         )
-      ) / s
+      ) / this.size
     );
   }
 }

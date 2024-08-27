@@ -8,24 +8,19 @@ export const makeCustomSimplexGenerator = (seed: number) => {
 
   const SKEW_2D = (Math.sqrt(3) - 1) / 2;
   const UNSKEW_2D = -(3 - Math.sqrt(3)) / 6;
-  const ROOT2OVER2 = Math.sqrt(2) / 2;
-  const RSQUARED_2D = 2.0 / 3.0;
+  const RSQUARED_2D = 2 / 3;
+
+  return (coord: Coord, scale: number): number => {
+    return noise2(coord.x / scale, coord.y / scale);
+  };
 
   function noise2(x: number, y: number): number {
     // Get points for A2* lattice
-    const s = SKEW_2D * (x + y);
-    const xs = x + s;
-    const ys = y + s;
+    const skew = (x + y) * SKEW_2D;
+    const xs = x + skew;
+    const ys = y + skew;
 
     return noise2_UnskewedBase(xs, ys);
-  }
-
-  function noise2_ImproveX(x: number, y: number): number {
-    // Skew transform and rotation baked into one.
-    const xx = x * ROOT2OVER2;
-    const yy = y * (ROOT2OVER2 * (1 + 2 * SKEW_2D));
-
-    return noise2_UnskewedBase(yy + xx, yy - xx);
   }
 
   function noise2_UnskewedBase(xs: number, ys: number): number {
@@ -137,8 +132,4 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const xi = x | 0;
     return x < xi ? xi - 1 : xi;
   }
-
-  return (coord: Coord, scale: number): number => {
-    return noise2(coord.x / scale, coord.y / scale);
-  };
 };

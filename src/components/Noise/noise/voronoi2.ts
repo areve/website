@@ -21,19 +21,29 @@ export const makeVoronoi2NoiseGenerator = (
     const fx = ix - x;
     const fy = iy - y;
 
+    const points = makePoints1(x, y);
+
+    const n = points.reduce(
+      (p, v) => Math.min(euclidean(fx - v.x, fy - v.y, v.z ?? 0), p),
+      Infinity
+    );
+
+    const raw = 0; // perhaps make this optional for the caller for performance
+    if (raw) return n;
+    return n ** 0.5;
+  }
+
+  function makePoints1(x: number, y: number): Coord[] {
+    const hash = `${x}+${y}`;
+    if (cache[hash]) return cache[hash];
     const points = [
       makePoints(x, y, 0, 0, dimensions, density),
       makePoints(x, y, 1, 0, dimensions, density),
       makePoints(x, y, 0, 1, dimensions, density),
       makePoints(x, y, 1, 1, dimensions, density),
     ].flat();
-
-    return ( 
-      points.reduce(
-        (p, v) => Math.min(euclidean(fx - v.x, fy - v.y, v.z ?? 0), p),
-        Infinity
-      ) ** 0.5 // perhaps make this optional for the caller for performance
-    );
+    cache[hash] = points;
+    return points;
   }
 
   function makePoints(
@@ -43,10 +53,10 @@ export const makeVoronoi2NoiseGenerator = (
     cy: number,
     dimensions: number,
     density: number
-  ) {
-    const hash = `${ix}+${cx },${iy}+${cy },${dimensions},${density}`;
+  ): Coord[] {
+    const hash = `${ix}+${cx},${iy}+${cy},${dimensions},${density}`;
     // const hash = `${ix+cx },${iy+cy }`; // this hash won't work because points are relative and will be from the 0,0 point not the 1,1 or whatever
-    if (cache[hash]) return cache[hash]
+    if (cache[hash]) return cache[hash];
 
     const points = Array.from({ length: density }).map((_, i): Coord => {
       const h = noise(ix + cx, iy + cy + i * 59308303) * 0xffffff;

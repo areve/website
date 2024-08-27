@@ -1,5 +1,5 @@
 import { Coord } from "../lib/interfaces";
-import { makePointGenerator } from "../noise/prng";
+import { makePointGenerator, makePointGeneratorFast } from "../noise/prng";
 
 export const makeVoronoi2NoiseGenerator = (
   seed: number,
@@ -15,6 +15,8 @@ export const makeVoronoi2NoiseGenerator = (
 
 const euclidean = (dx: number, dy: number, dz: number) =>
   dx * dx + dy * dy + dz * dz;
+
+const noise = makePointGeneratorFast(123456);
 
 class WorleyNoise {
   private dimension: 2 | 3;
@@ -32,28 +34,34 @@ class WorleyNoise {
   point(coord: Coord): number {
     const s = this.size;
     const d = this.density;
-    const offsets = [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-    ];
-    const anchors = offsets.map((v) => ({
-      x: (Math.floor(coord.x / s) + v.x) * s,
-      y: (Math.floor(coord.y / s) + v.y) * s,
-    }));
-    const points = anchors.flatMap((anchor: Coord) =>
-      Array.from({ length: d }).map(
-        (_, i): Coord => ({
-          x: anchor.x + (this.prng({ ...anchor, z: i }) - 0.5) * s,
-          y: anchor.y + (this.prng({ ...anchor, w: i }) - 0.5) * s,
-          z:
-            this.dimension == 2
-              ? 0
-              : (this.prng({ ...anchor, z: i, w: i }) - 0.5) * s,
-        })
-      )
-    );
+
+    const x = Math.floor(coord.x / s);
+    const y = Math.floor(coord.y / s);
+    const fx = coord.x / s - x;
+    const fy = coord.y / s - y;
+
+    const dimension = this.dimension;
+
+    function makePoints(ix: number, iy: number, cx: number, cy: number) {
+      const ax = (ix + cx) * s;
+      const ay = (iy + cy) * s;
+
+      return Array.from({ length: d }).map((_, i): Coord => {
+        const h = noise(ix + cx, iy + cy) * 0xffffff;
+        const x = ax + ((h & 0xff) / 0xff - 0.5) * s;
+        const y = ay + (((h >> 8) & 0xff) / 0xff - 0.5) * s;
+        const z = dimension == 2 ? 0 : (((h >> 16) & 0xff) / 0xff - 0.5) * s;
+        return { x, y, z };
+      });
+    }
+
+    const points = [
+      makePoints(x, y, 0, 0),
+      makePoints(x, y, 1, 0),
+      makePoints(x, y, 0, 1),
+      makePoints(x, y, 1, 1),
+    ].flat();
+
     return (
       Math.sqrt(
         points.reduce(

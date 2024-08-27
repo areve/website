@@ -33,13 +33,9 @@
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="customSimplexPixel"
-      >CustomSimplex my version of a simplex algorithm</NoiseRender
+      >OpenSimplex my custom version</NoiseRender
     >
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="openSimplexPixel"
-      >OpenSimplex</NoiseRender
-    >
+
 
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
@@ -58,9 +54,7 @@
 <script lang="ts" setup>
 import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
-import { clamp } from "./lib/other";
 import { makePointGenerator } from "./noise/prng";
-import { makeOpenSimplexNoiseGenerator } from "./noise/openSimplex";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlin2Generator } from "./noise/perlin2";
 import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
@@ -88,12 +82,6 @@ const pseudoRandomColor = (coord: Coord) => {
   ];
 };
 
-const openSimplexGenerator = makeOpenSimplexNoiseGenerator(seed);
-const openSimplexPixel = (coord: Coord) => {
-  const s = { x: coord.x / 6, y: coord.y / 6 };
-  const n = (openSimplexGenerator(s) + 1) / 2;
-  return [n, n, n];
-};
 
 const valueGenerator = makeValueNoiseGenerator(seed);
 const valuePixel = (coord: Coord) => {
@@ -115,7 +103,7 @@ const customSimplexPixel = (coord: Coord) => {
 
 const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 16, 6);
 const voronoi2Pixel = (coord: Coord) => {
-  const n = voronoi2Generator(coord) * 2;
+  const n = voronoi2Generator(coord) //* 2;
   return [n, n, n];
 };
 const starfieldGenerator = makeStarfieldGenerator(seed);

@@ -8,7 +8,6 @@ export const makeCustomSimplexGenerator = (seed: number) => {
 
   const SKEW_2D = (Math.sqrt(3) - 1) / 2;
   const UNSKEW_2D = -(3 - Math.sqrt(3)) / 6;
-  const RSQUARED_2D = 2 / 3;
 
   return (coord: Coord, scale: number): number => {
     return noise2(coord.x / scale, coord.y / scale);
@@ -35,91 +34,105 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const dx0 = xi + t;
     const dy0 = yi + t;
 
-    // First vertex.
-    const a0 = RSQUARED_2D - dx0 * dx0 - dy0 * dy0;
-    let value = a0 * a0 * (a0 * a0) * grad(xsb, ysb, dx0, dy0);
+    let value = 0;
 
-    // Second vertex.
-    const a1 =
-      2 * (1 + 2 * UNSKEW_2D) * (1 / UNSKEW_2D + 2) * t +
-      (-2 * (1 + 2 * UNSKEW_2D) * (1 + 2 * UNSKEW_2D) + a0);
-    const dx1 = dx0 - (1 + 2 * UNSKEW_2D);
-    const dy1 = dy0 - (1 + 2 * UNSKEW_2D);
-    value += a1 * a1 * (a1 * a1) * grad(xsb + 1, ysb + 1, dx1, dy1);
+    // top left vertex
+    value += calculateVertex(xsb, ysb, dx0, dy0);
+
+    // bottom right vertex
+    value += calculateVertex(
+      xsb + 1,
+      ysb + 1,
+      dx0 - (1 + 2 * UNSKEW_2D),
+      dy0 - (1 + 2 * UNSKEW_2D)
+    );
 
     // Third and fourth vertices.
-    const xmyi = xi - yi;
-    if (t < UNSKEW_2D) {
-      if (xi + xmyi > 1) {
-        const dx2 = dx0 - (3 * UNSKEW_2D + 2);
-        const dy2 = dy0 - (3 * UNSKEW_2D + 1);
-        const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-        if (a2 > 0) {
-          value +=
-            a2 * a2 * (a2 * a2) * grad(xsb + (1 << 1), ysb + 1, dx2, dy2);
-        }
+    const isBottomRight = t < UNSKEW_2D;
+    if (isBottomRight) {
+      const isRightThird = xi + (xi - yi) > 1;
+      if (isRightThird) {
+        value += calculateVertex(
+          xsb,
+          ysb + 1,
+          dx0 - (3 * UNSKEW_2D + 2),
+          dy0 - (3 * UNSKEW_2D + 1)
+        );
       } else {
-        const dx2 = dx0 - UNSKEW_2D;
-        const dy2 = dy0 - (UNSKEW_2D + 1);
-        const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-        if (a2 > 0) {
-          value += a2 * a2 * (a2 * a2) * grad(xsb, ysb + 1, dx2, dy2);
-        }
+        value += calculateVertex(
+          xsb,
+          ysb + 1,
+          dx0 - UNSKEW_2D,
+          dy0 - (UNSKEW_2D + 1)
+        );
       }
 
-      if (yi - xmyi > 1) {
-        const dx3 = dx0 - (3 * UNSKEW_2D + 1);
-        const dy3 = dy0 - (3 * UNSKEW_2D + 2);
-        const a3 = RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
-        if (a3 > 0) {
-          value +=
-            a3 * a3 * (a3 * a3) * grad(xsb + 1, ysb + (1 << 1), dx3, dy3);
-        }
+      const isBottomThird = yi - (xi - yi) > 1;
+      if (isBottomThird) {
+        value += calculateVertex(
+          xsb + 1,
+          ysb,
+          dx0 - (3 * UNSKEW_2D + 1),
+          dy0 - (3 * UNSKEW_2D + 2)
+        );
       } else {
-        const dx3 = dx0 - (UNSKEW_2D + 1);
-        const dy3 = dy0 - UNSKEW_2D;
-        const a3 = RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
-        if (a3 > 0) {
-          value += a3 * a3 * (a3 * a3) * grad(xsb + 1, ysb, dx3, dy3);
-        }
+        value += calculateVertex(
+          xsb + 1,
+          ysb,
+          dx0 - (UNSKEW_2D + 1),
+          dy0 - UNSKEW_2D
+        );
       }
     } else {
-      if (xi + xmyi < 0) {
-        const dx2 = dx0 + (1 + UNSKEW_2D);
-        const dy2 = dy0 + UNSKEW_2D;
-        const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-        if (a2 > 0) {
-          value += a2 * a2 * (a2 * a2) * grad(xsb - 1, ysb, dx2, dy2);
-        }
+      const isLeftThird = xi + (xi - yi) < 0;
+      if (isLeftThird) {
+        value += calculateVertex(
+          xsb - 1,
+          ysb,
+          dx0 + (UNSKEW_2D + 1),
+          dy0 + UNSKEW_2D
+        );
       } else {
-        const dx2 = dx0 - (UNSKEW_2D + 1);
-        const dy2 = dy0 - UNSKEW_2D;
-        const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-        if (a2 > 0) {
-          value += a2 * a2 * (a2 * a2) * grad(xsb + 1, ysb, dx2, dy2);
-        }
+        value += calculateVertex(
+          xsb + 1,
+          ysb,
+          dx0 - (UNSKEW_2D + 1),
+          dy0 - UNSKEW_2D
+        );
       }
 
-      if (yi < xmyi) {
-        const dx2 = dx0 + UNSKEW_2D;
-        const dy2 = dy0 + (UNSKEW_2D + 1);
-        const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-        if (a2 > 0) {
-          value += a2 * a2 * (a2 * a2) * grad(xsb, ysb - 1, dx2, dy2);
-        }
+      const isTopThird = yi < xi - yi;
+      if (isTopThird) {
+        value += calculateVertex(
+          xsb,
+          ysb - 1,
+          dx0 + UNSKEW_2D,
+          dy0 + (UNSKEW_2D + 1)
+        );
       } else {
-        const dx2 = dx0 - UNSKEW_2D;
-        const dy2 = dy0 - (UNSKEW_2D + 1);
-        const a2 = RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
-        if (a2 > 0) {
-          value += a2 * a2 * (a2 * a2) * grad(xsb, ysb + 1, dx2, dy2);
-        }
+        value += calculateVertex(
+          xsb,
+          ysb + 1,
+          dx0 - UNSKEW_2D,
+          dy0 - (UNSKEW_2D + 1)
+        );
       }
     }
 
     return value;
   }
 
+  function calculateVertex(
+    xsb: number,
+    ysb: number,
+    dx: number,
+    dy: number
+  ): number {
+    const a = 2 / 3 - dx * dx - dy * dy;
+    return a > 0 //
+      ? a * a * a * a * grad(xsb, ysb, dx, dy)
+      : 0;
+  }
   function grad(xsb: number, ysb: number, x: number, y: number): number {
     const h = (noise(xsb, ysb) * 0xff) & 0xff;
     const u = (h & 0x0f) - 8;

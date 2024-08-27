@@ -106,9 +106,10 @@ const perlin2Pixel = (coord: Coord) => {
   const n = perlin2Generator(coord, 8) * 0.8 + 0.6;
   return [n, n, n];
 };
+
 const customSimplexGenerator = makeCustomSimplexGenerator(seed);
 const customSimplexPixel = (coord: Coord) => {
-  const n = customSimplexGenerator(coord, 8)  + 0.5;
+  const n = customSimplexGenerator(coord, 8) + 0.5;
   return [n, n, n];
 };
 

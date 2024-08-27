@@ -2,7 +2,6 @@ import { Coord } from "../lib/interfaces";
 import { makePointGeneratorFast } from "./prng";
 
 export const makeCustomSimplexGenerator = (seed: number) => {
-  
   const skew2d = (Math.sqrt(3) - 1) / 2;
   const unskew2d = -(3 - Math.sqrt(3)) / 6;
   const noise = makePointGeneratorFast(seed);

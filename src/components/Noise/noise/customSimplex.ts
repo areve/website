@@ -36,18 +36,17 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const dy0 = yi + t;
 
     // First vertex.
-    let a0 = RSQUARED_2D - dx0 * dx0 - dy0 * dy0;
+    const a0 = RSQUARED_2D - dx0 * dx0 - dy0 * dy0;
     let value = a0 * a0 * (a0 * a0) * grad(xsb, ysb, dx0, dy0);
 
     // Second vertex.
-    let a1 =
+    const a1 =
       2 * (1 + 2 * UNSKEW_2D) * (1 / UNSKEW_2D + 2) * t +
       (-2 * (1 + 2 * UNSKEW_2D) * (1 + 2 * UNSKEW_2D) + a0);
-    let dx1 = dx0 - (1 + 2 * UNSKEW_2D);
-    let dy1 = dy0 - (1 + 2 * UNSKEW_2D);
+    const dx1 = dx0 - (1 + 2 * UNSKEW_2D);
+    const dy1 = dy0 - (1 + 2 * UNSKEW_2D);
     value += a1 * a1 * (a1 * a1) * grad(xsb + 1, ysb + 1, dx1, dy1);
 
-    // console.log(xs, ys, xi, yi)
     // Third and fourth vertices.
     const xmyi = xi - yi;
     if (t < UNSKEW_2D) {

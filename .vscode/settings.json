@@ -4,6 +4,7 @@
     "ifft",
     "lerp",
     "perlin",
+    "unskew",
     "voronoi",
     "Worley"
   ]

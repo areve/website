@@ -4,52 +4,51 @@ import { makePointGeneratorFast } from "./prng";
 export const makeCustomSimplexGenerator = (seed: number) => {
   const noise = makePointGeneratorFast(seed);
 
-  const SKEW_2D = (Math.sqrt(3) - 1) / 2;
-  const UNSKEW_2D = -(3 - Math.sqrt(3)) / 6;
+  const skew2d = (Math.sqrt(3) - 1) / 2;
+  const unskew2d = -(3 - Math.sqrt(3)) / 6;
 
   return (coord: Coord, scale: number): number => {
     return noise2(coord.x / scale, coord.y / scale);
   };
 
-  function noise2(x: number, y: number): number {
-    const skew = (x + y) * SKEW_2D;
-    const xs = x + skew;
-    const ys = y + skew;
-    const xsb = fastFloor(xs);
-    const ysb = fastFloor(ys);
-    const xi = xs - xsb;
-    const yi = ys - ysb;
+  function noise2(ix: number, iy: number): number {
+    const skew = (ix + iy) * skew2d;
+    const x = fastFloor(ix + skew);
+    const y = fastFloor(iy + skew);
+    const fx = ix + skew - x;
+    const fy = iy + skew - y;
 
     return (
-      vertexContribution(xsb, ysb, xi, yi, 0, 0) +
-      vertexContribution(xsb, ysb, xi, yi, 1, 1) +
-      vertexContribution(xsb, ysb, xi, yi, 1, 0) +
-      vertexContribution(xsb, ysb, xi, yi, 0, 1)
+      vertexContribution(x, y, fx, fy, 0, 0) +
+      vertexContribution(x, y, fx, fy, 1, 0) +
+      vertexContribution(x, y, fx, fy, 0, 1) +
+      vertexContribution(x, y, fx, fy, 1, 1)
     );
   }
 
   function vertexContribution(
-    xsb: number,
-    ysb: number,
-    xi: number,
-    yi: number,
+    x: number,
+    y: number,
+    fx: number,
+    fy: number,
     cx: number,
     cy: number
   ): number {
-    const dx = xi - cx;
-    const dy = yi - cy;
-    const skew = (dx + dy) * UNSKEW_2D;
-    const dxs = dx + skew;
-    const dys = dy + skew;
+    const dx = fx - cx;
+    const dy = fy - cy;
+    const skewedOffset = (dx + dy) * unskew2d;
+    const dxs = dx + skewedOffset;
+    const dys = dy + skewedOffset;
 
     const a = 2 / 3 - dxs * dxs - dys * dys;
     if (a < 0) return 0;
 
-    const h = noise(xsb + cx, ysb + cy) * 0xff;
+    const n = noise(x + cx, y + cy)
+    // console.log(n)
+    const h =  n * 0xff;
     const u = (h & 0xf) - 8;
     const v = (h >> 4) - 8;
-    const g = u * dxs + v * dys;
-    return a * a * a * a * g;
+    return a * a * a * a * (u * dxs + v * dys);
   }
 
   function fastFloor(x: number): number {

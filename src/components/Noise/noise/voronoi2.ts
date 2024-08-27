@@ -9,7 +9,7 @@ export const makeVoronoi2NoiseGenerator = (
 ) => {
   const noise = makePointGeneratorFast(seed);
 
-  const cache: any = {}
+  const cache: any = {};
   const euclidean = (dx: number, dy: number, dz: number) =>
     dx * dx + dy * dy + dz * dz;
 
@@ -44,20 +44,17 @@ export const makeVoronoi2NoiseGenerator = (
     dimensions: number,
     density: number
   ) {
-    const hash = `${ix}-${iy}-${cx}-${cy}-${dimensions}-${density}`
-    // console.log('hit', hash)
-    if (cache[hash]) {
-      return cache[hash]
-    }
+    const hash = `${ix}-${iy}-${cx}-${cy}-${dimensions}-${density}`;
+    if (cache[hash]) return cache[hash];
 
-    const points =  Array.from({ length: density }).map((_): Coord => {
+    const points = Array.from({ length: density }).map((_): Coord => {
       const h = noise(ix + cx, iy + cy) * 0xffffff;
       const x = cx + ((h & 0xff) / 0xff - 0.5);
       const y = cy + (((h >> 8) & 0xff) / 0xff - 0.5);
       const z = dimensions == 2 ? 0 : ((h >> 16) & 0xff) / 0xff - 0.5;
       return { x, y, z };
     });
-    cache[hash] = points
-    return points
+    cache[hash] = points;
+    return points;
   }
 };

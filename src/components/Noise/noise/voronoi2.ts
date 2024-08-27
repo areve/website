@@ -34,15 +34,12 @@ export const makeVoronoi2NoiseGenerator = (
   }
 
   function makePoints1(x: number, y: number): Coord[] {
-    const hash = `${x}+${y}`;
-    const points = cache[hash] ?? [
+    return (cache[`${x}+${y}`] ??= [
       makePoints(x, y, 0, 0, dimensions, density),
       makePoints(x, y, 1, 0, dimensions, density),
       makePoints(x, y, 0, 1, dimensions, density),
       makePoints(x, y, 1, 1, dimensions, density),
-    ].flat();
-    cache[hash] = points;
-    return points;
+    ].flat());
   }
 
   function makePoints(
@@ -53,17 +50,14 @@ export const makeVoronoi2NoiseGenerator = (
     dimensions: number,
     density: number
   ): Coord[] {
-    const hash = `${ix}+${cx},${iy}+${cy},${dimensions},${density}`;
-    // const hash = `${ix+cx },${iy+cy }`; // this hash won't work because points are relative and will be from the 0,0 point not the 1,1 or whatever
-
-    const points = cache[hash] ?? Array.from({ length: density }).map((_, i): Coord => {
+    return (cache[`${ix}+${cx},${iy}+${cy}`] ??= Array.from({
+      length: density,
+    }).map((_, i): Coord => {
       const h = noise(ix + cx, iy + cy + i * 59308303) * 0xffffff;
       const x = cx + ((h & 0xff) / 0xff - 0.5);
       const y = cy + (((h >> 8) & 0xff) / 0xff - 0.5);
       const z = dimensions == 2 ? 0 : ((h >> 16) & 0xff) / 0xff - 0.5;
       return { x, y, z };
-    });
-    cache[hash] = points;
-    return points;
+    }));
   }
 };

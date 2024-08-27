@@ -43,9 +43,7 @@ export const makeCustomSimplexGenerator = (seed: number) => {
     const a = 2 / 3 - dxs * dxs - dys * dys;
     if (a < 0) return 0;
 
-    const n = noise(x + cx, y + cy)
-    // console.log(n)
-    const h =  n * 0xff;
+    const h = noise(x + cx, y + cy) * 0xff;
     const u = (h & 0xf) - 8;
     const v = (h >> 4) - 8;
     return a * a * a * a * (u * dxs + v * dys);

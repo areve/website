@@ -7,27 +7,14 @@ export const makeVoronoi2NoiseGenerator = (
   size: number = 64,
   density: number = 5
 ) => {
-  const noise = new WorleyNoise(seed, dimension, density);
+  const noise = makePointGeneratorFast(seed);
+
+  // const worleyNoise = new WorleyNoise(dimension, density);
   return (coord: Coord): number => {
-    return noise.point( coord.x / size, coord.y / size);
+    return point(coord.x / size, coord.y / size);
   };
-};
 
-const euclidean = (dx: number, dy: number, dz: number) =>
-  dx * dx + dy * dy + dz * dz;
-
-const noise = makePointGeneratorFast(123456);
-
-class WorleyNoise {
-  private dimension: 2 | 3;
-  private density: number;
-
-  constructor(seed: number, dimension: 2 | 3, density: number) {
-    this.dimension = dimension;
-    this.density = density;
-  }
-
-  point(ix: number, iy: number): number {
+  function point(ix: number, iy: number): number {
     const x = Math.floor(ix);
     const y = Math.floor(iy);
     const fx = ix - x;
@@ -50,10 +37,10 @@ class WorleyNoise {
       });
 
     const points = [
-      makePoints(x, y, 0, 0, this.dimension, this.density),
-      makePoints(x, y, 1, 0, this.dimension, this.density),
-      makePoints(x, y, 0, 1, this.dimension, this.density),
-      makePoints(x, y, 1, 1, this.dimension, this.density),
+      makePoints(x, y, 0, 0, dimension, density),
+      makePoints(x, y, 1, 0, dimension, density),
+      makePoints(x, y, 0, 1, dimension, density),
+      makePoints(x, y, 1, 1, dimension, density),
     ].flat();
 
     return Math.sqrt(
@@ -63,4 +50,16 @@ class WorleyNoise {
       )
     );
   }
-}
+};
+
+const euclidean = (dx: number, dy: number, dz: number) =>
+  dx * dx + dy * dy + dz * dz;
+
+// class WorleyNoise {
+//   private dimension: 2 | 3;
+//   private density: number;
+
+//   constructor(dimension: 2 | 3, density: number) {
+//     this.dimension = dimension;
+//     this.density = density;
+//   }

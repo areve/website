@@ -28,7 +28,7 @@ export const makeVoronoi2NoiseGenerator = (
       makePoints(x, y, 1, 1, dimensions, density),
     ].flat();
 
-    return Math.sqrt(
+    return ( // should sqrt but I'll leave it for the caller
       points.reduce(
         (p, v) => Math.min(euclidean(fx - v.x, fy - v.y, v.z ?? 0), p),
         Infinity

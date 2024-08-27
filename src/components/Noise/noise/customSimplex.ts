@@ -2,123 +2,272 @@ import { Coord } from "../lib/interfaces";
 import { makePointGeneratorFast } from "./prng";
 
 export const makeCustomSimplexGenerator = (seed: number) => {
-  const noise = makeNoise2D(seed);
+  // const noise = makeNoise2D(seed);
+  // const foo = new OpenSimplex2S();
+  const noise = makePointGeneratorFast(seed);
 
-  return (coord: Coord, scale: number = 8): number => {
-    return noise(coord.x / scale, coord.y / scale);
+  return (coord: Coord, scale: number): number => {
+    const seed = noise(coord.x, coord.y);
+    return OpenSimplex2S.noise2(1234, coord.x / scale, coord.y / scale);
   };
 };
 
-const NORM_2D = 1.0 / 47.0;
-const SQUISH_2D = (Math.sqrt(2 + 1) - 1) / 2;
-const STRETCH_2D = (1 / Math.sqrt(2 + 1) - 1) / 2;
+class OpenSimplex2S {
+  private static readonly PRIME_X = 15918337;
+  private static readonly PRIME_Y = 98954231;
+  private static readonly HASH_MULTIPLIER = 59308303;
+  private static readonly SKEW_2D = 0.366025403784439;
+  private static readonly UNSKEW_2D = -0.21132486540518713;
+  private static readonly ROOT2OVER2 = 0.7071067811865476;
+  private static readonly RSQUARED_2D = 2.0 / 3.0;
 
-type Noise2D = (x: number, y: number) => number;
+  public static noise2(seed: number, x: number, y: number): number {
+    // Get points for A2* lattice
+    const s = OpenSimplex2S.SKEW_2D * (x + y);
+    const xs = x + s;
+    const ys = y + s;
 
-interface Contribution2D {
-  dx: number;
-  dy: number;
-  next?: Contribution2D;
-  xsb: number;
-  ysb: number;
-}
-
-function contribution2D(
-  multiplier: number,
-  xsb: number,
-  ysb: number
-): Contribution2D {
-  return {
-    dx: -xsb - multiplier * SQUISH_2D,
-    dy: -ysb - multiplier * SQUISH_2D,
-    xsb,
-    ysb,
-  };
-}
-
-export function makeNoise2D(seed: number): Noise2D {
-  const fastNoise = makePointGeneratorFast(seed);
-
-  const contributions: Contribution2D[] = [];
-  for (let i = 0; i < p2D.length; i += 4) {
-    const baseSet = base2D[p2D[i]];
-    let previous: Contribution2D | null = null;
-    let current: Contribution2D | null = null;
-    for (let k = 0; k < baseSet.length; k += 3) {
-      current = contribution2D(baseSet[k], baseSet[k + 1], baseSet[k + 2]);
-      if (previous === null) contributions[i / 4] = current;
-      else previous.next = current;
-      previous = current;
-    }
-    current!.next = contribution2D(p2D[i + 1], p2D[i + 2], p2D[i + 3]);
+    return OpenSimplex2S.noise2_UnskewedBase(seed, xs, ys);
   }
 
-  const lookup: Contribution2D[] = [];
-  for (let i = 0; i < lookupPairs2D.length; i += 2) {
-    lookup[lookupPairs2D[i]] = contributions[lookupPairs2D[i + 1]];
+  public static noise2_ImproveX(seed: number, x: number, y: number): number {
+    // Skew transform and rotation baked into one.
+    const xx = x * OpenSimplex2S.ROOT2OVER2;
+    const yy = y * (OpenSimplex2S.ROOT2OVER2 * (1 + 2 * OpenSimplex2S.SKEW_2D));
+
+    return OpenSimplex2S.noise2_UnskewedBase(seed, yy + xx, yy - xx);
   }
 
-  return (x: number, y: number): number => {
-    const stretchOffset = (x + y) * STRETCH_2D;
-    const xs = x + stretchOffset;
-    const ys = y + stretchOffset;
-    const xsb = Math.floor(xs);
-    const ysb = Math.floor(ys);
-    const squishOffset = (xsb + ysb) * SQUISH_2D;
-    const dx0 = x - (xsb + squishOffset);
-    const dy0 = y - (ysb + squishOffset);
-    const xins = xs - xsb;
-    const yins = ys - ysb;
-    const inSum = xins + yins;
-    const hash =
-      (xins - yins + 1) |
-      (inSum << 1) |
-      ((inSum + yins) << 2) |
-      ((inSum + xins) << 4);
+  private static noise2_UnskewedBase(
+    seed: number,
+    xs: number,
+    ys: number
+  ): number {
+    // Get base points and offsets.
+    const xsb = OpenSimplex2S.fastFloor(xs);
+    const ysb = OpenSimplex2S.fastFloor(ys);
+    const xi = xs - xsb;
+    const yi = ys - ysb;
 
-    let value = 0;
+    // Prime pre-multiplication for hash.
+    const xsbp = xsb * OpenSimplex2S.PRIME_X;
+    const ysbp = ysb * OpenSimplex2S.PRIME_Y;
 
-    for (
-      let c: Contribution2D | undefined = lookup[hash];
-      c !== undefined;
-      c = c.next
-    ) {
-      const dx = dx0 + c.dx;
-      const dy = dy0 + c.dy;
-      const attn = 2 - dx * dx - dy * dy;
-      if (attn > 0) {
-        const px = xsb + c.xsb;
-        const py = ysb + c.ysb;
+    // Unskew.
+    const t = (xi + yi) * OpenSimplex2S.UNSKEW_2D;
+    const dx0 = xi + t;
+    const dy0 = yi + t;
 
-        // Use fastNoise(coord) instead of perm/perm2D
-        const noiseValue = fastNoise(px, py);
+    // First vertex.
+    let a0 = OpenSimplex2S.RSQUARED_2D - dx0 * dx0 - dy0 * dy0;
+    let value =
+      a0 * a0 * (a0 * a0) * OpenSimplex2S.grad(seed, xsbp, ysbp, dx0, dy0);
 
-        // Convert noiseValue (0-1) to appropriate gradient index
-        const gradientIndex =
-          Math.floor((noiseValue * gradients2D.length) / 2) * 2;
+    // Second vertex.
+    let a1 =
+      2 *
+        (1 + 2 * OpenSimplex2S.UNSKEW_2D) *
+        (1 / OpenSimplex2S.UNSKEW_2D + 2) *
+        t +
+      (-2 *
+        (1 + 2 * OpenSimplex2S.UNSKEW_2D) *
+        (1 + 2 * OpenSimplex2S.UNSKEW_2D) +
+        a0);
+    let dx1 = dx0 - (1 + 2 * OpenSimplex2S.UNSKEW_2D);
+    let dy1 = dy0 - (1 + 2 * OpenSimplex2S.UNSKEW_2D);
+    value +=
+      a1 *
+      a1 *
+      (a1 * a1) *
+      OpenSimplex2S.grad(
+        seed,
+        xsbp + OpenSimplex2S.PRIME_X,
+        ysbp + OpenSimplex2S.PRIME_Y,
+        dx1,
+        dy1
+      );
 
-        const valuePart =
-          gradients2D[gradientIndex] * dx + gradients2D[gradientIndex + 1] * dy;
-        value += attn * attn * attn * attn * valuePart;
+    // console.log(xs, ys, xi, yi)
+    // Third and fourth vertices.
+    const xmyi = xi - yi;
+    if (t < OpenSimplex2S.UNSKEW_2D) {
+      if (xi + xmyi > 1) {
+        const dx2 = dx0 - (3 * OpenSimplex2S.UNSKEW_2D + 2);
+        const dy2 = dy0 - (3 * OpenSimplex2S.UNSKEW_2D + 1);
+        const a2 = OpenSimplex2S.RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+        if (a2 > 0) {
+          value +=
+            a2 *
+            a2 *
+            (a2 * a2) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp + (OpenSimplex2S.PRIME_X << 1),
+              ysbp + OpenSimplex2S.PRIME_Y,
+              dx2,
+              dy2
+            );
+        }
+      } else {
+        const dx2 = dx0 - OpenSimplex2S.UNSKEW_2D;
+        const dy2 = dy0 - (OpenSimplex2S.UNSKEW_2D + 1);
+        const a2 = OpenSimplex2S.RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+        if (a2 > 0) {
+          value +=
+            a2 *
+            a2 *
+            (a2 * a2) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp,
+              ysbp + OpenSimplex2S.PRIME_Y,
+              dx2,
+              dy2
+            );
+        }
+      }
+
+      if (yi - xmyi > 1) {
+        const dx3 = dx0 - (3 * OpenSimplex2S.UNSKEW_2D + 1);
+        const dy3 = dy0 - (3 * OpenSimplex2S.UNSKEW_2D + 2);
+        const a3 = OpenSimplex2S.RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
+        if (a3 > 0) {
+          value +=
+            a3 *
+            a3 *
+            (a3 * a3) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp + OpenSimplex2S.PRIME_X,
+              ysbp + (OpenSimplex2S.PRIME_Y << 1),
+              dx3,
+              dy3
+            );
+        }
+      } else {
+        const dx3 = dx0 - (OpenSimplex2S.UNSKEW_2D + 1);
+        const dy3 = dy0 - OpenSimplex2S.UNSKEW_2D;
+        const a3 = OpenSimplex2S.RSQUARED_2D - dx3 * dx3 - dy3 * dy3;
+        if (a3 > 0) {
+          value +=
+            a3 *
+            a3 *
+            (a3 * a3) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp + OpenSimplex2S.PRIME_X,
+              ysbp,
+              dx3,
+              dy3
+            );
+        }
+      }
+    } else {
+      if (xi + xmyi < 0) {
+        const dx2 = dx0 + (1 + OpenSimplex2S.UNSKEW_2D);
+        const dy2 = dy0 + OpenSimplex2S.UNSKEW_2D;
+        const a2 = OpenSimplex2S.RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+        if (a2 > 0) {
+          value +=
+            a2 *
+            a2 *
+            (a2 * a2) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp - OpenSimplex2S.PRIME_X,
+              ysbp,
+              dx2,
+              dy2
+            );
+        }
+      } else {
+        const dx2 = dx0 - (OpenSimplex2S.UNSKEW_2D + 1);
+        const dy2 = dy0 - OpenSimplex2S.UNSKEW_2D;
+        const a2 = OpenSimplex2S.RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+        if (a2 > 0) {
+          value +=
+            a2 *
+            a2 *
+            (a2 * a2) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp + OpenSimplex2S.PRIME_X,
+              ysbp,
+              dx2,
+              dy2
+            );
+        }
+      }
+
+      if (yi < xmyi) {
+        const dx2 = dx0 + OpenSimplex2S.UNSKEW_2D;
+        const dy2 = dy0 + (OpenSimplex2S.UNSKEW_2D + 1);
+        const a2 = OpenSimplex2S.RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+        if (a2 > 0) {
+          value +=
+            a2 *
+            a2 *
+            (a2 * a2) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp,
+              ysbp - OpenSimplex2S.PRIME_Y,
+              dx2,
+              dy2
+            );
+        }
+      } else {
+        const dx2 = dx0 - OpenSimplex2S.UNSKEW_2D;
+        const dy2 = dy0 - (OpenSimplex2S.UNSKEW_2D + 1);
+        const a2 = OpenSimplex2S.RSQUARED_2D - dx2 * dx2 - dy2 * dy2;
+        if (a2 > 0) {
+          value +=
+            a2 *
+            a2 *
+            (a2 * a2) *
+            OpenSimplex2S.grad(
+              seed,
+              xsbp,
+              ysbp + OpenSimplex2S.PRIME_Y,
+              dx2,
+              dy2
+            );
+        }
       }
     }
 
-    return value * NORM_2D;
-  };
+    return value;
+  }
+
+  private static grad(
+    seed: number,
+    xsb: number,
+    ysb: number,
+    x: number,
+    y: number
+  ): number {    // const h = (seed ^ (xsb * OpenSimplex2S.HASH_MULTIPLIER + ysb)) & 0xff;
+    const noise = makePointGeneratorFast(seed);
+    const h = noise(xsb, ysb) * 0xff;
+    // h =
+    const u = (h & 0x0f) - 8;
+    const v = (h >> 4) - 8;
+    const r = (u * x + v * y) * 0.7071067811865476;
+    // console.log(r)
+
+    return r; // Scale factor for 2D gradients
+  }
+
+  private static fastFloor(x: number): number {
+    // return Math.floor(x)
+    const xi = Math.floor(x);
+    return x < xi ? xi - 1 : xi;
+  }
 }
 
-const base2D = [
-  [1, 1, 0, 1, 0, 1, 0, 0, 0],
-  [1, 1, 0, 1, 0, 1, 2, 1, 1],
-];
+// // Example usage
+// const seed = 12345; // Your desired seed value
+// const x = 1.5; // X coordinate
+// const y = 2.3; // Y coordinate
 
-const gradients2D = [5, 2, 2, 5, -5, 2, -2, 5, 5, -2, 2, -5, -5, -2, -2, -5];
-
-const lookupPairs2D = [
-  0, 1, 1, 0, 4, 1, 17, 0, 20, 2, 21, 2, 22, 5, 23, 5, 26, 4, 39, 3, 42, 4, 43,
-  3,
-];
-
-const p2D = [
-  0, 0, 1, -1, 0, 0, -1, 1, 0, 2, 1, 1, 1, 2, 2, 0, 1, 2, 0, 2, 1, 0, 0, 0,
-];
+// const noiseValue = OpenSimplex2S.noise2(seed, x, y);
+// console.log(noiseValue);

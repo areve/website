@@ -44,7 +44,7 @@ export const makeVoronoi2NoiseGenerator = (
     dimensions: number,
     density: number
   ) {
-    const hash = `${ix}-${iy}-${cx}-${cy}-${dimensions}-${density}`;
+    const hash = `${ix + cx / 2}-${iy + cy / 2}-${dimensions}-${density}`;
     if (cache[hash]) return cache[hash];
 
     const points = Array.from({ length: density }).map((_): Coord => {

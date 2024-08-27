@@ -101,7 +101,7 @@ const customSimplexPixel = (coord: Coord) => {
   return [n, n, n];
 };
 
-const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 16, 6);
+const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 8, 6);
 const voronoi2Pixel = (coord: Coord) => {
   const n = voronoi2Generator(coord) //* 2;
   return [n, n, n];

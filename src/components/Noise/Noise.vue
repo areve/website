@@ -86,7 +86,7 @@ const valuePixel = (coord: Coord) => {
 
 const perlinGenerator = makePerlinGenerator(seed);
 const perlinPixel = (coord: Coord) => {
-  const n = perlinGenerator(coord, 8) * 0.8 + 0.6;
+  const n = perlinGenerator(coord) //* 0.8 + 0.6;
   return [n, n, n];
 };
 

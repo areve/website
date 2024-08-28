@@ -1,19 +1,20 @@
 import { Coord } from "../lib/interfaces";
-import { makePointGenerator } from "./prng";
+import { makePointGeneratorFast } from "./prng";
 
-export const makePerlinGenerator = (seed: number) => {
-  const noise = makePointGenerator(seed);
+export const makePerlinGenerator = (seed: number, scale: number = 8) => {
+  const noise = makePointGeneratorFast(seed);
 
-  const smoothstep = (t: number): number => t * t * (3 - t * 2);
+  const smootherstep = (t: number): number =>
+    t * t * t * (t * (t * 6 - 15) + 10);
 
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
   const prngVector = (coord: Coord) => {
-    const theta = noise({ x: coord.x, y: coord.y, z: 1 }) * 2 * Math.PI;
+    const theta = noise(coord.x, coord.y, 1) * 2 * Math.PI;
     return { x: Math.cos(theta), y: Math.sin(theta) };
   };
 
-  return (coord: Coord, scale: number = 8): number => {
+  return (coord: Coord): number => {
     const x = Math.floor(coord.x / scale);
     const y = Math.floor(coord.y / scale);
     const fx = (coord.x % scale) / scale;
@@ -31,10 +32,10 @@ export const makePerlinGenerator = (seed: number) => {
     const dot3 = v3.x * (fx - 1) + v3.y * (fy - 1);
 
     // Interpolate between the dot products
-    const sx = smoothstep(fx);
-    const sy = smoothstep(fy);
+    const sx = smootherstep(fx);
+    const sy = smootherstep(fy);
     const m1 = lerp(dot0, dot1, sy);
     const m2 = lerp(dot2, dot3, sy);
-    return lerp(m1, m2, sx);
+    return lerp(m1, m2, sx) * 0.5 + 0.5;
   };
 };

@@ -54,6 +54,9 @@
       :pixel="mandelbrotPixel"
       >Mandelbrot
     </NoiseRender>
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="juliaPixel"
+      >Julia
+    </NoiseRender>
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="sierpinskiPixel"
@@ -71,7 +74,10 @@ import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
 import { makeOpenSimplexGenerator } from "./noise/openSimplex";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
-import { makeMandelbrotGenerator } from "./noise/mandelbrot";
+import {
+  makeJuliaGenerator,
+  makeMandelbrotGenerator,
+} from "./noise/mandelbrot";
 import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
@@ -133,6 +139,11 @@ const fractalPixel = (coord: Coord) => {
 const mandelbrotGenerator = makeMandelbrotGenerator(seed);
 const mandelbrotPixel = (coord: Coord) => {
   const n = mandelbrotGenerator(coord);
+  return [n, n, n];
+};
+const juliaGenerator = makeJuliaGenerator(seed);
+const juliaPixel = (coord: Coord) => {
+  const n = juliaGenerator(coord);
   return [n, n, n];
 };
 

@@ -49,6 +49,9 @@
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="fractalPixel"
       >Fractal
     </NoiseRender>
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="mandelbrotPixel"
+      >Mandelbrot
+    </NoiseRender>
   </section>
 </template>
 
@@ -61,6 +64,7 @@ import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
 import { makeOpenSimplexGenerator } from "./noise/openSimplex";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
+import { makeMandelbrotGenerator } from "./noise/mandelbrot";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -115,6 +119,12 @@ const starfieldPixel = (coord: Coord) => {
 const fractalGenerator = makeFractalNoiseGenerator(seed);
 const fractalPixel = (coord: Coord) => {
   const n = fractalGenerator(coord);
+  return [n, n, n];
+};
+
+const mandelbrotGenerator = makeMandelbrotGenerator(seed);
+const mandelbrotPixel = (coord: Coord) => {
+  const n = mandelbrotGenerator(coord);
   return [n, n, n];
 };
 </script>

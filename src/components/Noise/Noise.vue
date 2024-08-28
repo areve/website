@@ -70,6 +70,11 @@
       :pixel="lorenzAttractorPixel"
       >Lorenz attractor
     </NoiseRender>
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="trigonometryPixel"
+      >Trigonometry
+    </NoiseRender>
   </section>
 </template>
 
@@ -84,6 +89,7 @@ import { makeOpenSimplexGenerator } from "./noise/openSimplex";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
 import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
 import { makeLorenzAttractorGenerator } from "./noise/lorenzAttractor";
+import { makeTrigonometryGenerator } from "./noise/trigonometry";
 import {
   makeJuliaGenerator,
   makeMandelbrotGenerator,
@@ -170,6 +176,11 @@ const lorenzAttractorPixel = (coord: Coord) => {
 const sierpinskiGenerator = makeSierpinskiGenerator(seed);
 const sierpinskiPixel = (coord: Coord) => {
   const n = sierpinskiGenerator(coord);
+  return [n, n, n];
+};
+const trigonometryGenerator = makeTrigonometryGenerator(seed);
+const trigonometryPixel = (coord: Coord) => {
+  const n = trigonometryGenerator(coord);
   return [n, n, n];
 };
 </script>

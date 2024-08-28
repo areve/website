@@ -96,21 +96,14 @@ const openSimplexPixel = (coord: Coord) => {
   return [n, n, n];
 };
 
-const worleyGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 1);
+const worleyGenerator = makeWorleyNoiseGenerator(seed);
 const worleyPixel = (coord: Coord) => {
   const n = worleyGenerator(coord);
   return [n, n, n];
 };
-const starfieldGenerator = makeWorleyNoiseGenerator(
-  seed,
-  3,
-  8,
-  1,
-  undefined,
-  (v) => (1 - v ** 0.5) ** 16
-);
+const starfieldGenerator = makeWorleyNoiseGenerator(seed);
 const starfieldPixel = (coord: Coord) => {
-  const n = starfieldGenerator(coord);
+  const n = (1 - starfieldGenerator(coord)) ** 16;
   return [n, n, n];
 };
 </script>

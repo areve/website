@@ -8,9 +8,9 @@ export const sqrt = (v: number) => v ** 0.5;
 
 export const makeWorleyNoiseGenerator = (
   seed: number,
-  dimensions: 2 | 3 = 2,
-  scale: number = 16,
-  density: number = 5,
+  dimensions: 2 | 3 = 3,
+  scale: number = 8,
+  density: number = 1,
   calculateDistance: typeof euclidean = euclidean,
   finalApply: typeof sqrt | null = sqrt
 ) => {
@@ -70,7 +70,7 @@ export const makeWorleyNoiseGenerator = (
     return (cache[`${ix}+${cx},${iy}+${cy}`] ??= Array.from({
       length: density,
     }).map((_, i): Coord => {
-      const h = noise(ix + cx, iy + cy + i * 59308303) * 0xffffff;
+      const h = noise(ix + cx, iy + cy, i) * 0xffffff;
       const x = cx + ((h & 0xff) / 0xff - 0.5);
       const y = cy + (((h >> 8) & 0xff) / 0xff - 0.5);
       const z = dimensions == 2 ? 0 : ((h >> 16) & 0xff) / 0xff - 0.5;

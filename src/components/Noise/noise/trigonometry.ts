@@ -6,6 +6,7 @@ type DistortionType =
   | "bloat"
   | "wave"
   | "punk"
+  | "twirly"
   | "swirl2"
   | "swirl";
 
@@ -27,6 +28,10 @@ const distortionFunctions: Record<
     cx + Math.sin(cx * 0.4) * 0.7,
     cy + Math.cos(cy * 0.4) * 0.7,
   ],
+  twirly: (cx, cy, r, theta) => [
+    cx + r * Math.cos(theta + r ** 0.5 * 5) + cy / 5,
+    cy + r * Math.sin(theta + r ** 0.7 * 5) + cx / 3,
+  ],
   swirl: (cx, cy, r, theta) => [
     cx + r * Math.cos(theta + r * 3),
     cy + r * Math.sin(theta + r * 3),
@@ -41,7 +46,6 @@ const keys = Object.keys(distortionFunctions);
 const randomKey = keys[
   Math.floor(Math.random() * keys.length)
 ] as DistortionType;
-// const method = distortionFunctions[randomKey];
 
 export const makeTrigonometryGenerator = (
   seed: number,
@@ -53,8 +57,8 @@ export const makeTrigonometryGenerator = (
 
     const method = distortionFunctions[distortionType ?? randomKey];
 
-    const cx = x / 4 - 20;
-    const cy = y / 4 - 10;
+    const cx = x / 3 - 20;
+    const cy = y / 3 - 10;
 
     const r = Math.sqrt(cx * cx + cy * cy) / 8;
     const theta = Math.atan2(cy, cx);

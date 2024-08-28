@@ -73,7 +73,7 @@
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="trigonometryPixel"
-      >Trigonometry
+      >Trigonometry (various options)
     </NoiseRender>
   </section>
 </template>
@@ -178,7 +178,7 @@ const sierpinskiPixel = (coord: Coord) => {
   const n = sierpinskiGenerator(coord);
   return [n, n, n];
 };
-const trigonometryGenerator = makeTrigonometryGenerator(seed);
+const trigonometryGenerator = makeTrigonometryGenerator(seed, "twirly");
 const trigonometryPixel = (coord: Coord) => {
   const n = trigonometryGenerator(coord);
   return [n, n, n];

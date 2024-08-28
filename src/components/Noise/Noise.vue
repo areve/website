@@ -146,7 +146,13 @@ function hsv2rgb(hsv: Hsv): Rgb {
   return [rgb[sector + 4], rgb[sector + 2], rgb[sector]];
 }
 
-const noises = ref([
+interface NoiseDefinition {
+  dimensions: { width: number; height: number };
+  title: string;
+  pixel: (coord: Coord) => Rgb | number[];
+}
+
+const noises = ref<NoiseDefinition[]>([
   {
     dimensions: { width: 500, height: 100 },
     title: "Random pixels, in grayscale.",
@@ -230,13 +236,10 @@ const noises = ref([
   },
 ]);
 
-function select(noise: any) {
-  if (!noise.title) return;
-  console.log("select", noise.title);
-  const noiseObj = noises.value.find((v) => v === noise);
-  noiseObj!.dimensions = {
-    width: noiseObj!.dimensions.width,
-    height: noiseObj!.dimensions.height === 100 ? 500 : 100,
+function select(noise: NoiseDefinition) {
+  noise.dimensions = {
+    width: noise.dimensions.width,
+    height: noise.dimensions.height === 100 ? 500 : 100,
   };
 }
 </script>

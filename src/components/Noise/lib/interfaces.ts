@@ -19,6 +19,11 @@ export interface Coord {
   z?: number;
   w?: number;
 }
+export interface Camera {
+  x: number;
+  y: number;
+  zoom: number;
+}
 
 export interface Vector {
   x: number;

@@ -1,4 +1,4 @@
-import { Coord, Dimensions } from "./interfaces";
+import { Camera, Coord, Dimensions } from "./interfaces";
 import { clamp } from "./other";
 
 export function getContext(
@@ -38,7 +38,7 @@ export function render(
   canvas: HTMLCanvasElement,
   dimensions: Dimensions,
   pixel: (coord: Coord) => number[],
-  camera?: { x: number; y: number }
+  camera?: Camera
 ) {
   const context = getContext(canvas, dimensions);
   if (!context) return;
@@ -49,9 +49,13 @@ export function render(
   const data = imageData.data;
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
+  const cameraZoom = camera?.zoom ?? 1;
   for (let x = 0; x < width; ++x) {
     for (let y = 0; y < height; ++y) {
-      const v = pixel({ x: x + cameraX, y: y + cameraY });
+      const v = pixel({
+        x: (x + cameraX) * cameraZoom,
+        y: (y + cameraY) * cameraZoom,
+      });
       const i = (x + y * width) * 4;
       data[i] = (v[0] * 0xff) >>> 0;
       data[i + 1] = (v[1] * 0xff) >>> 0;

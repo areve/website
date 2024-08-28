@@ -20,11 +20,13 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { Dimensions, Coord } from "./lib/interfaces";
+import { Dimensions, Coord, Camera } from "./lib/interfaces";
 import { render } from "./lib/render";
+
 
 export interface NoiseRenderProps {
   dimensions: Dimensions;
+  camera: Camera;
   pixel: (coord: Coord) => number[];
 }
 
@@ -41,7 +43,7 @@ const ratePixelsPerSecond = ref(0);
 
 const update = () => {
   const start = new Date().getTime();
-  render(canvas.value, dimensions.value, pixel.value);
+  render(canvas.value, dimensions.value, pixel.value, props.camera);
   const end = new Date().getTime();
   const pixels = dimensions.value.height * dimensions.value.width;
   ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;

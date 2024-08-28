@@ -10,6 +10,7 @@
       <NoiseRender
         v-for="noise in noises"
         :dimensions="noise.dimensions"
+        :camera="noise.camera"
         :pixel="noise.pixel"
         @click="select(noise)"
         >{{ noise.title }}</NoiseRender
@@ -19,9 +20,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from "vue";
+import { onMounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
-import { Coord } from "./lib/interfaces";
+import { Camera, Coord, Dimensions } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
@@ -40,11 +41,6 @@ import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
-
-const randomPixel = (coord: Coord) => {
-  const n = Math.random();
-  return [n, n, n];
-};
 
 const pseudoRandom = (coord: Coord) => {
   const n = generator(coord);
@@ -147,7 +143,8 @@ function hsv2rgb(hsv: Hsv): Rgb {
 }
 
 interface NoiseDefinition {
-  dimensions: { width: number; height: number };
+  dimensions: Dimensions;
+  camera: Camera;
   title: string;
   pixel: (coord: Coord) => Rgb | number[];
 }
@@ -155,93 +152,120 @@ interface NoiseDefinition {
 const noises = ref<NoiseDefinition[]>([
   {
     dimensions: { width: 500, height: 100 },
-    title: "Random pixels, in grayscale.",
-    pixel: randomPixel,
-  },
-  {
-    dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels.",
     pixel: pseudoRandom,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels in color.",
     pixel: pseudoRandomColor,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Value noise",
     pixel: valuePixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Perlin",
     pixel: perlinPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex",
     pixel: openSimplexPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Worley (Voronoi)",
     pixel: worleyPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Worley (Starfield)",
     pixel: starfieldPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Fractal",
     pixel: fractalPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Mandelbrot",
     pixel: mandelbrotPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Julia",
     pixel: juliaPixel,
   },
 
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Newton Raphson",
     pixel: newtonRaphsonPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Sierpinski",
     pixel: sierpinskiPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Lorenz attractor",
     pixel: lorenzAttractorPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Trigonometry (various options)",
     pixel: trigonometryPixel,
   },
   {
     dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex + trigonometry",
     pixel: graphPixel,
   },
 ]);
 
+const selectedNoise = ref<NoiseDefinition>();
 function select(noise: NoiseDefinition) {
+  selectedNoise.value = noise;
   noise.dimensions = {
     width: noise.dimensions.width,
     height: noise.dimensions.height === 100 ? 500 : 100,
   };
 }
+
+onMounted(async () => {
+  document.addEventListener("keydown", onKeyDown);
+});
+
+const onKeyDown = (event: KeyboardEvent) => {
+  if (!selectedNoise.value) return;
+  if (event.key === "a") selectedNoise.value.camera.x -= 25;
+  if (event.key === "d") selectedNoise.value.camera.x += 25;
+  if (event.key === "w") selectedNoise.value.camera.y -= 25;
+  if (event.key === "s") selectedNoise.value.camera.y += 25;
+  if (event.key === "'") selectedNoise.value.camera.zoom /= 1.2;
+  if (event.key === "/") selectedNoise.value.camera.zoom *= 1.2;
+  console.log(event.key);
+};
 </script>
 
 <style scoped></style>

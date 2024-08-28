@@ -45,6 +45,10 @@
       :pixel="starfieldPixel"
       >Worley (Starfield)</NoiseRender
     >
+
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="fractalPixel"
+      >Fractal
+    </NoiseRender>
   </section>
 </template>
 
@@ -56,6 +60,7 @@ import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
 import { makeOpenSimplexGenerator } from "./noise/openSimplex";
+import { makeFractalNoiseGenerator } from "./noise/fractal";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -104,6 +109,12 @@ const worleyPixel = (coord: Coord) => {
 const starfieldGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 32);
 const starfieldPixel = (coord: Coord) => {
   const n = (1 - starfieldGenerator(coord)) ** 16;
+  return [n, n, n];
+};
+
+const fractalGenerator = makeFractalNoiseGenerator(seed);
+const fractalPixel = (coord: Coord) => {
+  const n = fractalGenerator(coord);
   return [n, n, n];
 };
 </script>

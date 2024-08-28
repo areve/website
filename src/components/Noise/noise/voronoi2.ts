@@ -1,17 +1,22 @@
 import { Coord } from "../lib/interfaces";
 import { makePointGeneratorFast } from "../noise/prng";
 
+export const euclidean = (dx: number, dy: number, dz: number) =>
+  dx * dx + dy * dy + dz * dz;
+
+export const sqrt = (v: number) => v ** 0.5;
+
 export const makeVoronoi2NoiseGenerator = (
   seed: number,
   dimensions: 2 | 3 = 2,
   scale: number = 16,
-  density: number = 5
+  density: number = 5,
+  calculateDistance: typeof euclidean = euclidean,
+  finalApply: typeof sqrt | null = sqrt
 ) => {
   const noise = makePointGeneratorFast(seed);
 
   const cache: any = {};
-  const euclidean = (dx: number, dy: number, dz: number) =>
-    dx * dx + dy * dy + dz * dz;
 
   return (coord: Coord): number => worley(coord.x / scale, coord.y / scale);
 
@@ -22,11 +27,10 @@ export const makeVoronoi2NoiseGenerator = (
     const fy = iy - y;
 
     const points = makePointsSquare(x, y, dimensions, density);
-    const n = findNearest(points, euclidean, fx, fy);
+    const n = findNearest(points, calculateDistance, fx, fy);
 
-    const raw = true; // perhaps make this optional for the caller for performance
-    if (raw) return n;
-    return n ** 0.5;
+    if (!finalApply) return n;
+    return finalApply(n);
   }
 
   function findNearest(

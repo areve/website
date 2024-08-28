@@ -21,7 +21,7 @@ export const makeVoronoi2NoiseGenerator = (
     const fx = ix - x;
     const fy = iy - y;
 
-    const points = makePointsSquare(x, y);
+    const points = makePointsSquare(x, y, dimensions, density);
     const n = findNearest(points, euclidean, fx, fy);
 
     const raw = true; // perhaps make this optional for the caller for performance
@@ -29,14 +29,24 @@ export const makeVoronoi2NoiseGenerator = (
     return n ** 0.5;
   }
 
-  function findNearest(points: Coord[], method: (dx: number, dy: number, dz: number) => number, fx: number, fy: number) {
+  function findNearest(
+    points: Coord[],
+    method: (dx: number, dy: number, dz: number) => number,
+    fx: number,
+    fy: number
+  ) {
     return points.reduce(
       (p, v) => Math.min(method(fx - v.x, fy - v.y, v.z ?? 0), p),
       Infinity
     );
   }
-  
-  function makePointsSquare(x: number, y: number): Coord[] {
+
+  function makePointsSquare(
+    x: number,
+    y: number,
+    dimensions: number,
+    density: number
+  ): Coord[] {
     return (cache[`${x}+${y}`] ??= [
       makePoints(x, y, 0, 0, dimensions, density),
       makePoints(x, y, 1, 0, dimensions, density),
@@ -64,4 +74,3 @@ export const makeVoronoi2NoiseGenerator = (
     }));
   }
 };
-

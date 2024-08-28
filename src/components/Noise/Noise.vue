@@ -6,84 +6,20 @@
       splines and curves. This page shows what different algorithms look like
       and gives some indication of how fast they are.
     </p>
-    <!--  
-    <NoiseRender :dimensions="{ width: 500, height: 100 }">
-      Random pixels (default)
-    </NoiseRender>
--->
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="randomPixel"
-      >Random pixels, in grayscale.</NoiseRender
-    >
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="pseudoRandom"
-      >Pseudo-random pixels.</NoiseRender
-    >
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="pseudoRandomColor"
-      >Pseudo-random pixels.</NoiseRender
-    >
-
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="valuePixel"
-      >Value noise</NoiseRender
-    >
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlinPixel"
-      >Perlin</NoiseRender
-    >
-
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="openSimplexPixel"
-      >OpenSimplex</NoiseRender
-    >
-
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="worleyPixel"
-      >Worley (Voronoi)</NoiseRender
-    >
-
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="starfieldPixel"
-      >Worley (Starfield)</NoiseRender
-    >
-
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="fractalPixel"
-      >Fractal
-    </NoiseRender>
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="mandelbrotPixel"
-      >Mandelbrot
-    </NoiseRender>
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="juliaPixel"
-      >Julia
-    </NoiseRender>
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="newtonRaphsonPixel"
-      >Newton Raphson
-    </NoiseRender>
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="sierpinskiPixel"
-      >Sierpinski
-    </NoiseRender>
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="lorenzAttractorPixel"
-      >Lorenz attractor
-    </NoiseRender>
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="trigonometryPixel"
-      >Trigonometry (various options)
-    </NoiseRender>
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="graphPixel"
-      >OpenSimplex + trigonometry
-    </NoiseRender>
+    <div>
+      <NoiseRender
+        v-for="noise in noises"
+        :dimensions="noise.dimensions"
+        :pixel="noise.pixel"
+        @click="select(noise)"
+        >{{ noise.title }}</NoiseRender
+      >
+    </div>
   </section>
 </template>
 
 <script lang="ts" setup>
+import { ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
@@ -208,6 +144,100 @@ function hsv2rgb(hsv: Hsv): Rgb {
   const z = v * (1 - s * (1 - sectorFloat));
   const rgb = [x, x, z, v, v, y, x, x, z, v];
   return [rgb[sector + 4], rgb[sector + 2], rgb[sector]];
+}
+
+const noises = ref([
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Random pixels, in grayscale.",
+    pixel: randomPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Pseudo-random pixels.",
+    pixel: pseudoRandom,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Pseudo-random pixels in color.",
+    pixel: pseudoRandomColor,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Value noise",
+    pixel: valuePixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Perlin",
+    pixel: perlinPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "OpenSimplex",
+    pixel: openSimplexPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Worley (Voronoi)",
+    pixel: worleyPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Worley (Starfield)",
+    pixel: starfieldPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Fractal",
+    pixel: fractalPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Mandelbrot",
+    pixel: mandelbrotPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Julia",
+    pixel: juliaPixel,
+  },
+
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Newton Raphson",
+    pixel: newtonRaphsonPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Sierpinski",
+    pixel: sierpinskiPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Lorenz attractor",
+    pixel: lorenzAttractorPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "Trigonometry (various options)",
+    pixel: trigonometryPixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    title: "OpenSimplex + trigonometry",
+    pixel: graphPixel,
+  },
+]);
+
+function select(noise: any) {
+  if (!noise.title) return;
+  console.log("select", noise.title);
+  const noiseObj = noises.value.find((v) => v === noise);
+  noiseObj!.dimensions = {
+    width: noiseObj!.dimensions.width,
+    height: noiseObj!.dimensions.height === 100 ? 500 : 100,
+  };
 }
 </script>
 

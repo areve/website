@@ -1,7 +1,7 @@
 import { Coord } from "../lib/interfaces";
 import { makePointGenerator } from "./prng";
 
-export const makePerlin2Generator = (seed: number) => {
+export const makePerlinGenerator = (seed: number) => {
   const noise = makePointGenerator(seed);
 
   const smoothstep = (t: number): number => t * t * (3 - t * 2);

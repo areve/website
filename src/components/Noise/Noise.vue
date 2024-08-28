@@ -26,26 +26,24 @@
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="valuePixel"
       >Value noise</NoiseRender
     >
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlin2Pixel"
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="perlinPixel"
       >Perlin</NoiseRender
     >
 
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
-      :pixel="customSimplexPixel"
-      >OpenSimplex my custom version</NoiseRender
+      :pixel="openSimplexPixel"
+      >OpenSimplex</NoiseRender
     >
 
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="voronoi2Pixel"
-      >Voronoi</NoiseRender
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="worleyPixel"
+      >Worley (Voronoi)</NoiseRender
     >
 
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="starfieldPixel"
-      >Starfield</NoiseRender
+      >Worley (Starfield)</NoiseRender
     >
   </section>
 </template>
@@ -55,10 +53,9 @@ import NoiseRender from "./NoiseRender.vue";
 import { Coord } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
-import { makePerlin2Generator } from "./noise/perlin2";
-import { makeVoronoi2NoiseGenerator } from "./noise/voronoi2";
-import { makeStarfieldGenerator } from "./noise/starfield";
-import { makeCustomSimplexGenerator } from "./noise/customSimplex";
+import { makePerlinGenerator } from "./noise/perlin";
+import { makeWorleyNoiseGenerator } from "./noise/worley";
+import { makeOpenSimplexGenerator } from "./noise/openSimplex";
 
 const seed = 12345;
 const generator = makePointGenerator(seed);
@@ -87,24 +84,31 @@ const valuePixel = (coord: Coord) => {
   return [n, n, n];
 };
 
-const perlin2Generator = makePerlin2Generator(seed);
-const perlin2Pixel = (coord: Coord) => {
-  const n = perlin2Generator(coord, 8) * 0.8 + 0.6;
+const perlinGenerator = makePerlinGenerator(seed);
+const perlinPixel = (coord: Coord) => {
+  const n = perlinGenerator(coord, 8) * 0.8 + 0.6;
   return [n, n, n];
 };
 
-const customSimplexGenerator = makeCustomSimplexGenerator(seed);
-const customSimplexPixel = (coord: Coord) => {
-  const n = customSimplexGenerator(coord, 8) + 0.5;
+const openSimplexGenerator = makeOpenSimplexGenerator(seed);
+const openSimplexPixel = (coord: Coord) => {
+  const n = openSimplexGenerator(coord, 8) + 0.5;
   return [n, n, n];
 };
 
-const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 8, 2);
-const voronoi2Pixel = (coord: Coord) => {
-  const n = voronoi2Generator(coord);
+const worleyGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 2);
+const worleyPixel = (coord: Coord) => {
+  const n = worleyGenerator(coord);
   return [n, n, n];
 };
-const starfieldGenerator = makeStarfieldGenerator(seed);
+const starfieldGenerator = makeWorleyNoiseGenerator(
+  seed,
+  3,
+  8,
+  2,
+  undefined,
+  (v) => (1 - v ** 0.5) ** 16
+);
 const starfieldPixel = (coord: Coord) => {
   const n = starfieldGenerator(coord);
   return [n, n, n];

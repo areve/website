@@ -1,12 +1,12 @@
 import { Coord } from "../lib/interfaces";
-import { makePointGeneratorFast } from "../noise/prng";
+import { makePointGeneratorFast } from "./prng";
 
 export const euclidean = (dx: number, dy: number, dz: number) =>
   dx * dx + dy * dy + dz * dz;
 
 export const sqrt = (v: number) => v ** 0.5;
 
-export const makeVoronoi2NoiseGenerator = (
+export const makeWorleyNoiseGenerator = (
   seed: number,
   dimensions: 2 | 3 = 2,
   scale: number = 16,

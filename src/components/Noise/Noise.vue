@@ -36,7 +36,6 @@
       >OpenSimplex my custom version</NoiseRender
     >
 
-
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="voronoi2Pixel"
@@ -82,7 +81,6 @@ const pseudoRandomColor = (coord: Coord) => {
   ];
 };
 
-
 const valueGenerator = makeValueNoiseGenerator(seed);
 const valuePixel = (coord: Coord) => {
   const n = valueGenerator(coord, 8);
@@ -103,7 +101,7 @@ const customSimplexPixel = (coord: Coord) => {
 
 const voronoi2Generator = makeVoronoi2NoiseGenerator(seed, 3, 8, 2);
 const voronoi2Pixel = (coord: Coord) => {
-  const n = voronoi2Generator(coord) //* 2;
+  const n = voronoi2Generator(coord);
   return [n, n, n];
 };
 const starfieldGenerator = makeStarfieldGenerator(seed);

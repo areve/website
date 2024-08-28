@@ -57,6 +57,9 @@
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="juliaPixel"
       >Julia
     </NoiseRender>
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="newtonRaphsonPixel"
+      >Newton Raphson
+    </NoiseRender>
     <NoiseRender
       :dimensions="{ width: 500, height: 100 }"
       :pixel="sierpinskiPixel"
@@ -74,6 +77,7 @@ import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
 import { makeOpenSimplexGenerator } from "./noise/openSimplex";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
+import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
 import {
   makeJuliaGenerator,
   makeMandelbrotGenerator,
@@ -144,6 +148,11 @@ const mandelbrotPixel = (coord: Coord) => {
 const juliaGenerator = makeJuliaGenerator(seed);
 const juliaPixel = (coord: Coord) => {
   const n = juliaGenerator(coord);
+  return [n, n, n];
+};
+const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
+const newtonRaphsonPixel = (coord: Coord) => {
+  const n = newtonRaphsonGenerator(coord);
   return [n, n, n];
 };
 

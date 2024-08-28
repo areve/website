@@ -4,6 +4,7 @@
     "ifft",
     "lerp",
     "perlin",
+    "Raphson",
     "smootherstep",
     "unskew",
     "voronoi",

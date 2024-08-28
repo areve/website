@@ -21,7 +21,6 @@ export const makeMandelbrotGenerator = (seed: number) => {
   };
 };
 
-
 export const makeJuliaGenerator = (seed: number) => {
   const cRe = 0.355; // Real part of the constant c
   const cIm = 0.355; // Imaginary part of the constant c
@@ -45,3 +44,4 @@ export const makeJuliaGenerator = (seed: number) => {
     return iteration / maxIterations;
   };
 };
+

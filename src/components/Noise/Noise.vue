@@ -80,7 +80,7 @@ const pseudoRandomColor = (coord: Coord) => {
 
 const valueGenerator = makeValueNoiseGenerator(seed);
 const valuePixel = (coord: Coord) => {
-  const n = valueGenerator(coord, 8);
+  const n = valueGenerator(coord);
   return [n, n, n];
 };
 
@@ -92,7 +92,7 @@ const perlinPixel = (coord: Coord) => {
 
 const openSimplexGenerator = makeOpenSimplexGenerator(seed);
 const openSimplexPixel = (coord: Coord) => {
-  const n = openSimplexGenerator(coord, 8) + 0.5;
+  const n = openSimplexGenerator(coord);
   return [n, n, n];
 };
 

@@ -1,12 +1,12 @@
 import { Coord } from "../lib/interfaces";
 import { makePointGeneratorFast } from "./prng";
 
-export const makeOpenSimplexGenerator = (seed: number) => {
+export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
   const skew2d = (Math.sqrt(3) - 1) / 2;
   const unskew2d = -(3 - Math.sqrt(3)) / 6;
   const noise = makePointGeneratorFast(seed);
 
-  return (coord: Coord, scale: number): number =>
+  return (coord: Coord): number =>
     openSimplex(coord.x / scale, coord.y / scale);
 
   function openSimplex(ix: number, iy: number): number {
@@ -21,7 +21,7 @@ export const makeOpenSimplexGenerator = (seed: number) => {
       vertexContribution(x, y, fx, fy, 1, 0) +
       vertexContribution(x, y, fx, fy, 0, 1) +
       vertexContribution(x, y, fx, fy, 1, 1)
-    );
+    ) + 0.5;
   }
 
   function vertexContribution(

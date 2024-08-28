@@ -65,6 +65,11 @@
       :pixel="sierpinskiPixel"
       >Sierpinski
     </NoiseRender>
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="lorenzAttractorPixel"
+      >Lorenz attractor
+    </NoiseRender>
   </section>
 </template>
 
@@ -78,6 +83,7 @@ import { makeWorleyNoiseGenerator } from "./noise/worley";
 import { makeOpenSimplexGenerator } from "./noise/openSimplex";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
 import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
+import { makeLorenzAttractorGenerator } from "./noise/lorenzAttractor";
 import {
   makeJuliaGenerator,
   makeMandelbrotGenerator,
@@ -153,6 +159,11 @@ const juliaPixel = (coord: Coord) => {
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
 const newtonRaphsonPixel = (coord: Coord) => {
   const n = newtonRaphsonGenerator(coord);
+  return [n, n, n];
+};
+const lorenzAttractorGenerator = makeLorenzAttractorGenerator(seed);
+const lorenzAttractorPixel = (coord: Coord) => {
+  const n = lorenzAttractorGenerator(coord);
   return [n, n, n];
 };
 

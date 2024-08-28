@@ -41,21 +41,24 @@ const keys = Object.keys(distortionFunctions);
 const randomKey = keys[
   Math.floor(Math.random() * keys.length)
 ] as DistortionType;
-const method = distortionFunctions[randomKey];
+// const method = distortionFunctions[randomKey];
 
-export const makeTrigonometryGenerator = (seed: number) => {
+export const makeTrigonometryGenerator = (
+  seed: number,
+  distortionType?: DistortionType
+) => {
   return (coord: Coord): number => {
     const { x, y } = coord;
     const lineFrequency = 1;
-    const distortionType = "pinch" as DistortionType;
 
-    const cx = x / 4 - 0.5;
-    const cy = y / 4 - 0.5;
+    const method = distortionFunctions[distortionType ?? randomKey];
+
+    const cx = x / 4 - 20;
+    const cy = y / 4 - 10;
 
     const r = Math.sqrt(cx * cx + cy * cy) / 8;
     const theta = Math.atan2(cy, cx);
 
-    // Get the distortion function based on the type
     const [distortedX, distortedY] = method(cx, cy, r, theta);
 
     const value =

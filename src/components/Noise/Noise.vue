@@ -86,7 +86,7 @@ const valuePixel = (coord: Coord) => {
 
 const perlinGenerator = makePerlinGenerator(seed);
 const perlinPixel = (coord: Coord) => {
-  const n = perlinGenerator(coord) //* 0.8 + 0.6;
+  const n = perlinGenerator(coord);
   return [n, n, n];
 };
 
@@ -101,7 +101,7 @@ const worleyPixel = (coord: Coord) => {
   const n = worleyGenerator(coord);
   return [n, n, n];
 };
-const starfieldGenerator = makeWorleyNoiseGenerator(seed);
+const starfieldGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 32);
 const starfieldPixel = (coord: Coord) => {
   const n = (1 - starfieldGenerator(coord)) ** 16;
   return [n, n, n];

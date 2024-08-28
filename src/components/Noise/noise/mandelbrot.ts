@@ -4,7 +4,7 @@ export const makeMandelbrotGenerator = (seed: number) => {
   return (coord: Coord): number => {
     const r0 = coord.x / 300 - 2;
     const i0 = coord.y / 300 - 0.05;
-    const maxIterations = 30;
+    const maxIterations = 40;
 
     let r = 0;
     let i = 0;
@@ -28,8 +28,8 @@ export const makeJuliaGenerator = (seed: number) => {
   const maxIterations = 100;
 
   return (coord: Coord): number => {
-    const r0 = coord.x / 300 - 1.5;
-    const i0 = coord.y / 300 - 1.0;
+    const r0 = coord.x / 300 - 1;
+    const i0 = coord.y / 300 - 1;
 
     let r = r0;
     let i = i0;

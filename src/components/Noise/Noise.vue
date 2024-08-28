@@ -106,7 +106,7 @@ const starfieldGenerator = makeWorleyNoiseGenerator(
   3,
   8,
   1,
-  ss,
+  undefined,
   (v) => (1 - v ** 0.5) ** 16
 );
 const starfieldPixel = (coord: Coord) => {

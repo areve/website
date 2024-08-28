@@ -165,7 +165,8 @@ const mandelbrotPixel = (coord: Coord) => {
 };
 const juliaGenerator = makeJuliaGenerator(seed);
 const juliaPixel = (coord: Coord) => {
-  const n = juliaGenerator(coord);
+  const v = juliaGenerator(coord);
+  const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
   return hsv2rgb([0.9 - n * 0.7, 1 - n ** 0.5, n]);
 };
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);

@@ -24,9 +24,9 @@ export const makeMandelbrotGenerator = (seed: number) => {
 export const makeJuliaGenerator = (seed: number) => {
   const cRe = 0.355; // Real part of the constant c
   const cIm = 0.355; // Imaginary part of the constant c
-  const maxIterations = 100;
+  const maxIterations = 150;
 
-  return (coord: Coord): number => {
+  return (coord: Coord) => {
     const r0 = coord.x / 300 - 1;
     const i0 = coord.y / 300 - 1;
 
@@ -41,7 +41,6 @@ export const makeJuliaGenerator = (seed: number) => {
       ++iteration;
     }
 
-    return iteration / maxIterations;
+    return { iteration, maxIterations, r, i, coord, r0, i0 };
   };
 };
-

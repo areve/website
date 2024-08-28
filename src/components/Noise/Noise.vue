@@ -57,7 +57,9 @@
     <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="juliaPixel"
       >Julia
     </NoiseRender>
-    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="newtonRaphsonPixel"
+    <NoiseRender
+      :dimensions="{ width: 500, height: 100 }"
+      :pixel="newtonRaphsonPixel"
       >Newton Raphson
     </NoiseRender>
     <NoiseRender
@@ -75,9 +77,7 @@
       :pixel="trigonometryPixel"
       >Trigonometry (various options)
     </NoiseRender>
-    <NoiseRender
-      :dimensions="{ width: 500, height: 100 }"
-      :pixel="graphPixel"
+    <NoiseRender :dimensions="{ width: 500, height: 100 }" :pixel="graphPixel"
       >OpenSimplex + trigonometry
     </NoiseRender>
   </section>
@@ -192,8 +192,22 @@ const trigonometryPixel = (coord: Coord) => {
 const graphGenerator = makeGraphGenerator(seed);
 const graphPixel = (coord: Coord) => {
   const n = graphGenerator(coord);
-  return [n, n, n];
+  return hsv2rgb([n + 0.9, n ** 2, 1 - n * 0.9]);
 };
+
+type Rgb = [r: number, g: number, b: number];
+type Hsv = [h: number, s: number, v: number];
+function hsv2rgb(hsv: Hsv): Rgb {
+  const [h, s, v] = hsv;
+  const hue = (((h * 360) % 360) + 360) % 360;
+  const sector = Math.floor(hue / 60);
+  const sectorFloat = hue / 60 - sector;
+  const x = v * (1 - s);
+  const y = v * (1 - s * sectorFloat);
+  const z = v * (1 - s * (1 - sectorFloat));
+  const rgb = [x, x, z, v, v, y, x, x, z, v];
+  return [rgb[sector + 4], rgb[sector + 2], rgb[sector]];
+}
 </script>
 
 <style scoped></style>

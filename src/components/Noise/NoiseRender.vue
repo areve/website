@@ -18,9 +18,9 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch } from "vue";
-import { Dimensions, Coord, Camera } from "./lib/interfaces";
+import { Dimensions, Camera } from "./lib/render";
 import { render } from "./lib/render";
-import { Rgb } from "./lib/other";
+import { Rgb } from "./lib/color";
 
 export interface NoiseRenderProps {
   dimensions: Dimensions;

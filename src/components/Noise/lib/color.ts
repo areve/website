@@ -1,6 +1,3 @@
-export const clamp = (value: number, min: number, max: number) =>
-  Math.min(Math.max(value, min), max);
-
 export type Rgb = [r: number, g: number, b: number, a?: number];
 export type Hsv = [h: number, s: number, v: number, a?: number];
 export function hsv2rgb(hsv: Hsv): Rgb {

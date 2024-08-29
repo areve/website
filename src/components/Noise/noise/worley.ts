@@ -1,5 +1,10 @@
-import { Coord } from "../lib/interfaces";
 import { makeNoiseGenerator } from "./prng";
+
+interface Coord {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export const euclidean = (dx: number, dy: number, dz: number) =>
   dx * dx + dy * dy + dz * dz;

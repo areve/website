@@ -34,8 +34,8 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
-import { Camera, Dimensions } from "./lib/interfaces";
-import { hsv2rgb, Rgb } from "./lib/other";
+import { hsv2rgb, Rgb } from "./lib/color";
+import { Camera, Dimensions } from "./lib/render";
 import { makeNoiseGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";

@@ -1,6 +1,15 @@
-import { Camera, Coord, Dimensions } from "./interfaces";
-import { clamp, Rgb } from "./other";
+import { Rgb } from "./color";
+import { clamp } from "./clamp";
 
+export interface Dimensions {
+  width: number;
+  height: number;
+}
+export interface Camera {
+  x: number;
+  y: number;
+  zoom: number;
+}
 export function getContext(
   canvas: HTMLCanvasElement | undefined,
   dimensions: {
@@ -85,5 +94,5 @@ export const coordFromEvent = (
     y: Math.round(
       clamp(event.offsetY, 0, dimensions.height - 1) * getDevicePixelRatio()
     ),
-  } as Coord;
+  };
 };

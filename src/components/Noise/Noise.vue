@@ -270,6 +270,14 @@ const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === "s") selectedNoise.value.camera.y += 25 * zoom;
   if (event.key === "'") selectedNoise.value.camera.zoom /= 1.2;
   if (event.key === "/") selectedNoise.value.camera.zoom *= 1.2;
+  if (event.key === "t") selectedNoise.value.dimensions.height += 50;
+  if (event.key === "g") selectedNoise.value.dimensions.height -= 50;
+  if (event.key === "h") selectedNoise.value.dimensions.width += 50;
+  if (event.key === "f") selectedNoise.value.dimensions.width -= 50;
+  if (selectedNoise.value.dimensions.height < 50)
+    selectedNoise.value.dimensions.height = 50;
+  if (selectedNoise.value.dimensions.width < 50)
+    selectedNoise.value.dimensions.width = 50;
   console.log(event.key);
 };
 </script>

@@ -42,9 +42,9 @@ const pixel = computed(() => props.pixel ?? randomPixel);
 const ratePixelsPerSecond = ref(0);
 
 const update = () => {
-  const start = new Date().getTime();
+  const start = window.performance.now();
   render(canvas.value, dimensions.value, pixel.value, props.camera);
-  const end = new Date().getTime();
+  const end = window.performance.now();
   const pixels = dimensions.value.height * dimensions.value.width;
   ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
 };

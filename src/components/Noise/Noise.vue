@@ -47,6 +47,7 @@ import {
 import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
+let liveSeed = 0;
 const generator = makePointGenerator(seed);
 
 const pseudoRandom = (coord: Coord) => {
@@ -107,12 +108,12 @@ const mandelbrotPixel = (coord: Coord) => {
   const n = mandelbrotGenerator(coord);
   return [n, n, n];
 };
-let liveSeed = 0;
+
 const juliaGenerator = makeJuliaGenerator(seed);
 const juliaPixel = (coord: Coord) => {
   const v = juliaGenerator(coord);
   const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
-  return hsv2rgb([liveSeed / 10 - n * 0.7, 1 - n ** 0.5, n]);
+  return hsv2rgb([liveSeed / 1000 - n * 0.7, 1 - n ** 0.5, n]);
 };
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
 const newtonRaphsonPixel = (coord: Coord) => {
@@ -291,7 +292,7 @@ function select(noise: NoiseDefinition) {
 let frameId: number | null = null;
 
 const update = () => {
-  liveSeed++;
+  ++liveSeed;
   if (selectedNoise.value) selectedNoise.value.dirty = window.performance.now();
   frameId = requestAnimationFrame(update);
 };

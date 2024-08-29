@@ -53,8 +53,9 @@ export function render(
   for (let x = 0; x < width; ++x) {
     for (let y = 0; y < height; ++y) {
       const v = pixel({
-        x: (x + cameraX) * cameraZoom,
-        y: (y + cameraY) * cameraZoom,
+        // TODO too much math in the wrong place!
+        x: (x - width / 2) * cameraZoom + width / 2 + cameraX,
+        y: (y - height / 2) * cameraZoom + height / 2 + cameraY,
       });
       const i = (x + y * width) * 4;
       data[i] = (v[0] * 0xff) >>> 0;

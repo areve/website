@@ -153,6 +153,12 @@ const noises = ref<NoiseDefinition[]>([
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
+    title: "Value noise",
+    pixel: valuePixel,
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels.",
     pixel: pseudoRandom,
   },
@@ -161,12 +167,6 @@ const noises = ref<NoiseDefinition[]>([
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels in color.",
     pixel: pseudoRandomColor,
-  },
-  {
-    dimensions: { width: 500, height: 100 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Value noise",
-    pixel: valuePixel,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -243,13 +243,13 @@ const noises = ref<NoiseDefinition[]>([
   },
 ]);
 
-const selectedNoise = ref<NoiseDefinition>();
+const selectedNoise = ref<NoiseDefinition>(noises.value[0]);
 function select(noise: NoiseDefinition) {
   selectedNoise.value = noise;
-  noise.dimensions = {
-    width: noise.dimensions.width,
-    height: noise.dimensions.height === 100 ? 500 : 100,
-  };
+  // noise.dimensions = {
+  //   width: noise.dimensions.width,
+  //   height: noise.dimensions.height === 100 ? 500 : 100,
+  // };
 }
 
 onMounted(async () => {
@@ -258,10 +258,11 @@ onMounted(async () => {
 
 const onKeyDown = (event: KeyboardEvent) => {
   if (!selectedNoise.value) return;
-  if (event.key === "a") selectedNoise.value.camera.x -= 25;
-  if (event.key === "d") selectedNoise.value.camera.x += 25;
-  if (event.key === "w") selectedNoise.value.camera.y -= 25;
-  if (event.key === "s") selectedNoise.value.camera.y += 25;
+  const zoom = selectedNoise.value.camera.zoom;
+  if (event.key === "a") selectedNoise.value.camera.x -= 25 * zoom; 
+  if (event.key === "d") selectedNoise.value.camera.x += 25 * zoom;
+  if (event.key === "w") selectedNoise.value.camera.y -= 25 * zoom;
+  if (event.key === "s") selectedNoise.value.camera.y += 25 * zoom;
   if (event.key === "'") selectedNoise.value.camera.zoom /= 1.2;
   if (event.key === "/") selectedNoise.value.camera.zoom *= 1.2;
   console.log(event.key);

@@ -56,35 +56,35 @@ import { makeSierpinskiGenerator } from "./noise/sierpinski";
 const seed = 12345;
 const noise = makeNoiseGenerator(seed);
 
-const pseudoRandom = (x: number, y: number) => {
+const pseudoRandom = (x: number, y: number): Rgb => {
   const n = noise(x, y);
   return [n, n, n];
 };
 
-const pseudoRandomColor = (x: number, y: number) => {
+const pseudoRandomColor = (x: number, y: number): Rgb => {
   return [noise(x, y, 0), noise(x, y, 1), noise(x, y, 2)];
 };
 
 const valueGenerator = makeValueNoiseGenerator(seed);
-const valuePixel = (x: number, y: number) => {
+const valuePixel = (x: number, y: number): Rgb => {
   const n = valueGenerator(x, y);
   return [n, n, n];
 };
 
 const perlinGenerator = makePerlinGenerator(seed);
-const perlinPixel = (x: number, y: number) => {
+const perlinPixel = (x: number, y: number): Rgb => {
   const n = perlinGenerator(x, y);
   return [n, n, n];
 };
 
 const openSimplexGenerator = makeOpenSimplexGenerator(seed);
-const openSimplexPixel = (x: number, y: number) => {
+const openSimplexPixel = (x: number, y: number): Rgb => {
   const n = openSimplexGenerator(x, y);
   return [n, n, n];
 };
 
 const openSimplex3dGenerator = makeOpenSimplex3dGenerator(seed);
-const openSimplex3dPixel = (x: number, y: number) => {
+const openSimplex3dPixel = (x: number, y: number): Rgb => {
   const n = openSimplex3dGenerator(x, y, openSimplex3d.frame / 5);
   return [n, n, n];
 };
@@ -98,7 +98,7 @@ const openSimplex3d = {
 };
 
 const worleyGenerator = makeWorleyNoiseGenerator(seed);
-const worleyPixel = (x: number, y: number) => {
+const worleyPixel = (x: number, y: number): Rgb => {
   const n = worleyGenerator(x, y);
   let c = worley.frame / 1000;
   c = c - (c | 0);
@@ -114,13 +114,13 @@ const worley = {
 };
 
 const starfieldGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 32);
-const starfieldPixel = (x: number, y: number) => {
+const starfieldPixel = (x: number, y: number): Rgb => {
   const n = (1 - starfieldGenerator(x, y)) ** 16;
   return [n, n, n];
 };
 
 const fractalGenerator = makeFractalNoiseGenerator(seed);
-const fractalPixel = (x: number, y: number) => {
+const fractalPixel = (x: number, y: number): Rgb => {
   const n = fractalGenerator(x, y, fractal.frame / 3);
   return [n, n, n];
 };
@@ -134,13 +134,13 @@ const fractal = {
 };
 
 const mandelbrotGenerator = makeMandelbrotGenerator(seed);
-const mandelbrotPixel = (x: number, y: number) => {
+const mandelbrotPixel = (x: number, y: number): Rgb => {
   const n = mandelbrotGenerator(x, y);
   return [n, n, n];
 };
 
 const juliaGenerator = makeJuliaGenerator(seed);
-const juliaPixel = (x: number, y: number) => {
+const juliaPixel = (x: number, y: number): Rgb => {
   const v = juliaGenerator(x, y);
   const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
   return hsv2rgb([julia.frame / 1000 - n * 0.7, 1 - n ** 0.5, n]);
@@ -154,23 +154,23 @@ const julia = {
   selected: false,
 };
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
-const newtonRaphsonPixel = (x: number, y: number) => {
+const newtonRaphsonPixel = (x: number, y: number): Rgb => {
   const n = newtonRaphsonGenerator(x, y);
   return [n, n, n];
 };
 const lorenzAttractorGenerator = makeLorenzAttractorGenerator(seed);
-const lorenzAttractorPixel = (x: number, y: number) => {
+const lorenzAttractorPixel = (x: number, y: number): Rgb => {
   const n = lorenzAttractorGenerator(x, y);
   return [n, n, n];
 };
 
 const sierpinskiGenerator = makeSierpinskiGenerator(seed);
-const sierpinskiPixel = (x: number, y: number) => {
+const sierpinskiPixel = (x: number, y: number): Rgb => {
   const n = sierpinskiGenerator(x, y);
   return [n, n, n];
 };
 const trigonometryGenerator = makeTrigonometryGenerator(seed, "twirly");
-const trigonometryPixel = (x: number, y: number) => {
+const trigonometryPixel = (x: number, y: number): Rgb => {
   const n = trigonometryGenerator(x, y);
   return [n, n, n];
 };
@@ -192,7 +192,7 @@ interface NoiseDefinition {
   dimensions: Dimensions;
   camera: Camera;
   title: string;
-  pixel: (x: number, y: number) => Rgb | number[];
+  pixel: (x: number, y: number) => Rgb;
   frame: number;
   selected: boolean;
 }

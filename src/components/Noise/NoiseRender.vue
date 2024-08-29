@@ -26,18 +26,13 @@ export interface NoiseRenderProps {
   dimensions: Dimensions;
   camera: Camera;
   frame: number;
-  pixel: (coord: Coord | number, y?: number) => Rgb;
+  pixel: (x: number, y: number) => Rgb;
 }
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<NoiseRenderProps>();
 const dimensions = computed(() => props.dimensions);
-const randomPixel = (coord: Coord) => [
-  Math.random(),
-  Math.random(),
-  Math.random(),
-];
-const pixel = computed(() => props.pixel ?? randomPixel);
+const pixel = computed(() => props.pixel);
 const ratePixelsPerSecond = ref(0);
 
 const update = () => {

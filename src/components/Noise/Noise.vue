@@ -6,9 +6,14 @@
       splines and curves. This page shows what different algorithms look like
       and gives some indication of how fast they are.
     </p>
-    <div>
+    <div
+      v-for="noise in noises"
+      :class="{
+        selected: noise === selectedNoise,
+      }"
+      class="panel"
+    >
       <NoiseRender
-        v-for="noise in noises"
         :dimensions="noise.dimensions"
         :camera="noise.camera"
         :pixel="noise.pixel"
@@ -259,7 +264,7 @@ onMounted(async () => {
 const onKeyDown = (event: KeyboardEvent) => {
   if (!selectedNoise.value) return;
   const zoom = selectedNoise.value.camera.zoom;
-  if (event.key === "a") selectedNoise.value.camera.x -= 25 * zoom; 
+  if (event.key === "a") selectedNoise.value.camera.x -= 25 * zoom;
   if (event.key === "d") selectedNoise.value.camera.x += 25 * zoom;
   if (event.key === "w") selectedNoise.value.camera.y -= 25 * zoom;
   if (event.key === "s") selectedNoise.value.camera.y += 25 * zoom;
@@ -269,4 +274,12 @@ const onKeyDown = (event: KeyboardEvent) => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.panel{
+  padding: 0.5em;
+}
+.selected {
+  background-color: rgba(0, 0, 255, 0.05);
+  box-shadow: 0 0 1em rgba(0, 0, 127, 0.25);
+}
+</style>

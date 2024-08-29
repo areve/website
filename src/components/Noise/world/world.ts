@@ -11,16 +11,16 @@ const c = clampZeroToOne;
 
 const temperatureIcinessCurve = makeSmoothCurveFunction([
   { x: 0, y: 1 },
-  { x: 0.2, y: 0.9 },
-  { x: 0.3, y: 0.4 },
+  { x: 0.3, y: 0.9 },
+  { x: 0.4, y: 0.4 },
   { x: 0.5, y: 0.1 },
   { x: 1, y: 0 },
 ]);
 
 const heightIcinessCurve = makeSmoothCurveFunction([
   { x: 0, y: 0 },
-  { x: 0.85, y: 0.12 },
-  { x: 0.95, y: 0.9 },
+  { x: 0.65, y: 0.12 },
+  { x: 0.75, y: 0.9 },
   { x: 1, y: 1 },
 ]);
 
@@ -33,8 +33,8 @@ const temperatureDesertCurve = makeSmoothCurveFunction([
 
 const moistureDesertCurve = makeSmoothCurveFunction([
   { x: 0, y: 1 },
-  { x: 0.15, y: 0.9 },
-  { x: 0.3, y: 0.1 },
+  { x: 0.35, y: 0.9 },
+  { x: 0.4, y: 0.1 },
   { x: 1, y: 0 },
 ]);
 
@@ -60,8 +60,8 @@ const color = {
 export const makeWorld = (seed: number) => {
   const makeWorldGenerator = (seed: number) => {
     const height1 = makeOpenSimplex3dGenerator(seed * 0.1, 129);
-    const height2 = makeOpenSimplex3dGenerator(seed * 0.2, 65);
-    const height3 = makeOpenSimplex3dGenerator(seed * 0.3, 17);
+    const height2 = makeOpenSimplex3dGenerator(seed * 0.2, 47);
+    const height3 = makeOpenSimplex3dGenerator(seed * 0.3, 7);
     const height4 = makeOpenSimplex3dGenerator(seed * 0.4, 1);
     const temperature1 = makeOpenSimplex3dGenerator(seed * 0.5, 71);
     const temperature2 = makeOpenSimplex3dGenerator(seed * 0.5, 15);
@@ -143,7 +143,7 @@ export const makeWorld = (seed: number) => {
   };
 
   const world = {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 500, height: 250 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "World",
     pixel,

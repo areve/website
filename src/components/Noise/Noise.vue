@@ -10,21 +10,23 @@
       Key board shortcuts include W A S D, T F G H, ' / use Ctrl+click to
       multi-select
     </p>
-    <div
-      v-for="noise in noises"
-      :class="{
-        selected: noise.selected,
-      }"
-      class="panel"
-    >
-      <NoiseRender
-        :dimensions="noise.dimensions"
-        :camera="noise.camera"
-        :pixel="noise.pixel"
-        :dirty="noise.dirty"
-        @click="select(noise, $event)"
-        >{{ noise.title }}</NoiseRender
+    <div class="panels">
+      <div
+        v-for="noise in noises"
+        :class="{
+          selected: noise.selected,
+        }"
+        class="panel"
       >
+        <NoiseRender
+          :dimensions="noise.dimensions"
+          :camera="noise.camera"
+          :pixel="noise.pixel"
+          :frame="noise.frame"
+          @click="select(noise, $event)"
+          >{{ noise.title }}</NoiseRender
+        >
+      </div>
     </div>
   </section>
 </template>
@@ -51,7 +53,7 @@ import {
 import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
-let liveSeed = 0;
+// let liveSeed = 0;
 const generator = makePointGenerator(seed);
 
 const pseudoRandom = (coord: Coord) => {
@@ -84,19 +86,37 @@ const openSimplexPixel = (coord: Coord) => {
   const n = openSimplexGenerator(coord);
   return [n, n, n];
 };
+
 const openSimplex3dGenerator = makeOpenSimplex3dGenerator(seed);
 const openSimplex3dPixel = (coord: Coord) => {
-  const n = openSimplex3dGenerator({ ...coord, z: liveSeed / 5 });
+  const n = openSimplex3dGenerator({ ...coord, z: openSimplex3d.frame / 5 });
   return [n, n, n];
+};
+const openSimplex3d = {
+  dimensions: { width: 300, height: 300 },
+  camera: { x: 0, y: 0, zoom: 1 },
+  title: "OpenSimplex 3d",
+  pixel: openSimplex3dPixel,
+  frame: 0,
+  selected: false,
 };
 
 const worleyGenerator = makeWorleyNoiseGenerator(seed);
 const worleyPixel = (coord: Coord) => {
   const n = worleyGenerator(coord);
-  let c = liveSeed / 1000;
+  let c = worley.frame / 1000;
   c = c - (c | 0);
   return hsv2rgb([c, 1 - n ** 0.5, n]);
 };
+const worley = {
+  dimensions: { width: 300, height: 300 },
+  camera: { x: 0, y: 0, zoom: 1 },
+  title: "Worley (Voronoi)",
+  pixel: worleyPixel,
+  frame: 0,
+  selected: false,
+};
+
 const starfieldGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 32);
 const starfieldPixel = (coord: Coord) => {
   const n = (1 - starfieldGenerator(coord)) ** 16;
@@ -105,8 +125,16 @@ const starfieldPixel = (coord: Coord) => {
 
 const fractalGenerator = makeFractalNoiseGenerator(seed);
 const fractalPixel = (coord: Coord) => {
-  const n = fractalGenerator({ ...coord, z: liveSeed / 3});
+  const n = fractalGenerator({ ...coord, z: fractal.frame / 3 });
   return [n, n, n];
+};
+const fractal = {
+  dimensions: { width: 300, height: 300 },
+  camera: { x: 0, y: 0, zoom: 1 },
+  title: "Fractal",
+  pixel: fractalPixel,
+  frame: 0,
+  selected: false,
 };
 
 const mandelbrotGenerator = makeMandelbrotGenerator(seed);
@@ -119,7 +147,15 @@ const juliaGenerator = makeJuliaGenerator(seed);
 const juliaPixel = (coord: Coord) => {
   const v = juliaGenerator(coord);
   const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
-  return hsv2rgb([liveSeed / 1000 - n * 0.7, 1 - n ** 0.5, n]);
+  return hsv2rgb([julia.frame / 1000 - n * 0.7, 1 - n ** 0.5, n]);
+};
+const julia = {
+  dimensions: { width: 300, height: 300 },
+  camera: { x: 0, y: 0, zoom: 1 },
+  title: "Julia",
+  pixel: juliaPixel,
+  frame: 0,
+  selected: false,
 };
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
 const newtonRaphsonPixel = (coord: Coord) => {
@@ -144,8 +180,16 @@ const trigonometryPixel = (coord: Coord) => {
 };
 const graphGenerator = makeGraphGenerator(seed);
 const graphPixel = (coord: Coord) => {
-  const n = graphGenerator({ ...coord, z: liveSeed / 10 });
+  const n = graphGenerator({ ...coord, z: graph.frame / 10 });
   return hsv2rgb([n + 0.9, n ** 2, 1 - n * 0.9]);
+};
+const graph = {
+  dimensions: { width: 300, height: 300 },
+  camera: { x: 0, y: 0, zoom: 1 },
+  title: "OpenSimplex + trigonometry",
+  pixel: graphPixel,
+  frame: 0,
+  selected: false,
 };
 
 type Rgb = [r: number, g: number, b: number];
@@ -167,140 +211,105 @@ interface NoiseDefinition {
   camera: Camera;
   title: string;
   pixel: (coord: Coord) => Rgb | number[];
-  dirty: number;
+  frame: number;
   selected: boolean;
 }
 
 const noises = ref<NoiseDefinition[]>([
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Value noise",
     pixel: valuePixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels.",
     pixel: pseudoRandom,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels in color.",
     pixel: pseudoRandomColor,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Perlin",
     pixel: perlinPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex",
     pixel: openSimplexPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
+  openSimplex3d,
+  worley,
   {
-    dimensions: { width: 500, height: 100 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "OpenSimplex 3d",
-    pixel: openSimplex3dPixel,
-    dirty: window.performance.now(),
-    selected: false,
-  },
-  {
-    dimensions: { width: 500, height: 100 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Worley (Voronoi)",
-    pixel: worleyPixel,
-    dirty: window.performance.now(),
-    selected: false,
-  },
-  {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Worley (Starfield)",
     pixel: starfieldPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
+  fractal,
   {
-    dimensions: { width: 500, height: 100 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Fractal",
-    pixel: fractalPixel,
-    dirty: window.performance.now(),
-    selected: false,
-  },
-  {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Mandelbrot",
     pixel: mandelbrotPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
-  {
-    dimensions: { width: 500, height: 100 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Julia",
-    pixel: juliaPixel,
-    dirty: window.performance.now(),
-    selected: false,
-  },
+  julia,
 
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Newton Raphson",
     pixel: newtonRaphsonPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Sierpinski",
     pixel: sierpinskiPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Lorenz attractor",
     pixel: lorenzAttractorPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
   {
-    dimensions: { width: 500, height: 100 },
+    dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Trigonometry (various options)",
     pixel: trigonometryPixel,
-    dirty: window.performance.now(),
+    frame: 0,
     selected: false,
   },
-  {
-    dimensions: { width: 500, height: 100 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "OpenSimplex + trigonometry",
-    pixel: graphPixel,
-    dirty: window.performance.now(),
-    selected: false,
-  },
+  graph,
 ]);
 
 const selectedNoise = ref<NoiseDefinition>();
@@ -317,10 +326,8 @@ function select(noise: NoiseDefinition, event: MouseEvent) {
 let frameId: number | null = null;
 
 const update = () => {
-  ++liveSeed;
-  noises.value
-    .filter((v) => v.selected)
-    .forEach((v) => (v.dirty = window.performance.now()));
+  // ++liveSeed;
+  noises.value.filter((v) => v.selected).forEach((v) => ++v.frame);
   frameId = requestAnimationFrame(update);
 };
 
@@ -349,7 +356,6 @@ const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "g") v.dimensions.height -= 50;
       if (event.key === "h") v.dimensions.width += 50;
       if (event.key === "f") v.dimensions.width -= 50;
-      if (event.key === ".") v.dirty = window.performance.now();
       if (v.dimensions.height < 50) v.dimensions.height = 50;
       if (v.dimensions.width < 50) v.dimensions.width = 50;
     });
@@ -358,7 +364,22 @@ const onKeyDown = (event: KeyboardEvent) => {
 };
 </script>
 
+<style>
+body {
+  margin: 3em 0;
+  max-width: none;
+}
+
+#app {
+  width: 90%;
+  margin: auto;
+}
+</style>
 <style scoped>
+.panels {
+  display: flex;
+  flex-wrap: wrap;
+}
 .panel {
   padding: 0.25em;
   margin: 0.25em;

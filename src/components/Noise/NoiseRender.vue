@@ -24,7 +24,7 @@ import { render } from "./lib/render";
 export interface NoiseRenderProps {
   dimensions: Dimensions;
   camera: Camera;
-  dirty: number;
+  frame: number;
   pixel: (coord: Coord) => number[];
 }
 

@@ -248,13 +248,13 @@ const noises = ref<NoiseDefinition[]>([
   },
 ]);
 
-const selectedNoise = ref<NoiseDefinition>(noises.value[0]);
+const selectedNoise = ref<NoiseDefinition>();
 function select(noise: NoiseDefinition) {
+  if (selectedNoise.value === noise) {
+    selectedNoise.value = undefined;
+    return;
+  }
   selectedNoise.value = noise;
-  // noise.dimensions = {
-  //   width: noise.dimensions.width,
-  //   height: noise.dimensions.height === 100 ? 500 : 100,
-  // };
 }
 
 onMounted(async () => {
@@ -275,7 +275,7 @@ const onKeyDown = (event: KeyboardEvent) => {
 </script>
 
 <style scoped>
-.panel{
+.panel {
   padding: 0.5em;
 }
 .selected {

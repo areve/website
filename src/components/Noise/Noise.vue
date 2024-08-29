@@ -93,7 +93,6 @@ const openSimplex3dPixel = (coord: Coord) => {
 const worleyGenerator = makeWorleyNoiseGenerator(seed);
 const worleyPixel = (coord: Coord) => {
   const n = worleyGenerator(coord);
-  // console.log(liveSeed)
   let c = liveSeed / 1000;
   c = c - (c | 0);
   return hsv2rgb([c, 1 - n ** 0.5, n]);
@@ -106,7 +105,7 @@ const starfieldPixel = (coord: Coord) => {
 
 const fractalGenerator = makeFractalNoiseGenerator(seed);
 const fractalPixel = (coord: Coord) => {
-  const n = fractalGenerator(coord);
+  const n = fractalGenerator({ ...coord, z: liveSeed / 3});
   return [n, n, n];
 };
 

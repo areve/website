@@ -10,9 +10,7 @@
       <canvas ref="canvas" class="canvas"></canvas>
     </div>
     <div class="noise-render-slot caption">
-      <slot></slot> ({{
-        (ratePixelsPerSecond / 1000000).toPrecision(3)
-      }}
+      <slot></slot> ({{ (ratePixelsPerSecond / 1000000).toPrecision(3) }}
       Mpix/sec)
     </div>
   </section>
@@ -23,10 +21,10 @@ import { computed, onMounted, ref, watch } from "vue";
 import { Dimensions, Coord, Camera } from "./lib/interfaces";
 import { render } from "./lib/render";
 
-
 export interface NoiseRenderProps {
   dimensions: Dimensions;
   camera: Camera;
+  dirty: number;
   pixel: (coord: Coord) => number[];
 }
 

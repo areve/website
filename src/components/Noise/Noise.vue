@@ -17,6 +17,7 @@
         :dimensions="noise.dimensions"
         :camera="noise.camera"
         :pixel="noise.pixel"
+        :dirty="noise.dirty"
         @click="select(noise)"
         >{{ noise.title }}</NoiseRender
       >
@@ -25,7 +26,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
 import { Camera, Coord, Dimensions } from "./lib/interfaces";
 import { makePointGenerator } from "./noise/prng";
@@ -100,11 +101,12 @@ const mandelbrotPixel = (coord: Coord) => {
   const n = mandelbrotGenerator(coord);
   return [n, n, n];
 };
+let liveSeed = 0;
 const juliaGenerator = makeJuliaGenerator(seed);
 const juliaPixel = (coord: Coord) => {
   const v = juliaGenerator(coord);
   const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
-  return hsv2rgb([0.9 - n * 0.7, 1 - n ** 0.5, n]);
+  return hsv2rgb([liveSeed / 10 - n * 0.7, 1 - n ** 0.5, n]);
 };
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
 const newtonRaphsonPixel = (coord: Coord) => {
@@ -151,6 +153,7 @@ interface NoiseDefinition {
   dimensions: Dimensions;
   camera: Camera;
   title: string;
+  dirty: number;
   pixel: (coord: Coord) => Rgb | number[];
 }
 
@@ -160,60 +163,70 @@ const noises = ref<NoiseDefinition[]>([
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Value noise",
     pixel: valuePixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels.",
     pixel: pseudoRandom,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels in color.",
     pixel: pseudoRandomColor,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Perlin",
     pixel: perlinPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex",
     pixel: openSimplexPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Worley (Voronoi)",
     pixel: worleyPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Worley (Starfield)",
     pixel: starfieldPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Fractal",
     pixel: fractalPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Mandelbrot",
     pixel: mandelbrotPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Julia",
     pixel: juliaPixel,
+    dirty: window.performance.now(),
   },
 
   {
@@ -221,30 +234,35 @@ const noises = ref<NoiseDefinition[]>([
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Newton Raphson",
     pixel: newtonRaphsonPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Sierpinski",
     pixel: sierpinskiPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Lorenz attractor",
     pixel: lorenzAttractorPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Trigonometry (various options)",
     pixel: trigonometryPixel,
+    dirty: window.performance.now(),
   },
   {
     dimensions: { width: 500, height: 100 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex + trigonometry",
     pixel: graphPixel,
+    dirty: window.performance.now(),
   },
 ]);
 
@@ -257,8 +275,18 @@ function select(noise: NoiseDefinition) {
   selectedNoise.value = noise;
 }
 
+let interval: NodeJS.Timeout | undefined;
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);
+  interval = setInterval(() => {
+    liveSeed++;
+    if (selectedNoise.value)
+      selectedNoise.value.dirty = window.performance.now();
+  }, 40);
+});
+onUnmounted(() => {
+  if (interval) clearInterval(interval);
+  interval = undefined;
 });
 
 const onKeyDown = (event: KeyboardEvent) => {
@@ -274,6 +302,9 @@ const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === "g") selectedNoise.value.dimensions.height -= 50;
   if (event.key === "h") selectedNoise.value.dimensions.width += 50;
   if (event.key === "f") selectedNoise.value.dimensions.width -= 50;
+  if (event.key === ".") {
+    selectedNoise.value.dirty = window.performance.now();
+  }
   if (selectedNoise.value.dimensions.height < 50)
     selectedNoise.value.dimensions.height = 50;
   if (selectedNoise.value.dimensions.width < 50)

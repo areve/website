@@ -6,6 +6,10 @@
       splines and curves. This page shows what different algorithms look like
       and gives some indication of how fast they are.
     </p>
+    <p>
+      Key board shortcuts include W A S D, T F G H, ' / use Ctrl+click to
+      multi-select
+    </p>
     <div
       v-for="noise in noises"
       :class="{
@@ -299,8 +303,12 @@ const noises = ref<NoiseDefinition[]>([
 
 const selectedNoise = ref<NoiseDefinition>();
 function select(noise: NoiseDefinition, event: MouseEvent) {
-  if (!event.ctrlKey)
-    noises.value.filter((v) => v.selected).forEach((v) => (v.selected = false));
+  if (!event.ctrlKey) {
+    const selectedOthers = noises.value.filter(
+      (v) => v.selected && v !== noise
+    );
+    selectedOthers.forEach((v) => (v.selected = false));
+  }
   noise.selected = !noise.selected;
 }
 

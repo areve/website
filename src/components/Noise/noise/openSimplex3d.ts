@@ -4,6 +4,7 @@ import { makePointGeneratorFast } from "./prng";
 export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
   const skew3d = 1 / 3;
   const unskew3d = 1 / 6;
+  const rSquared3d = 3 / 4;
   const noise = makePointGeneratorFast(seed);
 
   return (coord: Coord3d): number =>
@@ -18,7 +19,7 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
     const fy = iy + skew - y;
     const fz = iz + skew - z;
 
-    const r =
+    return (
       vertexContribution(x, y, z, fx, fy, fz, 0, 0, 0) +
       vertexContribution(x, y, z, fx, fy, fz, 1, 0, 0) +
       vertexContribution(x, y, z, fx, fy, fz, 0, 1, 0) +
@@ -26,9 +27,9 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
       vertexContribution(x, y, z, fx, fy, fz, 0, 0, 1) +
       vertexContribution(x, y, z, fx, fy, fz, 1, 0, 1) +
       vertexContribution(x, y, z, fx, fy, fz, 0, 1, 1) +
-      vertexContribution(x, y, z, fx, fy, fz, 1, 1, 1);
-    0;
-    return r * 0.5 + 0.5; // 0.5 was trial and error
+      vertexContribution(x, y, z, fx, fy, fz, 1, 1, 1) +
+      0.5
+    );
   }
 
   function vertexContribution(
@@ -50,7 +51,6 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
     const dys = dy - skewedOffset;
     const dzs = dz - skewedOffset;
 
-    const rSquared3d = 3 / 4;
     const a = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
     if (a < 0) return 0;
 
@@ -58,6 +58,6 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
     const u = (h & 0xf) - 8;
     const v = ((h >> 4) & 0xf) - 8;
     const w = ((h >> 8) & 0xf) - 8;
-    return a * a * a * a * (u * dxs + v * dys + w * dzs);
+    return a * a * a * a * (u * dxs + v * dys + w * dzs) / 2;
   }
 };

@@ -20,12 +20,13 @@
 import { computed, onMounted, ref, watch } from "vue";
 import { Dimensions, Coord, Camera } from "./lib/interfaces";
 import { render } from "./lib/render";
+import { Rgb } from "./lib/other";
 
 export interface NoiseRenderProps {
   dimensions: Dimensions;
   camera: Camera;
   frame: number;
-  pixel: (coord: Coord) => number[];
+  pixel: (coord: Coord | number, y?: number) => Rgb;
 }
 
 const canvas = ref<HTMLCanvasElement>(undefined!);

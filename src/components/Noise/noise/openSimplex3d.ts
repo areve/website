@@ -1,16 +1,18 @@
-import { Coord3d } from "../lib/interfaces";
 import { makePointGeneratorFast } from "./prng";
 
-export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
+export const makeOpenSimplex3dGenerator = (
+  seed: number,
+  scale: number = 8
+) => {
   const skew3d = 1 / 3;
   const unskew3d = 1 / 6;
   const rSquared3d = 3 / 4;
   const noise = makePointGeneratorFast(seed);
 
-  return (coord: Coord3d): number =>
-    openSimplex(coord.x / scale, coord.y / scale, coord.z / scale);
-
-  function openSimplex(ix: number, iy: number, iz: number): number {
+  return (ax: number, ay: number, az: number): number => {
+    const ix = ax / scale;
+    const iy = ay / scale;
+    const iz = az / scale;
     const skew = (ix + iy + iz) * skew3d;
     const x = Math.floor(ix + skew);
     const y = Math.floor(iy + skew);
@@ -30,7 +32,7 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
       vertexContribution(x, y, z, fx, fy, fz, 1, 1, 1) +
       0.5
     );
-  }
+  };
 
   function vertexContribution(
     x: number,
@@ -58,6 +60,6 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
     const u = (h & 0xf) - 8;
     const v = ((h >> 4) & 0xf) - 8;
     const w = ((h >> 8) & 0xf) - 8;
-    return a * a * a * a * (u * dxs + v * dys + w * dzs) / 2;
+    return (a * a * a * a * (u * dxs + v * dys + w * dzs)) / 2;
   }
 };

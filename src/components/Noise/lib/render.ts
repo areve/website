@@ -1,5 +1,5 @@
 import { Camera, Coord, Dimensions } from "./interfaces";
-import { clamp } from "./other";
+import { clamp, Rgb } from "./other";
 
 export function getContext(
   canvas: HTMLCanvasElement | undefined,
@@ -37,7 +37,7 @@ export function getDevicePixelRatio() {
 export function render(
   canvas: HTMLCanvasElement,
   dimensions: Dimensions,
-  pixel: (coord: Coord) => number[],
+  pixel: (x: number, y: number) => Rgb,
   camera?: Camera
 ) {
   const context = getContext(canvas, dimensions);
@@ -56,10 +56,10 @@ export function render(
   const viewportAndCameraY = viewportCenterY + cameraY;
   for (let x = 0; x < width; ++x) {
     for (let y = 0; y < height; ++y) {
-      const v = pixel({
-        x: (x - viewportCenterX) * cameraZoom + viewportAndCameraX,
-        y: (y - viewportCenterY) * cameraZoom + viewportAndCameraY,
-      });
+      const v = pixel(
+        (x - viewportCenterX) * cameraZoom + viewportAndCameraX,
+        (y - viewportCenterY) * cameraZoom + viewportAndCameraY
+      );
       const i = (x + y * width) * 4;
       data[i] = v[0] * 0xff;
       data[i + 1] = v[1] * 0xff;

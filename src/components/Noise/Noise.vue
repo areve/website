@@ -88,8 +88,8 @@ const openSimplexPixel = (coord: Coord) => {
 };
 
 const openSimplex3dGenerator = makeOpenSimplex3dGenerator(seed);
-const openSimplex3dPixel = (coord: Coord) => {
-  const n = openSimplex3dGenerator({ ...coord, z: openSimplex3d.frame / 5 });
+const openSimplex3dPixel = (x: number, y: number) => {
+  const n = openSimplex3dGenerator(x, y, openSimplex3d.frame / 5);
   return [n, n, n];
 };
 const openSimplex3d = {
@@ -124,8 +124,8 @@ const starfieldPixel = (coord: Coord) => {
 };
 
 const fractalGenerator = makeFractalNoiseGenerator(seed);
-const fractalPixel = (coord: Coord) => {
-  const n = fractalGenerator({ ...coord, z: fractal.frame / 3 });
+const fractalPixel = (x: number, y: number) => {
+  const n = fractalGenerator(x, y, fractal.frame / 3);
   return [n, n, n];
 };
 const fractal = {
@@ -196,106 +196,106 @@ interface NoiseDefinition {
   dimensions: Dimensions;
   camera: Camera;
   title: string;
-  pixel: (coord: Coord) => Rgb | number[];
+  pixel: (x: number, y: number) => Rgb | number[];
   frame: number;
   selected: boolean;
 }
 
 const noises = ref<NoiseDefinition[]>([
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Value noise",
-    pixel: valuePixel,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Pseudo-random pixels.",
-    pixel: pseudoRandom,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Pseudo-random pixels in color.",
-    pixel: pseudoRandomColor,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Perlin",
-    pixel: perlinPixel,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "OpenSimplex",
-    pixel: openSimplexPixel,
-    frame: 0,
-    selected: false,
-  },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Value noise",
+  //   pixel: valuePixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Pseudo-random pixels.",
+  //   pixel: pseudoRandom,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Pseudo-random pixels in color.",
+  //   pixel: pseudoRandomColor,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Perlin",
+  //   pixel: perlinPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "OpenSimplex",
+  //   pixel: openSimplexPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
   openSimplex3d,
-  worley,
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Worley (Starfield)",
-    pixel: starfieldPixel,
-    frame: 0,
-    selected: false,
-  },
+  // worley,
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Worley (Starfield)",
+  //   pixel: starfieldPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
   fractal,
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Mandelbrot",
-    pixel: mandelbrotPixel,
-    frame: 0,
-    selected: false,
-  },
-  julia,
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Mandelbrot",
+  //   pixel: mandelbrotPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // julia,
 
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Newton Raphson",
-    pixel: newtonRaphsonPixel,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Sierpinski",
-    pixel: sierpinskiPixel,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Lorenz attractor",
-    pixel: lorenzAttractorPixel,
-    frame: 0,
-    selected: false,
-  },
-  {
-    dimensions: { width: 300, height: 300 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "Trigonometry (various options)",
-    pixel: trigonometryPixel,
-    frame: 0,
-    selected: false,
-  },
-  graph,
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Newton Raphson",
+  //   pixel: newtonRaphsonPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Sierpinski",
+  //   pixel: sierpinskiPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Lorenz attractor",
+  //   pixel: lorenzAttractorPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // {
+  //   dimensions: { width: 300, height: 300 },
+  //   camera: { x: 0, y: 0, zoom: 1 },
+  //   title: "Trigonometry (various options)",
+  //   pixel: trigonometryPixel,
+  //   frame: 0,
+  //   selected: false,
+  // },
+  // graph,
 ]);
 
 function select(noise: NoiseDefinition, event: MouseEvent) {
@@ -361,7 +361,7 @@ body {
 #app {
   width: 90%;
   margin: auto;
-  user-select: none; 
+  user-select: none;
 }
 </style>
 <style scoped>

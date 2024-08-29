@@ -28,7 +28,7 @@ export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
       vertexContribution(x, y, z, fx, fy, fz, 0, 1, 1) +
       vertexContribution(x, y, z, fx, fy, fz, 1, 1, 1);
     0;
-    return r * 0.6 + 0.5; // 0.6 was trial and error
+    return r * 0.5 + 0.5; // 0.5 was trial and error
   }
 
   function vertexContribution(

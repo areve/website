@@ -81,7 +81,7 @@ const openSimplexPixel = (coord: Coord) => {
 };
 const openSimplex3dGenerator = makeOpenSimplex3dGenerator(seed);
 const openSimplex3dPixel = (coord: Coord) => {
-  const n = openSimplex3dGenerator({ ...coord, z: liveSeed / 10});
+  const n = openSimplex3dGenerator({ ...coord, z: liveSeed / 5});
   return [n, n, n];
 };
 

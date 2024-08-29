@@ -1,9 +1,9 @@
 import { makeNoiseGenerator } from "./prng";
 
-export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
+export const makeOpenSimplex2dGenerator = (seed: number, scale: number = 8) => {
   const skew2d = (Math.sqrt(3) - 1) / 2;
   const unskew2d = -(3 - Math.sqrt(3)) / 6;
-  const rSquared3d = 2 / 3;
+  const rSquared2d = 2 / 3;
   const noise = makeNoiseGenerator(seed);
 
   return (x: number, y: number): number => {
@@ -36,7 +36,7 @@ export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
     const dxs = dx + skewedOffset;
     const dys = dy + skewedOffset;
 
-    const a = rSquared3d - dxs * dxs - dys * dys;
+    const a = rSquared2d - dxs * dxs - dys * dys;
     if (a < 0) return 0;
 
     const h = noise(ix + cx, iy + cy) * 0xff;

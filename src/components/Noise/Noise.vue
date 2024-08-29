@@ -40,7 +40,7 @@ import { makeNoiseGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
-import { makeOpenSimplexGenerator } from "./noise/openSimplex";
+import { makeOpenSimplex2dGenerator } from "./noise/openSimplex2d";
 import { makeOpenSimplex3dGenerator } from "./noise/openSimplex3d";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
 import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
@@ -77,7 +77,7 @@ const perlinPixel = (x: number, y: number): Rgb => {
   return [n, n, n];
 };
 
-const openSimplexGenerator = makeOpenSimplexGenerator(seed);
+const openSimplexGenerator = makeOpenSimplex2dGenerator(seed);
 const openSimplexPixel = (x: number, y: number): Rgb => {
   const n = openSimplexGenerator(x, y);
   return [n, n, n];

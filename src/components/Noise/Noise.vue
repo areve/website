@@ -102,8 +102,8 @@ const openSimplex3d = {
 };
 
 const worleyGenerator = makeWorleyNoiseGenerator(seed);
-const worleyPixel = (coord: Coord) => {
-  const n = worleyGenerator(coord);
+const worleyPixel = (x: number, y: number) => {
+  const n = worleyGenerator(x, y);
   let c = worley.frame / 1000;
   c = c - (c | 0);
   return hsv2rgb([c, 1 - n ** 0.5, n]);
@@ -118,8 +118,8 @@ const worley = {
 };
 
 const starfieldGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 32);
-const starfieldPixel = (coord: Coord) => {
-  const n = (1 - starfieldGenerator(coord)) ** 16;
+const starfieldPixel = (x: number, y: number) => {
+  const n = (1 - starfieldGenerator(x, y)) ** 16;
   return [n, n, n];
 };
 
@@ -144,8 +144,8 @@ const mandelbrotPixel = (coord: Coord) => {
 };
 
 const juliaGenerator = makeJuliaGenerator(seed);
-const juliaPixel = (coord: Coord) => {
-  const v = juliaGenerator(coord);
+const juliaPixel = (x: number, y: number) => {
+  const v = juliaGenerator(x, y);
   const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
   return hsv2rgb([julia.frame / 1000 - n * 0.7, 1 - n ** 0.5, n]);
 };
@@ -243,15 +243,15 @@ const noises = ref<NoiseDefinition[]>([
   //   selected: false,
   // },
   openSimplex3d,
-  // worley,
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Worley (Starfield)",
-  //   pixel: starfieldPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
+  worley,
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Worley (Starfield)",
+    pixel: starfieldPixel,
+    frame: 0,
+    selected: false,
+  },
   fractal,
   // {
   //   dimensions: { width: 300, height: 300 },
@@ -261,7 +261,7 @@ const noises = ref<NoiseDefinition[]>([
   //   frame: 0,
   //   selected: false,
   // },
-  // julia,
+  julia,
 
   // {
   //   dimensions: { width: 300, height: 300 },

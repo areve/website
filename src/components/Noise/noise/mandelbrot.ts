@@ -26,9 +26,9 @@ export const makeJuliaGenerator = (seed: number) => {
   const cIm = 0.355; // Imaginary part of the constant c
   const maxIterations = 150;
 
-  return (coord: Coord) => {
-    const r0 = coord.x / 300 - 1;
-    const i0 = coord.y / 300 - 1;
+  return (x: number, y: number) => {
+    const r0 = x / 300 - 1;
+    const i0 = y / 300 - 1;
 
     let r = r0;
     let i = i0;
@@ -41,6 +41,6 @@ export const makeJuliaGenerator = (seed: number) => {
       ++iteration;
     }
 
-    return { iteration, maxIterations, r, i, coord, r0, i0 };
+    return { iteration, maxIterations, r, i, x, y, r0, i0 };
   };
 };

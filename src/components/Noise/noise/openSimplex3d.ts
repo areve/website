@@ -1,43 +1,40 @@
 import { makePointGeneratorFast } from "./prng";
 
-export const makeOpenSimplex3dGenerator = (
-  seed: number,
-  scale: number = 8
-) => {
+export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
   const skew3d = 1 / 3;
   const unskew3d = 1 / 6;
   const rSquared3d = 3 / 4;
   const noise = makePointGeneratorFast(seed);
 
-  return (ax: number, ay: number, az: number): number => {
-    const ix = ax / scale;
-    const iy = ay / scale;
-    const iz = az / scale;
-    const skew = (ix + iy + iz) * skew3d;
-    const x = Math.floor(ix + skew);
-    const y = Math.floor(iy + skew);
-    const z = Math.floor(iz + skew);
-    const fx = ix + skew - x;
-    const fy = iy + skew - y;
-    const fz = iz + skew - z;
+  return (x: number, y: number, z: number): number => {
+    const sx = x / scale;
+    const sy = y / scale;
+    const sz = z / scale;
+    const skew = (sx + sy + sz) * skew3d;
+    const ix = Math.floor(sx + skew);
+    const iy = Math.floor(sy + skew);
+    const iz = Math.floor(sz + skew);
+    const fx = sx + skew - ix;
+    const fy = sy + skew - iy;
+    const fz = sz + skew - iz;
 
     return (
-      vertexContribution(x, y, z, fx, fy, fz, 0, 0, 0) +
-      vertexContribution(x, y, z, fx, fy, fz, 1, 0, 0) +
-      vertexContribution(x, y, z, fx, fy, fz, 0, 1, 0) +
-      vertexContribution(x, y, z, fx, fy, fz, 1, 1, 0) +
-      vertexContribution(x, y, z, fx, fy, fz, 0, 0, 1) +
-      vertexContribution(x, y, z, fx, fy, fz, 1, 0, 1) +
-      vertexContribution(x, y, z, fx, fy, fz, 0, 1, 1) +
-      vertexContribution(x, y, z, fx, fy, fz, 1, 1, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1) +
       0.5
     );
   };
 
   function vertexContribution(
-    x: number,
-    y: number,
-    z: number,
+    ix: number,
+    iy: number,
+    iz: number,
     fx: number,
     fy: number,
     fz: number,
@@ -56,7 +53,7 @@ export const makeOpenSimplex3dGenerator = (
     const a = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
     if (a < 0) return 0;
 
-    const h = noise(x + cx, y + cy, z + cz) * 0xfff;
+    const h = noise(ix + cx, iy + cy, iz + cz) * 0xfff;
     const u = (h & 0xf) - 8;
     const v = ((h >> 4) & 0xf) - 8;
     const w = ((h >> 8) & 0xf) - 8;

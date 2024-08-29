@@ -18,20 +18,20 @@ export const makeWorleyNoiseGenerator = (
 
   const cache: any = {};
 
-  return (coord: Coord): number => worley(coord.x / scale, coord.y / scale);
+  return (x: number, y: number): number => {
+    const ix = x / scale;
+    const iy = y / scale;
+    const zzx = Math.floor(ix);
+    const zzy = Math.floor(iy);
+    const fx = ix - zzx;
+    const fy = iy - zzy;
 
-  function worley(ix: number, iy: number): number {
-    const x = Math.floor(ix);
-    const y = Math.floor(iy);
-    const fx = ix - x;
-    const fy = iy - y;
-
-    const points = makePointsSquare(x, y, dimensions, density);
+    const points = makePointsSquare(zzx, zzy, dimensions, density);
     const n = findNearest(points, calculateDistance, fx, fy);
 
     if (!finalApply) return n;
     return finalApply(n);
-  }
+  };
 
   function findNearest(
     points: Coord[],

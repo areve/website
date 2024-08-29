@@ -61,10 +61,10 @@ export function render(
         y: (y - viewportCenterY) * cameraZoom + viewportAndCameraY,
       });
       const i = (x + y * width) * 4;
-      data[i] = (v[0] * 0xff) >>> 0;
-      data[i + 1] = (v[1] * 0xff) >>> 0;
-      data[i + 2] = (v[2] * 0xff) >>> 0;
-      data[i + 3] = ((v[3] ?? 1) * 0xff) >>> 0;
+      data[i] = v[0] * 0xff;
+      data[i + 1] = v[1] * 0xff;
+      data[i + 2] = v[2] * 0xff;
+      data[i + 3] = v[3] ? v[3] * 0xff : 0xff;
     }
   }
 

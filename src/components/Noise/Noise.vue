@@ -35,6 +35,7 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
 import { Camera, Coord, Dimensions } from "./lib/interfaces";
+import { hsv2rgb, Rgb } from "./lib/other";
 import { makePointGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
@@ -191,20 +192,6 @@ const graph = {
   frame: 0,
   selected: false,
 };
-
-type Rgb = [r: number, g: number, b: number];
-type Hsv = [h: number, s: number, v: number];
-function hsv2rgb(hsv: Hsv): Rgb {
-  const [h, s, v] = hsv;
-  const hue = (((h * 360) % 360) + 360) % 360;
-  const sector = Math.floor(hue / 60);
-  const sectorFloat = hue / 60 - sector;
-  const x = v * (1 - s);
-  const y = v * (1 - s * sectorFloat);
-  const z = v * (1 - s * (1 - sectorFloat));
-  const rgb = [x, x, z, v, v, y, x, x, z, v];
-  return [rgb[sector + 4], rgb[sector + 2], rgb[sector]];
-}
 
 interface NoiseDefinition {
   dimensions: Dimensions;

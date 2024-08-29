@@ -1,9 +1,9 @@
 import { Coord } from "../lib/interfaces";
 
 export const makeMandelbrotGenerator = (seed: number) => {
-  return (coord: Coord): number => {
-    const r0 = coord.x / 300 - 2;
-    const i0 = coord.y / 300 - 0.05;
+  return (x: number, y: number): number => {
+    const r0 = x / 300 - 2;
+    const i0 = y / 300 - 0.05;
     const maxIterations = 40;
 
     let r = 0;

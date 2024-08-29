@@ -9,21 +9,21 @@ export const makePerlinGenerator = (seed: number, scale: number = 8) => {
 
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-  const prngVector = (coord: Coord) => {
-    const theta = noise(coord.x, coord.y, 1) * 2 * Math.PI;
+  const prngVector = (x: number, y: number) => {
+    const theta = noise(x, y, 1) * 2 * Math.PI;
     return { x: Math.cos(theta), y: Math.sin(theta) };
   };
 
-  return (coord: Coord): number => {
-    const x = Math.floor(coord.x / scale);
-    const y = Math.floor(coord.y / scale);
-    const fx = (coord.x / scale) - x;
-    const fy = (coord.y / scale) - y;
+  return (x: number, y: number): number => {
+    const ix = Math.floor(x / scale);
+    const iy = Math.floor(y / scale);
+    const fx = x / scale - ix;
+    const fy = y / scale - iy;
 
-    const v0 = prngVector({ x, y });
-    const v1 = prngVector({ x, y: y + 1 });
-    const v2 = prngVector({ x: x + 1, y });
-    const v3 = prngVector({ x: x + 1, y: y + 1 });
+    const v0 = prngVector(ix, iy);
+    const v1 = prngVector(ix, iy + 1);
+    const v2 = prngVector(ix + 1, iy);
+    const v3 = prngVector(ix + 1, iy + 1);
 
     // Calculate the dot products
     const dot0 = v0.x * fx + v0.y * fy;

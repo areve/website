@@ -34,9 +34,9 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
-import { Camera, Coord, Dimensions } from "./lib/interfaces";
+import { Camera, Dimensions } from "./lib/interfaces";
 import { hsv2rgb, Rgb } from "./lib/other";
-import { makePointGenerator } from "./noise/prng";
+import { makePointGeneratorFast } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
@@ -54,36 +54,32 @@ import {
 import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
-const generator = makePointGenerator(seed);
+const noise = makePointGeneratorFast(seed);
 
-const pseudoRandom = (coord: Coord) => {
-  const n = generator(coord);
+const pseudoRandom = (x: number, y: number) => {
+  const n = noise(x, y);
   return [n, n, n];
 };
 
-const pseudoRandomColor = (coord: Coord) => {
-  return [
-    generator({ x: coord.x, y: coord.y, z: 0 }),
-    generator({ x: coord.x, y: coord.y, z: 1 }),
-    generator({ x: coord.x, y: coord.y, z: 2 }),
-  ];
+const pseudoRandomColor = (x: number, y: number) => {
+  return [noise(x, y, 0), noise(x, y, 1), noise(x, y, 2)];
 };
 
 const valueGenerator = makeValueNoiseGenerator(seed);
-const valuePixel = (coord: Coord) => {
-  const n = valueGenerator(coord);
+const valuePixel = (x: number, y: number) => {
+  const n = valueGenerator(x, y);
   return [n, n, n];
 };
 
 const perlinGenerator = makePerlinGenerator(seed);
-const perlinPixel = (coord: Coord) => {
-  const n = perlinGenerator(coord);
+const perlinPixel = (x: number, y: number) => {
+  const n = perlinGenerator(x, y);
   return [n, n, n];
 };
 
 const openSimplexGenerator = makeOpenSimplexGenerator(seed);
-const openSimplexPixel = (coord: Coord) => {
-  const n = openSimplexGenerator(coord);
+const openSimplexPixel = (x: number, y: number) => {
+  const n = openSimplexGenerator(x, y);
   return [n, n, n];
 };
 
@@ -138,8 +134,8 @@ const fractal = {
 };
 
 const mandelbrotGenerator = makeMandelbrotGenerator(seed);
-const mandelbrotPixel = (coord: Coord) => {
-  const n = mandelbrotGenerator(coord);
+const mandelbrotPixel = (x: number, y: number) => {
+  const n = mandelbrotGenerator(x, y);
   return [n, n, n];
 };
 
@@ -158,29 +154,29 @@ const julia = {
   selected: false,
 };
 const newtonRaphsonGenerator = makeNewtonRaphsonGenerator(seed);
-const newtonRaphsonPixel = (coord: Coord) => {
-  const n = newtonRaphsonGenerator(coord);
+const newtonRaphsonPixel = (x: number, y: number) => {
+  const n = newtonRaphsonGenerator(x, y);
   return [n, n, n];
 };
 const lorenzAttractorGenerator = makeLorenzAttractorGenerator(seed);
-const lorenzAttractorPixel = (coord: Coord) => {
-  const n = lorenzAttractorGenerator(coord);
+const lorenzAttractorPixel = (x: number, y: number) => {
+  const n = lorenzAttractorGenerator(x, y);
   return [n, n, n];
 };
 
 const sierpinskiGenerator = makeSierpinskiGenerator(seed);
-const sierpinskiPixel = (coord: Coord) => {
-  const n = sierpinskiGenerator(coord);
+const sierpinskiPixel = (x: number, y: number) => {
+  const n = sierpinskiGenerator(x, y);
   return [n, n, n];
 };
 const trigonometryGenerator = makeTrigonometryGenerator(seed, "twirly");
-const trigonometryPixel = (coord: Coord) => {
-  const n = trigonometryGenerator(coord);
+const trigonometryPixel = (x: number, y: number) => {
+  const n = trigonometryGenerator(x, y);
   return [n, n, n];
 };
 const graphGenerator = makeGraphGenerator(seed);
-const graphPixel = (coord: Coord) => {
-  const n = graphGenerator({ ...coord, z: graph.frame / 10 });
+const graphPixel = (x: number, y: number) => {
+  const n = graphGenerator(x, y, graph.frame / 10);
   return hsv2rgb([n + 0.9, n ** 2, 1 - n * 0.9]);
 };
 const graph = {
@@ -202,46 +198,46 @@ interface NoiseDefinition {
 }
 
 const noises = ref<NoiseDefinition[]>([
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Value noise",
-  //   pixel: valuePixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Pseudo-random pixels.",
-  //   pixel: pseudoRandom,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Pseudo-random pixels in color.",
-  //   pixel: pseudoRandomColor,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Perlin",
-  //   pixel: perlinPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "OpenSimplex",
-  //   pixel: openSimplexPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Value noise",
+    pixel: valuePixel,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Pseudo-random pixels.",
+    pixel: pseudoRandom,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Pseudo-random pixels in color.",
+    pixel: pseudoRandomColor,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Perlin",
+    pixel: perlinPixel,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "OpenSimplex",
+    pixel: openSimplexPixel,
+    frame: 0,
+    selected: false,
+  },
   openSimplex3d,
   worley,
   {
@@ -253,49 +249,49 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   fractal,
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Mandelbrot",
-  //   pixel: mandelbrotPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Mandelbrot",
+    pixel: mandelbrotPixel,
+    frame: 0,
+    selected: false,
+  },
   julia,
 
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Newton Raphson",
-  //   pixel: newtonRaphsonPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Sierpinski",
-  //   pixel: sierpinskiPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Lorenz attractor",
-  //   pixel: lorenzAttractorPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // {
-  //   dimensions: { width: 300, height: 300 },
-  //   camera: { x: 0, y: 0, zoom: 1 },
-  //   title: "Trigonometry (various options)",
-  //   pixel: trigonometryPixel,
-  //   frame: 0,
-  //   selected: false,
-  // },
-  // graph,
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Newton Raphson",
+    pixel: newtonRaphsonPixel,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Sierpinski",
+    pixel: sierpinskiPixel,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Lorenz attractor",
+    pixel: lorenzAttractorPixel,
+    frame: 0,
+    selected: false,
+  },
+  {
+    dimensions: { width: 300, height: 300 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "Trigonometry (various options)",
+    pixel: trigonometryPixel,
+    frame: 0,
+    selected: false,
+  },
+  graph,
 ]);
 
 function select(noise: NoiseDefinition, event: MouseEvent) {

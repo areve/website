@@ -1,18 +1,16 @@
-import { Coord } from "../lib/interfaces";
-
 export const makeSierpinskiGenerator = (seed: number) => {
-  return (coord: Coord): number => {
-    let x = coord.x;
-    let y = coord.y;
+  return (x: number, y: number): number => {
+    let xN = x;
+    let yN = y;
 
     let inside = true;
-    while (x > 0 || y > 0) {
-      if ((x % 2 === 1) && (y % 2 === 1)) {
+    while (xN > 0 || yN > 0) {
+      if (xN % 2 === 1 && yN % 2 === 1) {
         inside = false;
         break;
       }
-      x = Math.floor(x / 2);
-      y = Math.floor(y / 2);
+      xN = Math.floor(xN / 2);
+      yN = Math.floor(yN / 2);
     }
 
     return inside ? 1 : 0;

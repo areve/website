@@ -1,4 +1,3 @@
-import { Coord } from "../lib/interfaces";
 
 export const makePointGeneratorFast = (seed: number) => {
   const a = new Uint32Array(new Float64Array([seed]).buffer);
@@ -9,9 +8,4 @@ export const makePointGeneratorFast = (seed: number) => {
     const m = (n ^ (n >> 13)) * 1274126177;
     return (m >>> 0) / 0xffffffff;
   };
-};
-
-export const makePointGenerator = (seed: number) => {
-  const noise = makePointGeneratorFast(seed);
-  return (coord: Coord): number => noise(coord.x, coord.y, coord.z, coord.w);
 };

@@ -7,28 +7,25 @@ export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
   const rSquared3d = 2 / 3;
   const noise = makePointGeneratorFast(seed);
 
-  return (coord: Coord): number =>
-    openSimplex(coord.x / scale, coord.y / scale);
-
-  function openSimplex(ix: number, iy: number): number {
-    const skew = (ix + iy) * skew2d;
-    const x = Math.floor(ix + skew);
-    const y = Math.floor(iy + skew);
-    const fx = ix + skew - x;
-    const fy = iy + skew - y;
+  return (x: number, y: number): number => {
+    const skew = (x + y) * skew2d;
+    const ix = Math.floor(x + skew);
+    const iy = Math.floor(y + skew);
+    const fx = x + skew - ix;
+    const fy = y + skew - iy;
 
     return (
-      vertexContribution(x, y, fx, fy, 0, 0) +
-      vertexContribution(x, y, fx, fy, 1, 0) +
-      vertexContribution(x, y, fx, fy, 0, 1) +
-      vertexContribution(x, y, fx, fy, 1, 1) +
+      vertexContribution(ix, iy, fx, fy, 0, 0) +
+      vertexContribution(ix, iy, fx, fy, 1, 0) +
+      vertexContribution(ix, iy, fx, fy, 0, 1) +
+      vertexContribution(ix, iy, fx, fy, 1, 1) +
       0.5
     );
-  }
+  };
 
   function vertexContribution(
-    x: number,
-    y: number,
+    ix: number,
+    iy: number,
     fx: number,
     fy: number,
     cx: number,
@@ -43,7 +40,7 @@ export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
     const a = rSquared3d - dxs * dxs - dys * dys;
     if (a < 0) return 0;
 
-    const h = noise(x + cx, y + cy) * 0xff;
+    const h = noise(ix + cx, iy + cy) * 0xff;
     const u = (h & 0xf) - 8;
     const v = (h >> 4) - 8;
     return a * a * a * a * (u * dxs + v * dys);

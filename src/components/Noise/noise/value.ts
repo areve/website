@@ -1,5 +1,4 @@
-import { Coord } from "../lib/interfaces";
-import { makePointGenerator, makePointGeneratorFast } from "./prng";
+import { makePointGeneratorFast } from "./prng";
 
 export const makeValueNoiseGenerator = (seed: number, scale: number = 8) => {
   const noise = makePointGeneratorFast(seed);
@@ -8,16 +7,16 @@ export const makeValueNoiseGenerator = (seed: number, scale: number = 8) => {
 
   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-  return (coord: Coord): number => {
-    const x = Math.floor(coord.x / scale);
-    const y = Math.floor(coord.y / scale);
-    const fx = (coord.x % scale) / scale;
-    const fy = (coord.y % scale) / scale;
+  return (x: number, y: number): number => {
+    const ix = Math.floor(x / scale);
+    const iy = Math.floor(y / scale);
+    const fx = (x % scale) / scale;
+    const fy = (y % scale) / scale;
 
-    const p0 = noise(x, y);
-    const p1 = noise(x, y + 1);
-    const p2 = noise(x + 1, y);
-    const p3 = noise(x + 1, y + 1);
+    const p0 = noise(ix, iy);
+    const p1 = noise(ix, iy + 1);
+    const p2 = noise(ix + 1, iy);
+    const p3 = noise(ix + 1, iy + 1);
 
     const sx = smoothstepHalf(fx);
     const sy = smoothstepHalf(fy);

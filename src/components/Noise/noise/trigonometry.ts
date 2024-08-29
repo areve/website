@@ -1,5 +1,3 @@
-import { Coord } from "../lib/interfaces";
-
 type DistortionType =
   | "spherize"
   | "pinch"
@@ -51,8 +49,7 @@ export const makeTrigonometryGenerator = (
   seed: number,
   distortionType?: DistortionType
 ) => {
-  return (coord: Coord): number => {
-    const { x, y } = coord;
+  return (x: number, y: number): number => {
     const lineFrequency = 1;
 
     const method = distortionFunctions[distortionType ?? randomKey];

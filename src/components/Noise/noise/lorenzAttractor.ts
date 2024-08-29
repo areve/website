@@ -1,5 +1,3 @@
-import { Coord } from "../lib/interfaces";
-
 export const makeLorenzAttractorGenerator = (seed: number) => {
   // Lorenz system parameters
   const sigma = 6;
@@ -10,26 +8,28 @@ export const makeLorenzAttractorGenerator = (seed: number) => {
   const dt = 0.008;
   const maxIterations = 25;
 
-  return (coord: Coord): number => {
+  return (x: number, y: number): number => {
     // Initialize Lorenz system variables
-    let x = coord.x * 0.25 - 18; // Scale and shift for better visualization
-    let y = coord.y * 0.6 - 12;
-    let z = 0; // z is often initialized to 0
+    let xN = x * 0.25 - 18; // Scale and shift for better visualization
+    let yN = y * 0.6 - 12;
+    let zN = 0; // z is often initialized to 0
 
     for (let i = 0; i < maxIterations; i++) {
       // Compute derivatives
-      const dx = sigma * (y - x);
-      const dy = x * (rho - z) - y;
-      const dz = x * y - beta * z;
+      const dx = sigma * (yN - xN);
+      const dy = xN * (rho - zN) - yN;
+      const dz = xN * yN - beta * zN;
 
       // Update variables
-      x += dx * dt;
-      y += dy * dt;
-      z += dz * dt;
+      xN += dx * dt;
+      yN += dy * dt;
+      zN += dz * dt;
     }
 
     // Normalize the result to be between 0 and 1
-    const value = Math.abs(Math.sqrt(x * x + y * y + z * z) / 8 % 2 - 1);
+    const value = Math.abs(
+      ((Math.sqrt(xN * xN + yN * yN + zN * zN) / 8) % 2) - 1
+    );
 
     // Optional: Map to a color or intensity for visualization
     return value;

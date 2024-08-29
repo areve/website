@@ -1,14 +1,14 @@
 import { Coord } from "../lib/interfaces";
 
 export const makeNewtonRaphsonGenerator = (seed: number) => {
-  return (coord: Coord): number => {
+  return (x: number, y: number): number => {
     const maxIterations = 50;
     const tolerance = 1e-6;
-    const cReal = coord.x / 200 - 2; // Adjusting for better viewing
-    const cImag = coord.y / 200 - 0.25; // Adjusting for better viewing
+    const cReal = x / 200 - 2; // Adjusting for better viewing
+    const cImag = y / 200 - 0.25; // Adjusting for better viewing
 
-    let x = cReal;
-    let y = cImag;
+    let xN = cReal;
+    let yN = cImag;
     let iteration = 0;
 
     // Polynomial: z^3 - 1 = 0
@@ -30,20 +30,20 @@ export const makeNewtonRaphsonGenerator = (seed: number) => {
     };
 
     while (iteration < maxIterations) {
-      const { pReal, pImag, dReal, dImag } = polynomialAndDerivatives(x, y);
+      const { pReal, pImag, dReal, dImag } = polynomialAndDerivatives(xN, yN);
 
       const denom = dReal * dReal + dImag * dImag;
       if (denom === 0) break;
 
-      const xNew = x - (pReal * dReal + pImag * dImag) / denom;
-      const yNew = y - (pImag * dReal - pReal * dImag) / denom;
+      const xNew = xN - (pReal * dReal + pImag * dImag) / denom;
+      const yNew = yN - (pImag * dReal - pReal * dImag) / denom;
 
-      if (Math.abs(xNew - x) < tolerance && Math.abs(yNew - y) < tolerance) {
+      if (Math.abs(xNew - xN) < tolerance && Math.abs(yNew - yN) < tolerance) {
         break;
       }
 
-      x = xNew;
-      y = yNew;
+      xN = xNew;
+      yN = yNew;
       iteration++;
     }
 

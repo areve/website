@@ -137,7 +137,7 @@ const trigonometryPixel = (coord: Coord) => {
 };
 const graphGenerator = makeGraphGenerator(seed);
 const graphPixel = (coord: Coord) => {
-  const n = graphGenerator(coord);
+  const n = graphGenerator({ ...coord, z: liveSeed / 10 });
   return hsv2rgb([n + 0.9, n ** 2, 1 - n * 0.9]);
 };
 

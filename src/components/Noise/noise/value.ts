@@ -11,8 +11,8 @@ export const makeValueNoiseGenerator = (seed: number, scale: number = 8) => {
   return (coord: Coord): number => {
     const x = Math.floor(coord.x / scale);
     const y = Math.floor(coord.y / scale);
-    const fx = (coord.x % scale) / scale;
-    const fy = (coord.y % scale) / scale;
+    const fx = (coord.x / scale) - x;
+    const fy = (coord.y / scale) - y;
 
     const p0 = noise(x, y);
     const p1 = noise(x, y + 1);

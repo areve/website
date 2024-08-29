@@ -40,8 +40,10 @@ import { makeNoiseGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
-import { makeOpenSimplex2dGenerator } from "./noise/openSimplex2d";
-import { makeOpenSimplex3dGenerator } from "./noise/openSimplex3d";
+import {
+  makeOpenSimplex2dGenerator,
+  makeOpenSimplex3dGenerator,
+} from "./noise/openSimplex";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
 import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
 import { makeLorenzAttractorGenerator } from "./noise/lorenzAttractor";

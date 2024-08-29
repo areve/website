@@ -1,4 +1,4 @@
-import { makeOpenSimplex3dGenerator } from "./openSimplex3d";
+import { makeOpenSimplex3dGenerator } from "./openSimplex";
 
 export const makeGraphGenerator = (seed: number) => {
   const noise = makeOpenSimplex3dGenerator(seed);

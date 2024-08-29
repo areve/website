@@ -1,4 +1,4 @@
-import { makeOpenSimplex3dGenerator } from "./openSimplex3d";
+import { makeOpenSimplex3dGenerator } from "./openSimplex";
 
 export const makeFractalNoiseGenerator = (seed: number) => {
   const openSimplex1 = makeOpenSimplex3dGenerator(seed, 32);

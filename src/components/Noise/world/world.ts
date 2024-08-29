@@ -59,43 +59,6 @@ const color = {
 
 export const makeWorld = (seed: number) => {
   const makeWorldGenerator = (seed: number) => {
-    // const temperature = (coord: Coord) => {
-    //   const a = bicubic(coord, 1 / 65, generator);
-    //   const b = bicubic(coord, 1 / 33, generator);
-    //   const c = bicubic(coord, 1 / 9, generator);
-    //   const d = generator(coord);
-
-    //   return a * 0.5 + b * 0.3 + c * 0.23 + d * 0.07;
-    // };
-
-    // const moisture = (coord: Coord) => {
-    //   const moistCoord = { x: coord.x - 127.5, y: coord.y - 127.5 };
-    //   const a = bicubic(moistCoord, 1 / 65, generator);
-    //   const b = bicubic(moistCoord, 1 / 28, generator);
-    //   const c = bicubic(moistCoord, 1 / 11, generator);
-    //   const d = generator(moistCoord);
-
-    //   return a * 0.37 + b * 0.25 + c * 0.3 + d * 0.08;
-    // };
-
-    // function heights(coord: Coord) {
-    //   const a = bicubic(coord, 1 / 29, (coord: Coord) =>
-    //     generator({ x: coord.x - 21112.5, y: coord.y - 112127.5 })
-    //   );
-
-    //   const b = bicubic(coord, 1 / 17, (coord: Coord) =>
-    //     generator({ x: coord.x - 2112.5, y: coord.y - 127.5 })
-    //   );
-
-    //   const c = bicubic(coord, 1 / 7, (coord: Coord) =>
-    //     generator({ x: coord.x - 12.5, y: coord.y - 7.5 })
-    //   );
-
-    //   const d = generator({ x: coord.x - 1.5, y: coord.y - 1.5 });
-
-    //   return a * 0.65 + b * 0.27 + c * 0.2 + d * 0.08;
-    // }
-
     const height1 = makeOpenSimplex3dGenerator(seed * 0.1, 129);
     const height2 = makeOpenSimplex3dGenerator(seed * 0.2, 65);
     const height3 = makeOpenSimplex3dGenerator(seed * 0.3, 17);
@@ -124,6 +87,12 @@ export const makeWorld = (seed: number) => {
       const heightAboveSeaLevel = ((height - seaLevel) / (1 - seaLevel)) ** 0.5;
       const seaDepth = c(seaDepthCurve(1 - height / seaLevel));
 
+      const iciness = c(
+        heightIcinessCurve(height) + temperatureIcinessCurve(temperature)
+      );
+      const desert = c(
+        moistureDesertCurve(moisture) + temperatureDesertCurve(temperature)
+      );
       return {
         height,
         isSea,
@@ -131,6 +100,8 @@ export const makeWorld = (seed: number) => {
         seaDepth,
         moisture,
         temperature,
+        iciness,
+        desert,
       };
     };
   };
@@ -138,14 +109,13 @@ export const makeWorld = (seed: number) => {
   const worldPoint = makeWorldGenerator(seed);
 
   const pixel = (x: number, y: number) => {
-    const v = worldPoint(x, y, world.frame / 10);
-    const h = v.height;
+    const v = worldPoint(x, y, world.frame );
     const sh = v.heightAboveSeaLevel;
     const sd = v.seaDepth;
     const m = v.moisture;
     const t = v.temperature;
-    const i = c(heightIcinessCurve(h) + temperatureIcinessCurve(t));
-    const d = c(moistureDesertCurve(m) + temperatureDesertCurve(t));
+    const i = v.iciness;
+    const d = v.desert;
 
     if (v.isSea) {
       const seaHsv: Hsv = [

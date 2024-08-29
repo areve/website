@@ -9,7 +9,7 @@
     <div
       v-for="noise in noises"
       :class="{
-        selected: noise === selectedNoise,
+        selected: noise.selected,
       }"
       class="panel"
     >
@@ -18,7 +18,7 @@
         :camera="noise.camera"
         :pixel="noise.pixel"
         :dirty="noise.dirty"
-        @click="select(noise)"
+        @click="select(noise, $event)"
         >{{ noise.title }}</NoiseRender
       >
     </div>
@@ -160,8 +160,9 @@ interface NoiseDefinition {
   dimensions: Dimensions;
   camera: Camera;
   title: string;
-  dirty: number;
   pixel: (coord: Coord) => Rgb | number[];
+  dirty: number;
+  selected: boolean;
 }
 
 const noises = ref<NoiseDefinition[]>([
@@ -171,6 +172,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Value noise",
     pixel: valuePixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -178,6 +180,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Pseudo-random pixels.",
     pixel: pseudoRandom,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -185,6 +188,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Pseudo-random pixels in color.",
     pixel: pseudoRandomColor,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -192,6 +196,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Perlin",
     pixel: perlinPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -199,6 +204,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "OpenSimplex",
     pixel: openSimplexPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -206,6 +212,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "OpenSimplex 3d",
     pixel: openSimplex3dPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -213,6 +220,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Worley (Voronoi)",
     pixel: worleyPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -220,6 +228,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Worley (Starfield)",
     pixel: starfieldPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -227,6 +236,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Fractal",
     pixel: fractalPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -234,6 +244,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Mandelbrot",
     pixel: mandelbrotPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -241,6 +252,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Julia",
     pixel: juliaPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
 
   {
@@ -249,6 +261,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Newton Raphson",
     pixel: newtonRaphsonPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -256,6 +269,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Sierpinski",
     pixel: sierpinskiPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -263,6 +277,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Lorenz attractor",
     pixel: lorenzAttractorPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -270,6 +285,7 @@ const noises = ref<NoiseDefinition[]>([
     title: "Trigonometry (various options)",
     pixel: trigonometryPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
   {
     dimensions: { width: 500, height: 100 },
@@ -277,29 +293,30 @@ const noises = ref<NoiseDefinition[]>([
     title: "OpenSimplex + trigonometry",
     pixel: graphPixel,
     dirty: window.performance.now(),
+    selected: false,
   },
 ]);
 
 const selectedNoise = ref<NoiseDefinition>();
-function select(noise: NoiseDefinition) {
-  if (selectedNoise.value === noise) {
-    selectedNoise.value = undefined;
-    return;
-  }
-  selectedNoise.value = noise;
+function select(noise: NoiseDefinition, event: MouseEvent) {
+  if (!event.ctrlKey)
+    noises.value.filter((v) => v.selected).forEach((v) => (v.selected = false));
+  noise.selected = !noise.selected;
 }
 
 let frameId: number | null = null;
 
 const update = () => {
   ++liveSeed;
-  if (selectedNoise.value) selectedNoise.value.dirty = window.performance.now();
+  noises.value
+    .filter((v) => v.selected)
+    .forEach((v) => (v.dirty = window.performance.now()));
   frameId = requestAnimationFrame(update);
 };
 
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);
-  update()
+  update();
 });
 
 onUnmounted(() => {
@@ -308,35 +325,36 @@ onUnmounted(() => {
 });
 
 const onKeyDown = (event: KeyboardEvent) => {
-  if (!selectedNoise.value) return;
-  const zoom = selectedNoise.value.camera.zoom;
-  if (event.key === "a") selectedNoise.value.camera.x -= 25 * zoom;
-  if (event.key === "d") selectedNoise.value.camera.x += 25 * zoom;
-  if (event.key === "w") selectedNoise.value.camera.y -= 25 * zoom;
-  if (event.key === "s") selectedNoise.value.camera.y += 25 * zoom;
-  if (event.key === "'") selectedNoise.value.camera.zoom /= 1.2;
-  if (event.key === "/") selectedNoise.value.camera.zoom *= 1.2;
-  if (event.key === "t") selectedNoise.value.dimensions.height += 50;
-  if (event.key === "g") selectedNoise.value.dimensions.height -= 50;
-  if (event.key === "h") selectedNoise.value.dimensions.width += 50;
-  if (event.key === "f") selectedNoise.value.dimensions.width -= 50;
-  if (event.key === ".") {
-    selectedNoise.value.dirty = window.performance.now();
-  }
-  if (selectedNoise.value.dimensions.height < 50)
-    selectedNoise.value.dimensions.height = 50;
-  if (selectedNoise.value.dimensions.width < 50)
-    selectedNoise.value.dimensions.width = 50;
+  noises.value
+    .filter((v) => v.selected)
+    .forEach((v) => {
+      const zoom = v.camera.zoom;
+      if (event.key === "a") v.camera.x -= 25 * zoom;
+      if (event.key === "d") v.camera.x += 25 * zoom;
+      if (event.key === "w") v.camera.y -= 25 * zoom;
+      if (event.key === "s") v.camera.y += 25 * zoom;
+      if (event.key === "'") v.camera.zoom /= 1.2;
+      if (event.key === "/") v.camera.zoom *= 1.2;
+      if (event.key === "t") v.dimensions.height += 50;
+      if (event.key === "g") v.dimensions.height -= 50;
+      if (event.key === "h") v.dimensions.width += 50;
+      if (event.key === "f") v.dimensions.width -= 50;
+      if (event.key === ".") v.dirty = window.performance.now();
+      if (v.dimensions.height < 50) v.dimensions.height = 50;
+      if (v.dimensions.width < 50) v.dimensions.width = 50;
+    });
+
   console.log(event.key);
 };
 </script>
 
 <style scoped>
 .panel {
-  padding: 0.5em;
+  padding: 0.25em;
+  margin: 0.25em;
 }
 .selected {
   background-color: rgba(0, 0, 255, 0.05);
-  box-shadow: 0 0 1em rgba(0, 0, 127, 0.25);
+  box-shadow: inset 0 0 1em rgba(0, 0, 127, 0.25);
 }
 </style>

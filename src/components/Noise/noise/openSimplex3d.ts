@@ -1,10 +1,10 @@
-import { makePointGeneratorFast } from "./prng";
+import { makeNoiseGenerator } from "./prng";
 
 export const makeOpenSimplex3dGenerator = (seed: number, scale: number = 8) => {
   const skew3d = 1 / 3;
   const unskew3d = 1 / 6;
   const rSquared3d = 3 / 4;
-  const noise = makePointGeneratorFast(seed);
+  const noise = makeNoiseGenerator(seed);
 
   return (x: number, y: number, z: number): number => {
     const sx = x / scale;

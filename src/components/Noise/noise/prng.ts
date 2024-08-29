@@ -1,5 +1,4 @@
-
-export const makePointGeneratorFast = (seed: number) => {
+export const makeNoiseGenerator = (seed: number) => {
   const a = new Uint32Array(new Float64Array([seed]).buffer);
   const s = a[0] ^ (a[1] + 1440662683);
   return (x: number, y: number, z: number = 0, w: number = 0): number => {

@@ -1,5 +1,3 @@
-import { Coord } from "../lib/interfaces";
-
 export const makeNewtonRaphsonGenerator = (seed: number) => {
   return (x: number, y: number): number => {
     const maxIterations = 50;

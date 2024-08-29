@@ -36,7 +36,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
 import { Camera, Dimensions } from "./lib/interfaces";
 import { hsv2rgb, Rgb } from "./lib/other";
-import { makePointGeneratorFast } from "./noise/prng";
+import { makeNoiseGenerator } from "./noise/prng";
 import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
@@ -54,7 +54,7 @@ import {
 import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
-const noise = makePointGeneratorFast(seed);
+const noise = makeNoiseGenerator(seed);
 
 const pseudoRandom = (x: number, y: number) => {
   const n = noise(x, y);

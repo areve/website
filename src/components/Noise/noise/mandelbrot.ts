@@ -1,5 +1,3 @@
-import { Coord } from "../lib/interfaces";
-
 export const makeMandelbrotGenerator = (seed: number) => {
   return (x: number, y: number): number => {
     const r0 = x / 300 - 2;

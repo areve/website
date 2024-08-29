@@ -1,7 +1,7 @@
-import { makePointGeneratorFast } from "./prng";
+import { makeNoiseGenerator } from "./prng";
 
 export const makeValueNoiseGenerator = (seed: number, scale: number = 8) => {
-  const noise = makePointGeneratorFast(seed);
+  const noise = makeNoiseGenerator(seed);
 
   const smoothstepHalf = (t: number): number => (t * t * (3 - t * 2) + t) / 2;
 

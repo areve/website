@@ -1,8 +1,7 @@
-import { Coord } from "../lib/interfaces";
-import { makePointGeneratorFast } from "./prng";
+import { makeNoiseGenerator } from "./prng";
 
 export const makePerlinGenerator = (seed: number, scale: number = 8) => {
-  const noise = makePointGeneratorFast(seed);
+  const noise = makeNoiseGenerator(seed);
 
   const smootherstep = (t: number): number =>
     t * t * t * (t * (t * 6 - 15) + 10);

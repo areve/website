@@ -1,11 +1,10 @@
-import { Coord } from "../lib/interfaces";
-import { makePointGeneratorFast } from "./prng";
+import { makeNoiseGenerator } from "./prng";
 
 export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
   const skew2d = (Math.sqrt(3) - 1) / 2;
   const unskew2d = -(3 - Math.sqrt(3)) / 6;
   const rSquared3d = 2 / 3;
-  const noise = makePointGeneratorFast(seed);
+  const noise = makeNoiseGenerator(seed);
 
   return (x: number, y: number): number => {
     const skew = (x + y) * skew2d;

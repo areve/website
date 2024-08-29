@@ -1,5 +1,5 @@
 import { Coord } from "../lib/interfaces";
-import { makePointGeneratorFast } from "./prng";
+import { makeNoiseGenerator } from "./prng";
 
 export const euclidean = (dx: number, dy: number, dz: number) =>
   dx * dx + dy * dy + dz * dz;
@@ -14,7 +14,7 @@ export const makeWorleyNoiseGenerator = (
   calculateDistance: typeof euclidean = euclidean,
   finalApply: typeof sqrt | null = sqrt
 ) => {
-  const noise = makePointGeneratorFast(seed);
+  const noise = makeNoiseGenerator(seed);
 
   const cache: any = {};
 

@@ -93,7 +93,10 @@ const openSimplex3dPixel = (coord: Coord) => {
 const worleyGenerator = makeWorleyNoiseGenerator(seed);
 const worleyPixel = (coord: Coord) => {
   const n = worleyGenerator(coord);
-  return [n, n, n];
+  // console.log(liveSeed)
+  let c = liveSeed / 1000;
+  c = c - (c | 0);
+  return hsv2rgb([c, 1 - n ** 0.5, n]);
 };
 const starfieldGenerator = makeWorleyNoiseGenerator(seed, 3, 8, 32);
 const starfieldPixel = (coord: Coord) => {

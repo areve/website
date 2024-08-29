@@ -34,6 +34,7 @@ import { makeValueNoiseGenerator } from "./noise/value";
 import { makePerlinGenerator } from "./noise/perlin";
 import { makeWorleyNoiseGenerator } from "./noise/worley";
 import { makeOpenSimplexGenerator } from "./noise/openSimplex";
+import { makeOpenSimplex3dGenerator } from "./noise/openSimplex3d";
 import { makeFractalNoiseGenerator } from "./noise/fractal";
 import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
 import { makeLorenzAttractorGenerator } from "./noise/lorenzAttractor";
@@ -76,6 +77,11 @@ const perlinPixel = (coord: Coord) => {
 const openSimplexGenerator = makeOpenSimplexGenerator(seed);
 const openSimplexPixel = (coord: Coord) => {
   const n = openSimplexGenerator(coord);
+  return [n, n, n];
+};
+const openSimplex3dGenerator = makeOpenSimplex3dGenerator(seed);
+const openSimplex3dPixel = (coord: Coord) => {
+  const n = openSimplex3dGenerator({ ...coord, z: liveSeed / 10});
   return [n, n, n];
 };
 
@@ -191,6 +197,13 @@ const noises = ref<NoiseDefinition[]>([
     camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex",
     pixel: openSimplexPixel,
+    dirty: window.performance.now(),
+  },
+  {
+    dimensions: { width: 500, height: 100 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    title: "OpenSimplex 3d",
+    pixel: openSimplex3dPixel,
     dirty: window.performance.now(),
   },
   {

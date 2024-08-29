@@ -20,8 +20,9 @@ export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
       vertexContribution(x, y, fx, fy, 0, 0) +
       vertexContribution(x, y, fx, fy, 1, 0) +
       vertexContribution(x, y, fx, fy, 0, 1) +
-      vertexContribution(x, y, fx, fy, 1, 1)
-    ) + 0.5;
+      vertexContribution(x, y, fx, fy, 1, 1) +
+      0.5
+    );
   }
 
   function vertexContribution(
@@ -38,7 +39,8 @@ export const makeOpenSimplexGenerator = (seed: number, scale: number = 8) => {
     const dxs = dx + skewedOffset;
     const dys = dy + skewedOffset;
 
-    const a = 2 / 3 - dxs * dxs - dys * dys;
+    const rSquared3d = 2 / 3;
+    const a = rSquared3d - dxs * dxs - dys * dys;
     if (a < 0) return 0;
 
     const h = noise(x + cx, y + cy) * 0xff;

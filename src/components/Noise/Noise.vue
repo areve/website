@@ -337,11 +337,15 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener("keydown", onKeyDown);
   if (frameId) cancelAnimationFrame(frameId);
   frameId = null;
 });
 
 const onKeyDown = (event: KeyboardEvent) => {
+  if (event.key === "a" && event.ctrlKey)
+    return noises.value.forEach((v) => (v.selected = true));
+
   noises.value
     .filter((v) => v.selected)
     .forEach((v) => {
@@ -373,6 +377,7 @@ body {
 #app {
   width: 90%;
   margin: auto;
+  user-select: none; 
 }
 </style>
 <style scoped>
@@ -383,6 +388,7 @@ body {
 .panel {
   padding: 0.25em;
   margin: 0.25em;
+  width: min-content;
 }
 .selected {
   background-color: rgba(0, 0, 255, 0.05);

@@ -288,18 +288,22 @@ function select(noise: NoiseDefinition) {
   selectedNoise.value = noise;
 }
 
-let interval: NodeJS.Timeout | undefined;
+let frameId: number | null = null;
+
+const update = () => {
+  liveSeed++;
+  if (selectedNoise.value) selectedNoise.value.dirty = window.performance.now();
+  frameId = requestAnimationFrame(update);
+};
+
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);
-  interval = setInterval(() => {
-    liveSeed++;
-    if (selectedNoise.value)
-      selectedNoise.value.dirty = window.performance.now();
-  }, 40);
+  update()
 });
+
 onUnmounted(() => {
-  if (interval) clearInterval(interval);
-  interval = undefined;
+  if (frameId) cancelAnimationFrame(frameId);
+  frameId = null;
 });
 
 const onKeyDown = (event: KeyboardEvent) => {

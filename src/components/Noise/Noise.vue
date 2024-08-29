@@ -54,7 +54,6 @@ import {
 import { makeSierpinskiGenerator } from "./noise/sierpinski";
 
 const seed = 12345;
-// let liveSeed = 0;
 const generator = makePointGenerator(seed);
 
 const pseudoRandom = (coord: Coord) => {
@@ -299,7 +298,6 @@ const noises = ref<NoiseDefinition[]>([
   graph,
 ]);
 
-const selectedNoise = ref<NoiseDefinition>();
 function select(noise: NoiseDefinition, event: MouseEvent) {
   if (!event.ctrlKey) {
     const selectedOthers = noises.value.filter(
@@ -313,7 +311,6 @@ function select(noise: NoiseDefinition, event: MouseEvent) {
 let frameId: number | null = null;
 
 const update = () => {
-  // ++liveSeed;
   noises.value.filter((v) => v.selected).forEach((v) => ++v.frame);
   frameId = requestAnimationFrame(update);
 };

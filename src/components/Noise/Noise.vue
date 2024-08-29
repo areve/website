@@ -49,6 +49,7 @@ import { makeNewtonRaphsonGenerator } from "./noise/newtonRaphson";
 import { makeLorenzAttractorGenerator } from "./noise/lorenzAttractor";
 import { makeTrigonometryGenerator } from "./noise/trigonometry";
 import { makeGraphGenerator } from "./noise/graph";
+import { makeWorld } from "./world/world";
 import {
   makeJuliaGenerator,
   makeMandelbrotGenerator,
@@ -260,7 +261,6 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   julia,
-
   {
     dimensions: { width: 300, height: 300 },
     camera: { x: 0, y: 0, zoom: 1 },
@@ -294,6 +294,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   graph,
+  makeWorld(seed),
 ]);
 
 function select(noise: NoiseDefinition, event: MouseEvent) {

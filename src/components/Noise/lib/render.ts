@@ -54,6 +54,7 @@ export function render(
     for (let y = 0; y < height; ++y) {
       const v = pixel({
         // TODO too much math in the wrong place!
+        // TODO rename camera to viewport probably
         x: (x - width / 2) * cameraZoom + width / 2 + cameraX,
         y: (y - height / 2) * cameraZoom + height / 2 + cameraY,
       });

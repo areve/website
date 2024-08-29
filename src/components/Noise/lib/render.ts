@@ -50,13 +50,15 @@ export function render(
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
   const cameraZoom = camera?.zoom ?? 1;
+  const viewportCenterX = width / 2;
+  const viewportCenterY = height / 2;
+  const viewportAndCameraX = viewportCenterX + cameraX;
+  const viewportAndCameraY = viewportCenterY + cameraY;
   for (let x = 0; x < width; ++x) {
     for (let y = 0; y < height; ++y) {
       const v = pixel({
-        // TODO too much math in the wrong place!
-        // TODO rename camera to viewport probably
-        x: (x - width / 2) * cameraZoom + width / 2 + cameraX,
-        y: (y - height / 2) * cameraZoom + height / 2 + cameraY,
+        x: (x - viewportCenterX) * cameraZoom + viewportAndCameraX,
+        y: (y - viewportCenterY) * cameraZoom + viewportAndCameraY,
       });
       const i = (x + y * width) * 4;
       data[i] = (v[0] * 0xff) >>> 0;

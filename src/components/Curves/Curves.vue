@@ -6,9 +6,35 @@
       whole lot of learning about curves and splines. These are some experiments
       I created during that.
     </p>
+
+    <CurvesGraph
+      :dimensions="{
+        width: 300 * getDevicePixelRatio(),
+        height: 300 * getDevicePixelRatio(),
+      }"
+      :funcs="funcs"
+      label=""
+    ></CurvesGraph>
   </section>
 </template>
 
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import { getDevicePixelRatio } from "./lib/render";
+import { makeSmoothCurveFunction } from "./curves/smoothCurve";
+import CurvesGraph from "./CurvesGraph.vue";
+
+const funcs = [
+  {
+    label: "fooCurve",
+    color: [1, 0, 1],
+    func: makeSmoothCurveFunction([
+      { x: 0, y: 0 },
+      { x: 0.65, y: 0.12 },
+      { x: 0.85, y: 0.9 },
+      { x: 1, y: 1 },
+    ]),
+  },
+];
+</script>
 
 <style scoped></style>

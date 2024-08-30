@@ -47,16 +47,22 @@
             <router-link to="/stocks" @click="toggle()">Stocks</router-link>
           </li>
           <li>
-            <router-link to="/google-maps" @click="toggle()">Google Maps</router-link>
+            <router-link to="/google-maps" @click="toggle()"
+              >Google Maps</router-link
+            >
           </li>
           <li>
-            <router-link to="/google-auth" @click="toggle()">Google Auth</router-link>
+            <router-link to="/google-auth" @click="toggle()"
+              >Google Auth</router-link
+            >
           </li>
           <li>
             <router-link to="/flat-css" @click="toggle()">flat.css</router-link>
           </li>
           <li>
-            <router-link to="/quantum-particles" @click="toggle()">Quantum Particles</router-link>
+            <router-link to="/quantum-particles" @click="toggle()"
+              >Quantum Particles</router-link
+            >
           </li>
           <li>
             <router-link to="/n-queens" @click="toggle()">n-Queens</router-link>
@@ -68,10 +74,13 @@
             <router-link to="/card-game" @click="toggle()">Card Game</router-link>
           </li> -->
           <li>
-            <router-link to="/world" @click="toggle()">World</router-link>
+            <router-link to="/noise" @click="toggle()">Noise</router-link>
           </li>
           <li>
-            <router-link to="/noise" @click="toggle()">Noise</router-link>
+            <router-link to="/curves" @click="toggle()">Curves</router-link>
+          </li>
+          <li>
+            <router-link to="/world" @click="toggle()">World</router-link>
           </li>
         </ul>
       </nav>

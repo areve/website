@@ -119,18 +119,7 @@ const onKeyDown = (event: KeyboardEvent) => {
 };
 </script>
 
-<style>
-body {
-  margin: 3em 0;
-  max-width: none;
-}
 
-#app {
-  width: 90%;
-  margin: auto;
-  user-select: none;
-}
-</style>
 <style scoped>
 .panels {
   display: flex;

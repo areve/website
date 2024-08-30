@@ -20,15 +20,16 @@
 
 <script lang="ts" setup>
 import { getDevicePixelRatio } from "./lib/render";
-import { makeSmoothCurveFunction } from "./curves/smoothCurve";
+import { makeSmoothCurveFunction } from "./lib/curves";
 import CurvesGraph from "./CurvesGraph.vue";
 
 const funcs = [
   {
-    label: "fooCurve",
-    color: [1, 0, 1],
+    label: "a custom smooth curve",
+    color: [1, 1, 0],
     func: makeSmoothCurveFunction([
       { x: 0, y: 0 },
+      { x: 0.3, y: 0.3 },
       { x: 0.65, y: 0.12 },
       { x: 0.85, y: 0.9 },
       { x: 1, y: 1 },

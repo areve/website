@@ -26,7 +26,7 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref } from "vue";
-import { distanceFromPointToLineSegment } from "./curves/distanceFromPointToLineSegment";
+import { distanceFromPointToLineSegment } from "./lib/curves";
 import { Rgb, Rgba } from "./lib/color";
 import { clamp } from "./lib/clamp";
 import { Dimensions, render } from "./lib/render";

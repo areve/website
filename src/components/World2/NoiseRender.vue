@@ -17,10 +17,39 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
-import { render } from "./lib/render";
+import RenderWorker from "./RenderWorker?worker";
 import { Rgb } from "./lib/color";
+
+let offscreen: OffscreenCanvas;
+
+function renderSomewhere(
+  canvas: HTMLCanvasElement,
+  dimensions: Dimensions,
+  pixel: (x: number, y: number) => Rgb,
+  camera?: Camera
+) {
+  // const context = getContext(canvas, dimensions);
+  // if (!context) return;
+  if (!offscreen) {
+    offscreen = canvas.transferControlToOffscreen();
+
+    renderWorker.postMessage(
+      {
+        canvas: offscreen,
+        dimensions: toRaw(dimensions),
+        camera: toRaw(camera),
+      },
+      [offscreen]
+    );
+  } else {
+    renderWorker.postMessage({
+      dimensions: toRaw(dimensions),
+      camera: toRaw(camera),
+    });
+  }
+}
 
 export interface NoiseRenderProps {
   dimensions: Dimensions;
@@ -35,9 +64,11 @@ const dimensions = computed(() => props.dimensions);
 const pixel = computed(() => props.pixel);
 const ratePixelsPerSecond = ref(0);
 
+const renderWorker = new RenderWorker();
+
 const update = () => {
   const start = window.performance.now();
-  render(canvas.value, dimensions.value, pixel.value, props.camera);
+  renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
   const end = window.performance.now();
   const pixels = dimensions.value.height * dimensions.value.width;
   ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;

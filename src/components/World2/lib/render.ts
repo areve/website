@@ -1,44 +1,5 @@
 import { Rgb } from "./color";
 import { clamp } from "./clamp";
-
-import RenderWorker from "./RenderWorker?worker";
-import { toRaw } from "vue";
-
-const renderWorker = new RenderWorker();
-
-let offscreen: OffscreenCanvas;
-function renderInWorker(
-  canvas: HTMLCanvasElement,
-  dimensions: Dimensions,
-  pixel: (x: number, y: number) => Rgb,
-  camera?: Camera
-) {
-  // const context = getContext(canvas, dimensions);
-  // if (!context) return;
-  if (!offscreen) {
-    offscreen = canvas.transferControlToOffscreen();
-
-    renderWorker.postMessage(
-      {
-        canvas: offscreen,
-        dimensions: toRaw(dimensions),
-        camera: toRaw(camera),
-        // pixel,
-      },
-      [offscreen]
-    );
-  } else {
-    renderWorker.postMessage(
-      {
-        dimensions: toRaw(dimensions),
-        camera: toRaw(camera),
-        // pixel,
-      },
-      []
-    );
-  }
-}
-
 export interface Dimensions {
   width: number;
   height: number;
@@ -49,23 +10,21 @@ export interface Camera {
   zoom: number;
 }
 export function getContext(
-  canvas: HTMLCanvasElement | undefined,
+  canvas: HTMLCanvasElement | OffscreenCanvas | undefined,
   dimensions: {
     width: number;
     height: number;
   }
-) {
+): CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D | null {
   if (!canvas) return null;
   canvas.width = dimensions.width;
   canvas.height = dimensions.height;
-  return canvas.getContext("2d", {
-    willReadFrequently: true,
-  });
+  return canvas.getContext("2d");
 }
 
 export function getDevicePixelRatio() {
   let ratio = 1;
-  const screen = window.screen as any;
+  const screen = self.screen as any;
 
   // To account for zoom, change to use deviceXDPI instead of systemXDPI
   if (
@@ -75,20 +34,22 @@ export function getDevicePixelRatio() {
   ) {
     // Only allow for values > 1
     ratio = screen.systemXDPI / screen.logicalXDPI;
-  } else if (window.devicePixelRatio !== undefined) {
-    ratio = window.devicePixelRatio;
+  } else if (self.devicePixelRatio !== undefined) {
+    ratio = self.devicePixelRatio;
   }
   return ratio;
 }
 
-function renderLocal(
-  canvas: HTMLCanvasElement,
+export function render(
+  canvas: HTMLCanvasElement | OffscreenCanvas,
   dimensions: Dimensions,
   pixel: (x: number, y: number) => Rgb,
   camera?: Camera
 ) {
   const context = getContext(canvas, dimensions);
   if (!context) return;
+  const start = self.performance.now();
+
   const width = Math.ceil(dimensions.width);
   const height = Math.ceil(dimensions.height);
 
@@ -116,6 +77,8 @@ function renderLocal(
   }
 
   context.putImageData(imageData, 0, 0);
+  const end = self.performance.now();
+  console.log("rendered", (end - start) | 0, "ms");
 }
 
 export const coordFromEvent = (
@@ -134,6 +97,3 @@ export const coordFromEvent = (
     ),
   };
 };
-
-// export const render = renderInWorker;
-export const render = renderLocal;

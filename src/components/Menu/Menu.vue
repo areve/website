@@ -79,9 +79,9 @@
           <li>
             <router-link to="/curves" @click="toggle()">Curves</router-link>
           </li>
-          <li>
+          <!-- <li>
             <router-link to="/world" @click="toggle()">World</router-link>
-          </li>
+          </li> -->
           <li>
             <router-link to="/world2" @click="toggle()">World2</router-link>
           </li>

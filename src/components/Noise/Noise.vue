@@ -92,7 +92,7 @@ const openSimplex3dPixel = (x: number, y: number): Rgb => {
   return [n, n, n];
 };
 const openSimplex3d = {
-  dimensions: { width: 300, height: 300 },
+  dimensions: { width: 300, height: 150 },
   camera: { x: 0, y: 0, zoom: 1 },
   title: "OpenSimplex 3d",
   pixel: openSimplex3dPixel,
@@ -108,7 +108,7 @@ const worleyPixel = (x: number, y: number): Rgb => {
   return hsv2rgb([c, 1 - n ** 0.5, n]);
 };
 const worley = {
-  dimensions: { width: 300, height: 300 },
+  dimensions: { width: 300, height: 150 },
   camera: { x: 0, y: 0, zoom: 1 },
   title: "Worley (Voronoi)",
   pixel: worleyPixel,
@@ -128,7 +128,7 @@ const fractalPixel = (x: number, y: number): Rgb => {
   return [n, n, n];
 };
 const fractal = {
-  dimensions: { width: 300, height: 300 },
+  dimensions: { width: 300, height: 150 },
   camera: { x: 0, y: 0, zoom: 1 },
   title: "Fractal",
   pixel: fractalPixel,
@@ -144,12 +144,12 @@ const mandelbrotPixel = (x: number, y: number): Rgb => {
 
 const juliaGenerator = makeJuliaGenerator(seed);
 const juliaPixel = (x: number, y: number): Rgb => {
-  const v = juliaGenerator(x, y);
+  const v = juliaGenerator(x, y, julia.frame /100);
   const n = v.iteration === v.maxIterations ? 1 : v.iteration / v.maxIterations;
-  return hsv2rgb([julia.frame / 1000 - n * 0.7, 1 - n ** 0.5, n]);
+  return hsv2rgb([julia.frame / 10000 - n * 0.7, 1 - n ** 0.5, n]);
 };
 const julia = {
-  dimensions: { width: 300, height: 300 },
+  dimensions: { width: 300, height: 150 },
   camera: { x: 0, y: 0, zoom: 1 },
   title: "Julia",
   pixel: juliaPixel,
@@ -183,7 +183,7 @@ const graphPixel = (x: number, y: number) => {
   return hsv2rgb([n + 0.9, n ** 2, 1 - n * 0.9]);
 };
 const graph = {
-  dimensions: { width: 300, height: 300 },
+  dimensions: { width: 300, height: 150 },
   camera: { x: 0, y: 0, zoom: 1 },
   title: "OpenSimplex + trigonometry",
   pixel: graphPixel,
@@ -202,7 +202,7 @@ interface NoiseDefinition {
 
 const noises = ref<NoiseDefinition[]>([
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Value noise",
     pixel: valuePixel,
@@ -210,7 +210,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels.",
     pixel: pseudoRandom,
@@ -218,7 +218,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Pseudo-random pixels in color.",
     pixel: pseudoRandomColor,
@@ -226,7 +226,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Perlin",
     pixel: perlinPixel,
@@ -234,7 +234,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "OpenSimplex",
     pixel: openSimplexPixel,
@@ -244,7 +244,7 @@ const noises = ref<NoiseDefinition[]>([
   openSimplex3d,
   worley,
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Worley (Starfield)",
     pixel: starfieldPixel,
@@ -253,7 +253,7 @@ const noises = ref<NoiseDefinition[]>([
   },
   fractal,
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Mandelbrot",
     pixel: mandelbrotPixel,
@@ -262,7 +262,7 @@ const noises = ref<NoiseDefinition[]>([
   },
   julia,
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Newton Raphson",
     pixel: newtonRaphsonPixel,
@@ -270,7 +270,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Sierpinski",
     pixel: sierpinskiPixel,
@@ -278,7 +278,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Lorenz attractor",
     pixel: lorenzAttractorPixel,
@@ -286,7 +286,7 @@ const noises = ref<NoiseDefinition[]>([
     selected: false,
   },
   {
-    dimensions: { width: 300, height: 300 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
     title: "Trigonometry (various options)",
     pixel: trigonometryPixel,

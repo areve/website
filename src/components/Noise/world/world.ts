@@ -143,9 +143,9 @@ export const makeWorld = (seed: number) => {
   };
 
   const world = {
-    dimensions: { width: 500, height: 250 },
+    dimensions: { width: 300, height: 150 },
     camera: { x: 0, y: 0, zoom: 1 },
-    title: "World",
+    title: "World (a better version exists on another page)",
     pixel,
     frame: 0,
     selected: false,

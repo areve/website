@@ -2,7 +2,10 @@
   <section>
     <h1>World</h1>
     <p>A pseudo random number generated world map</p>
-    <p>Key board shortcuts include W A S D, T F G H, ' /</p>
+    <p>
+      Key board shortcuts include, pan: W A S D, resize: T F G H, zoom: ' / <br />
+      J K frame randomize and reset, P or click to pause
+    </p>
     <div class="panels">
       <div
         v-for="noise in noises"
@@ -17,7 +20,8 @@
           :pixel="noise.pixel"
           :frame="noise.frame"
           @click="select(noise, $event)"
-          >{{ noise.title }}</NoiseRender
+          >{{ noise.title }} (seed: {{ seed }}, frame:
+          {{ noise.frame }})</NoiseRender
         >
       </div>
       <div class="panel">
@@ -41,7 +45,7 @@ import { Rgb } from "./lib/color";
 import { Camera, Dimensions } from "./lib/render";
 import { makeWorld } from "./world/world";
 
-const seed = 12345;
+const seed = ref(12345);
 
 interface NoiseDefinition {
   dimensions: Dimensions;
@@ -52,7 +56,7 @@ interface NoiseDefinition {
   selected: boolean;
 }
 
-const noises = ref<NoiseDefinition[]>([makeWorld(seed)]);
+const noises = ref<NoiseDefinition[]>([makeWorld(seed.value)]);
 
 function select(noise: NoiseDefinition, event: MouseEvent) {
   if (!event.ctrlKey) {
@@ -85,6 +89,12 @@ onUnmounted(() => {
 const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === "a" && event.ctrlKey)
     return noises.value.forEach((v) => (v.selected = true));
+  if (event.key === "j")
+    return noises.value.forEach(
+      (v) => (v.frame = (Math.random() * 0xffffffff) | 0)
+    );
+  if (event.key === "k") noises.value.forEach((v) => (v.frame = 0));
+  if (event.key === "p") noises.value.forEach((v) => (v.selected = !v.selected));
 
   noises.value
     .filter((v) => v.selected)
@@ -100,6 +110,7 @@ const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "g") v.dimensions.height -= 50;
       if (event.key === "h") v.dimensions.width += 50;
       if (event.key === "f") v.dimensions.width -= 50;
+
       if (v.dimensions.height < 50) v.dimensions.height = 50;
       if (v.dimensions.width < 50) v.dimensions.width = 50;
     });
@@ -131,8 +142,8 @@ body {
   width: min-content;
 }
 .selected {
-  background-color: rgba(0, 0, 255, 0.05);
-  box-shadow: inset 0 0 1em rgba(0, 0, 127, 0.25);
+  /* background-color: rgba(0, 0, 255, 0.05); */
+  /* box-shadow: inset 0 0 0.2em rgba(0, 0, 0, 0.25); */
 }
 .photo {
   min-width: 500px;

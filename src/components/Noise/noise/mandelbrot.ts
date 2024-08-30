@@ -20,11 +20,13 @@ export const makeMandelbrotGenerator = (seed: number) => {
 };
 
 export const makeJuliaGenerator = (seed: number) => {
-  const cRe = 0.355; // Real part of the constant c
-  const cIm = 0.355; // Imaginary part of the constant c
   const maxIterations = 150;
 
-  return (x: number, y: number) => {
+  return (x: number, y: number, theta: number) => {
+    const cRe = 0.355 + Math.sin(theta) / 200;
+    const cIm = 0.355 + Math.cos(theta) / 200;
+    // if (((Math.random() * 1000) | 0) % 1000 == 0) console.log(cRe, cIm);
+
     const r0 = x / 300 - 1;
     const i0 = y / 300 - 1;
 

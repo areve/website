@@ -1,7 +1,7 @@
 <template>
   <section class="world">
     <h1>World</h1>
-    <p>A psuedo random number generated world map</p>
+    <p>A pseudo random number generated world map</p>
     <p>
       click the maps to select a location, press W, A, S, D to pan the planet
     </p>

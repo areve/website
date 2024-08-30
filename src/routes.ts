@@ -19,6 +19,7 @@ const CardGame = () => import("./components/CardGame/CardGame.vue");
 const World = () => import("./components/World/World.vue");
 const Noise = () => import("./components/Noise/Noise.vue");
 const Curves = () => import("./components/Curves/Curves.vue");
+const World2 = () => import("./components/World2/World2.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -46,4 +47,5 @@ export const routes = [
   { path: "/noise", component: Noise },
   { path: "/curves", component: Curves },
   { path: "/world", component: World },
+  { path: "/World2", component: World2 },
 ];

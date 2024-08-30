@@ -3,7 +3,8 @@
     <h1>World</h1>
     <p>A pseudo random number generated world map</p>
     <p>
-      Key board shortcuts include, pan: W A S D, resize: T F G H, zoom: ' / <br />
+      Key board shortcuts include, pan: W A S D, resize: T F G H, zoom: ' /
+      <br />
       J K frame randomize and reset, P or click to pause
     </p>
     <div class="panels">
@@ -94,7 +95,8 @@ const onKeyDown = (event: KeyboardEvent) => {
       (v) => (v.frame = (Math.random() * 0xffffffff) | 0)
     );
   if (event.key === "k") noises.value.forEach((v) => (v.frame = 0));
-  if (event.key === "p") noises.value.forEach((v) => (v.selected = !v.selected));
+  if (event.key === "p")
+    noises.value.forEach((v) => (v.selected = !v.selected));
 
   noises.value
     .filter((v) => v.selected)
@@ -119,7 +121,11 @@ const onKeyDown = (event: KeyboardEvent) => {
 };
 </script>
 
-
+<style>
+#app {
+  user-select: none;
+}
+</style>
 <style scoped>
 .panels {
   display: flex;

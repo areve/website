@@ -144,7 +144,7 @@ export const makeWorld = (seed: number) => {
     title: "World",
     pixel,
     frame: 0,
-    selected: true,
+    selected: false,
   };
 
   return world;

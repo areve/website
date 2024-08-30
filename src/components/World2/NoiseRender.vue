@@ -23,33 +23,7 @@ import RenderWorker from "./RenderWorker?worker";
 import { Rgb } from "./lib/color";
 
 let offscreen: OffscreenCanvas;
-
-function renderSomewhere(
-  canvas: HTMLCanvasElement,
-  dimensions: Dimensions,
-  pixel: (x: number, y: number) => Rgb,
-  camera?: Camera
-) {
-  // const context = getContext(canvas, dimensions);
-  // if (!context) return;
-  if (!offscreen) {
-    offscreen = canvas.transferControlToOffscreen();
-
-    renderWorker.postMessage(
-      {
-        canvas: offscreen,
-        dimensions: toRaw(dimensions),
-        camera: toRaw(camera),
-      },
-      [offscreen]
-    );
-  } else {
-    renderWorker.postMessage({
-      dimensions: toRaw(dimensions),
-      camera: toRaw(camera),
-    });
-  }
-}
+const renderWorker = new RenderWorker();
 
 export interface NoiseRenderProps {
   dimensions: Dimensions;
@@ -60,19 +34,31 @@ export interface NoiseRenderProps {
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<NoiseRenderProps>();
-const dimensions = computed(() => props.dimensions);
-const pixel = computed(() => props.pixel);
 const ratePixelsPerSecond = ref(0);
 
-const renderWorker = new RenderWorker();
-
 const update = () => {
-  const start = window.performance.now();
-  renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
-  const end = window.performance.now();
-  const pixels = dimensions.value.height * dimensions.value.width;
-  ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
+  const payload = {
+    canvas: undefined as any,
+    props: {
+      camera: toRaw(props.camera),
+      dimensions: toRaw(props.dimensions),
+      frame: toRaw(props.frame),
+    },
+  };
+  const transfer: Transferable[] = [];
+  if (!offscreen) {
+    offscreen = canvas.value.transferControlToOffscreen();
+    payload.canvas = offscreen;
+    transfer.push(offscreen);
+  }
+  renderWorker.postMessage(payload, transfer);
+  // const start = window.performance.now();
+  // renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
+  // const end = window.performance.now();
+  // const pixels = dimensions.value.height * dimensions.value.width;
+  // ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
 };
+
 onMounted(update);
 watch(props, update);
 </script>

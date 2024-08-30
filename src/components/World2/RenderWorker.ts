@@ -1,10 +1,9 @@
-import { Rgb } from "./lib/color";
-import { Camera, Dimensions, render } from "./lib/render";
+import { render } from "./lib/render";
 import { makeWorld } from "./world/world";
 
 const world = makeWorld(12345);
 
-console.log("hello");
+console.log("RenderWorker started");
 
 let busy = false;
 let canvas: OffscreenCanvas;
@@ -15,11 +14,17 @@ self.onmessage = (event: MessageEvent<any>) => {
     canvas = event.data.canvas;
     context = canvas.getContext("2d");
   }
+  if (!context) return;
+
+  if (event.data.props) {
+    world.camera = event.data.props.camera;
+    world.dimensions = event.data.props.dimensions;
+    world.frame = event.data.props.frame;
+  }
 
   if (busy) return;
-  world.frame++;
   busy = true;
-  render(canvas, event.data.dimensions, world.pixel, event.data.camera);
+  render(canvas, world.dimensions, world.pixel, world.camera);
   setTimeout(() => {
     busy = false;
   }, 0);

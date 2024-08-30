@@ -1,6 +1,44 @@
 import { Rgb } from "./color";
 import { clamp } from "./clamp";
 
+import RenderWorker from "./RenderWorker?worker";
+import { toRaw } from "vue";
+
+const renderWorker = new RenderWorker();
+
+let offscreen: OffscreenCanvas;
+function renderInWorker(
+  canvas: HTMLCanvasElement,
+  dimensions: Dimensions,
+  pixel: (x: number, y: number) => Rgb,
+  camera?: Camera
+) {
+  // const context = getContext(canvas, dimensions);
+  // if (!context) return;
+  if (!offscreen) {
+    offscreen = canvas.transferControlToOffscreen();
+
+    renderWorker.postMessage(
+      {
+        canvas: offscreen,
+        dimensions: toRaw(dimensions),
+        camera: toRaw(camera),
+        // pixel,
+      },
+      [offscreen]
+    );
+  } else {
+    renderWorker.postMessage(
+      {
+        dimensions: toRaw(dimensions),
+        camera: toRaw(camera),
+        // pixel,
+      },
+      []
+    );
+  }
+}
+
 export interface Dimensions {
   width: number;
   height: number;
@@ -43,7 +81,7 @@ export function getDevicePixelRatio() {
   return ratio;
 }
 
-export function render(
+function renderLocal(
   canvas: HTMLCanvasElement,
   dimensions: Dimensions,
   pixel: (x: number, y: number) => Rgb,
@@ -96,3 +134,6 @@ export const coordFromEvent = (
     ),
   };
 };
+
+// export const render = renderInWorker;
+export const render = renderLocal;

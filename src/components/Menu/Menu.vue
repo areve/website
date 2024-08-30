@@ -83,7 +83,7 @@
             <router-link to="/world" @click="toggle()">World</router-link>
           </li> -->
           <li>
-            <router-link to="/world2" @click="toggle()">World2</router-link>
+            <router-link to="/world2" @click="toggle()">World</router-link>
           </li>
         </ul>
       </nav>

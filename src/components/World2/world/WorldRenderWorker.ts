@@ -1,35 +1,31 @@
 import { render } from "../lib/render";
-import { makeWorldGenerator } from "./world";
+import { makeWorldGenerator, pixel, WorldGenerator } from "./world";
+import { WorldRenderProps } from "./WorldRenderService";
 
 let busy = false;
 let canvas: OffscreenCanvas;
 let context: OffscreenCanvasRenderingContext2D | null;
 
-//TODO improve types
-let world: {
-  dimensions?: any;
-  pixel: any;
-  camera?: any;
-  frame?: number;
-};
+let world: WorldGenerator;
 
-self.onmessage = (event: MessageEvent<any>) => {
-  if (event.data.canvas) {
-    canvas = event.data.canvas;
+self.onmessage = (event: MessageEvent<WorldRenderProps>) => {
+  const worldProps: WorldRenderProps = event.data;
+  if (worldProps.canvas) {
+    canvas = worldProps.canvas;
     context = canvas.getContext("2d");
-    world = makeWorldGenerator(event.data);
+    world = makeWorldGenerator(worldProps.seed);
   }
   if (!context) return;
-
-  // TODO messy, no types!
-  Object.assign(world, event.data)
-
 
   if (busy) return;
   busy = true;
 
-  // TODO what a mess!
-  render(canvas, event.data.dimensions, world.pixel, event.data.camera);
+  render(
+    canvas,
+    event.data.dimensions,
+    (x: number, y: number) => pixel(world(x, y, worldProps.frame)),
+    event.data.camera
+  );
   setTimeout(() => {
     busy = false;
   }, 0);

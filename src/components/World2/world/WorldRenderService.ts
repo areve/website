@@ -1,5 +1,6 @@
 import { toRaw } from "vue";
 import { Dimensions, Camera } from "../lib/render";
+import WorldRenderWorker from "./WorldRenderWorker?worker";
 
 export interface RenderProps {
   title: string;
@@ -8,7 +9,8 @@ export interface RenderProps {
   dimensions: Dimensions;
   camera: Camera;
   selected: boolean;
-  renderService: {
+  canvas?: OffscreenCanvas;
+  renderService?: {
     new (canvas: HTMLCanvasElement, props: RenderProps): RenderService;
   };
 }
@@ -19,26 +21,24 @@ export interface RenderService {
 
 export type WorldRenderProps = RenderProps;
 
-import WorldRenderWorker from "./WorldRenderWorker?worker";
-
-// TODO create an alternative that does not use a worker
 export class WorldRenderService implements RenderService {
   private renderWorker = new WorldRenderWorker();
 
   constructor(canvas: HTMLCanvasElement, props: RenderProps) {
     const offscreen = canvas.transferControlToOffscreen();
-    const message: any = {
+    const message: Partial<RenderProps> = {
       ...toRaw(props),
       canvas: offscreen,
+      renderService: undefined,
     };
-    delete message.renderService;
     this.renderWorker.postMessage(message, [offscreen]);
   }
+
   update(props: Partial<RenderProps>): void {
-    const message: any = {
+    const message: Partial<RenderProps> = {
       ...toRaw(props),
+      renderService: undefined,
     };
-    delete message.renderService;
     this.renderWorker.postMessage(message);
   }
 }

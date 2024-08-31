@@ -32,7 +32,7 @@ const ratePixelsPerSecond = ref(0);
 
 let renderService: RenderService;
 const update = () => {
-  if (!renderService)
+  if (!renderService && props.render.renderService)
     renderService = new props.render.renderService(canvas.value, props.render);
 
   renderService.update(props.render);

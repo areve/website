@@ -63,7 +63,7 @@ export const makeWorldGenerator = (seed: number) => {
   const moisture1 = makeOpenSimplex3dGenerator(seed * 0.6, 67);
   const moisture2 = makeOpenSimplex3dGenerator(seed * 0.6, 13);
 
-  const worldPoint = (x: number, y: number, z: number) => {
+  return (x: number, y: number, z: number) => {
     const height =
       0.6 * height1(x, y, z) + //
       0.3 * height2(x, y, z) +
@@ -99,45 +99,36 @@ export const makeWorldGenerator = (seed: number) => {
       desert,
     };
   };
+};
 
-  const pixel = (x: number, y: number) => {
-    const v = worldPoint(x, y, world.frame);
-    const sh = v.heightAboveSeaLevel;
-    const sd = v.seaDepth;
-    const m = v.moisture;
-    const t = v.temperature;
-    const i = v.iciness;
-    const d = v.desert;
+export type WorldGenerator = ReturnType<typeof makeWorldGenerator>;
+export type WorldPoint = ReturnType<WorldGenerator>;
 
-    if (v.isSea) {
-      const seaHsv: Hsv = [
-        229 / 360,
-        0.47 + sd * 0.242 - 0.1 + t * 0.2,
-        0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1,
-      ];
-      return hsv2rgb([
-        seaHsv[0],
-        c(seaHsv[1] - 0.2 * i),
-        c(seaHsv[2] + 0.2 * i),
-      ]);
-    } else {
-      const landHsv: Hsv = [
-        77 / 360 - sh * (32 / 360) - 16 / 360 + m * (50 / 360),
-        0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-        0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
-      ];
-      return hsv2rgb([
-        landHsv[0] - d * 0.1,
-        c(landHsv[1] - 0.3 * i + d * 0.1),
-        c(landHsv[2] + 0.6 * i + d * 0.45),
-      ]);
-    }
-  };
+export const pixel = (point: WorldPoint) => {
+  const sh = point.heightAboveSeaLevel;
+  const sd = point.seaDepth;
+  const m = point.moisture;
+  const t = point.temperature;
+  const i = point.iciness;
+  const d = point.desert;
 
-  const world = {
-    pixel,
-    frame: 0,
-  };
-
-  return world;
+  if (point.isSea) {
+    const seaHsv: Hsv = [
+      229 / 360,
+      0.47 + sd * 0.242 - 0.1 + t * 0.2,
+      0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1,
+    ];
+    return hsv2rgb([seaHsv[0], c(seaHsv[1] - 0.2 * i), c(seaHsv[2] + 0.2 * i)]);
+  } else {
+    const landHsv: Hsv = [
+      77 / 360 - sh * (32 / 360) - 16 / 360 + m * (50 / 360),
+      0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
+      0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
+    ];
+    return hsv2rgb([
+      landHsv[0] - d * 0.1,
+      c(landHsv[1] - 0.3 * i + d * 0.1),
+      c(landHsv[2] + 0.6 * i + d * 0.45),
+    ]);
+  }
 };

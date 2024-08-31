@@ -15,12 +15,7 @@
         }"
         class="panel"
       >
-        <NoiseRender
-          :dimensions="noise.dimensions"
-          :camera="noise.camera"
-          :pixel="noise.pixel"
-          :frame="noise.frame"
-          @click="select(noise, $event)"
+        <NoiseRender :render="noise" @click="select(noise, $event)"
           >{{ noise.title }} (seed: {{ seed }}, frame:
           {{ noise.frame }})</NoiseRender
         >
@@ -44,7 +39,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
 import { Rgb } from "./lib/color";
 import { Camera, Dimensions } from "./lib/render";
-import { makeWorld } from "./world/world";
+import { makeWorld, RenderProps } from "./world/WorldRenderService";
 
 const seed = ref(12345);
 
@@ -57,9 +52,9 @@ interface NoiseDefinition {
   selected: boolean;
 }
 
-const noises = ref<NoiseDefinition[]>([makeWorld(seed.value)]);
+const noises = ref<RenderProps[]>([makeWorld(seed.value)]);
 
-function select(noise: NoiseDefinition, event: MouseEvent) {
+function select(noise: RenderProps, event: MouseEvent) {
   if (!event.ctrlKey) {
     const selectedOthers = noises.value.filter(
       (v) => v.selected && v !== noise

@@ -3,8 +3,8 @@
     <div
       class="canvas-wrap"
       :style="{
-        height: dimensions.height + 'px',
-        width: dimensions.width + 'px',
+        height: props.render.dimensions.height + 'px',
+        width: props.render.dimensions.width + 'px',
       }"
     >
       <canvas ref="canvas" class="canvas"></canvas>
@@ -19,47 +19,30 @@
 <script lang="ts" setup>
 import { onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
-import RenderWorker from "./RenderWorker?worker";
 import { Rgb } from "./lib/color";
-
-let offscreen: OffscreenCanvas;
-//TODO split the canvas and spin up multiple render workers, I've tested it and it will work.
-const renderWorker = new RenderWorker();
+import { RenderProps, RenderService } from "./world/WorldRenderService";
 
 export interface NoiseRenderProps {
-  dimensions: Dimensions;
-  camera: Camera;
-  frame: number;
-  pixel: (x: number, y: number) => Rgb;
+  render: RenderProps;
 }
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<NoiseRenderProps>();
 const ratePixelsPerSecond = ref(0);
 
+let renderService: RenderService;
 const update = () => {
-  const payload = {
-    canvas: undefined as any,
-    props: {
-      camera: toRaw(props.camera),
-      dimensions: toRaw(props.dimensions),
-      frame: toRaw(props.frame),
-    },
-  };
-  const transfer: Transferable[] = [];
-  if (!offscreen) {
-    offscreen = canvas.value.transferControlToOffscreen();
-    payload.canvas = offscreen;
-    transfer.push(offscreen);
-  }
-  renderWorker.postMessage(payload, transfer);
+  if (!renderService)
+    renderService = new props.render.renderService(canvas.value, props.render);
+
+  renderService.update(props.render);
 
   // TODO fix these
-  const start = window.performance.now();
-  // renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
-  const end = window.performance.now();
-  const pixels = props.dimensions.height * props.dimensions.width;
-  ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
+  // const start = window.performance.now();
+  // // renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
+  // const end = window.performance.now();
+  // const pixels = props.dimensions.height * props.dimensions.width;
+  // ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
 };
 
 onMounted(update);

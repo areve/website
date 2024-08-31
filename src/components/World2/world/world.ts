@@ -53,56 +53,52 @@ const color = {
   mountain: hsv2rgb([35 / 360, 0.21, 0.64]),
 };
 
-export const makeWorld = (seed: number) => {
-  const makeWorldGenerator = (seed: number) => {
-    const height1 = makeOpenSimplex3dGenerator(seed * 0.1, 129);
-    const height2 = makeOpenSimplex3dGenerator(seed * 0.2, 47);
-    const height3 = makeOpenSimplex3dGenerator(seed * 0.3, 7);
-    const height4 = makeOpenSimplex3dGenerator(seed * 0.4, 1);
-    const temperature1 = makeOpenSimplex3dGenerator(seed * 0.5, 71);
-    const temperature2 = makeOpenSimplex3dGenerator(seed * 0.5, 15);
-    const moisture1 = makeOpenSimplex3dGenerator(seed * 0.6, 67);
-    const moisture2 = makeOpenSimplex3dGenerator(seed * 0.6, 13);
+export const makeWorldGenerator = (seed: number) => {
+  const height1 = makeOpenSimplex3dGenerator(seed * 0.1, 129);
+  const height2 = makeOpenSimplex3dGenerator(seed * 0.2, 47);
+  const height3 = makeOpenSimplex3dGenerator(seed * 0.3, 7);
+  const height4 = makeOpenSimplex3dGenerator(seed * 0.4, 1);
+  const temperature1 = makeOpenSimplex3dGenerator(seed * 0.5, 71);
+  const temperature2 = makeOpenSimplex3dGenerator(seed * 0.5, 15);
+  const moisture1 = makeOpenSimplex3dGenerator(seed * 0.6, 67);
+  const moisture2 = makeOpenSimplex3dGenerator(seed * 0.6, 13);
 
-    return (x: number, y: number, z: number) => {
-      const height =
-        0.6 * height1(x, y, z) + //
-        0.3 * height2(x, y, z) +
-        0.15 * height3(x, y, z) +
-        0.05 * height4(x, y, z);
-      const temperature =
-        0.7 * temperature1(x, y, z) + //
-        0.3 * temperature2(x, y, z);
-      const moisture =
-        0.7 * moisture1(x, y, z) + //
-        0.3 * moisture2(x, y, z);
+  const worldPoint = (x: number, y: number, z: number) => {
+    const height =
+      0.6 * height1(x, y, z) + //
+      0.3 * height2(x, y, z) +
+      0.15 * height3(x, y, z) +
+      0.05 * height4(x, y, z);
+    const temperature =
+      0.7 * temperature1(x, y, z) + //
+      0.3 * temperature2(x, y, z);
+    const moisture =
+      0.7 * moisture1(x, y, z) + //
+      0.3 * moisture2(x, y, z);
 
-      const seaLevel = 0.6;
-      const isSea = height < seaLevel;
+    const seaLevel = 0.6;
+    const isSea = height < seaLevel;
 
-      const heightAboveSeaLevel = ((height - seaLevel) / (1 - seaLevel)) ** 0.5;
-      const seaDepth = c(seaDepthCurve(1 - height / seaLevel));
+    const heightAboveSeaLevel = ((height - seaLevel) / (1 - seaLevel)) ** 0.5;
+    const seaDepth = c(seaDepthCurve(1 - height / seaLevel));
 
-      const iciness = c(
-        heightIcinessCurve(height) + temperatureIcinessCurve(temperature)
-      );
-      const desert = c(
-        moistureDesertCurve(moisture) + temperatureDesertCurve(temperature)
-      );
-      return {
-        height,
-        isSea,
-        heightAboveSeaLevel,
-        seaDepth,
-        moisture,
-        temperature,
-        iciness,
-        desert,
-      };
+    const iciness = c(
+      heightIcinessCurve(height) + temperatureIcinessCurve(temperature)
+    );
+    const desert = c(
+      moistureDesertCurve(moisture) + temperatureDesertCurve(temperature)
+    );
+    return {
+      height,
+      isSea,
+      heightAboveSeaLevel,
+      seaDepth,
+      moisture,
+      temperature,
+      iciness,
+      desert,
     };
   };
-
-  const worldPoint = makeWorldGenerator(seed);
 
   const pixel = (x: number, y: number) => {
     const v = worldPoint(x, y, world.frame);
@@ -139,12 +135,8 @@ export const makeWorld = (seed: number) => {
   };
 
   const world = {
-    dimensions: { width: 500, height: 200 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    title: "World",
     pixel,
     frame: 0,
-    selected: false,
   };
 
   return world;

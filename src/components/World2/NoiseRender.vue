@@ -17,12 +17,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref, toRaw, watch } from "vue";
+import { onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
 import RenderWorker from "./RenderWorker?worker";
 import { Rgb } from "./lib/color";
 
 let offscreen: OffscreenCanvas;
+//TODO split the canvas and spin up multiple render workers, I've tested it and it will work.
 const renderWorker = new RenderWorker();
 
 export interface NoiseRenderProps {
@@ -52,11 +53,13 @@ const update = () => {
     transfer.push(offscreen);
   }
   renderWorker.postMessage(payload, transfer);
-  // const start = window.performance.now();
+
+  // TODO fix these
+  const start = window.performance.now();
   // renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
-  // const end = window.performance.now();
-  // const pixels = dimensions.value.height * dimensions.value.width;
-  // ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
+  const end = window.performance.now();
+  const pixels = props.dimensions.height * props.dimensions.width;
+  ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
 };
 
 onMounted(update);

@@ -19,7 +19,7 @@ export function getContext(
   if (!canvas) return null;
   canvas.width = dimensions.width;
   canvas.height = dimensions.height;
-  return canvas.getContext("2d");
+  return canvas.getContext("2d") as any;
 }
 
 export function getDevicePixelRatio() {

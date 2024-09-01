@@ -13,7 +13,8 @@
       <slot></slot> ({{
         (ratePixelsPerSecond / 1000000).toPrecision(3)
       }}
-      Mpix/sec) (seed: {{ model.seed }}, frame: {{ model.frame }})
+      Mpix/sec, FPS:{{ fps.toPrecision(2) }}) (seed: {{ model.seed }}, frame:
+      {{ model.frame }})
     </div>
   </section>
 </template>
@@ -40,6 +41,7 @@ const emit = defineEmits(["update:frame"]);
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<CanvasRenderProps>();
 
+const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
 let renderService: RenderService;
@@ -52,6 +54,7 @@ const update = () => {
         props.model.dimensions.height * props.model.dimensions.width;
       ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
 
+      fps.value = 1 / frameUpdated.timeTaken;
       // TODO can't do this or we have an update loop
       // props.render.frame = frameUpdated.frame
       // const doo = JSON.parse(JSON.stringify(props.render)) as RenderProps;

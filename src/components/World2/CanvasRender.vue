@@ -21,8 +21,6 @@
 
 <script lang="ts" setup>
 import { onMounted, ref, toRaw, watch } from "vue";
-import { Dimensions, Camera } from "./lib/render";
-import { Rgb } from "./lib/color";
 import {
   RenderModel,
   RenderService,
@@ -30,13 +28,10 @@ import {
 } from "./world/WorldRender";
 import { FrameUpdated } from "./world/WorldRenderWorker";
 
-export interface CanvasRenderProps {
+interface CanvasRenderProps {
   model: RenderModel;
   RenderService?: RenderServiceConstructor;
 }
-
-// TODO update vue and use `defineModel`
-const emit = defineEmits(["update:frame"]);
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<CanvasRenderProps>();
@@ -45,25 +40,19 @@ const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
 let renderService: RenderService;
+
+const frameUpdated = (frameUpdated: FrameUpdated) => {
+  const pixels = props.model.dimensions.height * props.model.dimensions.width;
+  ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
+  fps.value = 1 / frameUpdated.timeTaken;
+};
+
 const update = () => {
   if (!renderService && props.RenderService) {
-    // TODO need better types so I don't have to create an object like this
-    renderService = new props.RenderService(canvas.value, toRaw(props.model));
-    renderService.frameUpdated = (frameUpdated: FrameUpdated) => {
-      const pixels =
-        props.model.dimensions.height * props.model.dimensions.width;
-      ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
-
-      fps.value = 1 / frameUpdated.timeTaken;
-      // TODO can't do this or we have an update loop
-      // props.render.frame = frameUpdated.frame
-      // const doo = JSON.parse(JSON.stringify(props.render)) as RenderProps;
-      // doo.frame = frameUpdated.frame;
-      // emit("update:frame", frameUpdated.frame);
-    };
+    renderService = new props.RenderService(canvas.value, props.model);
+    renderService.frameUpdated = frameUpdated;
   } else {
-    console.log("here");
-    renderService.update(toRaw(props.model));
+    renderService.update(props.model);
   }
 };
 

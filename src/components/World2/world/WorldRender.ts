@@ -1,7 +1,7 @@
-import { toRaw } from "vue";
 import { Dimensions, Camera } from "../lib/render";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
 import { FrameUpdated } from "./WorldRenderWorker";
+import { toRaw } from "vue";
 
 export type RenderServiceConstructor = {
   new (canvas: HTMLCanvasElement, props: RenderModel): RenderService;
@@ -23,6 +23,11 @@ export interface RenderService {
 
 export type WorldRenderModel = RenderModel;
 
+export interface WorldRenderSetup {
+  model: WorldRenderModel;
+  RenderService?: RenderServiceConstructor;
+}
+
 let singleWorker: Worker;
 export class WorldRender implements RenderService {
   private renderWorker: Worker;
@@ -39,29 +44,15 @@ export class WorldRender implements RenderService {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };
     const offscreenCanvas = canvas.transferControlToOffscreen();
-    // const message: RenderModel = {
-    //   ...toRaw(props),
-    //   canvas: offscreen,
-    //   RenderService: undefined,
-    // };
-    this.renderWorker.postMessage({ model, offscreenCanvas }, [offscreenCanvas]);
+    this.renderWorker.postMessage({ model: toRaw(model), offscreenCanvas }, [
+      offscreenCanvas,
+    ]);
   }
   update(model: RenderModel): void {
-    this.renderWorker.postMessage({ model });
-    // console.log('model', model)
-    // console.log('s')
-    // const message: RenderModel = {
-    //   ...toRaw(props),
-    //   RenderService: undefined,
-    // };
-    // this.renderWorker.postMessage(message);
+    this.renderWorker.postMessage({ model: toRaw(model) });
   }
 }
 
-export interface WorldRenderSetup {
-  model: WorldRenderModel;
-  RenderService?: RenderServiceConstructor;
-}
 export const makeWorld = (seed: number): WorldRenderSetup => {
   return {
     model: {

@@ -28,5 +28,5 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "test/**/*.ts"
-  ]
+, "src/as/assembly/tsconfig.json"  ]
 }

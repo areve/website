@@ -2,6 +2,9 @@ import { render } from "../lib/render";
 import { makeWorldGenerator, pixel, WorldGenerator } from "./world";
 import { WorldRenderModel } from "./WorldRender";
 
+// import { lerp } from "../../../../build/release";
+
+// console.log(lerp)
 export interface FrameUpdated {
   frame: number;
   timeTaken: number;

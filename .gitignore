@@ -6,3 +6,6 @@ yarn-error.log
 .yarn/*
 !.yarn/releases
 
+src/as/node_modules/
+src/as/.yarn/*
+src/as/build/

@@ -112,8 +112,8 @@ const onKeyDown = (event: KeyboardEvent) => {
   width: min-content;
 }
 .selected {
-  /* background-color: rgba(0, 0, 255, 0.05); */
-  /* box-shadow: inset 0 0 0.2em rgba(0, 0, 0, 0.25); */
+  background-color: rgba(0, 0, 255, 0.05);
+  box-shadow: inset 0 0 0.2em rgba(0, 0, 0, 0.25);
 }
 .photo {
   min-width: 500px;

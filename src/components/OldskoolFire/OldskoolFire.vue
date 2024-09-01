@@ -15,7 +15,7 @@ import canvasColor from "./lib/canvas-color";
 import { Constantly, constantly } from "./lib/constantly";
 import convert from "color-convert";
 import { defineComponent } from "vue";
-import { Fullscreen } from "fullscreen-types";
+// import { Fullscreen } from "fullscreen-types";
 import fullscreen from "fullscreen";
 import ImageBufferManipulate from "./lib/image-buffer-manipulate";
 
@@ -26,7 +26,7 @@ export default defineComponent({
   },
   setup() {
     return {
-      fullscreen: null as Fullscreen | null,
+      fullscreen: null as any | null,
       palette: createPalette(),
       buffer: [] as number[][],
       canvasWriter: undefined! as CanvasWriter,

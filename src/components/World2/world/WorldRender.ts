@@ -16,9 +16,9 @@ export interface RenderModel {
   canvas?: OffscreenCanvas;
 }
 
-// import { lerp } from '../../../as/build/assembly'
+import { lerp } from "../../../as/build/assembly";
 
-// console.log(lerp(0, 7, 0.27)) 
+console.log("asm lerp", lerp(0, 7, 0.27));
 
 export interface RenderService {
   update(renderProps: RenderModel): void;

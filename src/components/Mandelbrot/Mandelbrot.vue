@@ -71,7 +71,7 @@ import { Point } from "./lib/grid-iterator";
 import canvasColor from "./lib/canvas-color";
 import ImageBufferManipulate from "./lib/image-buffer-manipulate";
 import fullscreen from "fullscreen";
-import { Fullscreen } from "fullscreen-types";
+// import { Fullscreen } from "fullscreen-types";
 import { getElementScreenOffset } from "./lib/get-element-offset";
 import "hammerjs";
 
@@ -91,7 +91,7 @@ export default defineComponent({
   setup() {
     return {
       canvasWriter: undefined! as ImageBufferManipulate,
-      fullscreen: null as Fullscreen | null,
+      fullscreen: null as any | null,
       grid: undefined! as ComplexGridIterator,
       width: undefined! as number,
       height: undefined! as number,

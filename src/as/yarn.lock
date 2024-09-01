@@ -5,33 +5,33 @@ __metadata:
   version: 8
   cacheKey: 10
 
-"assemblyscript@npm:^0.23.1":
-  version: 0.23.1
-  resolution: "assemblyscript@npm:0.23.1"
+"assemblyscript@npm:^0.27.29":
+  version: 0.27.29
+  resolution: "assemblyscript@npm:0.27.29"
   dependencies:
-    binaryen: "npm:110.0.0-nightly.20221105"
-    long: "npm:^5.2.0"
+    binaryen: "npm:116.0.0-nightly.20240114"
+    long: "npm:^5.2.1"
   bin:
     asc: bin/asc.js
     asinit: bin/asinit.js
-  checksum: 10/483e28ac3feecc7f5f7088503918a69b180987fec54b9729837d0a7e241b1aae96cde64326f720fb830e10dbc9ba48a96406cb9be88122caa22c0fce29e1519f
+  checksum: 10/d680f109dc5fa2c1c969daf1e703fe75a43c0b875850548432ec138922237eacb481e99ca072438a762b92aea85a8a75a4809a80c6181ec996844a5f355f4dc5
   languageName: node
   linkType: hard
 
-"binaryen@npm:110.0.0-nightly.20221105":
-  version: 110.0.0-nightly.20221105
-  resolution: "binaryen@npm:110.0.0-nightly.20221105"
+"binaryen@npm:116.0.0-nightly.20240114":
+  version: 116.0.0-nightly.20240114
+  resolution: "binaryen@npm:116.0.0-nightly.20240114"
   bin:
     wasm-opt: bin/wasm-opt
     wasm2js: bin/wasm2js
-  checksum: 10/1078811b41b5e0ae47150aedcdccd583479f2b4edb3253178a88a2ba1422052d2970e2d18903eb28c285f8ee8ceb846a4403be9dc7048bf9d245c9d061987d23
+  checksum: 10/9850a7fc1ad2f4a1e96e3106e7d0addef6fe778620eda25c3dff85df39044c6e47ce8ba01d37e4e5a9f4b78c78e377d26ad159759490993a9e998a17b128c6f2
   languageName: node
   linkType: hard
 
-"long@npm:^5.2.0":
-  version: 5.2.1
-  resolution: "long@npm:5.2.1"
-  checksum: 10/2985ebc76c618ce1e13391de9893cb42359d389f30fed6150dbfb21a2c2a26fd2f88fa37c1499aa27d06349a003e75fa283c5a74b588db1a9daeea2693afb431
+"long@npm:^5.2.1":
+  version: 5.2.3
+  resolution: "long@npm:5.2.3"
+  checksum: 10/9167ec6947a825b827c30da169a7384eec6c0c9ec2f0b9c74da2e93d81159bbe39fb09c3f13dae9721d4b807ccfa09797a7dd1012f5d478e3e33ca3c78b608e6
   languageName: node
   linkType: hard
 
@@ -39,6 +39,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    assemblyscript: "npm:^0.23.1"
+    assemblyscript: "npm:^0.27.29"
   languageName: unknown
   linkType: soft

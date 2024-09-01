@@ -9,22 +9,17 @@
     </p>
     <div class="panels">
       <div
-        v-for="noise in noises"
+        v-for="renderSetup in renderSetups"
         :class="{
-          selected: noise.selected,
+          selected: renderSetup.model.selected,
         }"
         class="panel"
       >
         <CanvasRender
-          :title="noise.title"
-          :seed="noise.seed"
-          :dimensions="noise.dimensions"
-          :camera="noise.camera"
-          :selected="noise.selected"
-          :RenderService="noise.RenderService"
-          @click="select(noise, $event)"
-          v-model:frame="frame"
-          >{{ noise.title }}</CanvasRender
+          v-model:model="renderSetup.model"
+          :RenderService="renderSetup.RenderService"
+          @click="select(renderSetup, $event)"
+          >{{ renderSetup.model.title }}</CanvasRender
         >
       </div>
       <div class="panel">
@@ -45,62 +40,68 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import CanvasRender from "./CanvasRender.vue";
 
-import { makeWorld, RenderProps } from "./world/WorldRender";
+import { makeWorld, WorldRenderSetup } from "./world/WorldRender";
 
 const seed = ref(12345);
-const frame = ref(0);
 
-const noises = ref<RenderProps[]>([makeWorld(seed.value)]);
+const renderSetups = ref<WorldRenderSetup[]>([makeWorld(seed.value)]);
 
-function sss(a: any) {
-  console.log("aa", a);
-}
-function select(noise: RenderProps, event: MouseEvent) {
+function select(renderSetup: WorldRenderSetup, event: MouseEvent) {
   if (!event.ctrlKey) {
-    const selectedOthers = noises.value.filter(
-      (v) => v.selected && v !== noise
+    const selectedOthers = renderSetups.value.filter(
+      (v) => v.model.selected && v !== renderSetup
     );
-    selectedOthers.forEach((v) => (v.selected = false));
+    selectedOthers.forEach((v) => (v.model.selected = false));
   }
-  noise.selected = !noise.selected;
+  renderSetup.model.selected = !renderSetup.model.selected;
 }
 
+let frameId: number;
+
+function update() {
+  renderSetups.value
+    .filter((v) => v.model.selected)
+    .forEach((v) => ++v.model.frame);
+  frameId = requestAnimationFrame(update);
+}
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);
+  update();
 });
 
 onUnmounted(() => {
   document.removeEventListener("keydown", onKeyDown);
+  cancelAnimationFrame(frameId);
 });
 
 const onKeyDown = (event: KeyboardEvent) => {
   if (event.key === "a" && event.ctrlKey)
-    return noises.value.forEach((v) => (v.selected = true));
+    return renderSetups.value.forEach((v) => (v.model.selected = true));
   if (event.key === "j")
-    return noises.value.forEach(
-      (v) => (v.frame = (Math.random() * 0xffffffff) | 0)
+    return renderSetups.value.forEach(
+      (v) => (v.model.frame = (Math.random() * 0xffffffff) | 0)
     );
-  if (event.key === "k") noises.value.forEach((v) => (v.frame = 0));
+  if (event.key === "k") renderSetups.value.forEach((v) => (v.model.frame = 0));
   if (event.key === "p")
-    noises.value.forEach((v) => (v.selected = !v.selected));
+    renderSetups.value.forEach((v) => (v.model.selected = !v.model.selected));
 
-  noises.value
-    .filter((v) => v.selected)
+  renderSetups.value
+    .filter((v) => v.model.selected)
     .forEach((v) => {
-      const zoom = v.camera.zoom;
-      if (event.key === "a") v.camera.x -= 25 * zoom;
-      if (event.key === "d") v.camera.x += 25 * zoom;
-      if (event.key === "w") v.camera.y -= 25 * zoom;
-      if (event.key === "s") v.camera.y += 25 * zoom;
-      if (event.key === "'") v.camera.zoom /= 1.2;
-      if (event.key === "/") v.camera.zoom *= 1.2;
-      if (event.key === "t") v.dimensions.height += 50;
-      if (event.key === "g") v.dimensions.height -= 50;
-      if (event.key === "h") v.dimensions.width += 50;
-      if (event.key === "f") v.dimensions.width -= 50;
+      const zoom = v.model.camera.zoom;
+      if (event.key === "a") v.model.camera.x -= 25 * zoom;
+      if (event.key === "d") v.model.camera.x += 25 * zoom;
+      if (event.key === "w") v.model.camera.y -= 25 * zoom;
+      if (event.key === "s") v.model.camera.y += 25 * zoom;
+      if (event.key === "'") v.model.camera.zoom /= 1.2;
+      if (event.key === "/") v.model.camera.zoom *= 1.2;
+      if (event.key === "t") v.model.dimensions.height += 50;
+      if (event.key === "g") v.model.dimensions.height -= 50;
+      if (event.key === "h") v.model.dimensions.width += 50;
+      if (event.key === "f") v.model.dimensions.width -= 50;
 
-      if (v.dimensions.height < 50) v.dimensions.height = 50;
-      if (v.dimensions.width < 50) v.dimensions.width = 50;
+      if (v.model.dimensions.height < 50) v.model.dimensions.height = 50;
+      if (v.model.dimensions.width < 50) v.model.dimensions.width = 50;
     });
 
   console.log(event.key);

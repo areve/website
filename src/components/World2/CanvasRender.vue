@@ -3,8 +3,8 @@
     <div
       class="canvas-wrap"
       :style="{
-        height: props.dimensions.height + 'px',
-        width: props.dimensions.width + 'px',
+        height: props.model.dimensions.height + 'px',
+        width: props.model.dimensions.width + 'px',
       }"
     >
       <canvas ref="canvas" class="canvas"></canvas>
@@ -13,7 +13,7 @@
       <slot></slot> ({{
         (ratePixelsPerSecond / 1000000).toPrecision(3)
       }}
-      Mpix/sec) (seed: {{ seed }}, frame: {{ frame }})
+      Mpix/sec) (seed: {{ model.seed }}, frame: {{ model.frame }})
     </div>
   </section>
 </template>
@@ -23,27 +23,22 @@ import { onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
 import { Rgb } from "./lib/color";
 import {
-  RenderProps,
+  RenderModel,
   RenderService,
   RenderServiceConstructor,
 } from "./world/WorldRender";
 import { FrameUpdated } from "./world/WorldRenderWorker";
 
-export interface NoiseRenderProps {
-  title: string;
-  seed: number;
-  dimensions: Dimensions;
-  camera: Camera;
-  selected: boolean;
+export interface CanvasRenderProps {
+  model: RenderModel;
   RenderService?: RenderServiceConstructor;
-  frame: number;
 }
 
 // TODO update vue and use `defineModel`
 const emit = defineEmits(["update:frame"]);
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
-const props = defineProps<NoiseRenderProps>();
+const props = defineProps<CanvasRenderProps>();
 
 const ratePixelsPerSecond = ref(0);
 
@@ -51,39 +46,26 @@ let renderService: RenderService;
 const update = () => {
   if (!renderService && props.RenderService) {
     // TODO need better types so I don't have to create an object like this
-    renderService = new props.RenderService(canvas.value, {
-      title: toRaw(props.title),
-      seed: toRaw(props.seed),
-      dimensions: toRaw(props.dimensions),
-      camera: toRaw(props.camera),
-      selected: toRaw(props.selected),
-      frame: toRaw(props.frame),
-    });
+    renderService = new props.RenderService(canvas.value, toRaw(props.model));
     renderService.frameUpdated = (frameUpdated: FrameUpdated) => {
-      const pixels = props.dimensions.height * props.dimensions.width;
+      const pixels =
+        props.model.dimensions.height * props.model.dimensions.width;
       ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
 
       // TODO can't do this or we have an update loop
       // props.render.frame = frameUpdated.frame
       // const doo = JSON.parse(JSON.stringify(props.render)) as RenderProps;
       // doo.frame = frameUpdated.frame;
-      emit("update:frame", frameUpdated.frame);
+      // emit("update:frame", frameUpdated.frame);
     };
   } else {
     console.log("here");
-    renderService.update({
-      title: toRaw(props.title),
-      seed: toRaw(props.seed),
-      dimensions: toRaw(props.dimensions),
-      camera: toRaw(props.camera),
-      selected: toRaw(props.selected),
-      frame: toRaw(props.frame),
-    });
+    renderService.update(toRaw(props.model));
   }
 };
 
 onMounted(update);
-watch([props.dimensions, props.frame], update);
+watch([props.model], update);
 </script>
 
 <style scoped>

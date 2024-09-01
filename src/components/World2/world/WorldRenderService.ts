@@ -1,6 +1,7 @@
 import { toRaw } from "vue";
 import { Dimensions, Camera } from "../lib/render";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
+import { FrameUpdated } from "./WorldRenderWorker";
 
 export interface RenderProps {
   title: string;
@@ -17,14 +18,26 @@ export interface RenderProps {
 
 export interface RenderService {
   update(renderProps: RenderProps): void;
+  frameUpdated?: (frameUpdated: FrameUpdated) => void;
 }
 
 export type WorldRenderProps = RenderProps;
 
+let singleWorker: Worker;
 export class WorldRenderService implements RenderService {
-  private renderWorker = new WorldRenderWorker();
+  private renderWorker: Worker;
+  frameUpdated?: (frameUpdated: FrameUpdated) => void;
 
   constructor(canvas: HTMLCanvasElement, props: RenderProps) {
+    if (singleWorker) {
+      console.log("Debug: terminate hit");
+      singleWorker.terminate();
+    }
+    this.renderWorker = new WorldRenderWorker();
+    singleWorker = this.renderWorker;
+    this.renderWorker.onmessage = (ev: MessageEvent) => {
+      if (this.frameUpdated) this.frameUpdated(ev.data);
+    };
     const offscreen = canvas.transferControlToOffscreen();
     const message: Partial<RenderProps> = {
       ...toRaw(props),
@@ -33,7 +46,6 @@ export class WorldRenderService implements RenderService {
     };
     this.renderWorker.postMessage(message, [offscreen]);
   }
-
   update(props: Partial<RenderProps>): void {
     const message: Partial<RenderProps> = {
       ...toRaw(props),

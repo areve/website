@@ -21,6 +21,7 @@ import { onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
 import { Rgb } from "./lib/color";
 import { RenderProps, RenderService } from "./world/WorldRenderService";
+import { FrameUpdated } from "./world/WorldRenderWorker";
 
 export interface NoiseRenderProps {
   render: RenderProps;
@@ -32,17 +33,20 @@ const ratePixelsPerSecond = ref(0);
 
 let renderService: RenderService;
 const update = () => {
-  if (!renderService && props.render.renderService)
+  if (!renderService && props.render.renderService) {
     renderService = new props.render.renderService(canvas.value, props.render);
+    renderService.frameUpdated = (frameUpdated: FrameUpdated) => {
+      const pixels =
+        props.render.dimensions.height * props.render.dimensions.width;
+      ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
 
-  renderService.update(props.render);
-
-  // TODO fix these
-  // const start = window.performance.now();
-  // // renderSomewhere(canvas.value, dimensions.value, pixel.value, props.camera);
-  // const end = window.performance.now();
-  // const pixels = props.dimensions.height * props.dimensions.width;
-  // ratePixelsPerSecond.value = (pixels / (end - start)) * 1000;
+      // TODO can't do this or we have an update loop
+      // props.render.frame = frameUpdated.frame
+    };
+  } else {
+    console.log("here");
+    renderService.update(props.render);
+  }
 };
 
 onMounted(update);

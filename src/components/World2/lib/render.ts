@@ -48,7 +48,6 @@ export function render(
 ) {
   const context = getContext(canvas, dimensions);
   if (!context) return;
-  const start = self.performance.now();
 
   const width = Math.ceil(dimensions.width);
   const height = Math.ceil(dimensions.height);
@@ -77,8 +76,6 @@ export function render(
   }
 
   context.putImageData(imageData, 0, 0);
-  const end = self.performance.now();
-  console.log("rendered", (end - start) | 0, "ms");
 }
 
 export const coordFromEvent = (

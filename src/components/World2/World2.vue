@@ -37,20 +37,10 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
 import NoiseRender from "./NoiseRender.vue";
-import { Rgb } from "./lib/color";
-import { Camera, Dimensions } from "./lib/render";
+
 import { makeWorld, RenderProps } from "./world/WorldRenderService";
 
 const seed = ref(12345);
-
-interface NoiseDefinition {
-  dimensions: Dimensions;
-  camera: Camera;
-  title: string;
-  pixel: (x: number, y: number) => Rgb;
-  frame: number;
-  selected: boolean;
-}
 
 const noises = ref<RenderProps[]>([makeWorld(seed.value)]);
 
@@ -64,22 +54,12 @@ function select(noise: RenderProps, event: MouseEvent) {
   noise.selected = !noise.selected;
 }
 
-let frameId: number | null = null;
-
-const update = () => {
-  noises.value.filter((v) => v.selected).forEach((v) => ++v.frame);
-  frameId = requestAnimationFrame(update);
-};
-
 onMounted(async () => {
   document.addEventListener("keydown", onKeyDown);
-  update();
 });
 
 onUnmounted(() => {
   document.removeEventListener("keydown", onKeyDown);
-  if (frameId) cancelAnimationFrame(frameId);
-  frameId = null;
 });
 
 const onKeyDown = (event: KeyboardEvent) => {

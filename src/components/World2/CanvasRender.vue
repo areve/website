@@ -10,8 +10,10 @@
       <canvas ref="canvas" class="canvas"></canvas>
     </div>
     <div class="noise-render-slot caption">
-      <slot></slot> ({{ (ratePixelsPerSecond / 1000000).toPrecision(3) }}
-      Mpix/sec)
+      <slot></slot> ({{
+        (ratePixelsPerSecond / 1000000).toPrecision(3)
+      }}
+      Mpix/sec) (seed: {{ seed }}, frame: {{ frame }})
     </div>
   </section>
 </template>

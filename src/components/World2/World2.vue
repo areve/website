@@ -24,8 +24,7 @@
           :RenderService="noise.RenderService"
           @click="select(noise, $event)"
           v-model:frame="frame"
-          >{{ noise.title }} (seed: {{ seed }}, frame:
-          {{ frame }})</CanvasRender
+          >{{ noise.title }}</CanvasRender
         >
       </div>
       <div class="panel">

@@ -7,15 +7,14 @@ export interface FrameUpdated {
   timeTaken: number;
 }
 
+let worldProps: WorldRenderProps;
 let canvas: OffscreenCanvas;
 let context: OffscreenCanvasRenderingContext2D | null;
-
 let world: WorldGenerator;
-
-let worldProps: WorldRenderProps;
 let frameId: number;
 
 function update() {
+  worldProps.frame++;
   const start = self.performance.now();
   render(
     canvas,
@@ -23,15 +22,12 @@ function update() {
     (x: number, y: number) => pixel(world(x, y, worldProps.frame)),
     worldProps.camera
   );
-  worldProps.frame++;
-  frameId = requestAnimationFrame(update);
-
   const end = self.performance.now();
-
   self.postMessage({
     frame: worldProps.frame,
     timeTaken: (end - start) / 1000,
   } as FrameUpdated);
+  frameId = requestAnimationFrame(update);
 }
 
 self.onmessage = (event: MessageEvent<WorldRenderProps>) => {

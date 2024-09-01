@@ -15,9 +15,9 @@
         }"
         class="panel"
       >
-        <NoiseRender :render="noise" @click="select(noise, $event)"
+        <CanvasRender :render="noise" @click="select(noise, $event)"
           >{{ noise.title }} (seed: {{ seed }}, frame:
-          {{ noise.frame }})</NoiseRender
+          {{ noise.frame }})</CanvasRender
         >
       </div>
       <div class="panel">
@@ -36,7 +36,7 @@
 
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
-import NoiseRender from "./NoiseRender.vue";
+import CanvasRender from "./CanvasRender.vue";
 
 import { makeWorld, RenderProps } from "./world/WorldRenderService";
 

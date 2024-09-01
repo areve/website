@@ -16,10 +16,14 @@
         class="panel"
       >
         <CanvasRender
-          :render="noise"
+          :title="noise.title"
+          :seed="noise.seed"
+          :dimensions="noise.dimensions"
+          :camera="noise.camera"
+          :selected="noise.selected"
+          :RenderService="noise.RenderService"
           @click="select(noise, $event)"
           v-model:frame="frame"
-          
           >{{ noise.title }} (seed: {{ seed }}, frame:
           {{ frame }})</CanvasRender
         >
@@ -49,8 +53,8 @@ const frame = ref(0);
 
 const noises = ref<RenderProps[]>([makeWorld(seed.value)]);
 
-function sss(a: any){
-  console.log('aa', a)
+function sss(a: any) {
+  console.log("aa", a);
 }
 function select(noise: RenderProps, event: MouseEvent) {
   if (!event.ctrlKey) {

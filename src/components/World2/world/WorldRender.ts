@@ -14,10 +14,8 @@ export interface RenderProps {
   camera: Camera;
   selected: boolean;
   canvas?: OffscreenCanvas;
-  renderService?: RenderServiceConstructor;
+  RenderService?: RenderServiceConstructor;
 }
-
-
 
 export interface RenderService {
   update(renderProps: RenderProps): void;
@@ -45,14 +43,14 @@ export class WorldRender implements RenderService {
     const message: Partial<RenderProps> = {
       ...toRaw(props),
       canvas: offscreen,
-      renderService: undefined,
+      RenderService: undefined,
     };
     this.renderWorker.postMessage(message, [offscreen]);
   }
   update(props: Partial<RenderProps>): void {
     const message: Partial<RenderProps> = {
       ...toRaw(props),
-      renderService: undefined,
+      RenderService: undefined,
     };
     this.renderWorker.postMessage(message);
   }
@@ -66,7 +64,7 @@ export const makeWorld = (seed: number): WorldRenderProps => {
     camera: { x: 0, y: 0, zoom: 1 },
     seed,
     frame: 0,
-    renderService: WorldRender,
+    RenderService: WorldRender,
   };
   return world;
 };

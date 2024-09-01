@@ -3,8 +3,8 @@
     <div
       class="canvas-wrap"
       :style="{
-        height: props.render.dimensions.height + 'px',
-        width: props.render.dimensions.width + 'px',
+        height: props.dimensions.height + 'px',
+        width: props.dimensions.width + 'px',
       }"
     >
       <canvas ref="canvas" class="canvas"></canvas>
@@ -20,11 +20,20 @@
 import { onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
 import { Rgb } from "./lib/color";
-import { RenderProps, RenderService } from "./world/WorldRender";
+import {
+  RenderProps,
+  RenderService,
+  RenderServiceConstructor,
+} from "./world/WorldRender";
 import { FrameUpdated } from "./world/WorldRenderWorker";
 
 export interface NoiseRenderProps {
-  render: RenderProps;
+  title: string;
+  seed: number;
+  dimensions: Dimensions;
+  camera: Camera;
+  selected: boolean;
+  RenderService?: RenderServiceConstructor;
   frame: number;
 }
 
@@ -38,11 +47,18 @@ const ratePixelsPerSecond = ref(0);
 
 let renderService: RenderService;
 const update = () => {
-  if (!renderService && props.render.renderService) {
-    renderService = new props.render.renderService(canvas.value, props.render);
+  if (!renderService && props.RenderService) {
+    // TODO need better types so I don't have to create an object like this
+    renderService = new props.RenderService(canvas.value, {
+      title: toRaw(props.title),
+      seed: toRaw(props.seed),
+      dimensions: toRaw(props.dimensions),
+      camera: toRaw(props.camera),
+      selected: toRaw(props.selected),
+      frame: toRaw(props.frame),
+    });
     renderService.frameUpdated = (frameUpdated: FrameUpdated) => {
-      const pixels =
-        props.render.dimensions.height * props.render.dimensions.width;
+      const pixels = props.dimensions.height * props.dimensions.width;
       ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
 
       // TODO can't do this or we have an update loop
@@ -53,12 +69,19 @@ const update = () => {
     };
   } else {
     console.log("here");
-    renderService.update(props.render);
+    renderService.update({
+      title: toRaw(props.title),
+      seed: toRaw(props.seed),
+      dimensions: toRaw(props.dimensions),
+      camera: toRaw(props.camera),
+      selected: toRaw(props.selected),
+      frame: toRaw(props.frame),
+    });
   }
 };
 
 onMounted(update);
-watch(props.render, update);
+watch([props.dimensions, props.frame], update);
 </script>
 
 <style scoped>

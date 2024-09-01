@@ -15,9 +15,13 @@
         }"
         class="panel"
       >
-        <CanvasRender :render="noise" @click="select(noise, $event)"
+        <CanvasRender
+          :render="noise"
+          @click="select(noise, $event)"
+          v-model:frame="frame"
+          
           >{{ noise.title }} (seed: {{ seed }}, frame:
-          {{ noise.frame }})</CanvasRender
+          {{ frame }})</CanvasRender
         >
       </div>
       <div class="panel">
@@ -41,9 +45,13 @@ import CanvasRender from "./CanvasRender.vue";
 import { makeWorld, RenderProps } from "./world/WorldRender";
 
 const seed = ref(12345);
+const frame = ref(0);
 
 const noises = ref<RenderProps[]>([makeWorld(seed.value)]);
 
+function sss(a: any){
+  console.log('aa', a)
+}
 function select(noise: RenderProps, event: MouseEvent) {
   if (!event.ctrlKey) {
     const selectedOthers = noises.value.filter(

@@ -3,6 +3,9 @@ import { Dimensions, Camera } from "../lib/render";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
 import { FrameUpdated } from "./WorldRenderWorker";
 
+export type RenderServiceConstructor = {
+  new (canvas: HTMLCanvasElement, props: RenderProps): RenderService;
+}
 export interface RenderProps {
   title: string;
   seed: number;
@@ -11,10 +14,10 @@ export interface RenderProps {
   camera: Camera;
   selected: boolean;
   canvas?: OffscreenCanvas;
-  renderService?: {
-    new (canvas: HTMLCanvasElement, props: RenderProps): RenderService;
-  };
+  renderService?: RenderServiceConstructor;
 }
+
+
 
 export interface RenderService {
   update(renderProps: RenderProps): void;

@@ -25,10 +25,15 @@ import { FrameUpdated } from "./world/WorldRenderWorker";
 
 export interface NoiseRenderProps {
   render: RenderProps;
+  frame: number;
 }
+
+// TODO update vue and use `defineModel`
+const emit = defineEmits(["update:frame"]);
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const props = defineProps<NoiseRenderProps>();
+
 const ratePixelsPerSecond = ref(0);
 
 let renderService: RenderService;
@@ -42,6 +47,9 @@ const update = () => {
 
       // TODO can't do this or we have an update loop
       // props.render.frame = frameUpdated.frame
+      // const doo = JSON.parse(JSON.stringify(props.render)) as RenderProps;
+      // doo.frame = frameUpdated.frame;
+      emit("update:frame", frameUpdated.frame);
     };
   } else {
     console.log("here");
@@ -50,7 +58,7 @@ const update = () => {
 };
 
 onMounted(update);
-watch(props, update);
+watch(props.render, update);
 </script>
 
 <style scoped>

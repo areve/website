@@ -1,6 +1,6 @@
 import { render } from "../lib/render";
 import { makeWorldGenerator, pixel, WorldGenerator } from "./world";
-import { WorldRenderProps } from "./WorldRenderService";
+import { WorldRenderProps } from "./WorldRender";
 
 export interface FrameUpdated {
   frame: number;

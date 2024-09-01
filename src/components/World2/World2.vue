@@ -38,7 +38,7 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import CanvasRender from "./CanvasRender.vue";
 
-import { makeWorld, RenderProps } from "./world/WorldRenderService";
+import { makeWorld, RenderProps } from "./world/WorldRender";
 
 const seed = ref(12345);
 

@@ -20,7 +20,7 @@
 import { onMounted, ref, toRaw, watch } from "vue";
 import { Dimensions, Camera } from "./lib/render";
 import { Rgb } from "./lib/color";
-import { RenderProps, RenderService } from "./world/WorldRenderService";
+import { RenderProps, RenderService } from "./world/WorldRender";
 import { FrameUpdated } from "./world/WorldRenderWorker";
 
 export interface NoiseRenderProps {

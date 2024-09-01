@@ -24,7 +24,7 @@ export interface RenderService {
 export type WorldRenderProps = RenderProps;
 
 let singleWorker: Worker;
-export class WorldRenderService implements RenderService {
+export class WorldRender implements RenderService {
   private renderWorker: Worker;
   frameUpdated?: (frameUpdated: FrameUpdated) => void;
 
@@ -63,7 +63,7 @@ export const makeWorld = (seed: number): WorldRenderProps => {
     camera: { x: 0, y: 0, zoom: 1 },
     seed,
     frame: 0,
-    renderService: WorldRenderService,
+    renderService: WorldRender,
   };
   return world;
 };

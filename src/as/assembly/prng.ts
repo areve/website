@@ -1,10 +1,10 @@
-type Fn1 = (x: f64, y: f64, z: f64, w: f64) => number;
+export type NoiseGenerator = (x: f64, y: f64, z: f64, w: f64) => f64;
 
 let seedLow: i32 = 0;
 let seedHigh: i32 = 0;
 let s: i32 = 0;
 
-export const makeNoiseGenerator = (seed: i64): Fn1 => {
+export const makeNoiseGenerator = (seed: i64): NoiseGenerator => {
   seedLow = <i32>seed;
   seedHigh = <i32>(seed >> 32);
   s = seedLow ^ (seedHigh + 1440662683);

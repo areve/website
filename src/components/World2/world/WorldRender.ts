@@ -16,10 +16,6 @@ export interface RenderModel {
   canvas?: OffscreenCanvas;
 }
 
-import { lerp } from "../../../as/build/assembly";
-
-console.log("asm lerp", lerp(0, 7, 0.27));
-
 export interface RenderService {
   update(renderProps: RenderModel): void;
   frameUpdated?: (frameUpdated: FrameUpdated) => void;
@@ -33,6 +29,7 @@ export interface WorldRenderSetup {
 }
 
 let singleWorker: Worker;
+
 export class WorldRender implements RenderService {
   private renderWorker: Worker;
   frameUpdated?: (frameUpdated: FrameUpdated) => void;
@@ -42,15 +39,41 @@ export class WorldRender implements RenderService {
       console.log("Debug: terminate hit");
       singleWorker.terminate();
     }
-    this.renderWorker = new WorldRenderWorker();
+    const memory = new WebAssembly.Memory({
+      initial: 10,
+      maximum: 10,
+      shared: true,
+    });
+
+    // const uint8 = new Uint8Array(memory.buffer);
+    // uint8[0] = 123;
+    // uint8[1] = 1;
+    // uint8[2] = 2;
+    // uint8[3] = 3;
+
+    // console.log("shared memory", uint8.slice(0, 6));
+    // memory
+
+    // const worker = new Worker("./WorldRenderWorker");
+
+    const buffer = new ArrayBuffer(16);
+    // const sab = new SharedArrayBuffer(16); // not defined
+
+    // const foo = ;
+    this.renderWorker = new Worker(
+      new URL('./WorldRenderWorker', import.meta.url),
+      {type: 'module'}
+    );
+    // this.renderWorker.
     singleWorker = this.renderWorker;
     this.renderWorker.onmessage = (ev: MessageEvent) => {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };
     const offscreenCanvas = canvas.transferControlToOffscreen();
-    this.renderWorker.postMessage({ model: toRaw(model), offscreenCanvas }, [
-      offscreenCanvas,
-    ]);
+    this.renderWorker.postMessage(
+      { model: toRaw(model), offscreenCanvas },
+      [offscreenCanvas]
+    );
   }
   update(model: RenderModel): void {
     this.renderWorker.postMessage({ model: toRaw(model) });

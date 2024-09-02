@@ -16,22 +16,21 @@ let busy: boolean;
 let dirty: boolean = false;
 let foo: Uint8Array;
 let lerp: (a: number, b: number, weight: number) => number;
+let wasm: {
+  buffer: { value: Uint8ClampedArray };
+  render(width: number, height: number): void;
+  default?: any;
+  lerp?: (a: number, b: number, weight: number) => number;
+  memory?: any;
+};
 async function setupWasm() {
-  const wasm = await import("../../../as/build/assembly");
-
-  lerp = wasm.lerp;
-  const abc = wasm.bar();
-  const memory = wasm.memory;
-  // const byteOffset = wasm.memory._getByteOffset()
-
-  console.log("wasm.memory", abc, new Uint8Array(wasm.memory.buffer));
-  console.log("wasm.ary", wasm.ary.value.slice(0, 5));
-
-  foo = wasm.ary.value;
+  wasm = await import("../../../as/build/assembly");
 }
 setupWasm();
 
 function update() {
+  if (!wasm) return setTimeout(update, 0);
+  console.log("ok", wasm);
   if (!dirty) return;
   if (busy) return;
   dirty = false;
@@ -44,12 +43,7 @@ function update() {
     worldRenderModel.camera
   );
 
-  if (foo) {
-    const imageData = new ImageData(100, 100);
-    imageData.data.set(foo);
-    const context = offscreenCanvas.getContext("2d") as any;
-    context.putImageData(imageData, 0, 0);
-  }
+  renderWithWasm();
 
   const end = self.performance.now();
   self.postMessage({
@@ -60,6 +54,20 @@ function update() {
     busy = false;
     update();
   }, 0);
+}
+
+function renderWithWasm() {
+  const context = offscreenCanvas.getContext("2d") as any;
+  wasm.render(
+    worldRenderModel.dimensions.width,
+    worldRenderModel.dimensions.height
+  );
+  const imageData = new ImageData(
+    worldRenderModel.dimensions.width,
+    worldRenderModel.dimensions.height
+  );
+  imageData.data.set(wasm.buffer.value);
+  context.putImageData(imageData, 0, 0);
 }
 
 self.onmessage = async (

@@ -75,16 +75,6 @@ export function render(
     }
   }
 
-  const memory = new WebAssembly.Memory({
-    initial: 80,
-    maximum: 80,
-    shared: true
-  });
-  const foo = new Uint8ClampedArray(width * height);
-
-  foo.fill(127);
-
-  imageData.data.set(foo);
   context.putImageData(imageData, 0, 0);
 }
 

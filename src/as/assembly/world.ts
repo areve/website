@@ -1,9 +1,11 @@
-export type Fn = (x: i32, y: i32, z: i32) => u8;
-export const makeWorldGenerator = (seed: i32): Fn => {
-  return (x: i32, y: i32, z: i32): u8 => {
-    return <u8>(127 + x + y) ;
-    // return <u8>(127) ;
-  };
+import { makeNoiseGenerator } from "./prng";
 
-  
+export type Fn = (x: f64, y: f64, z: f64) => u8;
+
+let noise!: (x: f64, y: f64, z: f64, w: f64) => number;
+export const makeWorldGenerator = (seed: i64): Fn => {
+  noise = makeNoiseGenerator(seed);
+  return (x: f64, y: f64, z: f64): u8 => {
+    return (noise(x, y, z, 0) * 0xff) as u8;
+  };
 };

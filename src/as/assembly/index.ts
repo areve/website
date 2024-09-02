@@ -1,11 +1,11 @@
-import { lerp } from "./lerp";
 import { makeWorldGenerator } from "./world";
 
-export { lerp, render };
+export { render };
 
 export let buffer: Uint8ClampedArray = new Uint8ClampedArray(0);
 
 const generator = makeWorldGenerator(12345);
+
 function render(width: i32, height: i32): void {
   const channels: i8 = 4;
   const size: i32 = width * height * channels;

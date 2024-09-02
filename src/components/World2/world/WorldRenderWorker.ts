@@ -14,14 +14,9 @@ let world: WorldGenerator;
 
 let busy: boolean;
 let dirty: boolean = false;
-let foo: Uint8Array;
-let lerp: (a: number, b: number, weight: number) => number;
 let wasm: {
   buffer: { value: Uint8ClampedArray };
   render(width: number, height: number): void;
-  default?: any;
-  lerp?: (a: number, b: number, weight: number) => number;
-  memory?: any;
 };
 async function setupWasm() {
   wasm = await import("../../../as/build/assembly");
@@ -30,7 +25,6 @@ setupWasm();
 
 function update() {
   if (!wasm) return setTimeout(update, 0);
-  console.log("ok", wasm);
   if (!dirty) return;
   if (busy) return;
   dirty = false;
@@ -76,8 +70,6 @@ self.onmessage = async (
     offscreenCanvas?: OffscreenCanvas;
   }>
 ) => {
-  console.log("asm lerp", lerp && lerp(0, 7, 0.27));
-
   if (event.data.offscreenCanvas) {
     offscreenCanvas = event.data.offscreenCanvas;
     context = offscreenCanvas.getContext("2d");
@@ -90,4 +82,3 @@ self.onmessage = async (
   dirty = true;
   update();
 };
-console.log(self.onmessage);

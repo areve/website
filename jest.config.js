@@ -2,8 +2,11 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom', 
+  testEnvironmentOptions: {
+    customExportConditions: ["node", "node-addons"],
+  },
   transform: {
-    '^.+\\.vue$': 'vue3-jest',
+    '^.+\\.vue$': '@vue/vue3-jest',
   },
   moduleFileExtensions: ['json', 'js', 'jsx', 'ts', 'tsx', 'vue'],
   moduleNameMapper: {

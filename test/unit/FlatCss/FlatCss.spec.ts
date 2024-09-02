@@ -7,3 +7,5 @@ describe('FlatCss.vue', () => {
     expect(wrapper.text()).toMatch('flat.css')
   })
 })
+
+

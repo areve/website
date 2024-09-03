@@ -196,13 +196,13 @@ export abstract class RenderThread {
     dimensions: Dimensions,
     buffer: ArrayBuffer
   ): ArrayBuffer {
-    const cameraX = (camera?.x ?? 0) + x;
-    const cameraY = (camera?.y ?? 0) + y;
+    const cameraX = camera?.x ?? 0;
+    const cameraY = camera?.y ?? 0;
     const cameraZoom = camera?.zoom ?? 1;
-    const viewportCenterX = dimensions.width / 2;
-    const viewportCenterY = dimensions.height / 2;
-    const viewportAndCameraX = viewportCenterX + cameraX;
-    const viewportAndCameraY = viewportCenterY + cameraY;
+    const viewportCenterX = dimensions.width / 2 - x;
+    const viewportCenterY = dimensions.height / 2 - y;
+    const viewportAndCameraX = dimensions.width / 2 + cameraX;
+    const viewportAndCameraY = dimensions.height / 2 + cameraY;
 
     const data = new Uint8ClampedArray(buffer);
     for (let ix = 0; ix < width; ++ix) {

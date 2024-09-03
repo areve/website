@@ -1,7 +1,7 @@
 import { toRaw } from "vue";
 import { Rgb } from "./color";
 import { Camera, Dimensions } from "./render";
-import { renderWorld } from "./world3d/renderWorld";
+import { renderWorld } from "./world3d/render";
 
 const channels = 4;
 

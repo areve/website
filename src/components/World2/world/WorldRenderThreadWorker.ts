@@ -34,7 +34,6 @@ self.onmessage = (
   const viewportAndCameraY = viewportCenterY + cameraY;
 
   const buffer = event.data.buffer;
-  console.log("ok", buffer);
 
   const data = new Uint8ClampedArray(event.data.buffer);
   for (let x = 0; x < width; ++x) {

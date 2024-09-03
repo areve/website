@@ -15,7 +15,7 @@ let worldRenderModel: WorldRenderModel;
 let offscreenCanvas: OffscreenCanvas;
 let context: OffscreenCanvasRenderingContext2D | null;
 
-let busy: boolean;
+// let busy: boolean;
 let dirty: boolean = false;
 
 const w = 500;
@@ -27,9 +27,9 @@ let array4 = new Uint8ClampedArray(w * h * 4);
 
 async function update() {
   if (!dirty) return;
-  if (busy) return;
+  // if (busy) return;
   dirty = false;
-  busy = true;
+  // busy = true;
   const start = self.performance.now();
 
   offscreenCanvas.width = worldRenderModel.dimensions.width;
@@ -57,10 +57,10 @@ async function update() {
     frame: worldRenderModel.frame,
     timeTaken: (end - start) / 1000,
   } as FrameUpdated);
-  setTimeout(() => {
-    busy = false;
-    update();
-  }, 0);
+  // setTimeout(() => {
+  //   busy = false;
+  //   update();
+  // }, 0);
 }
 
 self.onmessage = async (

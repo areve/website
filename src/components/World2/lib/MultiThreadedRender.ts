@@ -4,10 +4,6 @@ import { Camera, Dimensions } from "./render";
 
 const channels = 4;
 
-export type RenderServiceConstructor = {
-  new (canvas: HTMLCanvasElement, props: RenderModel): RenderService;
-};
-
 export interface RenderSetup {
   model: RenderModel;
   renderService: () => RenderService;

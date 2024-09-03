@@ -25,7 +25,6 @@ import {
   FrameUpdated,
   RenderModel,
   RenderService,
-  RenderServiceConstructor,
 } from "./lib/MultiThreadedRender";
 
 interface CanvasRenderProps {

@@ -1,47 +1,24 @@
-import { Camera } from "./../../Curves/lib/render";
-import { Coord } from "@/components/World/lib/interfaces";
-import { WorldRenderModel } from "./WorldRender";
+import { RenderModel, WorldRenderModel } from "./WorldRender";
 import { makeWorldGenerator, pixel, WorldGenerator } from "./world";
-import { Dimensions } from "../lib/render";
 import { RenderThread } from "./MultiThreadedRender";
-import { buffer, mode } from "d3";
+import { Rgb } from "../lib/color";
 
 console.log("WorldRenderThreadWorker");
 
-const rt = new RenderThread((x: number, y: number) => {
-  const z = worldRenderModel.frame;
-  return pixel(world(x, y, z));
-});
+class WorldRenderThread extends RenderThread {
+  private model?: WorldRenderModel;
+  private world?: WorldGenerator;
 
-let worldRenderModel: WorldRenderModel;
-let world: WorldGenerator;
+  update(model: RenderModel) {
+    if (!this.world || model.seed !== this.model?.seed)
+      this.world = makeWorldGenerator(model.seed);
+    this.model = model;
+  }
+  pixel(x: number, y: number): Rgb {
+    if (!this.world) return [0, 0, 0];
+    const z = this.model?.frame ?? 0;
+    return pixel(this.world(x, y, z));
+  }
+}
 
-self.onmessage = (
-  event: MessageEvent<{
-    origin: Coord;
-    dimensions: Dimensions;
-    model: WorldRenderModel;
-    buffer: ArrayBuffer;
-  }>
-) => {
-  const { model, origin, dimensions } = event.data;
-  worldRenderModel = model;
-  if (!world || event.data.model.seed !== worldRenderModel?.seed)
-    world = makeWorldGenerator(event.data.model.seed);
-
-  const result = rt.render(
-    origin.x,
-    origin.y,
-    dimensions.width,
-    dimensions.height,
-    model.camera,
-    model.dimensions
-  );
-
-  self.postMessage(
-    {
-      buffer: result.buffer,
-    },
-    [result.buffer] as any // "any" here because the types are wrong, transferable is supported
-  );
-};
+new WorldRenderThread();

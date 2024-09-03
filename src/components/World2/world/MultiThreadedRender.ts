@@ -1,16 +1,48 @@
 import { Rgb } from "../lib/color";
 import { Camera, Dimensions } from "../lib/render";
+import { RenderModel } from "./WorldRender";
 
 export class MultiThreadedRender {}
 
 const channels = 4;
-export class RenderThread {
-  constructor(pixel: (x: number, y: number) => Rgb) {
-    this.pixel = pixel;
+export abstract class RenderThread {
+  constructor() {
+    this.init();
   }
 
-  pixel: (x: number, y: number) => Rgb;
+  abstract pixel(x: number, y: number): Rgb;
+  abstract update(model: RenderModel): void;
 
+  private init() {
+    self.onmessage = (
+      event: MessageEvent<{
+        origin: { x: number; y: number };
+        dimensions: Dimensions;
+        model: RenderModel;
+        buffer: ArrayBuffer;
+      }>
+    ) => {
+      const { model, origin, dimensions } = event.data;
+      this.update(model);
+
+      const buffer = this.render(
+        origin.x,
+        origin.y,
+        dimensions.width,
+        dimensions.height,
+        model.camera,
+        model.dimensions
+      );
+
+      self.postMessage(
+        {
+          buffer,
+        },
+        undefined as any,
+        [buffer]
+      );
+    };
+  }
   render(
     x: number,
     y: number,
@@ -18,7 +50,8 @@ export class RenderThread {
     height: number,
     camera: Camera,
     dimensions: Dimensions
-  ) {
+  ): ArrayBuffer {
+    // console.log(self.onmessage)
     const cameraX = (camera?.x ?? 0) + x;
     const cameraY = (camera?.y ?? 0) + y;
     const cameraZoom = camera?.zoom ?? 1;
@@ -42,6 +75,6 @@ export class RenderThread {
         data[i + 3] = v[3] ? v[3] * 0xff : 0xff;
       }
     }
-    return data;
+    return data.buffer;
   }
 }

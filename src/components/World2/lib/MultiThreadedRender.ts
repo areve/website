@@ -10,7 +10,7 @@ export type RenderServiceConstructor = {
 
 export interface RenderSetup {
   model: RenderModel;
-  RenderService?: RenderServiceConstructor;
+  renderService: RenderService;
 }
 export interface RenderModel {
   title: string;
@@ -27,7 +27,7 @@ export interface FrameUpdated {
   timeTaken: number;
 }
 
-export abstract class MultiThreadedRender {
+export class MultiThreadedRender {
   canvas?: OffscreenCanvas;
   context?: OffscreenCanvasRenderingContext2D;
   private dirty: boolean = false;
@@ -37,11 +37,12 @@ export abstract class MultiThreadedRender {
   private h: number = 0;
   private w: number = 0;
 
-  constructor() {
+  constructor(renderThreadWorkers: Worker[]) {
+    this.workers = renderThreadWorkers;
     this.init();
   }
 
-  abstract getRenderThreadWorkers(): Worker[];
+  // abstract getRenderThreadWorkers(): Worker[];
 
   private init() {
     self.onmessage = async (
@@ -54,7 +55,7 @@ export abstract class MultiThreadedRender {
       if (canvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d") ?? undefined;
-        this.workers = this.getRenderThreadWorkers();
+        // this.workers = this.getRenderThreadWorkers();
       }
 
       if (
@@ -211,26 +212,27 @@ export abstract class RenderThread {
   }
 }
 
-export abstract class RenderService {
-  private renderWorker: Worker;
+export class RenderService {
+  private worker: Worker;
 
   public frameUpdated?: (frameUpdated: FrameUpdated) => void;
-  abstract getRenderWorker(): Worker;
 
-  constructor(canvas: HTMLCanvasElement, model: RenderModel) {
-    this.renderWorker = this.getRenderWorker();
-    this.renderWorker.onmessage = (ev: MessageEvent) => {
+  constructor(renderWorker: Worker) {
+    this.worker = renderWorker;
+  }
+
+  init(canvas: HTMLCanvasElement, model: RenderModel) {
+    this.worker.onmessage = (ev: MessageEvent) => {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };
 
     const offscreenCanvas = canvas.transferControlToOffscreen();
-    this.renderWorker.postMessage(
-      { model: toRaw(model), canvas: offscreenCanvas },
-      [offscreenCanvas]
-    );
+    this.worker.postMessage({ model: toRaw(model), canvas: offscreenCanvas }, [
+      offscreenCanvas,
+    ]);
   }
 
   update(model: RenderModel): void {
-    this.renderWorker.postMessage({ model: toRaw(model) });
+    this.worker.postMessage({ model: toRaw(model) });
   }
 }

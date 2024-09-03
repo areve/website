@@ -17,7 +17,7 @@
       >
         <CanvasRender
           v-model:model="renderSetup.model"
-          :RenderService="renderSetup.RenderService"
+          :renderService="renderSetup.renderService"
           @click="select(renderSetup, $event)"
           >{{ renderSetup.model.title }}</CanvasRender
         >

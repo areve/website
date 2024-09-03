@@ -30,7 +30,7 @@ import {
 
 interface CanvasRenderProps {
   model: RenderModel;
-  RenderService?: RenderServiceConstructor;
+  renderService: RenderService;
 }
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
@@ -39,7 +39,14 @@ const props = defineProps<CanvasRenderProps>();
 const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
-let renderService: RenderService;
+let busy = false;
+const update = () => {
+  if (busy) return;
+  if (!props.model.selected) return;
+  busy = true;
+  console.log("updating");
+  props.renderService.update(props.model);
+};
 
 const frameUpdated = (frameUpdated: FrameUpdated) => {
   const pixels = props.model.dimensions.height * props.model.dimensions.width;
@@ -48,23 +55,11 @@ const frameUpdated = (frameUpdated: FrameUpdated) => {
   busy = false;
 };
 
-let busy = false;
-const update = () => {
-  if (busy) return;
-
-  if (!renderService && props.RenderService) {
-    busy = true;
-    renderService = new props.RenderService(canvas.value, props.model);
-    renderService.frameUpdated = frameUpdated;
-  } else {
-    if (!props.model.selected) return;
-    busy = true;
-    console.log("updating");
-    renderService.update(props.model);
-  }
-};
-
-onMounted(update);
+onMounted(() => {
+  props.renderService.init(canvas.value, props.model);
+  props.renderService.frameUpdated = frameUpdated;
+  update();
+});
 onUpdated(update);
 </script>
 

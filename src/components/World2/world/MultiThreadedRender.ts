@@ -28,7 +28,6 @@ export class RenderThread {
     const viewportAndCameraY = viewportCenterY + cameraY;
 
     // TODO later we'll try again with not creating a new buffer
-    
     const data = new Uint8ClampedArray(width * height * channels);
     for (let ix = 0; ix < width; ++ix) {
       for (let iy = 0; iy < height; ++iy) {

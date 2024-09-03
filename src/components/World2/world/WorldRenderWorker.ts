@@ -1,10 +1,11 @@
 import { MultiThreadedRender } from "./MultiThreadedRender";
-import { WorldRenderModel } from "./WorldRender";
 import WorldRenderThreadWorker from "./WorldRenderThreadWorker?worker";
 
-class WorldRender extends MultiThreadedRender {
+class WorldRenderWorker extends MultiThreadedRender {
   createWorker(): Worker {
+    console.log('create worker!')
     return new WorldRenderThreadWorker();
   }
 }
-new WorldRender();
+console.log('new WorldRenderWorker')
+new WorldRenderWorker();

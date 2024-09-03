@@ -28,20 +28,20 @@ export interface WorldRenderSetup {
   RenderService?: RenderServiceConstructor;
 }
 
-let singleWorker: Worker;
+const singleWorker: Worker = new WorldRenderWorker();
 
 export class WorldRender implements RenderService {
   private renderWorker: Worker;
   frameUpdated?: (frameUpdated: FrameUpdated) => void;
 
   constructor(canvas: HTMLCanvasElement, model: RenderModel) {
-    if (singleWorker) {
-      console.log("Debug: terminate hit");
-      singleWorker.terminate();
-    }
+    console.log('new WorldRender')
+    // if (singleWorker) {
+    //   console.log("Debug: terminate hit");
+    //   singleWorker.terminate();
+    // }
 
-    this.renderWorker = new WorldRenderWorker();
-    singleWorker = this.renderWorker;
+    this.renderWorker = singleWorker;
     this.renderWorker.onmessage = (ev: MessageEvent) => {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };

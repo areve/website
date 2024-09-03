@@ -34,18 +34,25 @@ export abstract class MultiThreadedRender {
       }>
     ) => {
       const { canvas, model } = event.data;
-      console.log('onmessage', canvas, model)
       if (canvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d") ?? undefined;
+        this.workers = Array.from({ length: threadCount }).map((_) =>
+          this.createWorker()
+        );
       }
 
-      this.h = Math.ceil(model.dimensions.height / threadCount);
-      this.w = model.dimensions.width;
-      this.workers = Array.from({ length: threadCount }).map((_) => this.createWorker());
-      this.arrays = Array.from({ length: threadCount }).map(
-        (_) => new Uint8ClampedArray(this.w * this.h * channels)
-      );
+      if (
+        !this.model ||
+        this.model.dimensions.height != model.dimensions.height ||
+        this.model.dimensions.width != model.dimensions.width
+      ) {
+        this.h = Math.ceil(model.dimensions.height / threadCount);
+        this.w = model.dimensions.width;
+        this.arrays = Array.from({ length: threadCount }).map(
+          (_) => new Uint8ClampedArray(this.w * this.h * channels)
+        );
+      }
       this.model = model;
       this.dirty = true;
       this.update();
@@ -53,7 +60,6 @@ export abstract class MultiThreadedRender {
   }
 
   private async update() {
-    console.log("update", this.canvas);
     if (!this.dirty || !this.model || !this.canvas) return;
 
     this.dirty = false;

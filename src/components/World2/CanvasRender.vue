@@ -44,7 +44,6 @@ const update = () => {
   if (busy) return;
   if (!props.model.selected) return;
   busy = true;
-  console.log("updating");
   props.renderService.update(props.model);
 };
 

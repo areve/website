@@ -31,6 +31,7 @@ export class MultiThreadedRender {
   canvas?: OffscreenCanvas;
   context?: OffscreenCanvasRenderingContext2D;
   private dirty: boolean = false;
+  private busy: boolean = false;
   private model?: RenderModel;
   private workers: Worker[] = [];
   private arrays: Uint8ClampedArray[] = [];
@@ -41,8 +42,6 @@ export class MultiThreadedRender {
     this.workers = renderThreadWorkers;
     this.init();
   }
-
-  // abstract getRenderThreadWorkers(): Worker[];
 
   private init() {
     self.onmessage = async (
@@ -55,7 +54,6 @@ export class MultiThreadedRender {
       if (canvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d") ?? undefined;
-        // this.workers = this.getRenderThreadWorkers();
       }
 
       if (
@@ -77,12 +75,21 @@ export class MultiThreadedRender {
 
   private async update() {
     if (!this.dirty || !this.model || !this.canvas) return;
+    if (this.busy) return;
 
+    this.busy = true;
     this.dirty = false;
     const start = self.performance.now();
 
-    this.canvas.width = this.model.dimensions.width;
-    this.canvas.height = this.model.dimensions.height;
+    if (
+      this.canvas.width !== this.model.dimensions.width ||
+      this.canvas.height !== this.model.dimensions.height
+    ) {
+      this.canvas.width = this.model.dimensions.width;
+      this.canvas.height = this.model.dimensions.height;
+      this.h = Math.ceil(this.model.dimensions.height / this.workers.length);
+      this.w = this.model.dimensions.width;
+    }
 
     const results = await Promise.all(
       this.workers.map((v, i) =>
@@ -109,6 +116,8 @@ export class MultiThreadedRender {
       frame: this.model.frame,
       timeTaken: (end - start) / 1000,
     } as FrameUpdated);
+
+    this.busy = false;
   }
 
   private renderPart(
@@ -127,13 +136,13 @@ export class MultiThreadedRender {
           model: this.model,
           buffer: array.buffer,
         },
-        [array.buffer]
+        []
       );
       worker.onmessage = (
-        ev: MessageEvent<{
+        event: MessageEvent<{
           buffer: ArrayBuffer;
         }>
-      ) => resolve(ev.data.buffer);
+      ) => resolve(event.data.buffer);
     });
   }
 }
@@ -193,7 +202,7 @@ export abstract class RenderThread {
     const viewportAndCameraX = viewportCenterX + cameraX;
     const viewportAndCameraY = viewportCenterY + cameraY;
 
-    // TODO later we'll try again with not creating a new buffer
+    // TODO later try again with not creating a new buffer
     const data = new Uint8ClampedArray(width * height * channels);
     for (let ix = 0; ix < width; ++ix) {
       for (let iy = 0; iy < height; ++iy) {
@@ -222,8 +231,8 @@ export class RenderService {
   }
 
   init(canvas: HTMLCanvasElement, model: RenderModel) {
-    this.worker.onmessage = (ev: MessageEvent) => {
-      if (this.frameUpdated) this.frameUpdated(ev.data);
+    this.worker.onmessage = (event: MessageEvent) => {
+      if (this.frameUpdated) this.frameUpdated(event.data);
     };
 
     const offscreenCanvas = canvas.transferControlToOffscreen();

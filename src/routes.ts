@@ -20,6 +20,7 @@ const World = () => import("./components/World/World.vue");
 const Noise = () => import("./components/Noise/Noise.vue");
 const Curves = () => import("./components/Curves/Curves.vue");
 const World2 = () => import("./components/World2/World2.vue");
+const World3d = () => import("./components/World3d/World3d.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -48,4 +49,5 @@ export const routes = [
   { path: "/curves", component: Curves },
   { path: "/world", component: World },
   { path: "/World2", component: World2 },
+  { path: "/World3d", component: World3d },
 ];

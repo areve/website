@@ -4059,6 +4059,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"gl-matrix@npm:^3.4.3":
+  version: 3.4.3
+  resolution: "gl-matrix@npm:3.4.3"
+  checksum: 10/25ca2f7c762b7547cf462614ac7e0b98cffb131899f014e60a7e50395f4e9304efbb31dc73921e5af2a355cff663bee984d2710765f6730853e90d1c54d5d8e3
+  languageName: node
+  linkType: hard
+
 "glob-parent@npm:^5.1.2":
   version: 5.1.2
   resolution: "glob-parent@npm:5.1.2"
@@ -7042,6 +7049,7 @@ __metadata:
     d3: "npm:^7.9.0"
     events: "npm:^3.3.0"
     fullscreen: "npm:^1.1.1"
+    gl-matrix: "npm:^3.4.3"
     hammerjs: "npm:^2.0.8"
     jest: "npm:^29.7.0"
     jest-environment-jsdom: "npm:^29.7.0"

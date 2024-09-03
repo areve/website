@@ -1,6 +1,6 @@
 import { Dimensions, Camera } from "../lib/render";
+import { FrameUpdated } from "./MultiThreadedRender";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
-import { FrameUpdated } from "./WorldRenderWorker";
 import { toRaw } from "vue";
 
 export type RenderServiceConstructor = {
@@ -46,9 +46,10 @@ export class WorldRender implements RenderService {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };
     const offscreenCanvas = canvas.transferControlToOffscreen();
-    this.renderWorker.postMessage({ model: toRaw(model), offscreenCanvas }, [
-      offscreenCanvas,
-    ]);
+    this.renderWorker.postMessage(
+      { model: toRaw(model), canvas: offscreenCanvas },
+      [offscreenCanvas]
+    );
   }
   update(model: RenderModel): void {
     this.renderWorker.postMessage({ model: toRaw(model) });

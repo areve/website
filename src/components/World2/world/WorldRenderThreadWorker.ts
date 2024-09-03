@@ -3,8 +3,6 @@ import { makeWorldGenerator, pixel, WorldGenerator } from "./world";
 import { RenderThread } from "./MultiThreadedRender";
 import { Rgb } from "../lib/color";
 
-console.log("WorldRenderThreadWorker");
-
 class WorldRenderThread extends RenderThread {
   private model?: WorldRenderModel;
   private world?: WorldGenerator;

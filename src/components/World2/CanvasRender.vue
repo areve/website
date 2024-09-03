@@ -26,7 +26,7 @@ import {
   RenderService,
   RenderServiceConstructor,
 } from "./world/WorldRender";
-import { FrameUpdated } from "./world/WorldRenderWorker";
+import { FrameUpdated } from "./world/MultiThreadedRender";
 
 interface CanvasRenderProps {
   model: RenderModel;
@@ -52,7 +52,6 @@ let busy = false;
 const update = () => {
   if (busy) return;
 
-  
   if (!renderService && props.RenderService) {
     busy = true;
     console.log("init");

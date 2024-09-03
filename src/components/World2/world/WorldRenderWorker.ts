@@ -1,5 +1,12 @@
+import { MultiThreadedRender } from "./MultiThreadedRender";
 import { WorldRenderModel } from "./WorldRender";
 import WorldRenderThreadWorker from "./WorldRenderThreadWorker?worker";
+
+const mtRender = new MultiThreadedRender();
+
+// mtRender.setThreads()
+
+
 
 const t1 = new WorldRenderThreadWorker();
 const t2 = new WorldRenderThreadWorker();
@@ -47,6 +54,7 @@ async function update() {
   array3 = new Uint8ClampedArray(results[2]);
   array4 = new Uint8ClampedArray(results[3]);
 
+  console.log(array1.length, w * h * 4)
   context?.putImageData(new ImageData(array1, w, h), 0, 0, 0, 0, w, h);
   context?.putImageData(new ImageData(array2, w, h), 0, h, 0, 0, w, h);
   context?.putImageData(new ImageData(array3, w, h), 0, h * 2, 0, 0, w, h);

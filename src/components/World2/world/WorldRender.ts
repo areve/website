@@ -1,7 +1,6 @@
 import { Dimensions, Camera } from "../lib/render";
-import { FrameUpdated } from "./MultiThreadedRender";
+import { RenderService } from "./MultiThreadedRender";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
-import { toRaw } from "vue";
 
 export type RenderServiceConstructor = {
   new (canvas: HTMLCanvasElement, props: RenderModel): RenderService;
@@ -16,11 +15,6 @@ export interface RenderModel {
   canvas?: OffscreenCanvas;
 }
 
-export interface RenderService {
-  update(renderProps: RenderModel): void;
-  frameUpdated?: (frameUpdated: FrameUpdated) => void;
-}
-
 export type WorldRenderModel = RenderModel;
 
 export interface WorldRenderSetup {
@@ -28,31 +22,10 @@ export interface WorldRenderSetup {
   RenderService?: RenderServiceConstructor;
 }
 
-const singleWorker: Worker = new WorldRenderWorker();
-
-export class WorldRender implements RenderService {
-  private renderWorker: Worker;
-  frameUpdated?: (frameUpdated: FrameUpdated) => void;
-
-  constructor(canvas: HTMLCanvasElement, model: RenderModel) {
-    console.log('new WorldRender')
-    // if (singleWorker) {
-    //   console.log("Debug: terminate hit");
-    //   singleWorker.terminate();
-    // }
-
-    this.renderWorker = singleWorker;
-    this.renderWorker.onmessage = (ev: MessageEvent) => {
-      if (this.frameUpdated) this.frameUpdated(ev.data);
-    };
-    const offscreenCanvas = canvas.transferControlToOffscreen();
-    this.renderWorker.postMessage(
-      { model: toRaw(model), canvas: offscreenCanvas },
-      [offscreenCanvas]
-    );
-  }
-  update(model: RenderModel): void {
-    this.renderWorker.postMessage({ model: toRaw(model) });
+export class WorldRender extends RenderService {
+  createRenderWorker(): Worker {
+    console.log("create WorldRenderWorker!")
+    return new WorldRenderWorker();
   }
 }
 

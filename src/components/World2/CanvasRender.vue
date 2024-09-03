@@ -20,13 +20,9 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUpdated, ref, toRaw, watch } from "vue";
-import {
-  RenderModel,
-  RenderService,
-  RenderServiceConstructor,
-} from "./world/WorldRender";
-import { FrameUpdated } from "./world/MultiThreadedRender";
+import { onMounted, onUpdated, ref } from "vue";
+import { RenderModel, RenderServiceConstructor } from "./world/WorldRender";
+import { FrameUpdated, RenderService } from "./world/MultiThreadedRender";
 
 interface CanvasRenderProps {
   model: RenderModel;

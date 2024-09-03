@@ -1,3 +1,4 @@
+import { toRaw } from "vue";
 import { Rgb } from "../lib/color";
 import { Camera, Dimensions } from "../lib/render";
 import { RenderModel } from "./WorldRender";
@@ -24,7 +25,7 @@ export abstract class MultiThreadedRender {
     this.init();
   }
 
-  abstract createWorker(): Worker;
+  abstract createRenderThreadWorker(): Worker;
 
   private init() {
     self.onmessage = async (
@@ -38,7 +39,7 @@ export abstract class MultiThreadedRender {
         this.canvas = canvas;
         this.context = canvas.getContext("2d") ?? undefined;
         this.workers = Array.from({ length: threadCount }).map((_) =>
-          this.createWorker()
+          this.createRenderThreadWorker()
         );
       }
 
@@ -193,5 +194,29 @@ export abstract class RenderThread {
       }
     }
     return data.buffer;
+  }
+}
+
+export abstract class RenderService {
+  private renderWorker: Worker;
+
+  private frameUpdated?: (frameUpdated: FrameUpdated) => void;
+  abstract createRenderWorker(): Worker;
+
+  constructor(canvas: HTMLCanvasElement, model: RenderModel) {
+    this.renderWorker = this.createRenderWorker();
+    this.renderWorker.onmessage = (ev: MessageEvent) => {
+      if (this.frameUpdated) this.frameUpdated(ev.data);
+    };
+
+    const offscreenCanvas = canvas.transferControlToOffscreen();
+    this.renderWorker.postMessage(
+      { model: toRaw(model), canvas: offscreenCanvas },
+      [offscreenCanvas]
+    );
+  }
+
+  update(model: RenderModel): void {
+    this.renderWorker.postMessage({ model: toRaw(model) });
   }
 }

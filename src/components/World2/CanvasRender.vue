@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, toRaw, watch } from "vue";
+import { onMounted, onUpdated, ref, toRaw, watch } from "vue";
 import {
   RenderModel,
   RenderService,
@@ -45,19 +45,29 @@ const frameUpdated = (frameUpdated: FrameUpdated) => {
   const pixels = props.model.dimensions.height * props.model.dimensions.width;
   ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
   fps.value = 1 / frameUpdated.timeTaken;
+  busy = false;
 };
 
+let busy = false;
 const update = () => {
+  if (busy) return;
+
+  
   if (!renderService && props.RenderService) {
+    busy = true;
+    console.log("init");
     renderService = new props.RenderService(canvas.value, props.model);
     renderService.frameUpdated = frameUpdated;
   } else {
+    if (!props.model.selected) return;
+    busy = true;
+    console.log("updating");
     renderService.update(props.model);
   }
 };
 
 onMounted(update);
-watch([props.model], update);
+onUpdated(update);
 </script>
 
 <style scoped>

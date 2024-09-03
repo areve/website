@@ -164,7 +164,7 @@ export abstract class RenderThread {
         buffer: ArrayBuffer;
       }>
     ) => {
-      const { model, origin, dimensions } = event.data;
+      const { model, origin, dimensions, buffer: inBuffer } = event.data;
       this.update(model);
 
       const buffer = this.render(
@@ -173,7 +173,8 @@ export abstract class RenderThread {
         dimensions.width,
         dimensions.height,
         model.camera,
-        model.dimensions
+        model.dimensions,
+        inBuffer
       );
 
       self.postMessage(
@@ -192,7 +193,8 @@ export abstract class RenderThread {
     width: number,
     height: number,
     camera: Camera,
-    dimensions: Dimensions
+    dimensions: Dimensions,
+    buffer: ArrayBuffer
   ): ArrayBuffer {
     const cameraX = (camera?.x ?? 0) + x;
     const cameraY = (camera?.y ?? 0) + y;
@@ -202,8 +204,7 @@ export abstract class RenderThread {
     const viewportAndCameraX = viewportCenterX + cameraX;
     const viewportAndCameraY = viewportCenterY + cameraY;
 
-    // TODO later try again with not creating a new buffer
-    const data = new Uint8ClampedArray(width * height * channels);
+    const data = new Uint8ClampedArray(buffer);
     for (let ix = 0; ix < width; ++ix) {
       for (let iy = 0; iy < height; ++iy) {
         const v = this.pixel(

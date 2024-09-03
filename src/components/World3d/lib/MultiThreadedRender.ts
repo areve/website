@@ -86,16 +86,24 @@ export class MultiThreadedRender {
     // Vertex shader program
     const vsSource = `
       attribute vec4 aVertexPosition;
+      attribute vec4 aVertexColor;
+
       uniform mat4 uModelViewMatrix;
       uniform mat4 uProjectionMatrix;
-      void main() {
+
+      varying lowp vec4 vColor;
+
+      void main(void) {
         gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+        vColor = aVertexColor;
       }
     `;
 
     const fsSource = `
-      void main() {
-        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+      varying lowp vec4 vColor;
+
+      void main(void) {
+        gl_FragColor = vColor;
       }
     `;
 
@@ -104,12 +112,14 @@ export class MultiThreadedRender {
     const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
 
     // Collect all the info needed to use the shader program.
-    // Look up which attribute our shader program is using
-    // for aVertexPosition and look up uniform locations.
+    // Look up which attributes our shader program is using
+    // for aVertexPosition, aVertexColor and also
+    // look up uniform locations.
     const programInfo = {
       program: shaderProgram,
       attribLocations: {
         vertexPosition: gl.getAttribLocation(shaderProgram, "aVertexPosition"),
+        vertexColor: gl.getAttribLocation(shaderProgram, "aVertexColor"),
       },
       uniformLocations: {
         projectionMatrix: gl.getUniformLocation(
@@ -299,13 +309,17 @@ export class RenderService {
 //
 // Initialize a shader program, so WebGL knows how to draw our data
 //
-function initShaderProgram(gl, vsSource, fsSource) {
+function initShaderProgram(
+  gl: WebGLRenderingContext,
+  vsSource: string,
+  fsSource: string
+): WebGLProgram {
   const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
   const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
 
   // Create the shader program
 
-  const shaderProgram = gl.createProgram();
+  const shaderProgram = gl.createProgram() as WebGLProgram;
   gl.attachShader(shaderProgram, vertexShader);
   gl.attachShader(shaderProgram, fragmentShader);
   gl.linkProgram(shaderProgram);
@@ -313,12 +327,11 @@ function initShaderProgram(gl, vsSource, fsSource) {
   // If creating the shader program failed, alert
 
   if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert(
+    throw new Error(
       `Unable to initialize the shader program: ${gl.getProgramInfoLog(
         shaderProgram
       )}`
     );
-    return null;
   }
 
   return shaderProgram;
@@ -328,8 +341,8 @@ function initShaderProgram(gl, vsSource, fsSource) {
 // creates a shader of the given type, uploads the source and
 // compiles it.
 //
-function loadShader(gl, type, source) {
-  const shader = gl.createShader(type);
+function loadShader(gl: WebGLRenderingContext, type: number, source: string) {
+  const shader = gl.createShader(type) as WebGLShader;
 
   // Send the source to the shader object
 
@@ -342,27 +355,28 @@ function loadShader(gl, type, source) {
   // See if it compiled successfully
 
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert(
+    throw new Error(
       `An error occurred compiling the shaders: ${gl.getShaderInfoLog(shader)}`
     );
     gl.deleteShader(shader);
-    return null;
   }
 
   return shader;
 }
 
-function initBuffers(gl) {
+function initBuffers(gl: WebGLRenderingContext) {
   const positionBuffer = initPositionBuffer(gl);
+  const colorBuffer = initColorBuffer(gl);
 
   return {
     position: positionBuffer,
+    color: colorBuffer,
   };
 }
 
-function initPositionBuffer(gl) {
+function initPositionBuffer(gl: WebGLRenderingContext): WebGLBuffer {
   // Create a buffer for the square's positions.
-  const positionBuffer = gl.createBuffer();
+  const positionBuffer = gl.createBuffer() as WebGLBuffer;
 
   // Select the positionBuffer as the one to apply buffer
   // operations to from here out.
@@ -377,6 +391,33 @@ function initPositionBuffer(gl) {
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
   return positionBuffer;
+}
+
+function initColorBuffer(gl: WebGLRenderingContext) {
+  const colors = [
+    1.0,
+    1.0,
+    1.0,
+    1.0, // white
+    1.0,
+    0.0,
+    0.0,
+    1.0, // red
+    0.0,
+    1.0,
+    0.0,
+    1.0, // green
+    0.0,
+    0.0,
+    1.0,
+    1.0, // blue
+  ];
+
+  const colorBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+  return colorBuffer;
 }
 
 function drawScene(gl: WebGLRenderingContext, programInfo, buffers) {
@@ -401,7 +442,6 @@ function drawScene(gl: WebGLRenderingContext, programInfo, buffers) {
   const zNear = 0.1;
   const zFar = 100.0;
   const projectionMatrix = mat4.create();
-  
 
   // note: glmatrix.js always has the first argument
   // as the destination to receive the result.
@@ -422,6 +462,8 @@ function drawScene(gl: WebGLRenderingContext, programInfo, buffers) {
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute.
   setPositionAttribute(gl, buffers, programInfo);
+  setColorAttribute(gl, buffers, programInfo);
+
 
   // Tell WebGL to use our program when drawing
   gl.useProgram(programInfo.program);
@@ -447,7 +489,7 @@ function drawScene(gl: WebGLRenderingContext, programInfo, buffers) {
 
 // Tell WebGL how to pull out the positions from the position
 // buffer into the vertexPosition attribute.
-function setPositionAttribute(gl, buffers, programInfo) {
+function setPositionAttribute(gl: WebGLRenderingContext, buffers, programInfo) {
   const numComponents = 2; // pull out 2 values per iteration
   const type = gl.FLOAT; // the data in the buffer is 32bit floats
   const normalize = false; // don't normalize
@@ -464,4 +506,24 @@ function setPositionAttribute(gl, buffers, programInfo) {
     offset
   );
   gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
+// Tell WebGL how to pull out the colors from the color buffer
+// into the vertexColor attribute.
+function setColorAttribute(gl: WebGLRenderingContext, buffers, programInfo) {
+  const numComponents = 4;
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = 0;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+  gl.vertexAttribPointer(
+    programInfo.attribLocations.vertexColor,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset,
+  );
+  gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
 }

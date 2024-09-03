@@ -1,12 +1,9 @@
 import { RenderService, RenderSetup } from "../lib/MultiThreadedRender";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
 
-console.log("Load WorldRender");
-
 const singletonWorker = new WorldRenderWorker();
 export class WorldRender extends RenderService {
   getRenderWorker(): Worker {
-    console.log("get WorldRenderWorker!");
     return singletonWorker;
   }
 }

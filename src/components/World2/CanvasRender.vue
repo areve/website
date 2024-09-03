@@ -54,7 +54,6 @@ const update = () => {
 
   if (!renderService && props.RenderService) {
     busy = true;
-    console.log("init");
     renderService = new props.RenderService(canvas.value, props.model);
     renderService.frameUpdated = frameUpdated;
   } else {

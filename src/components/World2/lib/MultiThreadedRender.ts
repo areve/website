@@ -1,7 +1,7 @@
 import { toRaw } from "vue";
-import { Rgb } from "../lib/color";
-import { Camera, Dimensions } from "../lib/render";
-import { RenderModel } from "./WorldRender";
+import { Rgb } from "./color";
+import { Camera, Dimensions } from "./render";
+import { RenderModel } from "../world/WorldRender";
 
 const channels = 4;
 const threadCount = 4;
@@ -200,7 +200,7 @@ export abstract class RenderThread {
 export abstract class RenderService {
   private renderWorker: Worker;
 
-  private frameUpdated?: (frameUpdated: FrameUpdated) => void;
+  public frameUpdated?: (frameUpdated: FrameUpdated) => void;
   abstract createRenderWorker(): Worker;
 
   constructor(canvas: HTMLCanvasElement, model: RenderModel) {

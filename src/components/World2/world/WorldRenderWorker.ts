@@ -1,4 +1,4 @@
-import { MultiThreadedRender } from "./MultiThreadedRender";
+import { MultiThreadedRender } from "../lib/MultiThreadedRender";
 import WorldRenderThreadWorker from "./WorldRenderThreadWorker?worker";
 
 class WorldRenderWorker extends MultiThreadedRender {

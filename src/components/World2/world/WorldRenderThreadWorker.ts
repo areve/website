@@ -1,6 +1,6 @@
 import { RenderModel, WorldRenderModel } from "./WorldRender";
 import { makeWorldGenerator, pixel, WorldGenerator } from "./world";
-import { RenderThread } from "./MultiThreadedRender";
+import { RenderThread } from "../lib/MultiThreadedRender";
 import { Rgb } from "../lib/color";
 
 class WorldRenderThread extends RenderThread {

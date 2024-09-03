@@ -22,7 +22,7 @@
 <script lang="ts" setup>
 import { onMounted, onUpdated, ref } from "vue";
 import { RenderModel, RenderServiceConstructor } from "./world/WorldRender";
-import { FrameUpdated, RenderService } from "./world/MultiThreadedRender";
+import { FrameUpdated, RenderService } from "./lib/MultiThreadedRender";
 
 interface CanvasRenderProps {
   model: RenderModel;

@@ -1,5 +1,5 @@
 import { Dimensions, Camera } from "../lib/render";
-import { RenderService } from "./MultiThreadedRender";
+import { RenderService } from "../lib/MultiThreadedRender";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
 
 export type RenderServiceConstructor = {

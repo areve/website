@@ -60,20 +60,16 @@ export class WorldRender implements RenderService {
     // const sab = new SharedArrayBuffer(16); // not defined
 
     // const foo = ;
-    this.renderWorker = new Worker(
-      new URL('./WorldRenderWorker', import.meta.url),
-      {type: 'module'}
-    );
+    this.renderWorker = new WorldRenderWorker();
     // this.renderWorker.
     singleWorker = this.renderWorker;
     this.renderWorker.onmessage = (ev: MessageEvent) => {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };
     const offscreenCanvas = canvas.transferControlToOffscreen();
-    this.renderWorker.postMessage(
-      { model: toRaw(model), offscreenCanvas },
-      [offscreenCanvas]
-    );
+    this.renderWorker.postMessage({ model: toRaw(model), offscreenCanvas }, [
+      offscreenCanvas,
+    ]);
   }
   update(model: RenderModel): void {
     this.renderWorker.postMessage({ model: toRaw(model) });

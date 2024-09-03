@@ -1,10 +1,23 @@
 import { toRaw } from "vue";
 import { Rgb } from "./color";
 import { Camera, Dimensions } from "./render";
-import { RenderModel } from "../world/WorldRender";
 
 const channels = 4;
 const threadCount = 4;
+
+export type RenderServiceConstructor = {
+  new (canvas: HTMLCanvasElement, props: RenderModel): RenderService;
+};
+
+export interface RenderModel {
+  title: string;
+  seed: number;
+  frame: number;
+  dimensions: Dimensions;
+  camera: Camera;
+  selected: boolean;
+  canvas?: OffscreenCanvas;
+}
 
 export interface FrameUpdated {
   frame: number;

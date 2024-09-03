@@ -39,14 +39,14 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
 import CanvasRender from "./CanvasRender.vue";
-
-import { makeWorld, WorldRenderSetup } from "./world/WorldRender";
+import { makeWorld } from "./world/WorldRender";
+import { RenderSetup } from "./lib/MultiThreadedRender";
 
 const seed = ref(12345);
 
-const renderSetups = ref<WorldRenderSetup[]>([makeWorld(seed.value)]);
+const renderSetups = ref<RenderSetup[]>([makeWorld(seed.value)]);
 
-function select(renderSetup: WorldRenderSetup, event: MouseEvent) {
+function select(renderSetup: RenderSetup, event: MouseEvent) {
   if (!event.ctrlKey) {
     const selectedOthers = renderSetups.value.filter(
       (v) => v.model.selected && v !== renderSetup

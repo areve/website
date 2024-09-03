@@ -1,25 +1,17 @@
-import {
-  RenderModel,
-  RenderService,
-  RenderServiceConstructor,
-} from "../lib/MultiThreadedRender";
+import { RenderService, RenderSetup } from "../lib/MultiThreadedRender";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
 
-export type WorldRenderModel = RenderModel;
+console.log("Load WorldRender");
 
-export interface WorldRenderSetup {
-  model: WorldRenderModel;
-  RenderService?: RenderServiceConstructor;
-}
-
+const singletonWorker = new WorldRenderWorker();
 export class WorldRender extends RenderService {
-  createRenderWorker(): Worker {
-    console.log("create WorldRenderWorker!");
-    return new WorldRenderWorker();
+  getRenderWorker(): Worker {
+    console.log("get WorldRenderWorker!");
+    return singletonWorker;
   }
 }
 
-export const makeWorld = (seed: number): WorldRenderSetup => {
+export const makeWorld = (seed: number): RenderSetup => {
   return {
     model: {
       title: "World",

@@ -3,12 +3,15 @@ import { Rgb } from "./color";
 import { Camera, Dimensions } from "./render";
 
 const channels = 4;
-const threadCount = 4;
 
 export type RenderServiceConstructor = {
   new (canvas: HTMLCanvasElement, props: RenderModel): RenderService;
 };
 
+export interface RenderSetup {
+  model: RenderModel;
+  RenderService?: RenderServiceConstructor;
+}
 export interface RenderModel {
   title: string;
   seed: number;
@@ -38,7 +41,7 @@ export abstract class MultiThreadedRender {
     this.init();
   }
 
-  abstract createRenderThreadWorker(): Worker;
+  abstract getRenderThreadWorkers(): Worker[];
 
   private init() {
     self.onmessage = async (
@@ -51,9 +54,7 @@ export abstract class MultiThreadedRender {
       if (canvas) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d") ?? undefined;
-        this.workers = Array.from({ length: threadCount }).map((_) =>
-          this.createRenderThreadWorker()
-        );
+        this.workers = this.getRenderThreadWorkers();
       }
 
       if (
@@ -61,9 +62,9 @@ export abstract class MultiThreadedRender {
         this.model.dimensions.height != model.dimensions.height ||
         this.model.dimensions.width != model.dimensions.width
       ) {
-        this.h = Math.ceil(model.dimensions.height / threadCount);
+        this.h = Math.ceil(model.dimensions.height / this.workers.length);
         this.w = model.dimensions.width;
-        this.arrays = Array.from({ length: threadCount }).map(
+        this.arrays = Array.from({ length: this.workers.length }).map(
           (_) => new Uint8ClampedArray(this.w * this.h * channels)
         );
       }
@@ -214,10 +215,10 @@ export abstract class RenderService {
   private renderWorker: Worker;
 
   public frameUpdated?: (frameUpdated: FrameUpdated) => void;
-  abstract createRenderWorker(): Worker;
+  abstract getRenderWorker(): Worker;
 
   constructor(canvas: HTMLCanvasElement, model: RenderModel) {
-    this.renderWorker = this.createRenderWorker();
+    this.renderWorker = this.getRenderWorker();
     this.renderWorker.onmessage = (ev: MessageEvent) => {
       if (this.frameUpdated) this.frameUpdated(ev.data);
     };

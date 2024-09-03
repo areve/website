@@ -39,29 +39,8 @@ export class WorldRender implements RenderService {
       console.log("Debug: terminate hit");
       singleWorker.terminate();
     }
-    const memory = new WebAssembly.Memory({
-      initial: 10,
-      maximum: 10,
-      shared: true,
-    });
 
-    // const uint8 = new Uint8Array(memory.buffer);
-    // uint8[0] = 123;
-    // uint8[1] = 1;
-    // uint8[2] = 2;
-    // uint8[3] = 3;
-
-    // console.log("shared memory", uint8.slice(0, 6));
-    // memory
-
-    // const worker = new Worker("./WorldRenderWorker");
-
-    const buffer = new ArrayBuffer(16);
-    // const sab = new SharedArrayBuffer(16); // not defined
-
-    // const foo = ;
     this.renderWorker = new WorldRenderWorker();
-    // this.renderWorker.
     singleWorker = this.renderWorker;
     this.renderWorker.onmessage = (ev: MessageEvent) => {
       if (this.frameUpdated) this.frameUpdated(ev.data);

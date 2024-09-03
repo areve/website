@@ -10,7 +10,7 @@ export type RenderServiceConstructor = {
 
 export interface RenderSetup {
   model: RenderModel;
-  renderService: RenderService;
+  renderService: () => RenderService;
 }
 export interface RenderModel {
   title: string;

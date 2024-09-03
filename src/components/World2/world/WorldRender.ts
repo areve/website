@@ -1,6 +1,8 @@
 import { RenderService, RenderSetup } from "../lib/MultiThreadedRender";
 import WorldRenderWorker from "./WorldRenderWorker?worker";
 
+let singletonWorker: Worker;
+
 export const makeWorld = (seed: number): RenderSetup => {
   return {
     model: {
@@ -11,6 +13,9 @@ export const makeWorld = (seed: number): RenderSetup => {
       camera: { x: 0, y: 0, zoom: 1 },
       selected: false,
     },
-    renderService: new RenderService(new WorldRenderWorker()),
+    renderService: () => {
+      singletonWorker ??= new WorldRenderWorker();
+      return new RenderService(singletonWorker);
+    },
   };
 };

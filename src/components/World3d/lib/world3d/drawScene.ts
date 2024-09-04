@@ -2,13 +2,109 @@ import { mat4 } from "gl-matrix";
 import { createColors, createIndices, setupPositions } from "./buffers";
 import { setupProgramInfo as createProgram } from "./program";
 
+function getModel() {
+  const frontFace = [
+    [-1, -1, 1],
+    [1, -1, 1],
+    [1, 1, 1],
+    [-1, 1, 1],
+  ];
+  const backFace = [
+    [-1, -1, -1],
+    [-1, 1, -1],
+    [1, 1, -1],
+    [1, -1, -1],
+  ];
+  const topFace = [
+    [-1, 1, -1],
+    [-1, 1, 1, 1],
+    [1, 1],
+    [1, 1, -1],
+  ];
+  const bottomFace = [
+    [-1, -1, -1],
+    [1, -1, -1],
+    [1, -1, 1],
+    [-1, -1, 1],
+  ];
+  const rightFace = [
+    [1, -1, -1],
+    [1, 1, -1],
+    [1, 1, 1],
+    [1, -1, 1],
+  ];
+  const leftFace = [
+    [-1, -1, -1],
+    [-1, -1, 1],
+    [-1, 1, 1],
+    [-1, 1, -1],
+  ];
+  const vertices = [
+    frontFace,
+    backFace,
+    topFace,
+    bottomFace,
+    rightFace,
+    leftFace,
+  ]
+    .flat()
+    .flat();
+
+  const frontFaceColor = [1, 1, 1, 1];
+  const backFaceColor = [1, 0, 0, 1];
+  const topFaceColor = [0, 1, 0, 1];
+  const bottomFaceColor = [0, 0, 1, 1];
+  const rightFaceColor = [1, 1, 0, 1];
+  const leftFaceColor = [1, 0, 1, 1];
+  const colors = [
+    frontFaceColor,
+    backFaceColor,
+    topFaceColor,
+    bottomFaceColor,
+    rightFaceColor,
+    leftFaceColor,
+  ]
+    .map((c) => [c, c, c, c])
+    .flat()
+    .flat();
+
+  const front = [
+    [0, 1, 2],
+    [0, 2, 3],
+  ];
+  const back = [
+    [4, 5, 6],
+    [4, 6, 7],
+  ];
+  const top = [
+    [8, 9, 10],
+    [8, 10, 11],
+  ];
+  const bottom = [
+    [12, 13, 14],
+    [12, 14, 15],
+  ];
+  const right = [
+    [16, 17, 18],
+    [16, 18, 19],
+  ];
+  const left = [
+    [20, 21, 22],
+    [20, 22, 23],
+  ];
+  const indices = [front, back, top, bottom, right, left].flat().flat();
+
+  return { vertices, colors, indices };
+}
+
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
+  const model = getModel();
   const program = createProgram(gl);
-  setupPositions(gl, program.vertexPosition);
-  createColors(gl, program.vertexColor);
-  const indices = createIndices(gl);
+  setupPositions(gl, model.vertices, program.vertexPosition);
+  createColors(gl, model.colors, program.vertexColor);
+  const indices = createIndices(gl, model.indices);
   gl.useProgram(program.instance);
-  
+
   setupClean(gl);
   applyModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
   applyProjectionMatrix(gl, program.projectionMatrix);

@@ -1,25 +1,23 @@
 import { mat4 } from "gl-matrix";
-import { Buffers } from "./buffers";
-import { ProgramInfo } from "./program";
+import { createColors, createIndices, createPositions } from "./buffers";
+import { setupProgramInfo as setupProgram } from "./program";
 
-export function drawScene(
-  gl: WebGLRenderingContext,
-  programInfo: ProgramInfo,
-  buffers: Buffers,
-  cubeRotation: number
-) {
-  const { program, locations } = programInfo;
-  
+export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
+  const { program, locations } = setupProgram(gl);
+  const positions = createPositions(gl);
+  const indices = createIndices(gl);
+  const colors = createColors(gl);
+
   clear(gl);
-  setupVertexPositions(gl, buffers.position, locations.vertexPosition);
-  setupColors(gl, buffers.color, locations.vertexColor);
-  setupIndices(gl, buffers.indices);
+  setupVertexPositions(gl, positions.buffer, locations.vertexPosition);
+  setupColors(gl, colors.buffer, locations.vertexColor);
+  setupIndices(gl, indices.buffer);
 
   gl.useProgram(program);
   createProjectionMatrix(gl, locations.projectionMatrix);
   createModelViewMatrix(gl, cubeRotation, locations.modelViewMatrix);
 
-  draw(gl);
+  draw(gl, indices.vertexCount);
 }
 
 function clear(gl: WebGLRenderingContext) {
@@ -106,8 +104,7 @@ function createModelViewMatrix(
   gl.uniformMatrix4fv(location, false, matrix);
 }
 
-function draw(gl: WebGLRenderingContext) {
-  const vertexCount = 36;
+function draw(gl: WebGLRenderingContext, vertexCount: number) {
   const type = gl.UNSIGNED_SHORT;
   const offset = 0;
   gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);

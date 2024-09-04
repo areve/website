@@ -3,7 +3,7 @@ export function setupProgramInfo(gl: WebGLRenderingContext) {
 
   const programInfo = {
     program,
-    locations: {
+    pointers: {
       vertexPosition: gl.getAttribLocation(program, "vertexPosition"),
       vertexColor: gl.getAttribLocation(program, "vertexColor"),
       projectionMatrix: gl.getUniformLocation(program, "projectionMatrix")!,

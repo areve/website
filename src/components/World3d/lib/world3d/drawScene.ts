@@ -3,7 +3,7 @@ import { createColors, createIndices, createPositions } from "./buffers";
 import { setupProgramInfo as setupProgram } from "./program";
 
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
-  const { program, locations } = setupProgram(gl);
+  const { program, pointers: locations } = setupProgram(gl);
   const positions = createPositions(gl);
   const indices = createIndices(gl);
   const colors = createColors(gl);

@@ -1,7 +1,7 @@
 import { makeWorldGenerator } from "./world";
 import { WorldGenerator } from "./world";
 import { drawScene } from "./drawScene";
-import { setupProgram } from "./program";
+import { ProgramInfo, setupProgram } from "./program";
 import { Camera, Dimensions } from "../lib/render";
 import { toRaw } from "vue";
 import { createLandscapeModel } from "./landscapeModel";
@@ -39,19 +39,11 @@ export interface FrameUpdated {
 
 function render(
   gl: WebGL2RenderingContext,
+  programInfo: ProgramInfo,
   model: RenderModel,
   generator: WorldGenerator
 ) {
-  const programInfo = setupProgram(gl);
-
-  const width = 100;
-  const height = 100;
-  const landscapeModel = createLandscapeModel(
-    width,
-    height,
-    model.frame,
-    generator
-  );
+  const landscapeModel = createLandscapeModel(100, 100, model.frame, generator);
 
   const positions = createPositionsBuffer(gl, landscapeModel.positions);
   const colors = createColorsBuffer(gl, landscapeModel.colors);
@@ -67,16 +59,18 @@ class WorldGlRenderService implements RenderService {
   private gl!: WebGL2RenderingContext;
   private model!: RenderModel;
   private generator!: WorldGenerator;
+  private programInfo!: ProgramInfo;
   frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
   init = (canvas: HTMLCanvasElement, model: RenderModel) => {
     this.gl = canvas.getContext("webgl2")!;
     this.generator = makeWorldGenerator(model.seed);
+    this.programInfo = setupProgram(this.gl);
   };
   update(model: RenderModel): void {
     this.model = toRaw(model);
     const start = self.performance.now();
 
-    render(this.gl, this.model, this.generator);
+    render(this.gl, this.programInfo, this.model, this.generator);
 
     const end = self.performance.now();
     if (!this.frameUpdated) return;

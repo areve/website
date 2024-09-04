@@ -1,4 +1,6 @@
-export function initBuffers(gl: WebGLRenderingContext) {
+export type Buffers = ReturnType<typeof createBuffers>;
+
+export function createBuffers(gl: WebGLRenderingContext) {
   const position = positionBuffer(gl);
   const color = colorBuffer(gl);
   const indices = indicesBuffer(gl);

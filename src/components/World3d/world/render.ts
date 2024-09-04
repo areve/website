@@ -6,13 +6,10 @@ import { Camera, Dimensions } from "../lib/render";
 import { toRaw } from "vue";
 import { createLandscapeModel } from "./landscapeModel";
 import {
-  setPositionsAttribute,
   createPositionsBuffer,
   createIndicesBuffer,
   createColorsBuffer,
   createNormalsBuffer,
-  setColorsAttribute,
-  setNormalsAttribute,
 } from "./buffers";
 
 export interface RenderSetup {

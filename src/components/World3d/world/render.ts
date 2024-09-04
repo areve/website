@@ -4,7 +4,16 @@ import { drawScene } from "./drawScene";
 import { setupProgram } from "./program";
 import { Camera, Dimensions } from "../lib/render";
 import { toRaw } from "vue";
-import { createSceneModel } from "./createSceneModel";
+import { createLandscapeModel } from "./landscapeModel";
+import {
+  setPositionsAttribute,
+  createPositionsBuffer,
+  createIndicesBuffer,
+  createColorsBuffer,
+  createNormalsBuffer,
+  setColorsAttribute,
+  setNormalsAttribute,
+} from "./buffers";
 
 export interface RenderSetup {
   model: RenderModel;
@@ -46,13 +55,29 @@ class WorldGlRenderService implements RenderService {
     const start = self.performance.now();
 
     const gl = this.gl;
-    const program = setupProgram(gl);
+    const programInfo = setupProgram(gl);
 
     const width = 100;
-    const height = 100;  
-    const sceneModel = createSceneModel(width, height, this.model.frame, this.generator);
+    const height = 100;
+    const landscapeModel = createLandscapeModel(
+      width,
+      height,
+      this.model.frame,
+      this.generator
+    );
 
-    drawScene(this.gl, program, sceneModel);
+    const positions = createPositionsBuffer(gl, landscapeModel.positions);
+    const colors = createColorsBuffer(gl, landscapeModel.colors);
+    const normals = createNormalsBuffer(gl, landscapeModel.normals);
+    createIndicesBuffer(gl, landscapeModel.indices);
+
+    gl.useProgram(programInfo.instance);
+
+    setPositionsAttribute(gl, positions, programInfo.vertexPosition);
+    setColorsAttribute(gl, colors, programInfo.vertexColor);
+    setNormalsAttribute(gl, normals, programInfo.vertexNormal);
+
+    drawScene(this.gl, programInfo, landscapeModel);
 
     const end = self.performance.now();
     if (!this.frameUpdated) return;

@@ -1,60 +1,36 @@
 import { mat4 } from "gl-matrix";
-import {
-  createColors,
-  createIndices,
-  createNormals,
-  setupPositions,
-} from "./buffers";
 import { ProgramInfo } from "./program";
-import { Model } from "./createSceneModel";
+import { Model } from "./landscapeModel";
 
 const vtl = -40;
 export function drawScene(
   gl: WebGLRenderingContext,
-  program: ProgramInfo,
-  sceneModel: Model
+  programInfo: ProgramInfo,
+  landscapeModel: Model
 ) {
-  setupPositions(gl, sceneModel.vertices, program.vertexPosition);
-  createColors(gl, sceneModel.colors, program.vertexColor);
-  createNormals(gl, sceneModel.normals, program.vertexNormal);
-
-  const indices = createIndices(gl, sceneModel.indices);
-  gl.useProgram(program.instance);
-
-  setupClean(gl);
+  initialize(gl);
 
   const modelViewMatrix = applyModelViewMatrix2(
     gl,
-    program.modelViewMatrix,
-    sceneModel.width,
-    sceneModel.height
+    programInfo.modelViewMatrix,
+    landscapeModel.width,
+    landscapeModel.height
   );
-  applyProjectionMatrix2(gl, program.projectionMatrix);
-  doNormalMatrix(gl, modelViewMatrix, program.normalMatrix);
-  draw(gl, indices.vertexCount);
+  
+  applyProjectionMatrix2(gl, programInfo.projectionMatrix);
+  doNormalMatrix(gl, modelViewMatrix, programInfo.normalMatrix);
+
+  const vertexCount = landscapeModel.indices.length;
+  draw(gl, vertexCount);
 }
 
-function setupClean(gl: WebGLRenderingContext) {
+function initialize(gl: WebGLRenderingContext) {
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 
   gl.clearDepth(1.0);
-  // gl.clearColor(0.0, 0.5, 1.0, 1.0);
+  gl.clearColor(0.4, 0.8, 1.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-}
-
-function applyProjectionMatrix(
-  gl: WebGLRenderingContext,
-  location: WebGLUniformLocation
-) {
-  const fieldOfView = (45 * Math.PI) / 180;
-  const aspect = gl.canvas.width / gl.canvas.height;
-  const zNear = 0.1;
-  const zFar = 100.0;
-  const matrix = mat4.create();
-
-  mat4.perspective(matrix, fieldOfView, aspect, zNear, zFar);
-  gl.uniformMatrix4fv(location, false, matrix);
 }
 
 function applyProjectionMatrix2(
@@ -101,7 +77,4 @@ function draw(gl: WebGLRenderingContext, vertexCount: number) {
   const type = gl.UNSIGNED_SHORT;
   const offset = 0;
   gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-  // gl.flush();
-  // gl.drawArrays(gl.LINE_STRIP, 0, vertexCount/3);
-  // gl.drawArrays(gl.LINE_LOOP, 0, vertexCount);
 }

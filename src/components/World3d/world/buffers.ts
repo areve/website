@@ -1,17 +1,44 @@
-export function setupPositions(
+export function createPositionsBuffer(
   gl: WebGLRenderingContext,
-  vertices: number[],
-  vertexPosition: GLint
+  data: number[]
 ) {
   const buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-  bindPositions(gl, buffer, vertexPosition);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  return buffer;
 }
 
-function bindPositions(
+export function createColorsBuffer(gl: WebGLRenderingContext, data: number[]) {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  return buffer;
+}
+
+export function createNormalsBuffer(gl: WebGLRenderingContext, data: number[]) {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+  return buffer;
+}
+
+export function createIndicesBuffer(
   gl: WebGLRenderingContext,
-  position: WebGLBuffer,
+  indices: number[]
+) {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+  gl.bufferData(
+    gl.ELEMENT_ARRAY_BUFFER,
+    new Uint16Array(indices),
+    gl.STATIC_DRAW
+  );
+  return buffer;
+}
+
+export function setPositionsAttribute(
+  gl: WebGLRenderingContext,
+  buffer: WebGLBuffer,
   vertexPosition: GLint
 ) {
   const numComponents = 3;
@@ -19,7 +46,7 @@ function bindPositions(
   const normalize = false;
   const stride = 0;
   const offset = 0;
-  gl.bindBuffer(gl.ARRAY_BUFFER, position);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.vertexAttribPointer(
     vertexPosition,
     numComponents,
@@ -31,10 +58,9 @@ function bindPositions(
   gl.enableVertexAttribArray(vertexPosition);
 }
 
-
-function bindColors(
+export function setColorsAttribute(
   gl: WebGLRenderingContext,
-  color: WebGLBuffer,
+  buffer: WebGLBuffer,
   vertexColor: GLint
 ) {
   const numComponents = 4;
@@ -42,7 +68,7 @@ function bindColors(
   const normalize = false;
   const stride = 0;
   const offset = 0;
-  gl.bindBuffer(gl.ARRAY_BUFFER, color);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.vertexAttribPointer(
     vertexColor,
     numComponents,
@@ -54,33 +80,9 @@ function bindColors(
   gl.enableVertexAttribArray(vertexColor);
 }
 
-export function createColors(
+export function setNormalsAttribute(
   gl: WebGLRenderingContext,
-  colors: number[],
-  vertexColor: GLint
-) {
-  const buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-  bindColors(gl, buffer, vertexColor);
-}
-
-export function createNormals(
-  gl: WebGLRenderingContext,
-  normals: number[],
-  vertexNormal: GLint
-) {
-  const buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
-  bindNormals(gl, buffer, vertexNormal);
-
-}
-
-
-function bindNormals(
-  gl: WebGLRenderingContext,
-  normals: WebGLBuffer,
+  buffer: WebGLBuffer,
   vertexNormal: GLint
 ) {
   const numComponents = 3;
@@ -88,7 +90,7 @@ function bindNormals(
   const normalize = false;
   const stride = 0;
   const offset = 0;
-  gl.bindBuffer(gl.ARRAY_BUFFER, normals);
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
   gl.vertexAttribPointer(
     vertexNormal,
     numComponents,
@@ -98,22 +100,4 @@ function bindNormals(
     offset
   );
   gl.enableVertexAttribArray(vertexNormal);
-}
-
-export function createIndices(gl: WebGLRenderingContext, indices: number[]) {
-
-  const buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
-  gl.bufferData(
-    gl.ELEMENT_ARRAY_BUFFER,
-    new Uint16Array(indices),
-    gl.STATIC_DRAW
-  );
-
-  bindIndices(gl, buffer);
-  return { vertexCount: indices.length };
-}
-
-function bindIndices(gl: WebGLRenderingContext, indices: WebGLBuffer) {
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
 }

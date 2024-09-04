@@ -3,13 +3,13 @@ import { WorldGenerator } from "./world";
 export interface Model {
   width: number;
   height: number;
-  vertices: number[];
+  positions: number[];
   colors: number[];
   indices: number[];
   normals: number[];
 }
 
-export function createSceneModel(
+export function createLandscapeModel(
   width: number,
   height: number,
   frame: number,
@@ -59,7 +59,7 @@ export function createSceneModel(
   const normals = calculateNormals(vertices, indices);
 
   return {
-    vertices,
+    positions: vertices,
     colors,
     indices,
     normals,

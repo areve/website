@@ -14,22 +14,20 @@ export function drawScene(
   landscapeModel: Model
 ) {
   initialize(gl);
+  
+  gl.useProgram(programInfo.program);
   setPositionsAttribute(gl, buffers.positions, programInfo.vertexPosition);
   setColorsAttribute(gl, buffers.colors, programInfo.vertexColor);
   setNormalsAttribute(gl, buffers.normals, programInfo.vertexNormal);
 
-  gl.useProgram(programInfo.program);
-
   const modelViewMatrix = createModelViewMatrix(landscapeModel.width);
   const projectionMatrix = createProjectionMatrix(gl);
   const normalMatrix = createNormalMatrix(gl, modelViewMatrix);
-
   gl.uniformMatrix4fv(programInfo.modelViewMatrix, false, modelViewMatrix);
   gl.uniformMatrix4fv(programInfo.projectionMatrix, false, projectionMatrix);
   gl.uniformMatrix4fv(programInfo.normalMatrix, false, normalMatrix);
 
-  const vertexCount = landscapeModel.indices.length;
-  draw(gl, vertexCount);
+  draw(gl, landscapeModel.indices.length);
 }
 
 function initialize(gl: WebGLRenderingContext) {

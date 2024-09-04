@@ -34,18 +34,16 @@ const props = defineProps<CanvasRenderProps>();
 const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
-let lastFrame = 0;
+let lastFrame = -1;
 let busy = false;
 const update = () => {
   if (busy) return;
-  if (!props.model.selected) return;
   if (props.model.frame === lastFrame) return; // TODO hack cos of problem re-rendering
   busy = true;
   props.renderService.update(props.model);
 };
 
 const frameUpdated = (frameUpdated: FrameUpdated) => {
-  // console.log('frameUpdated')
   const pixels = props.model.dimensions.height * props.model.dimensions.width;
   ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
   fps.value = 1 / frameUpdated.timeTaken;

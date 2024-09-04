@@ -38,22 +38,17 @@ class WorldGlRenderService implements RenderService {
   init = (canvas: HTMLCanvasElement, model: RenderModel) => {
     this.gl = canvas.getContext("webgl2")!;
     this.generator = makeWorldGenerator(model.seed);
-    // this.update(model);
   };
   update(model: RenderModel): void {
-    this.model = toRaw(model); //JSON.parse(JSON.stringify());
-    console.log("update", this.model.frame);
+    this.model = toRaw(model);
     const start = self.performance.now();
     drawScene(this.gl, this.model.frame, this.generator);
     const end = self.performance.now();
-
-    // setTimeout(() => {
     if (!this.frameUpdated) return;
     this.frameUpdated({
       frame: this.model.frame,
       timeTaken: (end - start) / 1000,
     });
-    // }, 0);
   }
 }
 

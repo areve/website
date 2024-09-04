@@ -15,7 +15,6 @@ function getModel2(
   frame: number,
   generator: WorldGenerator
 ) {
-  console.log("frame", frame);
   let vertices1: number[][] = [];
   let indices1: number[][] = [];
   let colors1: number[][] = [];

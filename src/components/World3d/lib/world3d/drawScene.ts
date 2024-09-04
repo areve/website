@@ -1,21 +1,21 @@
 import { mat4 } from "gl-matrix";
 import { createColors, createIndices, setupPositions } from "./buffers";
-import { setupProgramInfo as setupProgram } from "./program";
+import { setupProgramInfo as createProgram } from "./program";
 
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
-  const program = setupProgram(gl);
+  const program = createProgram(gl);
   setupPositions(gl, program.vertexPosition);
   createColors(gl, program.vertexColor);
   const indices = createIndices(gl);
   gl.useProgram(program.instance);
   
-  initialize(gl);
+  setupClean(gl);
   applyModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
   applyProjectionMatrix(gl, program.projectionMatrix);
   draw(gl, indices.vertexCount);
 }
 
-function initialize(gl: WebGLRenderingContext) {
+function setupClean(gl: WebGLRenderingContext) {
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 

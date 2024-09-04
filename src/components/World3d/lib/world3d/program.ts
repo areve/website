@@ -24,79 +24,62 @@ export function setupProgramInfo(gl: WebGLRenderingContext) {
 
 export type ProgramInfo = ReturnType<typeof setupProgramInfo>;
 
-//
-// Initialize a shader program, so WebGL knows how to draw our data
-//
 function setupProgram(gl: WebGLRenderingContext): WebGLProgram {
-  // Vertex shader program
-  const vsSource = `
-    attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor;
+  const vertexShaderSource = `
+      attribute vec4 aVertexPosition;
+      attribute vec4 aVertexColor;
 
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
+      uniform mat4 uModelViewMatrix;
+      uniform mat4 uProjectionMatrix;
 
-    varying lowp vec4 vColor;
+      varying lowp vec4 vColor;
 
-    void main(void) {
-        gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-        vColor = aVertexColor;
-    }
+      void main(void) {
+          gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+          vColor = aVertexColor;
+      }
     `;
+  const vertexShader = setupShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
 
-  const fsSource = `
-    varying lowp vec4 vColor;
+  const fragmentShaderSource = `
+      varying lowp vec4 vColor;
 
-    void main(void) {
-        gl_FragColor = vColor;
-    }
+      void main(void) {
+          gl_FragColor = vColor;
+      }
     `;
+  const fragmentShader = setupShader(
+    gl,
+    gl.FRAGMENT_SHADER,
+    fragmentShaderSource
+  );
 
-  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
+  const program = gl.createProgram()!;
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
 
-  // Create the shader program
-
-  const shaderProgram = gl.createProgram() as WebGLProgram;
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-
-  // If creating the shader program failed, alert
-
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    gl.deleteProgram(program);
     throw new Error(
       `Unable to initialize the shader program: ${gl.getProgramInfoLog(
-        shaderProgram
+        program
       )}`
     );
   }
 
-  return shaderProgram;
+  return program;
 }
 
-//
-// creates a shader of the given type, uploads the source and
-// compiles it.
-//
-function loadShader(gl: WebGLRenderingContext, type: number, source: string) {
-  const shader = gl.createShader(type) as WebGLShader;
-
-  // Send the source to the shader object
-
+function setupShader(gl: WebGLRenderingContext, type: number, source: string) {
+  const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
-
-  // Compile the shader program
-
   gl.compileShader(shader);
-
-  // See if it compiled successfully
-
   if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    gl.deleteShader(shader);
     throw new Error(
       `An error occurred compiling the shaders: ${gl.getShaderInfoLog(shader)}`
     );
-    gl.deleteShader(shader);
   }
 
   return shader;

@@ -39,8 +39,7 @@
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
 import CanvasRender from "./CanvasRender.vue";
-import { makeWorld } from "./world/WorldRender";
-import { RenderSetup } from "./lib/MultiThreadedRender";
+import { makeWorld, RenderSetup } from "./world/render";
 
 const seed = ref(12345);
 

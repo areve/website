@@ -2,8 +2,12 @@ import { toRaw } from "vue";
 import { Rgb } from "./color";
 import { Camera, Dimensions } from "./render";
 import { renderWorld } from "./world3d/render";
+import { makeWorld } from "../world/WorldRender";
+import { makeWorldGenerator } from "../world/world";
 
 const channels = 4;
+
+const generator = makeWorldGenerator(12345);
 
 export interface RenderSetup {
   model: RenderModel;
@@ -79,8 +83,9 @@ export class MultiThreadedRender {
     const start = self.performance.now();
 
     const gl = this.gl;
-
-    renderWorld(gl)
+    // const result = await this.renderPart(this.workers[0], this.arrays[0], 0, 0, 64, 64)
+    // console.log(())
+    renderWorld(gl, generator)
 
     // if (
     //   this.canvas.width !== this.model.dimensions.width ||

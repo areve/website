@@ -103,15 +103,15 @@ function getModel2() {
   let colors1: number[][] = [];
   const width = 8;
   const height = 8;
-  for (let x = 0; x < width; x++) {
-    for (let y = 0; y < height; y++) {
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
       const vertex = [x, y, Math.random()];
       vertices1.push(vertex);
       colors1.push([1 - Math.random(), Math.random(), 0, 1]);
     }
   }
-  for (let x = 0; x < width - 1; x++) {
-    for (let y = 0; y < height - 1; y++) {
+  for (let y = 0; y < height - 1; y++) {
+    for (let x = 0; x < width - 1; x++) {
       const tri1 = [
         y * width + x,
         (y + 1) * width + x,
@@ -216,4 +216,7 @@ function draw(gl: WebGLRenderingContext, vertexCount: number) {
   const type = gl.UNSIGNED_SHORT;
   const offset = 0;
   gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+  // gl.flush();
+  // gl.drawArrays(gl.LINE_STRIP, 0, vertexCount/3);
+  // gl.drawArrays(gl.LINE_LOOP, 0, vertexCount);
 }

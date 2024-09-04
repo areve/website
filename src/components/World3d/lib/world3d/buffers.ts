@@ -31,16 +31,6 @@ function bindPositions(
   gl.enableVertexAttribArray(vertexPosition);
 }
 
-export function createColors(
-  gl: WebGLRenderingContext,
-  colors: number[],
-  vertexColor: GLint
-) {
-  const buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
-  bindColors(gl, buffer, vertexColor);
-}
 
 function bindColors(
   gl: WebGLRenderingContext,
@@ -63,6 +53,54 @@ function bindColors(
   );
   gl.enableVertexAttribArray(vertexColor);
 }
+
+export function createColors(
+  gl: WebGLRenderingContext,
+  colors: number[],
+  vertexColor: GLint
+) {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+  bindColors(gl, buffer, vertexColor);
+}
+
+export function createNormals(
+  gl: WebGLRenderingContext,
+  normals: number[],
+  vertexNormal: GLint
+) {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  // console.log(normals.length/3)
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+  bindNormals(gl, buffer, vertexNormal);
+
+}
+
+
+function bindNormals(
+  gl: WebGLRenderingContext,
+  normals: WebGLBuffer,
+  vertexNormal: GLint
+) {
+  const numComponents = 3;
+  const type = gl.FLOAT;
+  const normalize = false;
+  const stride = 0;
+  const offset = 0;
+  gl.bindBuffer(gl.ARRAY_BUFFER, normals);
+  gl.vertexAttribPointer(
+    vertexNormal,
+    numComponents,
+    type,
+    normalize,
+    stride,
+    offset
+  );
+  gl.enableVertexAttribArray(vertexNormal);
+}
+
 export function createIndices(gl: WebGLRenderingContext, indices: number[]) {
 
   const buffer = gl.createBuffer()!;

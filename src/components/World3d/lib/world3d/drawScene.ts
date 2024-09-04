@@ -97,8 +97,47 @@ function getModel() {
   return { vertices, colors, indices };
 }
 
+function getModel2() {
+  let vertices1: number[][] = [];
+  let indices1: number[][] = [];
+  let colors1: number[][] = [];
+  const width = 8;
+  const height = 8;
+  for (let x = 0; x < width; x++) {
+    for (let y = 0; y < height; y++) {
+      const vertex = [x, y, Math.random()];
+      vertices1.push(vertex);
+      colors1.push([1 - Math.random(), Math.random(), 0, 1]);
+    }
+  }
+  for (let x = 0; x < width - 1; x++) {
+    for (let y = 0; y < height - 1; y++) {
+      const tri1 = [
+        y * width + x,
+        (y + 1) * width + x,
+        (y + 1) * width + (x + 1),
+      ];
+      const tri2 = [
+        y * width + x,
+        y * width + x + 1,
+        (y + 1) * width + (x + 1),
+      ];
+
+      indices1.push(tri1);
+      indices1.push(tri2);
+    }
+  }
+
+  const vertices = vertices1.flat();
+  const colors = colors1.flat();
+  const indices = indices1.flat();
+
+  return { vertices, colors, indices };
+}
+
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
-  const model = getModel();
+  // const model = getModel();
+  const model = getModel2();
   const program = createProgram(gl);
   setupPositions(gl, model.vertices, program.vertexPosition);
   createColors(gl, model.colors, program.vertexColor);
@@ -106,8 +145,9 @@ export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
   gl.useProgram(program.instance);
 
   setupClean(gl);
-  applyModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
-  applyProjectionMatrix(gl, program.projectionMatrix);
+  // applyModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
+  applyModelViewMatrix2(gl, program.modelViewMatrix);
+  applyProjectionMatrix2(gl, program.projectionMatrix);
   draw(gl, indices.vertexCount);
 }
 
@@ -134,6 +174,20 @@ function applyProjectionMatrix(
   gl.uniformMatrix4fv(location, false, matrix);
 }
 
+function applyProjectionMatrix2(
+  gl: WebGLRenderingContext,
+  location: WebGLUniformLocation
+) {
+  const fieldOfView = (45 * Math.PI) / 180;
+  const aspect = gl.canvas.width / gl.canvas.height;
+  const zNear = 0.1;
+  const zFar = 100.0;
+  const matrix = mat4.create();
+
+  mat4.perspective(matrix, fieldOfView, aspect, zNear, zFar);
+  gl.uniformMatrix4fv(location, false, matrix);
+}
+
 function applyModelViewMatrix(
   gl: WebGLRenderingContext,
   cubeRotation: number,
@@ -144,6 +198,17 @@ function applyModelViewMatrix(
   mat4.rotate(matrix, matrix, cubeRotation, [0, 0, 1]);
   mat4.rotate(matrix, matrix, cubeRotation * 0.7, [0, 1, 0]);
   mat4.rotate(matrix, matrix, cubeRotation * 0.3, [1, 0, 0]);
+  gl.uniformMatrix4fv(location, false, matrix);
+}
+
+function applyModelViewMatrix2(
+  gl: WebGLRenderingContext,
+  location: WebGLUniformLocation
+) {
+  const matrix = mat4.create();
+  mat4.translate(matrix, matrix, [-3.0, -3.0, -10.0]);
+  mat4.rotate(matrix, matrix, -0.25 * Math.PI, [1, 0, 0]);
+
   gl.uniformMatrix4fv(location, false, matrix);
 }
 

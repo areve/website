@@ -1,6 +1,6 @@
 import { drawScene } from "./drawScene";
 
-let cubeRotation = 237.0;
+let cubeRotation = 7.8;
 let deltaTime = 0;
 let then = 0;
 

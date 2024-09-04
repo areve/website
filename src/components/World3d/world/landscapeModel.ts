@@ -21,16 +21,17 @@ export function createLandscapeModel(
   let indices1: number[][] = [];
   let colors1: number[][] = [];
 
+  const heightScale = 40;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const worldPoint = generator(x, y, frame);
       const color = pixel(worldPoint) as number[];
       colors1.push([...color, 1]);
       if (worldPoint.isSea) {
-        const vertex = [x, y, 0.6 * 40];
+        const vertex = [x, y, 0.6 * heightScale];
         vertices1.push(vertex);
       } else {
-        const vertex = [x, y, worldPoint.height * 40];
+        const vertex = [x, y, worldPoint.height * heightScale];
         vertices1.push(vertex);
       }
     }

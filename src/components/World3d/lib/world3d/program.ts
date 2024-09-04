@@ -20,43 +20,39 @@ function setupProgram(gl: WebGLRenderingContext): WebGLProgram {
   const glsl = (x: TemplateStringsArray) => x[0];
 
   const vertexShader = glsl`
-      attribute vec4 vertexPosition;
-      attribute vec4 vertexColor;
-      attribute vec4 vertexNormal;
+    attribute vec4 vertexPosition;
+    attribute vec4 vertexColor;
+    attribute vec4 vertexNormal;
 
-      uniform mat4 modelViewMatrix;
-      uniform mat4 projectionMatrix;
-      uniform mat4 normalMatrix;
+    uniform mat4 modelViewMatrix;
+    uniform mat4 projectionMatrix;
+    uniform mat4 normalMatrix;
 
-      varying lowp vec4 color;
-      varying highp vec3 lighting;
+    varying lowp vec4 color;
+    varying highp vec3 lighting;
 
-      void main(void) {
-          gl_Position = projectionMatrix * modelViewMatrix * vertexPosition;
-          color = vertexNormal; // TODO not really but if i don't use it other stuff fails
-          color = vertexColor; 
-
-           // Apply lighting effect
-
-          highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
-          highp vec3 directionalLightColor = vec3(1, 1, 1);
-          highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
-
-          highp vec4 transformedNormal = normalMatrix * vertexNormal;//vec4(vertexNormal, 1.0);
-
-          highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
-          lighting = ambientLight + (directionalLightColor * directional);
-      }
-    `;
+    void main(void) {
+      gl_Position = projectionMatrix * modelViewMatrix * vertexPosition;
+      
+      highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+      highp vec3 directionalLightColor = vec3(1, 1, 1);
+      highp vec3 directionalVector = normalize(vec3(0.85, 0.8, 0.75));
+      highp vec4 transformedNormal = normalMatrix * vertexNormal;
+      highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
+  
+      color = vertexColor; 
+      lighting = ambientLight + (directionalLightColor * directional);
+    }
+  `;
 
   const fragmentShader = glsl`
-      varying lowp vec4 color;
-      varying highp vec3 lighting;
+    varying lowp vec4 color;
+    varying highp vec3 lighting;
 
-      void main(void) {
-        gl_FragColor = vec4(color.rgb * lighting, color.a);
-      }
-    `;
+    void main(void) {
+      gl_FragColor = vec4(color.rgb * lighting, color.a);
+    }
+  `;
 
   const program = gl.createProgram()!;
   gl.attachShader(program, setupShader(gl, gl.VERTEX_SHADER, vertexShader));

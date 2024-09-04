@@ -115,10 +115,12 @@ function getModel2() {
       vertices1.push(vertex);
 
       // TODO random colors for now
-      colors1.push([0.2 + 0.2 * Math.random(), 0.4 + 0.2 * Math.random(), 0, 1]);
-
-      // TODO not sure how to do better normals yet
-      normals1.push([x / width, y / height, Math.random()]);
+      colors1.push([
+        0.2 + 0.2 * Math.random(),
+        0.4 + 0.2 * Math.random(),
+        0,
+        1,
+      ]);
     }
   }
   for (let y = 0; y < height - 1; y++) {
@@ -142,10 +144,61 @@ function getModel2() {
   const vertices = vertices1.flat();
   const colors = colors1.flat();
   const indices = indices1.flat();
-  const normals = normals1.flat();
-  // console.log(normals?)
+  const normals = calculateNormals(vertices, indices);
 
   return { vertices, colors, indices, normals };
+}
+
+function calculateNormals(vertices: number[], indices: number[]) {
+  // TODO this code could be wrong, it's certainly messy
+  const normals: number[] = new Array(vertices.length).fill(0);
+
+  function crossProduct(v1: number[], v2: number[]): number[] {
+    return [
+      v1[1] * v2[2] - v1[2] * v2[1],
+      v1[2] * v2[0] - v1[0] * v2[2],
+      v1[0] * v2[1] - v1[1] * v2[0],
+    ];
+  }
+
+  function normalize(vector: number[]): number[] {
+    const length = Math.sqrt(vector[0] ** 2 + vector[1] ** 2 + vector[2] ** 2);
+    return vector.map((v) => v / length);
+  }
+
+  // Process each triangle
+  for (let i = 0; i < indices.length; i += 3) {
+    const i1 = indices[i] * 3;
+    const i2 = indices[i + 1] * 3;
+    const i3 = indices[i + 2] * 3;
+
+    const p1 = [vertices[i1], vertices[i1 + 1], vertices[i1 + 2]];
+    const p2 = [vertices[i2], vertices[i2 + 1], vertices[i2 + 2]];
+    const p3 = [vertices[i3], vertices[i3 + 1], vertices[i3 + 2]];
+
+    const v1 = p2.map((v, idx) => v - p1[idx]);
+    const v2 = p3.map((v, idx) => v - p1[idx]);
+
+    const normal = crossProduct(v1, v2);
+    const normalizedNormal = normalize(normal);
+
+    // Add the normal to each vertex of the triangle
+    for (let j = 0; j < 3; j++) {
+      normals[i1 + j] += normalizedNormal[j];
+      normals[i2 + j] += normalizedNormal[j];
+      normals[i3 + j] += normalizedNormal[j];
+    }
+  }
+
+  // Normalize the normals for each vertex
+  for (let i = 0; i < normals.length; i += 3) {
+    const normal = [normals[i], normals[i + 1], normals[i + 2]];
+    const normalizedNormal = normalize(normal);
+    normals[i] = normalizedNormal[0];
+    normals[i + 1] = normalizedNormal[1];
+    normals[i + 2] = normalizedNormal[2];
+  }
+  return normals;
 }
 
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {

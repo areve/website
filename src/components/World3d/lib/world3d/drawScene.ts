@@ -8,7 +8,7 @@ export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
   const indices = createIndices(gl);
   const colors = createColors(gl);
 
-  clear(gl);
+  setupClean(gl);
   setupVertexPositions(gl, positions.buffer, program.vertexPosition);
   setupColors(gl, colors.buffer, program.vertexColor);
   setupIndices(gl, indices.buffer);
@@ -20,7 +20,7 @@ export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
   draw(gl, indices.vertexCount);
 }
 
-function clear(gl: WebGLRenderingContext) {
+function setupClean(gl: WebGLRenderingContext) {
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 

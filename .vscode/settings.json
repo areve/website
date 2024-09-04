@@ -3,6 +3,7 @@
     "catmull",
     "ifft",
     "lerp",
+    "lowp",
     "perlin",
     "Raphson",
     "smootherstep",

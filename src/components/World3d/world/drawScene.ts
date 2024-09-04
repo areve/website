@@ -12,17 +12,17 @@ const vtl = -40;
 function getModel2(
   width: number,
   height: number,
-  cubeRotation: number,
+  frame: number,
   generator: WorldGenerator
 ) {
+  console.log("frame", frame);
   let vertices1: number[][] = [];
   let indices1: number[][] = [];
   let colors1: number[][] = [];
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      // console.log('generator', generator);
-      const worldPoint = generator(x, y, cubeRotation);
+      const worldPoint = generator(x, y, frame);
       // console.log(foo);
 
       // TODO random colors for now
@@ -118,14 +118,14 @@ function calculateNormals(vertices: number[], indices: number[]) {
 
 export function drawScene(
   gl: WebGLRenderingContext,
-  cubeRotation: number,
+  frame: number,
   generator: WorldGenerator
 ) {
   // const model = getModel();
   const width = 100;
   const height = 100;
 
-  const model = getModel2(width, height, cubeRotation, generator);
+  const model = getModel2(width, height, frame, generator);
   const program = createProgram(gl);
   setupPositions(gl, model.vertices, program.vertexPosition);
   createColors(gl, model.colors, program.vertexColor);

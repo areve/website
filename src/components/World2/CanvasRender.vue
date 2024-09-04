@@ -38,10 +38,12 @@ const props = defineProps<CanvasRenderProps>();
 const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
+let lastFrame = 0;
 let busy = false;
 const update = () => {
   if (busy) return;
   if (!props.model.selected) return;
+  if (props.model.frame === lastFrame) return; // TODO hack cos of problem re-rendering
   busy = true;
   props.renderService.update(props.model);
 };

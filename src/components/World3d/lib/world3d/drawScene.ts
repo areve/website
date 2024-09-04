@@ -3,19 +3,19 @@ import { createColors, createIndices, createPositions } from "./buffers";
 import { setupProgramInfo as setupProgram } from "./program";
 
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
-  const { program, pointers: locations } = setupProgram(gl);
+  const program = setupProgram(gl);
   const positions = createPositions(gl);
   const indices = createIndices(gl);
   const colors = createColors(gl);
 
   clear(gl);
-  setupVertexPositions(gl, positions.buffer, locations.vertexPosition);
-  setupColors(gl, colors.buffer, locations.vertexColor);
+  setupVertexPositions(gl, positions.buffer, program.vertexPosition);
+  setupColors(gl, colors.buffer, program.vertexColor);
   setupIndices(gl, indices.buffer);
 
-  gl.useProgram(program);
-  createProjectionMatrix(gl, locations.projectionMatrix);
-  createModelViewMatrix(gl, cubeRotation, locations.modelViewMatrix);
+  gl.useProgram(program.instance);
+  createProjectionMatrix(gl, program.projectionMatrix);
+  createModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
 
   draw(gl, indices.vertexCount);
 }

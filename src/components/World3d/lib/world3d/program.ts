@@ -2,13 +2,11 @@ export function setupProgramInfo(gl: WebGLRenderingContext) {
   const program = setupProgram(gl);
 
   const programInfo = {
-    program,
-    pointers: {
-      vertexPosition: gl.getAttribLocation(program, "vertexPosition"),
-      vertexColor: gl.getAttribLocation(program, "vertexColor"),
-      projectionMatrix: gl.getUniformLocation(program, "projectionMatrix")!,
-      modelViewMatrix: gl.getUniformLocation(program, "modelViewMatrix")!,
-    },
+    instance: program,
+    vertexPosition: gl.getAttribLocation(program, "vertexPosition"),
+    vertexColor: gl.getAttribLocation(program, "vertexColor"),
+    projectionMatrix: gl.getUniformLocation(program, "projectionMatrix")!,
+    modelViewMatrix: gl.getUniformLocation(program, "modelViewMatrix")!,
   };
 
   return programInfo;

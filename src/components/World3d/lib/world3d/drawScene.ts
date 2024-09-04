@@ -9,7 +9,12 @@ import { setupProgramInfo as createProgram } from "./program";
 import { WorldGenerator } from "../../world/world";
 
 const vtl = -40;
-function getModel2(width: number, height: number, generator: WorldGenerator) {
+function getModel2(
+  width: number,
+  height: number,
+  cubeRotation: number,
+  generator: WorldGenerator
+) {
   let vertices1: number[][] = [];
   let indices1: number[][] = [];
   let colors1: number[][] = [];
@@ -17,18 +22,20 @@ function getModel2(width: number, height: number, generator: WorldGenerator) {
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       // console.log('generator', generator);
-      const worldPoint = generator(x, y, 0);
+      const worldPoint = generator(x, y, cubeRotation);
       // console.log(foo);
-      const vertex = [x, y, worldPoint.height * 40];
-      vertices1.push(vertex);
 
       // TODO random colors for now
-      colors1.push([
-        0.2 + 0.2 * Math.random(),
-        0.4 + 0.2 * Math.random(),
-        0,
-        1,
-      ]);
+
+      if (worldPoint.isSea) {
+        const vertex = [x, y, 0.6 * 40]; //- worldPoint.height];
+        vertices1.push(vertex);
+        colors1.push([0.5, 0.6, 1.0, 1]);
+      } else {
+        const vertex = [x, y, worldPoint.height * 40];
+        vertices1.push(vertex);
+        colors1.push([0.4, 0.6, 0, 1]);
+      }
     }
   }
   for (let y = 0; y < height - 1; y++) {
@@ -118,7 +125,7 @@ export function drawScene(
   const width = 64;
   const height = 64;
 
-  const model = getModel2(width, height, generator);
+  const model = getModel2(width, height, cubeRotation, generator);
   const program = createProgram(gl);
   setupPositions(gl, model.vertices, program.vertexPosition);
   createColors(gl, model.colors, program.vertexColor);

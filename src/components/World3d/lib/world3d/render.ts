@@ -2,28 +2,21 @@ import { mat4 } from "gl-matrix";
 import { Buffers, initBuffers } from "./buffers";
 import { getProgramInfo, ProgramInfo } from "./program";
 
-let cubeRotation = 0.0;
+let cubeRotation = 237.0;
 let deltaTime = 0;
+
+let then = 0;
 
 export function renderWorld(gl: WebGLRenderingContext) {
   const programInfo: ProgramInfo = getProgramInfo(gl);
   const buffers: Buffers = initBuffers(gl);
- 
-  let then = 0;
 
-  // Draw the scene repeatedly
-  function render(now) {
-    console.log('render')
-    now *= 0.001; // convert to seconds
-    deltaTime = now - then;
-    then = now;
+  let now = self.performance.now() / 1000;
+  deltaTime = now - then;
+  then = now;
 
-    drawScene(gl, programInfo, buffers, cubeRotation);
-    cubeRotation += deltaTime;
-
-    requestAnimationFrame(render);
-  }
-  requestAnimationFrame(render);
+  drawScene(gl, programInfo, buffers, cubeRotation);
+  cubeRotation += deltaTime;
 }
 
 function drawScene(

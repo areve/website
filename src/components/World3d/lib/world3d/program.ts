@@ -15,7 +15,9 @@ export function setupProgramInfo(gl: WebGLRenderingContext) {
 export type ProgramInfo = ReturnType<typeof setupProgramInfo>;
 
 function setupProgram(gl: WebGLRenderingContext): WebGLProgram {
-  const vertexShader = `
+  const glsl = (x: TemplateStringsArray) => x[0];
+
+  const vertexShader = glsl`
       attribute vec4 vertexPosition;
       attribute vec4 vertexColor;
 
@@ -30,11 +32,12 @@ function setupProgram(gl: WebGLRenderingContext): WebGLProgram {
       }
     `;
 
-  const fragmentShader = `
+  const fragmentShader = glsl`
       varying lowp vec4 color;
 
       void main(void) {
-          gl_FragColor = color;
+        gl_FragColor = color;
+        // gl_FragColor = vec4(0.0, 1.0, 1.0, 1.0);
       }
     `;
 

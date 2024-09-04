@@ -1,6 +1,6 @@
 export function setupPositions(
   gl: WebGLRenderingContext,
-  vertexPosition: GLint
+  vertexPosition: GLint,
 ) {
   const frontFace = [-1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
   const backFace = [-1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1];

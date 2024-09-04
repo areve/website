@@ -122,8 +122,8 @@ export function drawScene(
   generator: WorldGenerator
 ) {
   // const model = getModel();
-  const width = 64;
-  const height = 64;
+  const width = 100;
+  const height = 100;
 
   const model = getModel2(width, height, cubeRotation, generator);
   const program = createProgram(gl);

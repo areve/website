@@ -1,8 +1,10 @@
 import { makeWorldGenerator } from "./world";
 import { WorldGenerator } from "./world";
 import { drawScene } from "./drawScene";
+import { setupProgram } from "./program";
 import { Camera, Dimensions } from "../lib/render";
 import { toRaw } from "vue";
+import { createSceneModel } from "./createSceneModel";
 
 export interface RenderSetup {
   model: RenderModel;
@@ -42,7 +44,16 @@ class WorldGlRenderService implements RenderService {
   update(model: RenderModel): void {
     this.model = toRaw(model);
     const start = self.performance.now();
-    drawScene(this.gl, this.model.frame, this.generator);
+
+    const gl = this.gl;
+    const program = setupProgram(gl);
+
+    const width = 100;
+    const height = 100;  
+    const sceneModel = createSceneModel(width, height, this.model.frame, this.generator);
+
+    drawScene(this.gl, program, sceneModel);
+
     const end = self.performance.now();
     if (!this.frameUpdated) return;
     this.frameUpdated({

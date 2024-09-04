@@ -1,7 +1,19 @@
-export function setupProgramInfo(gl: WebGLRenderingContext) {
-  const program = setupProgram(gl);
+const glsl = (x: TemplateStringsArray) => x[0];
 
-  const programInfo = {
+export interface ProgramInfo {
+  instance: WebGLProgram;
+  vertexPosition: GLint;
+  vertexColor: GLint;
+  vertexNormal: GLint;
+  projectionMatrix: WebGLUniformLocation;
+  modelViewMatrix: WebGLUniformLocation;
+  normalMatrix: WebGLUniformLocation;
+}
+
+export function setupProgram(gl: WebGLRenderingContext): ProgramInfo {
+  const program = createProgram(gl);
+
+  return {
     instance: program,
     vertexPosition: gl.getAttribLocation(program, "vertexPosition"),
     vertexColor: gl.getAttribLocation(program, "vertexColor"),
@@ -10,15 +22,9 @@ export function setupProgramInfo(gl: WebGLRenderingContext) {
     modelViewMatrix: gl.getUniformLocation(program, "modelViewMatrix")!,
     normalMatrix: gl.getUniformLocation(program, "normalMatrix")!,
   };
-
-  return programInfo;
 }
 
-export type ProgramInfo = ReturnType<typeof setupProgramInfo>;
-
-function setupProgram(gl: WebGLRenderingContext): WebGLProgram {
-  const glsl = (x: TemplateStringsArray) => x[0];
-
+function createProgram(gl: WebGLRenderingContext): WebGLProgram {
   const vertexShader = glsl`
     attribute vec4 vertexPosition;
     attribute vec4 vertexColor;

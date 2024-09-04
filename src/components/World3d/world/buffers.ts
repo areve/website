@@ -72,7 +72,6 @@ export function createNormals(
 ) {
   const buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  // console.log(normals.length/3)
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
   bindNormals(gl, buffer, vertexNormal);
 

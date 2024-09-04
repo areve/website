@@ -1,26 +1,21 @@
 import { mat4 } from "gl-matrix";
-import { createColors, createIndices, createPositions } from "./buffers";
+import { createColors, createIndices, setupPositions } from "./buffers";
 import { setupProgramInfo as setupProgram } from "./program";
 
 export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
   const program = setupProgram(gl);
-  const positions = createPositions(gl);
+  setupPositions(gl, program.vertexPosition);
+  createColors(gl, program.vertexColor);
   const indices = createIndices(gl);
-  const colors = createColors(gl);
-
-  setupClean(gl);
-  setupVertexPositions(gl, positions.buffer, program.vertexPosition);
-  setupColors(gl, colors.buffer, program.vertexColor);
-  setupIndices(gl, indices.buffer);
-
   gl.useProgram(program.instance);
-  createProjectionMatrix(gl, program.projectionMatrix);
-  createModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
-
+  
+  initialize(gl);
+  applyModelViewMatrix(gl, cubeRotation, program.modelViewMatrix);
+  applyProjectionMatrix(gl, program.projectionMatrix);
   draw(gl, indices.vertexCount);
 }
 
-function setupClean(gl: WebGLRenderingContext) {
+function initialize(gl: WebGLRenderingContext) {
   gl.enable(gl.DEPTH_TEST);
   gl.depthFunc(gl.LEQUAL);
 
@@ -29,55 +24,7 @@ function setupClean(gl: WebGLRenderingContext) {
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
-function setupVertexPositions(
-  gl: WebGLRenderingContext,
-  position: WebGLBuffer,
-  vertexPosition: GLint
-) {
-  const numComponents = 3;
-  const type = gl.FLOAT;
-  const normalize = false;
-  const stride = 0;
-  const offset = 0;
-  gl.bindBuffer(gl.ARRAY_BUFFER, position);
-  gl.vertexAttribPointer(
-    vertexPosition,
-    numComponents,
-    type,
-    normalize,
-    stride,
-    offset
-  );
-  gl.enableVertexAttribArray(vertexPosition);
-}
-
-function setupColors(
-  gl: WebGLRenderingContext,
-  color: WebGLBuffer,
-  vertexColor: GLint
-) {
-  const numComponents = 4;
-  const type = gl.FLOAT;
-  const normalize = false;
-  const stride = 0;
-  const offset = 0;
-  gl.bindBuffer(gl.ARRAY_BUFFER, color);
-  gl.vertexAttribPointer(
-    vertexColor,
-    numComponents,
-    type,
-    normalize,
-    stride,
-    offset
-  );
-  gl.enableVertexAttribArray(vertexColor);
-}
-
-function setupIndices(gl: WebGLRenderingContext, indices: WebGLBuffer) {
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indices);
-}
-
-function createProjectionMatrix(
+function applyProjectionMatrix(
   gl: WebGLRenderingContext,
   location: WebGLUniformLocation
 ) {
@@ -91,7 +38,7 @@ function createProjectionMatrix(
   gl.uniformMatrix4fv(location, false, matrix);
 }
 
-function createModelViewMatrix(
+function applyModelViewMatrix(
   gl: WebGLRenderingContext,
   cubeRotation: number,
   location: WebGLUniformLocation

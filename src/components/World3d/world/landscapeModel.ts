@@ -1,4 +1,5 @@
-import { WorldGenerator } from "./world";
+import { Rgb } from "../lib/color";
+import { WorldGenerator, WorldPoint } from "./world";
 
 export interface Model {
   width: number;
@@ -13,7 +14,8 @@ export function createLandscapeModel(
   width: number,
   height: number,
   frame: number,
-  generator: WorldGenerator
+  generator: WorldGenerator,
+  pixel: (point: WorldPoint) => Rgb
 ): Model {
   let vertices1: number[][] = [];
   let indices1: number[][] = [];
@@ -22,16 +24,14 @@ export function createLandscapeModel(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const worldPoint = generator(x, y, frame);
-      // console.log(foo);
-      // TODO random colors for now
+      const color = pixel(worldPoint) as number[];
+      colors1.push([...color, 1]);
       if (worldPoint.isSea) {
-        const vertex = [x, y, 0.6 * 40]; //- worldPoint.height];
+        const vertex = [x, y, 0.6 * 40];
         vertices1.push(vertex);
-        colors1.push([0.5, 0.6, 1.0, 1]);
       } else {
         const vertex = [x, y, worldPoint.height * 40];
         vertices1.push(vertex);
-        colors1.push([0.4, 0.6, 0, 1]);
       }
     }
   }

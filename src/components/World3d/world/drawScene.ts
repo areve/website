@@ -1,14 +1,30 @@
 import { mat4 } from "gl-matrix";
 import { ProgramInfo } from "./program";
 import { Model } from "./landscapeModel";
+import {
+  setColorsAttribute,
+  setNormalsAttribute,
+  setPositionsAttribute,
+} from "./buffers";
 
 const vtl = -40;
 export function drawScene(
   gl: WebGLRenderingContext,
   programInfo: ProgramInfo,
+  buffers: {
+    positions: WebGLBuffer;
+    colors: WebGLBuffer;
+    normals: WebGLBuffer;
+  },
   landscapeModel: Model
 ) {
   initialize(gl);
+
+  setPositionsAttribute(gl, buffers.positions, programInfo.vertexPosition);
+  setColorsAttribute(gl, buffers.colors, programInfo.vertexColor);
+  setNormalsAttribute(gl, buffers.normals, programInfo.vertexNormal);
+
+  gl.useProgram(programInfo.program);
 
   const modelViewMatrix = applyModelViewMatrix2(
     gl,
@@ -16,7 +32,7 @@ export function drawScene(
     landscapeModel.width,
     landscapeModel.height
   );
-  
+
   applyProjectionMatrix2(gl, programInfo.projectionMatrix);
   doNormalMatrix(gl, modelViewMatrix, programInfo.normalMatrix);
 

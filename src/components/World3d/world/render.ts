@@ -40,6 +40,31 @@ export interface FrameUpdated {
   timeTaken: number;
 }
 
+function render(
+  gl: WebGL2RenderingContext,
+  model: RenderModel,
+  generator: WorldGenerator
+) {
+  const programInfo = setupProgram(gl);
+
+  const width = 100;
+  const height = 100;
+  const landscapeModel = createLandscapeModel(
+    width,
+    height,
+    model.frame,
+    generator
+  );
+
+  const positions = createPositionsBuffer(gl, landscapeModel.positions);
+  const colors = createColorsBuffer(gl, landscapeModel.colors);
+  const normals = createNormalsBuffer(gl, landscapeModel.normals);
+  createIndicesBuffer(gl, landscapeModel.indices);
+
+  const buffers = { positions, colors, normals };
+  drawScene(gl, programInfo, buffers, landscapeModel);
+}
+
 class WorldGlRenderService implements RenderService {
   private canvas!: HTMLCanvasElement;
   private gl!: WebGL2RenderingContext;
@@ -54,30 +79,7 @@ class WorldGlRenderService implements RenderService {
     this.model = toRaw(model);
     const start = self.performance.now();
 
-    const gl = this.gl;
-    const programInfo = setupProgram(gl);
-
-    const width = 100;
-    const height = 100;
-    const landscapeModel = createLandscapeModel(
-      width,
-      height,
-      this.model.frame,
-      this.generator
-    );
-
-    const positions = createPositionsBuffer(gl, landscapeModel.positions);
-    const colors = createColorsBuffer(gl, landscapeModel.colors);
-    const normals = createNormalsBuffer(gl, landscapeModel.normals);
-    createIndicesBuffer(gl, landscapeModel.indices);
-
-    gl.useProgram(programInfo.instance);
-
-    setPositionsAttribute(gl, positions, programInfo.vertexPosition);
-    setColorsAttribute(gl, colors, programInfo.vertexColor);
-    setNormalsAttribute(gl, normals, programInfo.vertexNormal);
-
-    drawScene(this.gl, programInfo, landscapeModel);
+    render(this.gl, this.model, this.generator);
 
     const end = self.performance.now();
     if (!this.frameUpdated) return;

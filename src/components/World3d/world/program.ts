@@ -1,7 +1,7 @@
 const glsl = (x: TemplateStringsArray) => x[0];
 
 export interface ProgramInfo {
-  instance: WebGLProgram;
+  program: WebGLProgram;
   vertexPosition: GLint;
   vertexColor: GLint;
   vertexNormal: GLint;
@@ -14,7 +14,7 @@ export function setupProgram(gl: WebGLRenderingContext): ProgramInfo {
   const program = createProgram(gl);
 
   return {
-    instance: program,
+    program: program,
     vertexPosition: gl.getAttribLocation(program, "vertexPosition"),
     vertexColor: gl.getAttribLocation(program, "vertexColor"),
     vertexNormal: gl.getAttribLocation(program, "vertexNormal"),

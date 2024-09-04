@@ -8,97 +8,70 @@ export function drawScene(
   buffers: Buffers,
   cubeRotation: number
 ) {
-  gl.clearColor(0.0, 0.5, 1.0, 1.0); // Clear to black, fully opaque
-  gl.clearDepth(1.0); // Clear everything
-  gl.enable(gl.DEPTH_TEST); // Enable depth testing
-  gl.depthFunc(gl.LEQUAL); // Near things obscure far things
+  gl.enable(gl.DEPTH_TEST);
+  gl.depthFunc(gl.LEQUAL);
 
-  // Clear the canvas before we start drawing on it.
+  gl.clearDepth(1.0);
+  gl.clearColor(0.0, 0.5, 1.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-  // Create a perspective matrix, a special matrix that is
-  // used to simulate the distortion of perspective in a camera.
-  // Our field of view is 45 degrees, with a width/height
-  // ratio that matches the display size of the canvas
-  // and we only want to see objects between 0.1 units
-  // and 100 units away from the camera.
+  setPositionAttribute(gl, buffers, programInfo.attribLocations.vertexPosition);
+  setColorAttribute(gl, buffers, programInfo.attribLocations.vertexColor);
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+  gl.useProgram(programInfo.program);
+
+  createProjectionMatrix(gl, programInfo.uniformLocations.projectionMatrix);
+
+  createModelViewMatrix(
+    gl,
+    cubeRotation,
+    programInfo.uniformLocations.modelViewMatrix
+  );
+
+  draw(gl);
+}
+
+function createModelViewMatrix(
+  gl: WebGLRenderingContext,
+  cubeRotation: number,
+  location: WebGLUniformLocation
+) {
+  const matrix = mat4.create();
+  mat4.translate(matrix, matrix, [-0.0, 0.0, -6.0]);
+  mat4.rotate(matrix, matrix, cubeRotation, [0, 0, 1]);
+  mat4.rotate(matrix, matrix, cubeRotation * 0.7, [0, 1, 0]);
+  mat4.rotate(matrix, matrix, cubeRotation * 0.3, [1, 0, 0]);
+  gl.uniformMatrix4fv(location, false, matrix);
+}
+
+function draw(gl: WebGLRenderingContext) {
+  const vertexCount = 36;
+  const type = gl.UNSIGNED_SHORT;
+  const offset = 0;
+  gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+}
+
+function createProjectionMatrix(
+  gl: WebGLRenderingContext,
+  location: WebGLUniformLocation
+) {
   const fieldOfView = (45 * Math.PI) / 180; // in radians
   const aspect = gl.canvas.width / gl.canvas.height;
   const zNear = 0.1;
   const zFar = 100.0;
-  const projectionMatrix = mat4.create();
+  const matrix = mat4.create();
 
-  // note: glmatrix.js always has the first argument
-  // as the destination to receive the result.
-  mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
-
-  // Set the drawing position to the "identity" point, which is
-  // the center of the scene.
-  const modelViewMatrix = mat4.create();
-
-  // Now move the drawing position a bit to where we want to
-  // start drawing the square.
-  mat4.translate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to translate
-    [-0.0, 0.0, -6.0]
-  ); // amount to translate
-
-  mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    cubeRotation, // amount to rotate in radians
-    [0, 0, 1]
-  ); // axis to rotate around (Z)
-  mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    cubeRotation * 0.7, // amount to rotate in radians
-    [0, 1, 0]
-  ); // axis to rotate around (Y)
-  mat4.rotate(
-    modelViewMatrix, // destination matrix
-    modelViewMatrix, // matrix to rotate
-    cubeRotation * 0.3, // amount to rotate in radians
-    [1, 0, 0]
-  ); // axis to rotate around (X)
-
-  // Tell WebGL how to pull out the positions from the position
-  // buffer into the vertexPosition attribute.
-  setPositionAttribute(gl, buffers, programInfo);
-  setColorAttribute(gl, buffers, programInfo);
-
-  // Tell WebGL which indices to use to index the vertices
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-
-  // Tell WebGL to use our program when drawing
-  gl.useProgram(programInfo.program);
-
-  // Set the shader uniforms
-  gl.uniformMatrix4fv(
-    programInfo.uniformLocations.projectionMatrix,
-    false,
-    projectionMatrix
-  );
-  gl.uniformMatrix4fv(
-    programInfo.uniformLocations.modelViewMatrix,
-    false,
-    modelViewMatrix
-  );
-
-  {
-    {
-      const vertexCount = 36;
-      const type = gl.UNSIGNED_SHORT;
-      const offset = 0;
-      gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-    }
-  }
+  mat4.perspective(matrix, fieldOfView, aspect, zNear, zFar);
+  gl.uniformMatrix4fv(location, false, matrix);
 }
 
 // Tell WebGL how to pull out the positions from the position
 // buffer into the vertexPosition attribute.
-export function setPositionAttribute(gl: WebGLRenderingContext, buffers: Buffers, programInfo: Pro) {
+function setPositionAttribute(
+  gl: WebGLRenderingContext,
+  buffers: Buffers,
+  vertexPosition: GLint
+) {
   const numComponents = 3;
   const type = gl.FLOAT; // the data in the buffer is 32bit floats
   const normalize = false; // don't normalize
@@ -107,19 +80,23 @@ export function setPositionAttribute(gl: WebGLRenderingContext, buffers: Buffers
   const offset = 0; // how many bytes inside the buffer to start from
   gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
   gl.vertexAttribPointer(
-    programInfo.attribLocations.vertexPosition,
+    vertexPosition,
     numComponents,
     type,
     normalize,
     stride,
     offset
   );
-  gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+  gl.enableVertexAttribArray(vertexPosition);
 }
 
 // Tell WebGL how to pull out the colors from the color buffer
 // into the vertexColor attribute.
-export function setColorAttribute(gl: WebGLRenderingContext, buffers: Buffers, programInfo) {
+function setColorAttribute(
+  gl: WebGLRenderingContext,
+  buffers: Buffers,
+  vertexColor: GLint
+) {
   const numComponents = 4;
   const type = gl.FLOAT;
   const normalize = false;
@@ -127,12 +104,12 @@ export function setColorAttribute(gl: WebGLRenderingContext, buffers: Buffers, p
   const offset = 0;
   gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
   gl.vertexAttribPointer(
-    programInfo.attribLocations.vertexColor,
+    vertexColor,
     numComponents,
     type,
     normalize,
     stride,
     offset
   );
-  gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+  gl.enableVertexAttribArray(vertexColor);
 }

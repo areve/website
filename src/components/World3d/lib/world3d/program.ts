@@ -14,8 +14,8 @@ export function setupProgramInfo(gl: WebGLRenderingContext) {
       vertexColor: gl.getAttribLocation(program, "aVertexColor"),
     },
     uniformLocations: {
-      projectionMatrix: gl.getUniformLocation(program, "uProjectionMatrix"),
-      modelViewMatrix: gl.getUniformLocation(program, "uModelViewMatrix"),
+      projectionMatrix: gl.getUniformLocation(program, "uProjectionMatrix")!,
+      modelViewMatrix: gl.getUniformLocation(program, "uModelViewMatrix")!,
     },
   };
 

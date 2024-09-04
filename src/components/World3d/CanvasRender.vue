@@ -21,11 +21,7 @@
 
 <script lang="ts" setup>
 import { onMounted, onUpdated, ref } from "vue";
-import {
-  FrameUpdated,
-  RenderModel,
-  RenderService,
-} from "./lib/MultiThreadedRender";
+import { RenderModel, RenderService, FrameUpdated } from "./world/render";
 
 interface CanvasRenderProps {
   model: RenderModel;

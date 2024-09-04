@@ -1,7 +1,25 @@
-import { RenderService, RenderSetup } from "../lib/MultiThreadedRender";
-import WorldRenderWorker from "./WorldRenderWorker?worker";
 
-let singletonWorker: Worker;
+import { FrameUpdated, RenderModel, RenderService, RenderSetup, renderWorld } from "./render";
+import { makeWorldGenerator } from "./world";
+
+const generator = makeWorldGenerator(12345);
+
+class WorldGlRenderService implements RenderService {
+  private canvas!: HTMLCanvasElement;
+  private gl!: WebGL2RenderingContext;
+  private model!: RenderModel;
+  frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
+  init = (canvas: HTMLCanvasElement, model: RenderModel) => {
+    this.gl = canvas.getContext("webgl2")!;
+    this.update(model)
+  };
+  update(model: RenderModel): void {
+    this.model = model;
+    renderWorld(this.gl, generator);
+  }
+}
+
+const singletonWorldGlRenderService = new WorldGlRenderService()
 
 export const makeWorld = (seed: number): RenderSetup => {
   return {
@@ -14,8 +32,7 @@ export const makeWorld = (seed: number): RenderSetup => {
       selected: false,
     },
     renderService: () => {
-      singletonWorker ??= new WorldRenderWorker();
-      return new RenderService(singletonWorker);
+      return singletonWorldGlRenderService;
     },
   };
 };

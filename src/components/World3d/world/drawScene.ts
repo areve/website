@@ -6,7 +6,7 @@ import {
   setupPositions,
 } from "./buffers";
 import { setupProgramInfo as createProgram } from "./program";
-import { WorldGenerator } from "../../world/world";
+import { WorldGenerator } from "./world";
 
 const vtl = -40;
 function getModel2(

@@ -1,5 +1,10 @@
 import { mat4 } from "gl-matrix";
-import { createColors, createIndices, createNormals, setupPositions } from "./buffers";
+import {
+  createColors,
+  createIndices,
+  createNormals,
+  setupPositions,
+} from "./buffers";
 import { setupProgramInfo as createProgram } from "./program";
 
 function getModel() {
@@ -108,9 +113,12 @@ function getModel2() {
     for (let x = 0; x < width; x++) {
       const vertex = [x, y, Math.random()];
       vertices1.push(vertex);
-      // colors1.push([1 - Math.random(), Math.random(), 0, 1]);
-      colors1.push([0, 0.5, 0, 1]);
-      normals1.push([x/ width, y/height, Math.random()])
+
+      // TODO random colors for now
+      colors1.push([0.2 + 0.2 * Math.random(), 0.4 + 0.2 * Math.random(), 0, 1]);
+
+      // TODO not sure how to do better normals yet
+      normals1.push([x / width, y / height, Math.random()]);
     }
   }
   for (let y = 0; y < height - 1; y++) {
@@ -147,12 +155,11 @@ export function drawScene(gl: WebGLRenderingContext, cubeRotation: number) {
   setupPositions(gl, model.vertices, program.vertexPosition);
   createColors(gl, model.colors, program.vertexColor);
   createNormals(gl, model.normals, program.vertexNormal);
-  console.log(program)
+  console.log(program);
 
   // const normalMatrix = mat4.create();
   // mat4.invert(normalMatrix, program.modelViewMatrix);
   // mat4.transpose(normalMatrix, normalMatrix);
-
 
   const indices = createIndices(gl, model.indices);
   gl.useProgram(program.instance);
@@ -224,7 +231,7 @@ function applyModelViewMatrix2(
   mat4.rotate(matrix, matrix, -0.25 * Math.PI, [1, 0, 0]);
 
   gl.uniformMatrix4fv(location, false, matrix);
-  return matrix
+  return matrix;
 }
 
 function doNormalMatrix(

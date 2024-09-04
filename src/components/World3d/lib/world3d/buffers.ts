@@ -1,72 +1,56 @@
-function initBuffers(gl) {
-  const positionBuffer = initPositionBuffer(gl);
+export function initBuffers(gl: WebGLRenderingContext) {
+  const position = initPositionBuffer(gl);
 
   const colorBuffer = initColorBuffer(gl);
 
   const indexBuffer = initIndexBuffer(gl);
 
   return {
-    position: positionBuffer,
+    position,
     color: colorBuffer,
     indices: indexBuffer,
   };
 }
 
-function initPositionBuffer(gl) {
-  // Create a buffer for the square's positions.
-  const positionBuffer = gl.createBuffer();
-
-  // Select the positionBuffer as the one to apply buffer
-  // operations to from here out.
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
+function initPositionBuffer(gl: WebGLRenderingContext) {
+  const buffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+  const frontFace = [-1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
+  const backFace = [-1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1, -1];
+  const topFace = [-1, 1, -1, -1, 1, 1, 1, 1, 1, 1, 1, -1];
+  const bottomFace = [-1, -1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1];
+  const rightFace = [1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1];
+  const leftFace = [-1, -1, -1, -1, -1, 1, -1, 1, 1, -1, 1, -1];
   const positions = [
-    // Front face
-    -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0,
-
-    // Back face
-    -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0,
-
-    // Top face
-    -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0,
-
-    // Bottom face
-    -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0,
-
-    // Right face
-    1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, 1.0, 1.0, 1.0, -1.0, 1.0,
-
-    // Left face
-    -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0, 1.0, -1.0,
-  ];
-
-  // Now pass the list of positions into WebGL to build the
-  // shape. We do this by creating a Float32Array from the
-  // JavaScript array, then use it to fill the current buffer.
+    frontFace,
+    backFace,
+    topFace,
+    bottomFace,
+    rightFace,
+    leftFace,
+  ].flat();
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-  return positionBuffer;
+  return buffer;
 }
 
-function initColorBuffer(gl) {
+function initColorBuffer(gl: WebGLRenderingContext) {
+  const frontFace = [1, 1, 1, 1];
+  const backFace = [1, 0, 0, 1];
+  const topFace = [0, 1, 0, 1];
+  const bottomFace = [0, 0, 1, 1];
+  const rightFace = [1, 1, 0, 1];
+  const leftFace = [1, 0, 1, 1];
   const faceColors = [
-    [1.0, 1.0, 1.0, 1.0], // Front face: white
-    [1.0, 0.0, 0.0, 1.0], // Back face: red
-    [0.0, 1.0, 0.0, 1.0], // Top face: green
-    [0.0, 0.0, 1.0, 1.0], // Bottom face: blue
-    [1.0, 1.0, 0.0, 1.0], // Right face: yellow
-    [1.0, 0.0, 1.0, 1.0], // Left face: purple
+    frontFace,
+    backFace,
+    topFace,
+    bottomFace,
+    rightFace,
+    leftFace,
   ];
 
-  // Convert the array of colors into a table for all the vertices.
+  const colors = faceColors.map((c) => [c, c, c, c]).flat().flat();
 
-  var colors = [];
-
-  for (var j = 0; j < faceColors.length; ++j) {
-    const c = faceColors[j];
-    // Repeat each color four times for the four vertices of the face
-    colors = colors.concat(c, c, c, c);
-  }
 
   const colorBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
@@ -75,7 +59,7 @@ function initColorBuffer(gl) {
   return colorBuffer;
 }
 
-function initIndexBuffer(gl) {
+function initIndexBuffer(gl: WebGLRenderingContext) {
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
@@ -132,5 +116,3 @@ function initIndexBuffer(gl) {
 
   return indexBuffer;
 }
-
-export { initBuffers };

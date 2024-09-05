@@ -33,7 +33,7 @@ export function createLandscapeModel(
   const viewportAndCameraX = width / 2 + cameraX;
   const viewportAndCameraY = height / 2 + cameraY;
 
-  const heightScale = 40;
+  const heightScale = 40 / cameraZoom;
   for (let iy = 0; iy < height; iy++) {
     for (let ix = 0; ix < width; ix++) {
       const worldPoint = generator(
@@ -44,10 +44,14 @@ export function createLandscapeModel(
       const color = pixel(worldPoint) as number[];
       colors1.push([...color, 1]);
       if (worldPoint.isSea) {
-        const vertex = [ix, iy, 0.6 * heightScale];
+        const vertex = [ix, iy, 0];
         vertices1.push(vertex);
       } else {
-        const vertex = [ix, iy, worldPoint.height * heightScale];
+        const vertex = [
+          ix,
+          iy,
+          (worldPoint.height - worldPoint.seaLevel) * heightScale,
+        ];
         vertices1.push(vertex);
       }
     }

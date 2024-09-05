@@ -116,8 +116,8 @@ function createProjectionMatrix(gl: WebGLRenderingContext) {
 
 function createModelViewMatrix(width: number) {
   const matrix = mat4.create();
-  mat4.translate(matrix, matrix, [-width / 2, -40, -50]);
-  mat4.rotate(matrix, matrix, -0.22 * Math.PI, [1, 0, 0]);
+  mat4.translate(matrix, matrix, [-width / 2, -25, -50]);
+  mat4.rotate(matrix, matrix, -0.20 * Math.PI, [1, 0, 0]);
   return matrix;
 }
 

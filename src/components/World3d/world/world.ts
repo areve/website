@@ -76,7 +76,7 @@ export const makeWorldGenerator = (seed: number) => {
       0.7 * moisture1(x, y, z) + //
       0.3 * moisture2(x, y, z);
 
-    const seaLevel = 0.6;
+    const seaLevel = 0.6; // TODO perhaps move this to the model
     const isSea = height < seaLevel;
 
     const heightAboveSeaLevel = ((height - seaLevel) / (1 - seaLevel)) ** 0.5;
@@ -90,6 +90,7 @@ export const makeWorldGenerator = (seed: number) => {
     );
     return {
       height,
+      seaLevel,
       isSea,
       heightAboveSeaLevel,
       seaDepth,

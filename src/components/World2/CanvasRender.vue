@@ -45,22 +45,19 @@ let frame: number;
 
 let then = 0;
 const update = (now: number) => {
-  if (busy) return next(now);
-  if (!props.model.selected) return next(now);
-  if (props.model.paused) return next(now);
+  if (busy) return next();
+  if (!props.model.selected) return (then = now), next();
+  if (!props.model.paused) props.model.frame += (now - then) * 0.01;
   const state = JSON.stringify(toRaw(props.model));
-  if (state === lastState) return next(now);
+  if (state === lastState) return next();
   lastState = state;
-  props.model.frame += (then - now) * 0.1;
   busy = true;
   props.renderService.update(props.model);
-  next(now);
+  then = now;
+  next();
 };
 
-const next = (now: number) => {
-  frame = requestAnimationFrame(update);
-  then = now;
-};
+const next = () => (frame = requestAnimationFrame(update));
 
 const frameUpdated = (frameUpdated: FrameUpdated) => {
   const pixels = props.model.dimensions.height * props.model.dimensions.width;
@@ -72,7 +69,8 @@ const frameUpdated = (frameUpdated: FrameUpdated) => {
 onMounted(() => {
   props.renderService.init(canvas.value, props.model);
   props.renderService.frameUpdated = frameUpdated;
-  update();
+  // update();
+  next();
 });
 // onUpdated(update);
 onUnmounted(() => {

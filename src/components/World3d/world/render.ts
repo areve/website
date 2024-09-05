@@ -46,8 +46,8 @@ function render(
   generator: WorldGenerator,
   pixel: (point: WorldPoint) => Rgb
 ) {
-  const width = 100;
-  const height = 100;
+  const width = 160;
+  const height = 90;
   const landscapeModel = createLandscapeModel(
     width,
     height,

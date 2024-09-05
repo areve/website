@@ -77,7 +77,8 @@ export function createLandscapeModel(
   const vertices = vertices1.flat();
   const colors = colors1.flat();
   const indices = indices1.flat();
-  const normals = calculateNormals(vertices, indices);
+  // const normals = calculateNormals(vertices, indices);
+  const normals = vertices.map(v=> [0, 0, 1]).flat();
 
   return {
     positions: vertices,

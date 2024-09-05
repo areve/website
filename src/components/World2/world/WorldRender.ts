@@ -12,6 +12,7 @@ export const makeWorld = (seed: number): RenderSetup => {
       dimensions: { width: 500, height: 200 },
       camera: { x: 0, y: 0, zoom: 1 },
       selected: false,
+      paused: false
     },
     renderService: () => {
       singletonWorker ??= new WorldRenderWorker();

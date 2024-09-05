@@ -15,6 +15,7 @@ export interface RenderModel {
   dimensions: Dimensions;
   camera: Camera;
   selected: boolean;
+  paused: boolean;
   canvas?: OffscreenCanvas;
 }
 

@@ -41,6 +41,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import CanvasRender from "./CanvasRender.vue";
 import { makeWorld } from "./world/WorldRender";
 import { RenderSetup } from "./lib/MultiThreadedRender";
+import { bindController, unbindController } from "./lib/controller";
 
 const seed = ref(12345);
 
@@ -60,16 +61,18 @@ let frameId: number;
 
 function update() {
   renderSetups.value
-    .filter((v) => v.model.selected)
+    .filter((v) => v.model.selected && !v.model.paused)
     .forEach((v) => ++v.model.frame);
   frameId = requestAnimationFrame(update);
 }
 onMounted(async () => {
+  bindController();
   document.addEventListener("keydown", onKeyDown);
   update();
 });
 
 onUnmounted(() => {
+  unbindController();
   document.removeEventListener("keydown", onKeyDown);
   cancelAnimationFrame(frameId);
 });
@@ -83,7 +86,9 @@ const onKeyDown = (event: KeyboardEvent) => {
     );
   if (event.key === "k") renderSetups.value.forEach((v) => (v.model.frame = 0));
   if (event.key === "p")
-    renderSetups.value.forEach((v) => (v.model.selected = !v.model.selected));
+    renderSetups.value
+      .filter((v) => v.model.selected)
+      .forEach((v) => (v.model.paused = !v.model.paused));
 
   renderSetups.value
     .filter((v) => v.model.selected)
@@ -104,7 +109,7 @@ const onKeyDown = (event: KeyboardEvent) => {
       if (v.model.dimensions.width < 50) v.model.dimensions.width = 50;
     });
 
-  console.log(event.key);
+  // console.log(event.key);
 };
 </script>
 

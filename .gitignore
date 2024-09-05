@@ -9,3 +9,4 @@ yarn-error.log
 src/as/node_modules/
 src/as/.yarn/*
 src/as/build/
+*.bak

@@ -41,7 +41,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import CanvasRender from "./CanvasRender.vue";
 import { makeWorld } from "./world/WorldRender";
 import { RenderSetup } from "./lib/MultiThreadedRender";
-import { bindController, unbindController } from "./lib/controller";
+import { bindController, keyPressed, unbindController } from "./lib/controller";
 
 const seed = ref(12345);
 
@@ -58,26 +58,53 @@ function select(renderSetup: RenderSetup, event: MouseEvent) {
 }
 
 let frameId: number;
+let controllerCheck: number;
 
 function update() {
   renderSetups.value
     .filter((v) => v.model.selected && !v.model.paused)
     .forEach((v) => ++v.model.frame);
   frameId = requestAnimationFrame(update);
+  controllerCheck = requestAnimationFrame(handleController);
 }
 onMounted(async () => {
   bindController();
-  document.addEventListener("keydown", onKeyDown);
+  document.addEventListener("keypress", onKeyPress);
   update();
 });
 
 onUnmounted(() => {
   unbindController();
-  document.removeEventListener("keydown", onKeyDown);
+  document.removeEventListener("keypress", onKeyPress);
   cancelAnimationFrame(frameId);
+  cancelAnimationFrame(controllerCheck);
 });
 
-const onKeyDown = (event: KeyboardEvent) => {
+let then = 0;
+const handleController = (now: number) => {
+  const diff = (now - then) / 1000;
+  renderSetups.value
+    .filter((v) => v.model.selected)
+    .forEach((v) => {
+      const zoom = v.model.camera.zoom;
+      if (keyPressed("a")) v.model.camera.x -= 200 * zoom * diff;
+      if (keyPressed("d")) v.model.camera.x += 200 * zoom * diff;
+      if (keyPressed("w")) v.model.camera.y -= 200 * zoom * diff;
+      if (keyPressed("s")) v.model.camera.y += 200 * zoom * diff;
+      if (keyPressed("'")) v.model.camera.zoom /= (1 + 0.5 * diff);
+      if (keyPressed("/")) v.model.camera.zoom *= (1 + 0.5 * diff);
+      if (keyPressed("t")) v.model.dimensions.height += Math.floor(200 * diff);
+      if (keyPressed("g")) v.model.dimensions.height -= Math.floor(200 * diff);
+      if (keyPressed("h")) v.model.dimensions.width += Math.floor(200 * diff);
+      if (keyPressed("f")) v.model.dimensions.width -= Math.floor(200 * diff);
+      if (v.model.dimensions.height < 50) v.model.dimensions.height = 50;
+      if (v.model.dimensions.width < 50) v.model.dimensions.width = 50;
+    });
+
+  then = now;
+  controllerCheck = requestAnimationFrame(handleController);
+};
+const onKeyPress = (event: KeyboardEvent) => {
   if (event.key === "a" && event.ctrlKey)
     return renderSetups.value.forEach((v) => (v.model.selected = true));
   if (event.key === "j")
@@ -89,27 +116,6 @@ const onKeyDown = (event: KeyboardEvent) => {
     renderSetups.value
       .filter((v) => v.model.selected)
       .forEach((v) => (v.model.paused = !v.model.paused));
-
-  renderSetups.value
-    .filter((v) => v.model.selected)
-    .forEach((v) => {
-      const zoom = v.model.camera.zoom;
-      if (event.key === "a") v.model.camera.x -= 25 * zoom;
-      if (event.key === "d") v.model.camera.x += 25 * zoom;
-      if (event.key === "w") v.model.camera.y -= 25 * zoom;
-      if (event.key === "s") v.model.camera.y += 25 * zoom;
-      if (event.key === "'") v.model.camera.zoom /= 1.2;
-      if (event.key === "/") v.model.camera.zoom *= 1.2;
-      if (event.key === "t") v.model.dimensions.height += 50;
-      if (event.key === "g") v.model.dimensions.height -= 50;
-      if (event.key === "h") v.model.dimensions.width += 50;
-      if (event.key === "f") v.model.dimensions.width -= 50;
-
-      if (v.model.dimensions.height < 50) v.model.dimensions.height = 50;
-      if (v.model.dimensions.width < 50) v.model.dimensions.width = 50;
-    });
-
-  // console.log(event.key);
 };
 </script>
 

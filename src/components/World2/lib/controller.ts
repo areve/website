@@ -4,7 +4,7 @@ type KeysState = {
   };
 };
 
-export const keysState: KeysState = {};
+const keysState: KeysState = {};
 
 export function bindController() {
   document.addEventListener("keydown", onKeyDown);
@@ -14,6 +14,11 @@ export function bindController() {
 export function unbindController() {
   document.removeEventListener("keydown", onKeyDown);
   document.removeEventListener("keyup", onKeyUp);
+}
+
+export function keyPressed(key: string) {
+  if (keysState[key]) return keysState[key].pressed;
+  return false;
 }
 
 function onKeyDown(event: KeyboardEvent) {

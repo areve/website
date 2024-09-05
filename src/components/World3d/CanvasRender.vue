@@ -14,7 +14,7 @@
         (ratePixelsPerSecond / 1000000).toPrecision(3)
       }}
       Mpix/sec, FPS:{{ fps.toPrecision(2) }}) (seed: {{ model.seed }}, frame:
-      {{ model.frame }})
+      {{ model.frame.toFixed(2) }})
     </div>
   </section>
 </template>

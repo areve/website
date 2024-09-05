@@ -28,10 +28,10 @@ export function createLandscapeModel(
   const cameraX = camera?.x ?? 0;
   const cameraY = camera?.y ?? 0;
   const cameraZoom = camera?.zoom ?? 1;
-  const viewportCenterX = dimensions.width / 2 - x;
-  const viewportCenterY = dimensions.height / 2 - y;
-  const viewportAndCameraX = dimensions.width / 2 + cameraX;
-  const viewportAndCameraY = dimensions.height / 2 + cameraY;
+  const viewportCenterX = width / 2 - x;
+  const viewportCenterY = height / 2 - y;
+  const viewportAndCameraX = width / 2 + cameraX;
+  const viewportAndCameraY = height / 2 + cameraY;
 
   const heightScale = 40;
   for (let iy = 0; iy < height; iy++) {

@@ -108,7 +108,7 @@ function createProjectionMatrix(gl: WebGLRenderingContext) {
   const fieldOfView = (45 * Math.PI) / 180;
   const aspect = gl.canvas.width / gl.canvas.height;
   const zNear = 0.1;
-  const zFar = 100.0;
+  const zFar = 150.0;
   const matrix = mat4.create();
   mat4.perspective(matrix, fieldOfView, aspect, zNear, zFar);
   return matrix;
@@ -117,7 +117,7 @@ function createProjectionMatrix(gl: WebGLRenderingContext) {
 function createModelViewMatrix(width: number) {
   const matrix = mat4.create();
   mat4.translate(matrix, matrix, [-width / 2, -25, -50]);
-  mat4.rotate(matrix, matrix, -0.20 * Math.PI, [1, 0, 0]);
+  mat4.rotate(matrix, matrix, -0.22 * Math.PI, [1, 0, 0]);
   return matrix;
 }
 

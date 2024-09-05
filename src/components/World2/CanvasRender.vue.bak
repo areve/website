@@ -47,15 +47,14 @@ let lastAnimFrame = 0;
 const update = (animFrame: number) => {
   if (busy) return next();
   if (!props.model.selected) return (lastAnimFrame = animFrame), next();
-  if (!props.model.paused) {
+  if (!props.model.paused)
     props.model.frame += (animFrame - lastAnimFrame) * 0.01;
-  }
-  lastAnimFrame = animFrame;
   const state = JSON.stringify(toRaw(props.model));
   if (state === lastState) return next();
   lastState = state;
   busy = true;
   props.renderService.update(props.model);
+  lastAnimFrame = animFrame;
   next();
 };
 

@@ -30,6 +30,7 @@ export interface RenderModel {
   dimensions: Dimensions;
   camera: Camera;
   selected: boolean;
+  paused: boolean;
   canvas?: OffscreenCanvas;
 }
 
@@ -77,6 +78,7 @@ class WorldGlRenderService implements RenderService {
     this.generator = makeWorldGenerator(model.seed);
     this.pixel = pixel;
     this.programInfo = setupProgram(this.gl);
+    this.update(model)
   };
   update(model: RenderModel): void {
     this.model = toRaw(model);
@@ -104,6 +106,7 @@ export const makeWorld = (seed: number): RenderSetup => {
       dimensions: { width: 500, height: 200 },
       camera: { x: 0, y: 0, zoom: 1 },
       selected: false,
+      paused: true,
     },
     renderService: () => {
       return singletonWorldGlRenderService;

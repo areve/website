@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUpdated, ref } from "vue";
+import { onMounted, onUnmounted, onUpdated, ref, toRaw } from "vue";
 import { RenderModel, RenderService, FrameUpdated } from "./world/render";
 
 interface CanvasRenderProps {
@@ -34,30 +34,45 @@ const props = defineProps<CanvasRenderProps>();
 const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
-let lastFrame = -1;
+let lastState: string;
 let busy = false;
-const update = () => {
-  if (busy) return;
-  if (props.model.frame === lastFrame) return; // TODO hack cos of problem re-rendering
+
+let frame: number;
+
+let lastAnimFrame = 0;
+const update = (animFrame: number) => {
+  if (busy) return next();
+  if (!props.model.selected) return (lastAnimFrame = animFrame), next();
+  if (!props.model.paused) {
+    props.model.frame += (animFrame - lastAnimFrame) * 0.01;
+  }
+  lastAnimFrame = animFrame;
+  const state = JSON.stringify(toRaw(props.model));
+  if (state === lastState) return next();
+  lastState = state;
   busy = true;
   props.renderService.update(props.model);
+  next();
 };
+
+const next = () => (frame = requestAnimationFrame(update));
 
 const frameUpdated = (frameUpdated: FrameUpdated) => {
   const pixels = props.model.dimensions.height * props.model.dimensions.width;
   ratePixelsPerSecond.value = pixels / frameUpdated.timeTaken;
   fps.value = 1 / frameUpdated.timeTaken;
   busy = false;
-
-  lastFrame = frameUpdated.frame;
 };
 
 onMounted(() => {
   props.renderService.init(canvas.value, props.model);
   props.renderService.frameUpdated = frameUpdated;
-  update();
+  next();
 });
-onUpdated(update);
+
+onUnmounted(() => {
+  cancelAnimationFrame(frame);
+});
 </script>
 
 <style scoped>

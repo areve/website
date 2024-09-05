@@ -1,4 +1,5 @@
 import { Rgb } from "../lib/color";
+import { RenderModel } from "./render";
 import { WorldGenerator, WorldPoint } from "./world";
 
 export interface Model {
@@ -13,7 +14,7 @@ export interface Model {
 export function createLandscapeModel(
   width: number,
   height: number,
-  frame: number,
+  model: RenderModel,
   generator: WorldGenerator,
   pixel: (point: WorldPoint) => Rgb
 ): Model {
@@ -21,17 +22,32 @@ export function createLandscapeModel(
   let indices1: number[][] = [];
   let colors1: number[][] = [];
 
+  const x = 0;
+  const y = 0;
+  const { camera, dimensions } = model;
+  const cameraX = camera?.x ?? 0;
+  const cameraY = camera?.y ?? 0;
+  const cameraZoom = camera?.zoom ?? 1;
+  const viewportCenterX = dimensions.width / 2 - x;
+  const viewportCenterY = dimensions.height / 2 - y;
+  const viewportAndCameraX = dimensions.width / 2 + cameraX;
+  const viewportAndCameraY = dimensions.height / 2 + cameraY;
+
   const heightScale = 40;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const worldPoint = generator(x, y, frame);
+  for (let iy = 0; iy < height; iy++) {
+    for (let ix = 0; ix < width; ix++) {
+      const worldPoint = generator(
+        (ix - viewportCenterX) * cameraZoom + viewportAndCameraX,
+        (iy - viewportCenterY) * cameraZoom + viewportAndCameraY,
+        model.frame
+      );
       const color = pixel(worldPoint) as number[];
       colors1.push([...color, 1]);
       if (worldPoint.isSea) {
-        const vertex = [x, y, 0.6 * heightScale];
+        const vertex = [ix, iy, 0.6 * heightScale];
         vertices1.push(vertex);
       } else {
-        const vertex = [x, y, worldPoint.height * heightScale];
+        const vertex = [ix, iy, worldPoint.height * heightScale];
         vertices1.push(vertex);
       }
     }

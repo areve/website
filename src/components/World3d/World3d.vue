@@ -84,8 +84,8 @@ const handleController = (animFrame: number) => {
       const zoom = v.model.camera.zoom;
       if (keyPressed("a")) v.model.camera.x -= 200 * zoom * diff;
       if (keyPressed("d")) v.model.camera.x += 200 * zoom * diff;
-      if (keyPressed("w")) v.model.camera.y -= 200 * zoom * diff;
-      if (keyPressed("s")) v.model.camera.y += 200 * zoom * diff;
+      if (keyPressed("w")) v.model.camera.y += 200 * zoom * diff;
+      if (keyPressed("s")) v.model.camera.y -= 200 * zoom * diff;
       if (keyPressed("'")) v.model.camera.zoom /= 1 + 0.5 * diff;
       if (keyPressed("/")) v.model.camera.zoom *= 1 + 0.5 * diff;
       if (keyPressed("t")) v.model.dimensions.height += Math.floor(200 * diff);

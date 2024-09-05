@@ -51,11 +51,11 @@ function render(
   const landscapeModel = createLandscapeModel(
     width,
     height,
-    model.frame,
+    model,
     generator,
     pixel
   );
-
+  
   const positions = createPositionsBuffer(gl, landscapeModel.positions);
   const colors = createColorsBuffer(gl, landscapeModel.colors);
   const normals = createNormalsBuffer(gl, landscapeModel.normals);

@@ -2,7 +2,6 @@ import { mat4 } from "gl-matrix";
 import { ProgramInfo } from "./program";
 import { Model } from "./landscapeModel";
 
-const vtl = -40;
 export function drawScene(
   gl: WebGLRenderingContext,
   programInfo: ProgramInfo,
@@ -117,8 +116,8 @@ function createProjectionMatrix(gl: WebGLRenderingContext) {
 
 function createModelViewMatrix(width: number) {
   const matrix = mat4.create();
-  mat4.translate(matrix, matrix, [-width / 2, vtl, -50]);
-  mat4.rotate(matrix, matrix, -0.25 * Math.PI, [1, 0, 0]);
+  mat4.translate(matrix, matrix, [-width / 2, -40, -50]);
+  mat4.rotate(matrix, matrix, -0.22 * Math.PI, [1, 0, 0]);
   return matrix;
 }
 

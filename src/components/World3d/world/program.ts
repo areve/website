@@ -40,9 +40,9 @@ function createProgram(gl: WebGLRenderingContext): WebGLProgram {
     void main(void) {
       gl_Position = projectionMatrix * modelViewMatrix * vertexPosition;
       
-      highp vec3 ambientLight = vec3(0.8, 0.8, 0.8);
-      highp vec3 directionalLightColor = vec3(0.2, 0.2, 0.2);
-      highp vec3 directionalVector = normalize(vec3(0.0, 0.0, 1.0));
+      highp vec3 ambientLight = vec3(0.8, 0.8, 0.9);
+      highp vec3 directionalLightColor = vec3(0.2, 0.2, 0.1);
+      highp vec3 directionalVector = normalize(vec3(0.5, 0.2, 0.9));
       highp vec4 transformedNormal = normalMatrix * vertexNormal;
       highp float directional = max(dot(transformedNormal.xyz, directionalVector), 0.0);
   

@@ -57,16 +57,12 @@ function select(renderSetup: RenderSetup, event: MouseEvent) {
   renderSetup.model.selected = !renderSetup.model.selected;
 }
 
-let frameId: number;
 let controllerCheck: number;
 
 function update() {
-  renderSetups.value
-    .filter((v) => v.model.selected && !v.model.paused)
-    .forEach((v) => ++v.model.frame);
-  frameId = requestAnimationFrame(update);
   controllerCheck = requestAnimationFrame(handleController);
 }
+
 onMounted(async () => {
   bindController();
   document.addEventListener("keypress", onKeyPress);
@@ -76,7 +72,7 @@ onMounted(async () => {
 onUnmounted(() => {
   unbindController();
   document.removeEventListener("keypress", onKeyPress);
-  cancelAnimationFrame(frameId);
+  // cancelAnimationFrame(frameId);
   cancelAnimationFrame(controllerCheck);
 });
 

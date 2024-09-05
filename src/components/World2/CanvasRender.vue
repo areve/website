@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUpdated, ref } from "vue";
+import { onMounted, onUnmounted, onUpdated, ref, toRaw } from "vue";
 import {
   FrameUpdated,
   RenderModel,
@@ -38,14 +38,28 @@ const props = defineProps<CanvasRenderProps>();
 const fps = ref(0);
 const ratePixelsPerSecond = ref(0);
 
-let lastFrame = 0;
+let lastState: string;
 let busy = false;
-const update = () => {
-  if (busy) return;
-  if (!props.model.selected) return;
-  if (props.model.frame === lastFrame) return; // TODO hack cos of problem re-rendering
+
+let frame: number;
+
+let then = 0;
+const update = (now: number) => {
+  if (busy) return next(now);
+  if (!props.model.selected) return next(now);
+  if (props.model.paused) return next(now);
+  const state = JSON.stringify(toRaw(props.model));
+  if (state === lastState) return next(now);
+  lastState = state;
+  props.model.frame += (then - now) * 0.1;
   busy = true;
   props.renderService.update(props.model);
+  next(now);
+};
+
+const next = (now: number) => {
+  frame = requestAnimationFrame(update);
+  then = now;
 };
 
 const frameUpdated = (frameUpdated: FrameUpdated) => {
@@ -60,7 +74,10 @@ onMounted(() => {
   props.renderService.frameUpdated = frameUpdated;
   update();
 });
-onUpdated(update);
+// onUpdated(update);
+onUnmounted(() => {
+  cancelAnimationFrame(frame);
+});
 </script>
 
 <style scoped>

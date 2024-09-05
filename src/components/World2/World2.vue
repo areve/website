@@ -76,9 +76,9 @@ onUnmounted(() => {
   cancelAnimationFrame(controllerCheck);
 });
 
-let then = 0;
-const handleController = (now: number) => {
-  const diff = (now - then) / 1000;
+let lastAnimFrame = 0;
+const handleController = (animFrame: number) => {
+  const diff = (animFrame - lastAnimFrame) / 1000;
   renderSetups.value
     .filter((v) => v.model.selected)
     .forEach((v) => {
@@ -87,8 +87,8 @@ const handleController = (now: number) => {
       if (keyPressed("d")) v.model.camera.x += 200 * zoom * diff;
       if (keyPressed("w")) v.model.camera.y -= 200 * zoom * diff;
       if (keyPressed("s")) v.model.camera.y += 200 * zoom * diff;
-      if (keyPressed("'")) v.model.camera.zoom /= (1 + 0.5 * diff);
-      if (keyPressed("/")) v.model.camera.zoom *= (1 + 0.5 * diff);
+      if (keyPressed("'")) v.model.camera.zoom /= 1 + 0.5 * diff;
+      if (keyPressed("/")) v.model.camera.zoom *= 1 + 0.5 * diff;
       if (keyPressed("t")) v.model.dimensions.height += Math.floor(200 * diff);
       if (keyPressed("g")) v.model.dimensions.height -= Math.floor(200 * diff);
       if (keyPressed("h")) v.model.dimensions.width += Math.floor(200 * diff);
@@ -97,7 +97,7 @@ const handleController = (now: number) => {
       if (v.model.dimensions.width < 50) v.model.dimensions.width = 50;
     });
 
-  then = now;
+  lastAnimFrame = animFrame;
   controllerCheck = requestAnimationFrame(handleController);
 };
 const onKeyPress = (event: KeyboardEvent) => {

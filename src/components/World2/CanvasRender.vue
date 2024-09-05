@@ -43,17 +43,17 @@ let busy = false;
 
 let frame: number;
 
-let then = 0;
-const update = (now: number) => {
+let lastAnimFrame = 0;
+const update = (animFrame: number) => {
   if (busy) return next();
-  if (!props.model.selected) return (then = now), next();
-  if (!props.model.paused) props.model.frame += (now - then) * 0.01;
+  if (!props.model.selected) return (lastAnimFrame = animFrame), next();
+  if (!props.model.paused) props.model.frame += (animFrame - lastAnimFrame) * 0.01;
   const state = JSON.stringify(toRaw(props.model));
   if (state === lastState) return next();
   lastState = state;
   busy = true;
   props.renderService.update(props.model);
-  then = now;
+  lastAnimFrame = animFrame;
   next();
 };
 

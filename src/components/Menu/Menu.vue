@@ -88,6 +88,9 @@
           <li>
             <router-link to="/world3d" @click="toggle()">World 3D</router-link>
           </li>
+          <li>
+            <router-link to="/webgl" @click="toggle()">WebGL</router-link>
+          </li>
         </ul>
       </nav>
     </div>

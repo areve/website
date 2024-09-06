@@ -1,6 +1,6 @@
 import {
   GlRenderService,
-  ProgramInfo,
+  GlProgramInfo,
   RenderModel,
   RenderSetup,
 } from "./render";
@@ -27,7 +27,7 @@ export const makeSphere2RenderSetup = (): RenderSetup => {
 
 function render(
   gl: WebGL2RenderingContext,
-  programInfo: ProgramInfo,
+  programInfo: GlProgramInfo,
   model: RenderModel
 ) {
   gl.clearColor(0.3, 0.7, 0.0, 1.0);
@@ -37,10 +37,11 @@ function render(
 function setupProgram(
   gl: WebGL2RenderingContext,
   model: RenderModel
-): ProgramInfo {
+): GlProgramInfo {
   const program = gl.createProgram()!;
   gl.linkProgram(program);
   return {
     program,
   };
 }
+

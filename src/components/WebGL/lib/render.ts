@@ -36,7 +36,7 @@ export interface FrameUpdated {
   timeTaken: number;
 }
 
-export interface ProgramInfo {
+export interface GlProgramInfo {
   program: WebGLProgram;
 }
 
@@ -44,26 +44,26 @@ export class GlRenderService implements RenderService {
   private canvas!: HTMLCanvasElement;
   private gl!: WebGL2RenderingContext;
   private model!: RenderModel;
-  private programInfo!: ProgramInfo;
+  private programInfo!: GlProgramInfo;
   private render: (
     gl: WebGL2RenderingContext,
-    programInfo: ProgramInfo,
+    programInfo: GlProgramInfo,
     model: RenderModel
   ) => void;
   private setupProgram: (
     gl: WebGL2RenderingContext,
     model: RenderModel
-  ) => ProgramInfo;
+  ) => GlProgramInfo;
   constructor(
     render: (
       gl: WebGL2RenderingContext,
-      programInfo: ProgramInfo,
+      programInfo: GlProgramInfo,
       model: RenderModel
     ) => void,
     setupProgram: (
       gl: WebGL2RenderingContext,
       model: RenderModel
-    ) => ProgramInfo
+    ) => GlProgramInfo
   ) {
     this.render = render;
     this.setupProgram = setupProgram;
@@ -91,4 +91,46 @@ export class GlRenderService implements RenderService {
   }
 }
 
+export interface CanvasProgramInfo {}
 
+export class CanvasRenderService implements RenderService {
+  private canvas!: HTMLCanvasElement;
+  private model!: RenderModel;
+  private programInfo!: CanvasProgramInfo;
+  private render: (programInfo: any, model: RenderModel) => void;
+  private setupProgram: (
+    canvas: HTMLCanvasElement,
+    model: RenderModel
+  ) => CanvasProgramInfo;
+  constructor(
+    render: (programInfo: CanvasProgramInfo, model: RenderModel) => void,
+    setupProgram: (
+      canvas: HTMLCanvasElement,
+      model: RenderModel
+    ) => CanvasProgramInfo
+  ) {
+    this.render = render;
+    this.setupProgram = setupProgram;
+  }
+  frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
+  init = (canvas: HTMLCanvasElement, model: RenderModel) => {
+    this.canvas = canvas;
+    this.programInfo = this.setupProgram(this.canvas, this.model);
+
+    this.update(model);
+  };
+  update(model: RenderModel): void {
+    this.model = toRaw(model);
+
+    const start = self.performance.now();
+
+    this.render(this.programInfo, this.model);
+
+    const end = self.performance.now();
+    if (!this.frameUpdated) return;
+    this.frameUpdated({
+      frame: this.model.frame,
+      timeTaken: (end - start) / 1000,
+    });
+  }
+}

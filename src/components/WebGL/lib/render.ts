@@ -114,6 +114,7 @@ export class CanvasRenderService implements RenderService {
   }
   frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
   init = (canvas: HTMLCanvasElement, model: RenderModel) => {
+    this.model = toRaw(model);
     this.canvas = canvas;
     this.programInfo = this.setupProgram(this.canvas, this.model);
 

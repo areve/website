@@ -5,7 +5,34 @@
       WebGL is a technology to render 3D on the web. Here are some experiments I
       did, using different methods to render fairly primitive objects.
     </p>
+    <div class="panels">
+      <div
+        v-for="renderSetup in renderSetups"
+        :class="{
+          selected: renderSetup.model.selected,
+        }"
+        class="panel"
+      >
+        <CanvasRender
+          v-model:model="renderSetup.model"
+          :renderService="renderSetup.renderService()"
+          >{{ renderSetup.model.title }}</CanvasRender
+        >
+      </div>
+    </div>
   </article>
 </template>
-<script lang="ts" setup></script>
+<script lang="ts" setup>
+import { ref } from "vue";
+import {
+  makeWorld,
+  RenderModel,
+  RenderSetup,
+  RenderService,
+  FrameUpdated,
+} from "./lib/render";
+import CanvasRender from "./CanvasRender.vue";
+
+const renderSetups = ref<RenderSetup[]>([makeWorld(12345)]);
+</script>
 <style scoped></style>

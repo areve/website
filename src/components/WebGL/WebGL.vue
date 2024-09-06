@@ -24,15 +24,10 @@
 </template>
 <script lang="ts" setup>
 import { ref } from "vue";
-import {
-  makeWorld,
-  RenderModel,
-  RenderSetup,
-  RenderService,
-  FrameUpdated,
-} from "./lib/render";
+import { RenderSetup } from "./lib/render";
+import { makeFooRenderSetup } from "./lib/foo";
 import CanvasRender from "./CanvasRender.vue";
 
-const renderSetups = ref<RenderSetup[]>([makeWorld(12345)]);
+const renderSetups = ref<RenderSetup[]>([makeFooRenderSetup()]);
 </script>
 <style scoped></style>

@@ -6,10 +6,10 @@ import {
 } from "./render";
 let singletonGlRenderService: GlRenderService;
 
-export const makeFooRenderSetup = (): RenderSetup => {
+export const makeSphere2RenderSetup = (): RenderSetup => {
   return {
     model: {
-      title: "Foo",
+      title: "Sphere 2",
       seed: 0,
       frame: 0,
       dimensions: { width: 500, height: 200 },
@@ -19,22 +19,22 @@ export const makeFooRenderSetup = (): RenderSetup => {
     },
     renderService: () =>
       (singletonGlRenderService ??= new GlRenderService(
-        fooRender,
-        fooSetupProgram
+        render,
+        setupProgram
       )),
   };
 };
 
-function fooRender(
+function render(
   gl: WebGL2RenderingContext,
   programInfo: ProgramInfo,
   model: RenderModel
 ) {
-  gl.clearColor(0.7, 0.3, 0.0, 1.0);
+  gl.clearColor(0.3, 0.7, 0.0, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 }
 
-function fooSetupProgram(
+function setupProgram(
   gl: WebGL2RenderingContext,
   model: RenderModel
 ): ProgramInfo {

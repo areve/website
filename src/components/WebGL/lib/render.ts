@@ -91,32 +91,25 @@ export class GlRenderService implements RenderService {
   }
 }
 
-export interface CanvasProgramInfo {}
-
 export class CanvasRenderService implements RenderService {
   private canvas!: HTMLCanvasElement;
   private model!: RenderModel;
-  private programInfo!: CanvasProgramInfo;
-  private render: (programInfo: any, model: RenderModel) => void;
-  private setupProgram: (
+  private render!: (model: RenderModel) => void;
+  private setup: (
     canvas: HTMLCanvasElement,
     model: RenderModel
-  ) => CanvasProgramInfo;
+  ) => (model: RenderModel) => void;
   constructor(
-    render: (programInfo: CanvasProgramInfo, model: RenderModel) => void,
-    setupProgram: (
-      canvas: HTMLCanvasElement,
-      model: RenderModel
-    ) => CanvasProgramInfo
+    setup: (canvas: HTMLCanvasElement, model: RenderModel) => (model: RenderModel) => void
   ) {
-    this.render = render;
-    this.setupProgram = setupProgram;
+    this.setup = setup;
   }
+
   frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
   init = (canvas: HTMLCanvasElement, model: RenderModel) => {
     this.model = toRaw(model);
     this.canvas = canvas;
-    this.programInfo = this.setupProgram(this.canvas, this.model);
+    this.render = this.setup(this.canvas, this.model);
 
     this.update(model);
   };
@@ -125,7 +118,7 @@ export class CanvasRenderService implements RenderService {
 
     const start = self.performance.now();
 
-    this.render(this.programInfo, this.model);
+    this.render(this.model);
 
     const end = self.performance.now();
     if (!this.frameUpdated) return;

@@ -22,10 +22,7 @@ export const makeSphere1RenderSetup = (): RenderSetup => {
   };
 };
 
-function setup(
-  canvas: HTMLCanvasElement,
-  model: RenderModel
-): CanvasProgramInfo {
+function setup(canvas: HTMLCanvasElement, model: RenderModel) {
   const { width, height } = model.dimensions;
 
   const renderer = new THREE.WebGLRenderer({ canvas });

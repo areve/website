@@ -36,61 +36,6 @@ export interface FrameUpdated {
   timeTaken: number;
 }
 
-export interface GlProgramInfo {
-  program: WebGLProgram;
-}
-
-export class GlRenderService implements RenderService {
-  private canvas!: HTMLCanvasElement;
-  private gl!: WebGL2RenderingContext;
-  private model!: RenderModel;
-  private programInfo!: GlProgramInfo;
-  private render: (
-    gl: WebGL2RenderingContext,
-    programInfo: GlProgramInfo,
-    model: RenderModel
-  ) => void;
-  private setupProgram: (
-    gl: WebGL2RenderingContext,
-    model: RenderModel
-  ) => GlProgramInfo;
-  constructor(
-    render: (
-      gl: WebGL2RenderingContext,
-      programInfo: GlProgramInfo,
-      model: RenderModel
-    ) => void,
-    setupProgram: (
-      gl: WebGL2RenderingContext,
-      model: RenderModel
-    ) => GlProgramInfo
-  ) {
-    this.render = render;
-    this.setupProgram = setupProgram;
-  }
-  frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
-  init = (canvas: HTMLCanvasElement, model: RenderModel) => {
-    this.gl = canvas.getContext("webgl2")!;
-    this.programInfo = this.setupProgram(this.gl, this.model);
-
-    this.update(model);
-  };
-  update(model: RenderModel): void {
-    this.model = toRaw(model);
-
-    const start = self.performance.now();
-
-    this.render(this.gl, this.programInfo, this.model);
-
-    const end = self.performance.now();
-    if (!this.frameUpdated) return;
-    this.frameUpdated({
-      frame: this.model.frame,
-      timeTaken: (end - start) / 1000,
-    });
-  }
-}
-
 export class CanvasRenderService implements RenderService {
   private canvas!: HTMLCanvasElement;
   private model!: RenderModel;

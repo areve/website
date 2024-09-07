@@ -1,10 +1,5 @@
-import {
-  GlRenderService,
-  GlProgramInfo,
-  RenderModel,
-  RenderSetup,
-} from "./render";
-let singletonGlRenderService: GlRenderService;
+import { RenderModel, RenderSetup, CanvasRenderService } from "./render";
+let singleton: CanvasRenderService;
 
 export const makeSphere2RenderSetup = (): RenderSetup => {
   return {
@@ -17,31 +12,17 @@ export const makeSphere2RenderSetup = (): RenderSetup => {
       selected: false,
       paused: false,
     },
-    renderService: () =>
-      (singletonGlRenderService ??= new GlRenderService(
-        render,
-        setupProgram
-      )),
+    renderService: () => (singleton ??= new CanvasRenderService(setup)),
   };
 };
 
-function render(
-  gl: WebGL2RenderingContext,
-  programInfo: GlProgramInfo,
-  model: RenderModel
-) {
-  gl.clearColor(0.3, 0.7, 0.0, 1.0);
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-}
-
-function setupProgram(
-  gl: WebGL2RenderingContext,
-  model: RenderModel
-): GlProgramInfo {
+function setup(canvas: HTMLCanvasElement, model: RenderModel) {
+  const gl = canvas.getContext("webgl2")!;
   const program = gl.createProgram()!;
   gl.linkProgram(program);
-  return {
-    program,
+
+  return function render(model: RenderModel) {
+    gl.clearColor(0.3, 0.7, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   };
 }
-

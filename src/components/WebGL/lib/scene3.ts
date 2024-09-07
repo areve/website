@@ -22,17 +22,8 @@ export const scene3 = makeRenderSetup(
 function setup(canvas: Canvas, model: RenderModel) {
   const { width, height } = model.dimensions;
 
-  const renderer = new THREE.WebGLRenderer({ canvas });
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setSize(width, height);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  const { controls, renderer, camera } = createViewport(canvas, width, height);
 
-  const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-  camera.translateY(4);
-  camera.translateZ(2);
-
-  const controls = new OrbitControls(camera, renderer.domElement);
   const scene = new THREE.Scene();
 
   const cube = createCube();
@@ -53,9 +44,24 @@ function setup(canvas: Canvas, model: RenderModel) {
   };
 }
 
+function createViewport(canvas: Canvas, width: number, height: number) {
+  const renderer = new THREE.WebGLRenderer({ canvas });
+  renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.setSize(width, height);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+  camera.translateY(4);
+  camera.translateZ(2);
+
+  const controls = new OrbitControls(camera, renderer.domElement);
+  return { controls, renderer, camera };
+}
+
 function createCube() {
   const geometry = new THREE.BoxGeometry();
-    const material = new THREE.MeshStandardMaterial({ color: "white" });
+  const material = new THREE.MeshStandardMaterial({ color: "white" });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -81,10 +87,11 @@ function createLandscape() {
 function createSun() {
   const light = new THREE.DirectionalLight("white", 4);
   light.castShadow = true;
-//   light.shadow.mapSize.width = 512;
-//   light.shadow.mapSize.height = 512;
-//   light.shadow.camera.near = 0.05;
-//   light.shadow.camera.far = 200;
+  //   light.shadow.mapSize.width = 512;
+  //   light.shadow.mapSize.height = 512;
+  //   light.shadow.camera.near = 0.05;
+  //   light.shadow.camera.far = 200;
+
   light.position.set(5, 5, 0);
   return light;
 }

@@ -4,8 +4,45 @@ import {
   makeRenderSetup,
   Canvas,
 } from "./render";
-import * as THREE from "three";
+import * as THREE from "three/tsl";
+// import { } from "three/build/three.wbgpu";
+
+// import * as FF from "three/tsl";
+// console.log("FF", FF.MeshStandardNodeMaterial)
+// FF
+// "imports": {
+// 					"three": "../build/three.webgpu.js",
+// 					"three/tsl": "../build/three.webgpu.js",
+// 					"three/addons/": "./jsm/"
+// 				}
+// import * as THREETsL from "three/tsl";
+// import { OrbitControls } from "three/examples/";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+// import { mx_noise_float } from "three/examples/jsm/loaders/MaterialXLoader";
+import {
+  mx_noise_float,
+  color,
+  cross,
+  dot,
+  float,
+  modelNormalMatrix,
+  positionLocal,
+  sign,
+  step,
+  Fn,
+  uniform,
+  varying,
+  vec2,
+  vec3,
+  Loop,
+} from "three/tsl";
+
+// import { GUI } from 'three/examples/libs/lil-gui.module.min.js';
+// import { OrbitControls } from 'three/examples/controls/OrbitControls.js';
+// import { RGBELoader } from 'three/examples/loaders/RGBELoader.js';
+
+// import { OrbitControls } from "three/examples/jsm/tsm";
+// import { OrbitControls } from "three/tsl";
 import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
 import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
 import normMap from "../assets/aerial_rocks_02_nor_dx_1k.jpg";
@@ -29,8 +66,8 @@ function setup(canvas: Canvas, model: RenderModel) {
   const cube = createCube();
   scene.add(cube);
 
-  const landscape = createLandscape();
-  scene.add(landscape);
+  const terrain = createTerrain();
+  scene.add(terrain);
 
   const sun = createSun();
   scene.add(sun);
@@ -45,11 +82,13 @@ function setup(canvas: Canvas, model: RenderModel) {
 }
 
 function createViewport(canvas: Canvas, width: number, height: number) {
-  const renderer = new THREE.WebGLRenderer({ canvas });
-  renderer.setPixelRatio(window.devicePixelRatio);
+  const renderer = new THREE.WebGPURenderer( { antialias: true, canvas } );
+  // renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  
+  // renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(width, height);
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  // renderer.shadowMap.enabled = true;
+  // renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
   camera.translateY(4);
@@ -71,16 +110,141 @@ function createCube() {
   return mesh;
 }
 
-function createLandscape() {
-  const geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
+function createTerrain() {
+  const material = new THREE.MeshStandardNodeMaterial({
+    metalness: 0,
+    roughness: 0.5,
+    color: "#85d534",
+  });
+
+  const noiseIterations = uniform(3);
+  const positionFrequency = uniform(0.175);
+  const warpFrequency = uniform(6);
+  const warpStrength = uniform(1);
+  const strength = uniform(10);
+  const offset = uniform(vec2(0, 0));
+  const normalLookUpShift = uniform(0.01);
+  const colorSand = uniform(color("#ffe894"));
+  const colorGrass = uniform(color("#85d534"));
+  const colorSnow = uniform(color("#ffffff"));
+  const colorRock = uniform(color("#bfbd8d"));
+
+  const vNormal = varying(vec3());
+  const vPosition = varying(vec3());
+
+  const terrainElevation = Fn(([position]) => {
+    const warpedPosition = position.add(offset).toVar();
+    warpedPosition.addAssign(
+      mx_noise_float(
+        warpedPosition.mul(positionFrequency).mul(warpFrequency),
+        1,
+        0
+      ).mul(warpStrength)
+    );
+
+    const elevation = float(0).toVar();
+    Loop(
+      {
+        type: "float",
+        start: float(1),
+        end: noiseIterations.toFloat(),
+        condition: "<=",
+      },
+      ({ i }) => {
+        const noiseInput = warpedPosition
+          .mul(positionFrequency)
+          .mul(i.mul(2))
+          .add(i.mul(987));
+        const noise = mx_noise_float(noiseInput, 1, 0).div(i.add(1).mul(2));
+        elevation.addAssign(noise);
+      }
+    );
+
+    const elevationSign = sign(elevation);
+    elevation.assign(elevation.abs().pow(2).mul(elevationSign).mul(strength));
+
+    return elevation;
+  });
+
+  material.positionNode = Fn(() => {
+    // neighbours positions
+
+    const neighbourA = positionLocal.xyz
+      .add(vec3(normalLookUpShift, 0.0, 0.0))
+      .toVar();
+    const neighbourB = positionLocal.xyz
+      .add(vec3(0.0, 0.0, normalLookUpShift.negate()))
+      .toVar();
+
+    // elevations
+
+    const position = positionLocal.xyz.toVar();
+    const elevation = terrainElevation(positionLocal.xz);
+    position.y.addAssign(elevation);
+
+    neighbourA.y.addAssign(terrainElevation(neighbourA.xz));
+    neighbourB.y.addAssign(terrainElevation(neighbourB.xz));
+
+    // compute normal
+
+    const toA = neighbourA.sub(position).normalize();
+    const toB = neighbourB.sub(position).normalize();
+    vNormal.assign(cross(toA, toB));
+
+    // varyings
+
+    vPosition.assign(position.add(vec3(offset.x, 0, offset.y)));
+
+    return position;
+  })();
+
+  material.normalNode = modelNormalMatrix.mul(vNormal);
+
+  material.colorNode = Fn(() => {
+    const finalColor = colorSand.toVar();
+
+    // grass
+
+    const grassMix = step(-0.06, vPosition.y);
+    finalColor.assign(grassMix.mix(finalColor, colorGrass));
+
+    // rock
+
+    const rockMix = step(0.5, dot(vNormal, vec3(0, 1, 0)))
+      .oneMinus()
+      .mul(step(-0.06, vPosition.y));
+    finalColor.assign(rockMix.mix(finalColor, colorRock));
+
+    // snow
+
+    const snowThreshold = mx_noise_float(vPosition.xz.mul(25), 1, 0)
+      .mul(0.1)
+      .add(0.45);
+    const snowMix = step(snowThreshold, vPosition.y);
+    finalColor.assign(snowMix.mix(finalColor, colorSnow));
+
+    return finalColor;
+  })();
+
+//   const geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
+  const geometry = new THREE.PlaneGeometry( 10, 10, 500, 500 );
   geometry.rotateX(-Math.PI / 2);
-  const material = new THREE.MeshStandardMaterial({ color: "lime" });
+
+  geometry.deleteAttribute( 'uv' );
+  // geometry.deleteAttribute( 'normal' );
+  // geometry.rotateX( - Math.PI * 0.5 );
+
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.position.x = 0;
   mesh.position.y = 0;
 
+  // const terrain = new THREE.Mesh( geometry, material );
+  // terrain.receiveShadow = true;
+  // terrain.castShadow = true;
+  // // scene.add( terrain );
+  // return terrain
   return mesh;
 }
 

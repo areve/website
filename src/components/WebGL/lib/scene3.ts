@@ -5,20 +5,7 @@ import {
   Canvas,
 } from "./render";
 import * as THREE from "three/tsl";
-// import { } from "three/build/three.wbgpu";
-
-// import * as FF from "three/tsl";
-// console.log("FF", FF.MeshStandardNodeMaterial)
-// FF
-// "imports": {
-// 					"three": "../build/three.webgpu.js",
-// 					"three/tsl": "../build/three.webgpu.js",
-// 					"three/addons/": "./jsm/"
-// 				}
-// import * as THREETsL from "three/tsl";
-// import { OrbitControls } from "three/examples/";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-// import { mx_noise_float } from "three/examples/jsm/loaders/MaterialXLoader";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import {
   mx_noise_float,
   color,
@@ -36,16 +23,6 @@ import {
   vec3,
   Loop,
 } from "three/tsl";
-
-// import { GUI } from 'three/examples/libs/lil-gui.module.min.js';
-// import { OrbitControls } from 'three/examples/controls/OrbitControls.js';
-// import { RGBELoader } from 'three/examples/loaders/RGBELoader.js';
-
-// import { OrbitControls } from "three/examples/jsm/tsm";
-// import { OrbitControls } from "three/tsl";
-import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
-import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
-import normMap from "../assets/aerial_rocks_02_nor_dx_1k.jpg";
 
 export const scene3 = makeRenderSetup(
   "Experimental scene, using three.js",
@@ -77,14 +54,17 @@ function setup(canvas: Canvas, model: RenderModel) {
     cube.rotateX(0.001);
     cube.rotateY(0.003);
     cube.rotateZ(0.007);
-    renderer.render(scene, camera);
+    renderer.renderAsync(scene, camera);
   };
 }
 
 function createViewport(canvas: Canvas, width: number, height: number) {
-  const renderer = new THREE.WebGPURenderer( { antialias: true, canvas } );
+  const renderer = new THREE.WebGPURenderer({
+    antialias: true,
+    canvas: canvas as unknown,
+  });
   // renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  
+
   // renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(width, height);
   // renderer.shadowMap.enabled = true;
@@ -132,39 +112,43 @@ function createTerrain() {
   const vNormal = varying(vec3());
   const vPosition = varying(vec3());
 
-  const terrainElevation = Fn(([position]) => {
-    const warpedPosition = position.add(offset).toVar();
-    warpedPosition.addAssign(
-      mx_noise_float(
-        warpedPosition.mul(positionFrequency).mul(warpFrequency),
-        1,
-        0
-      ).mul(warpStrength)
-    );
+  const terrainElevation = Fn(
+    ([position]: [
+      THREE.ShaderNodeObject<THREE.Node>
+    ]): THREE.ShaderNodeObject<THREE.VarNode> => {
+      const warpedPosition = position.add(offset).toVar();
+      warpedPosition.addAssign(
+        mx_noise_float(
+          warpedPosition.mul(positionFrequency).mul(warpFrequency),
+          1,
+          0
+        ).mul(warpStrength)
+      );
 
-    const elevation = float(0).toVar();
-    Loop(
-      {
-        type: "float",
-        start: float(1),
-        end: noiseIterations.toFloat(),
-        condition: "<=",
-      },
-      ({ i }) => {
-        const noiseInput = warpedPosition
-          .mul(positionFrequency)
-          .mul(i.mul(2))
-          .add(i.mul(987));
-        const noise = mx_noise_float(noiseInput, 1, 0).div(i.add(1).mul(2));
-        elevation.addAssign(noise);
-      }
-    );
+      const elevation = float(0).toVar();
+      Loop(
+        {
+          type: "float",
+          start: float(1),
+          end: noiseIterations.toFloat(),
+          condition: "<=",
+        },
+        ({ i }: { i: THREE.ShaderNodeObject<THREE.Node> }) => {
+          const noiseInput = warpedPosition
+            .mul(positionFrequency)
+            .mul(i.mul(2))
+            .add(i.mul(987));
+          const noise = mx_noise_float(noiseInput, 1, 0).div(i.add(1).mul(2));
+          elevation.addAssign(noise);
+        }
+      );
 
-    const elevationSign = sign(elevation);
-    elevation.assign(elevation.abs().pow(2).mul(elevationSign).mul(strength));
+      const elevationSign = sign(elevation);
+      elevation.assign(elevation.abs().pow(2).mul(elevationSign).mul(strength));
 
-    return elevation;
-  });
+      return elevation;
+    }
+  );
 
   material.positionNode = Fn(() => {
     // neighbours positions
@@ -226,11 +210,11 @@ function createTerrain() {
     return finalColor;
   })();
 
-//   const geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
-  const geometry = new THREE.PlaneGeometry( 10, 10, 500, 500 );
+  //   const geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
+  const geometry = new THREE.PlaneGeometry(10, 10, 500, 500);
   geometry.rotateX(-Math.PI / 2);
 
-  geometry.deleteAttribute( 'uv' );
+  geometry.deleteAttribute("uv");
   // geometry.deleteAttribute( 'normal' );
   // geometry.rotateX( - Math.PI * 0.5 );
 
@@ -251,11 +235,15 @@ function createTerrain() {
 function createSun() {
   const light = new THREE.DirectionalLight("white", 4);
   light.castShadow = true;
-  //   light.shadow.mapSize.width = 512;
-  //   light.shadow.mapSize.height = 512;
-  //   light.shadow.camera.near = 0.05;
-  //   light.shadow.camera.far = 200;
-
+  light.shadow.mapSize.set(1024, 1024);
+  light.shadow.camera.near = 0.1;
+  light.shadow.camera.far = 30;
+  light.shadow.camera.top = 8;
+  light.shadow.camera.right = 8;
+  light.shadow.camera.bottom = -8;
+  light.shadow.camera.left = -8;
+  light.shadow.normalBias = 0.05;
+  light.shadow.bias = 0;
   light.position.set(5, 5, 0);
   return light;
 }

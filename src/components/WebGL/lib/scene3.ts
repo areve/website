@@ -54,7 +54,7 @@ function setup(canvas: Canvas, model: RenderModel) {
     cube.rotateX(0.001);
     cube.rotateY(0.003);
     cube.rotateZ(0.007);
-    renderer.renderAsync(scene, camera);
+    renderer.render(scene, camera);
   };
 }
 
@@ -63,12 +63,11 @@ function createViewport(canvas: Canvas, width: number, height: number) {
     antialias: true,
     canvas: canvas as any,
   });
-  // renderer.toneMapping = THREE.ACESFilmicToneMapping;
-
-  // renderer.setPixelRatio(window.devicePixelRatio);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(width, height);
-  // renderer.shadowMap.enabled = true;
-  // renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
   camera.translateY(4);

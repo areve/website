@@ -13,31 +13,30 @@ export const sphere2RenderSetup = makeRenderSetup(
   new CanvasRenderService(setup)
 );
 
+interface Camera {
+  viewMatrix: Float32List;
+  projectionMatrix: Float32List;
+  translationMatrix: number[];
+}
+
+interface Buffers {
+  vertexBuffer: WebGLBuffer;
+  colorBuffer: WebGLBuffer;
+  indexBuffer: WebGLBuffer;
+}
+
 function setup(canvas: Canvas, model: RenderModel) {
   const gl = canvas.getContext("webgl2")!;
-  const program = gl.createProgram()!;
-  gl.linkProgram(program);
 
   const { vertices, colors, indices } = cubeModel();
   const camera = createCamera(canvas.width, canvas.height);
-
-  const { vertex_buffer, color_buffer, index_buffer } = storeModel(
-    gl,
-    vertices,
-    colors,
-    indices
-  );
-
-  const shaderProgram = createShaderProgram(gl);
-  const { Pmatrix, Vmatrix, Mmatrix } = getProgramLocations(gl, shaderProgram);
-
-  // Position
-  bindProgram(gl, vertex_buffer, shaderProgram, color_buffer);
+  const buffers = createBuffers(gl, vertices, colors, indices);
+  const { applyCamera } = createShader(gl, buffers, camera);
 
   return function render(model: RenderModel, diffTime: number) {
-    rotateZ(camera.mov_matrix, diffTime * 0.0005);
-    rotateY(camera.mov_matrix, diffTime * 0.0002);
-    rotateX(camera.mov_matrix, diffTime * 0.0003);
+    rotateZ(camera.translationMatrix, diffTime * 0.0005);
+    rotateY(camera.translationMatrix, diffTime * 0.0002);
+    rotateX(camera.translationMatrix, diffTime * 0.0003);
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -47,16 +46,14 @@ function setup(canvas: Canvas, model: RenderModel) {
     gl.viewport(0.0, 0.0, canvas.width, canvas.height);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    gl.uniformMatrix4fv(Pmatrix, false, camera.proj_matrix);
-    gl.uniformMatrix4fv(Vmatrix, false, camera.view_matrix);
-    gl.uniformMatrix4fv(Mmatrix, false, camera.mov_matrix);
+    applyCamera();
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   };
 }
 
-function createCamera(width: number, height: number) {
+function createCamera(width: number, height: number): Camera {
   // Projection
   const proj_matrix = get_projection(40, width / height, 1, 100);
 
@@ -74,40 +71,18 @@ function createCamera(width: number, height: number) {
     [0, 0, 0, 1],
   ].flat();
   view_matrix[14] = view_matrix[14] - 6;
-  return { mov_matrix, proj_matrix, view_matrix };
+  return {
+    translationMatrix: mov_matrix,
+    projectionMatrix: proj_matrix,
+    viewMatrix: view_matrix,
+  };
 }
 
-function bindProgram(
+function createShader(
   gl: WebGL2RenderingContext,
-  vertex_buffer: WebGLBuffer,
-  shaderProgram: WebGLProgram,
-  color_buffer: WebGLBuffer
+  buffers: Buffers,
+  camera: Camera
 ) {
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
-  const position = gl.getAttribLocation(shaderProgram, "position");
-  gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(position);
-
-  // Color
-  gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
-  const color = gl.getAttribLocation(shaderProgram, "color");
-  gl.vertexAttribPointer(color, 3, gl.FLOAT, false, 0, 0);
-  gl.enableVertexAttribArray(color);
-
-  gl.useProgram(shaderProgram);
-}
-
-function getProgramLocations(
-  gl: WebGL2RenderingContext,
-  shaderProgram: WebGLProgram
-) {
-  const Pmatrix = gl.getUniformLocation(shaderProgram, "Pmatrix")!;
-  const Vmatrix = gl.getUniformLocation(shaderProgram, "Vmatrix")!;
-  const Mmatrix = gl.getUniformLocation(shaderProgram, "Mmatrix")!;
-  return { Pmatrix, Vmatrix, Mmatrix };
-}
-
-function createShaderProgram(gl: WebGL2RenderingContext) {
   const vertCode = glsl`
     attribute vec3 position;
     uniform mat4 Pmatrix;
@@ -135,37 +110,66 @@ function createShaderProgram(gl: WebGL2RenderingContext) {
   gl.shaderSource(fragShader, fragCode);
   gl.compileShader(fragShader);
 
-  const shaderProgram = gl.createProgram()!;
-  gl.attachShader(shaderProgram, vertShader);
-  gl.attachShader(shaderProgram, fragShader);
-  gl.linkProgram(shaderProgram);
-  return shaderProgram;
+  const program = gl.createProgram()!;
+  gl.attachShader(program, vertShader);
+  gl.attachShader(program, fragShader);
+  gl.linkProgram(program);
+
+  const Pmatrix = gl.getUniformLocation(program, "Pmatrix")!;
+  const Vmatrix = gl.getUniformLocation(program, "Vmatrix")!;
+  const Mmatrix = gl.getUniformLocation(program, "Mmatrix")!;
+
+  // Position
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertexBuffer);
+  const position = gl.getAttribLocation(program, "position");
+  gl.vertexAttribPointer(position, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(position);
+
+  // Color
+  gl.bindBuffer(gl.ARRAY_BUFFER, buffers.colorBuffer);
+  const color = gl.getAttribLocation(program, "color");
+  gl.vertexAttribPointer(color, 3, gl.FLOAT, false, 0, 0);
+  gl.enableVertexAttribArray(color);
+
+  gl.useProgram(program);
+
+  function applyCamera() {
+    gl.uniformMatrix4fv(Pmatrix, false, camera.projectionMatrix);
+    gl.uniformMatrix4fv(Vmatrix, false, camera.viewMatrix);
+    gl.uniformMatrix4fv(Mmatrix, false, camera.translationMatrix);
+  }
+  return { applyCamera };
 }
 
-function storeModel(
+function createBuffers(
   gl: WebGL2RenderingContext,
   vertices: number[],
   colors: number[],
   indices: number[]
-) {
-  const vertex_buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
+): Buffers {
+  const vertexBuffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
   // Create and store data into color buffer
-  const color_buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
+  const colorBuffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
   // Create and store data into index buffer
-  const index_buffer = gl.createBuffer()!;
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
+  const indexBuffer = gl.createBuffer()!;
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
   gl.bufferData(
     gl.ELEMENT_ARRAY_BUFFER,
     new Uint16Array(indices),
     gl.STATIC_DRAW
   );
-  return { vertex_buffer, color_buffer, index_buffer };
+
+  return {
+    vertexBuffer,
+    colorBuffer,
+    indexBuffer,
+  };
 }
 
 function cubeModel() {

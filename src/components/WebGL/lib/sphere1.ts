@@ -49,7 +49,7 @@ function setup(canvas: HTMLCanvasElement, model: RenderModel) {
   const torus = createTorus();
   scene.add(torus);
 
-  return function render(model: RenderModel) {
+  return function render(model: RenderModel, diffTime: number) {
     torus.rotation.x += 0.02;
     controls.update();
     renderer.render(scene, camera);

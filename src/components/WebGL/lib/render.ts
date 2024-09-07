@@ -36,16 +36,18 @@ export interface FrameUpdated {
   timeTaken: number;
 }
 
+export type RenderMethod = (model: RenderModel, diffTime: number) => void;
 export class CanvasRenderService implements RenderService {
   private canvas!: HTMLCanvasElement;
   private model!: RenderModel;
-  private render!: (model: RenderModel) => void;
+  private render!: RenderMethod;
   private setup: (
     canvas: HTMLCanvasElement,
     model: RenderModel
-  ) => (model: RenderModel) => void;
+  ) => RenderMethod;
+  previousTime!: number;
   constructor(
-    setup: (canvas: HTMLCanvasElement, model: RenderModel) => (model: RenderModel) => void
+    setup: (canvas: HTMLCanvasElement, model: RenderModel) => RenderMethod
   ) {
     this.setup = setup;
   }
@@ -54,16 +56,17 @@ export class CanvasRenderService implements RenderService {
   init = (canvas: HTMLCanvasElement, model: RenderModel) => {
     this.model = toRaw(model);
     this.canvas = canvas;
+    this.previousTime = self.performance.now();
     this.render = this.setup(this.canvas, this.model);
-
     this.update(model);
   };
   update(model: RenderModel): void {
     this.model = toRaw(model);
 
     const start = self.performance.now();
-    this.render(this.model);
-    
+    this.render(this.model, this.previousTime - start);
+
+    this.previousTime = start;
     const end = self.performance.now();
     if (!this.frameUpdated) return;
     this.frameUpdated({

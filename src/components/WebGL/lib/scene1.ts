@@ -5,7 +5,7 @@ import {
   Canvas,
 } from "./render";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
 import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
 import normMap from "../assets/aerial_rocks_02_nor_dx_1k.jpg";

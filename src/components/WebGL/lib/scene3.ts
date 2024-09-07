@@ -25,9 +25,9 @@ import {
 } from "three/tsl";
 
 export const scene3 = makeRenderSetup(
-  "Experimental scene, using three.js",
+  "WebGPU based on an example, using three.js, does noise on GPU which I've not tried yet",
   500,
-  400,
+  200,
   new CanvasRenderService(setup)
 );
 // scene3.model.paused = true;
@@ -94,6 +94,7 @@ function createTerrain() {
     metalness: 0,
     roughness: 0.5,
     color: "#85d534",
+    // side: THREE.BackSide
   });
 
   const noiseIterations = uniform(3);
@@ -103,8 +104,8 @@ function createTerrain() {
   const strength = uniform(10);
   const offset = uniform(vec2(0, 0));
   const normalLookUpShift = uniform(0.01);
-  const colorSand = uniform(color("#ffe894"));
-  const colorGrass = uniform(color("#85d534"));
+  const colorSand = uniform(color("#ffcc00"));
+  const colorGrass = uniform(color("#66cc00"));
   const colorSnow = uniform(color("#ffffff"));
   const colorRock = uniform(color("#bfbd8d"));
 
@@ -115,14 +116,6 @@ function createTerrain() {
     ([position]: [
       THREE.ShaderNodeObject<THREE.Node>
     ]): THREE.ShaderNodeObject<THREE.VarNode> => {
-      const warpedPosition = position.add(offset).toVar();
-      warpedPosition.addAssign(
-        mx_noise_float(
-          warpedPosition.mul(positionFrequency).mul(warpFrequency),
-          1,
-          0
-        ).mul(warpStrength)
-      );
 
       const elevation = float(0).toVar();
       Loop(
@@ -133,7 +126,7 @@ function createTerrain() {
           condition: "<=",
         },
         ({ i }: { i: THREE.ShaderNodeObject<THREE.Node> }) => {
-          const noiseInput = warpedPosition
+          const noiseInput = position
             .mul(positionFrequency)
             .mul(i.mul(2))
             .add(i.mul(987));
@@ -143,7 +136,7 @@ function createTerrain() {
       );
 
       const elevationSign = sign(elevation);
-      elevation.assign(elevation.abs().pow(2).mul(elevationSign).mul(strength));
+      elevation.assign(elevation.abs().pow(1.6).mul(elevationSign).mul(strength));
 
       return elevation;
     }
@@ -191,7 +184,7 @@ function createTerrain() {
     finalColor.assign(grassMix.mix(finalColor, colorGrass));
 
     // rock
-    const rockMix = step(0.5, dot(vNormal, vec3(0, 1, 0)))
+    const rockMix = step(0.8, dot(vNormal, vec3(0, 1, 0)))
       .oneMinus()
       .mul(step(-0.06, vPosition.y));
     finalColor.assign(rockMix.mix(finalColor, colorRock));

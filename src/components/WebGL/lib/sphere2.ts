@@ -1,20 +1,18 @@
-import { RenderModel, RenderSetup, CanvasRenderService } from "./render";
-let renderService: CanvasRenderService;
+import {
+  RenderModel,
+  CanvasRenderService,
+  makeRenderSetup,
+  Canvas,
+} from "./render";
 
-export const sphere2RenderSetup = {
-  model: {
-    title: "Cube without three.js",
-    seed: 0,
-    frame: 0,
-    dimensions: { width: 500, height: 200 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    selected: true,
-    paused: false,
-  },
-  renderService: () => (renderService ??= new CanvasRenderService(setup)),
-};
+export const sphere2RenderSetup = makeRenderSetup(
+  "Cube without three.js",
+  500,
+  200,
+  new CanvasRenderService(setup)
+);
 
-function setup(canvas: HTMLCanvasElement, model: RenderModel) {
+function setup(canvas: Canvas, model: RenderModel) {
   const gl = canvas.getContext("webgl2")!;
   const program = gl.createProgram()!;
   gl.linkProgram(program);

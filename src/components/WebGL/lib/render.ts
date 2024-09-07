@@ -19,6 +19,7 @@ export interface RenderService {
   init(canvas: HTMLCanvasElement, model: RenderModel): void;
   update(model: RenderModel): void;
 }
+export type Canvas = HTMLCanvasElement | OffscreenCanvas;
 
 export interface RenderModel {
   title: string;
@@ -37,23 +38,22 @@ export interface FrameUpdated {
 }
 
 export type RenderMethod = (model: RenderModel, diffTime: number) => void;
+export type RenderSetupMethod = (
+  canvas: Canvas,
+  model: RenderModel
+) => RenderMethod;
 export class CanvasRenderService implements RenderService {
-  private canvas!: HTMLCanvasElement;
+  private canvas!: Canvas;
   private model!: RenderModel;
   private render!: RenderMethod;
-  private setup: (
-    canvas: HTMLCanvasElement,
-    model: RenderModel
-  ) => RenderMethod;
+  private setup: RenderSetupMethod;
   previousTime!: number;
-  constructor(
-    setup: (canvas: HTMLCanvasElement, model: RenderModel) => RenderMethod
-  ) {
+  constructor(setup: RenderSetupMethod) {
     this.setup = setup;
   }
 
   frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
-  init = (canvas: HTMLCanvasElement, model: RenderModel) => {
+  init = (canvas: Canvas, model: RenderModel) => {
     this.model = toRaw(model);
     this.canvas = canvas;
     this.previousTime = self.performance.now();
@@ -74,4 +74,24 @@ export class CanvasRenderService implements RenderService {
       timeTaken: (end - start) / 1000,
     });
   }
+}
+
+export function makeRenderSetup(
+  title: string,
+  width: number,
+  height: number,
+  canvasRenderService: CanvasRenderService
+): RenderSetup {
+  return {
+    model: {
+      title,
+      seed: 0,
+      frame: 0,
+      dimensions: { width, height },
+      camera: { x: 0, y: 0, zoom: 1 },
+      selected: true,
+      paused: false,
+    },
+    renderService: () => canvasRenderService,
+  };
 }

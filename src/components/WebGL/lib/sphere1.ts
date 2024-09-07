@@ -1,26 +1,23 @@
-import { RenderModel, RenderSetup, CanvasRenderService } from "./render";
+import {
+  RenderModel,
+  CanvasRenderService,
+  makeRenderSetup,
+  Canvas,
+} from "./render";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
 import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
 import normMap from "../assets/aerial_rocks_02_nor_dx_1k.jpg";
 
-let renderService: CanvasRenderService;
+export const sphere1RenderSetup = makeRenderSetup(
+  "Torus with shadow, using three.js",
+  500,
+  200,
+  new CanvasRenderService(setup)
+);
 
-export const sphere1RenderSetup = {
-  model: {
-    title: "Torus with shadow, using three.js",
-    seed: 0,
-    frame: 0,
-    dimensions: { width: 500, height: 200 },
-    camera: { x: 0, y: 0, zoom: 1 },
-    selected: true,
-    paused: false,
-  },
-  renderService: () => (renderService ??= new CanvasRenderService(setup)),
-};
-
-function setup(canvas: HTMLCanvasElement, model: RenderModel) {
+function setup(canvas: Canvas, model: RenderModel) {
   const { width, height } = model.dimensions;
 
   const renderer = new THREE.WebGLRenderer({ canvas });

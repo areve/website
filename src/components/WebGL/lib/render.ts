@@ -1,5 +1,7 @@
 import { toRaw } from "vue";
 
+export const glsl = (x: TemplateStringsArray) => x[0];
+
 export interface Dimensions {
   width: number;
   height: number;

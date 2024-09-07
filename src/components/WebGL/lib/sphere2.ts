@@ -3,6 +3,7 @@ import {
   CanvasRenderService,
   makeRenderSetup,
   Canvas,
+  glsl,
 } from "./render";
 
 export const sphere2RenderSetup = makeRenderSetup(
@@ -40,24 +41,24 @@ function setup(canvas: Canvas, model: RenderModel) {
 
   /*=================== Shaders =========================*/
 
-  const vertCode =
-    "attribute vec3 position;" +
-    "uniform mat4 Pmatrix;" +
-    "uniform mat4 Vmatrix;" +
-    "uniform mat4 Mmatrix;" +
-    "attribute vec3 color;" + //the color of the point
-    "varying vec3 vColor;" +
-    "void main(void) { " + //pre-built function
-    "gl_Position = Pmatrix * Vmatrix * Mmatrix * vec4(position, 1.0);" +
-    "vColor = color;" +
-    "}";
+  const vertCode = glsl`
+    attribute vec3 position;
+    uniform mat4 Pmatrix;
+    uniform mat4 Vmatrix;
+    uniform mat4 Mmatrix;
+    attribute vec3 color;
+    varying vec3 vColor;
+    void main(void) { 
+      gl_Position = Pmatrix * Vmatrix * Mmatrix * vec4(position, 1.0);
+      vColor = color;
+    }`;
 
-  const fragCode =
-    "precision mediump float;" +
-    "varying vec3 vColor;" +
-    "void main(void) {" +
-    "gl_FragColor = vec4(vColor, 1.0);" +
-    "}";
+  const fragCode = glsl`
+    precision mediump float;
+    varying vec3 vColor;
+    void main(void) {
+      gl_FragColor = vec4(vColor, 1.0);
+    }`;
 
   const vertShader = gl.createShader(gl.VERTEX_SHADER)!;
   gl.shaderSource(vertShader, vertCode);

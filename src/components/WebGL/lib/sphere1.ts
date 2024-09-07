@@ -9,7 +9,7 @@ let renderService: CanvasRenderService;
 
 export const sphere1RenderSetup = {
   model: {
-    title: "Torus with shadow",
+    title: "Torus with shadow, using three.js",
     seed: 0,
     frame: 0,
     dimensions: { width: 500, height: 200 },

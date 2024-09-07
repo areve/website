@@ -3,7 +3,7 @@ let renderService: CanvasRenderService;
 
 export const sphere2RenderSetup = {
   model: {
-    title: "Sphere 2",
+    title: "Cube without three.js",
     seed: 0,
     frame: 0,
     dimensions: { width: 500, height: 200 },
@@ -20,22 +20,73 @@ function setup(canvas: HTMLCanvasElement, model: RenderModel) {
   gl.linkProgram(program);
 
   const vertices = [
-    -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1,
-    -1, 1, 1, -1, -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, 1, -1, -1, 1, 1, -1,
-    1, 1, 1, 1, -1, 1, -1, -1, -1, -1, -1, 1, 1, -1, 1, 1, -1, -1, -1, 1, -1,
-    -1, 1, 1, 1, 1, 1, 1, 1, -1,
-  ];
+    [-1, -1, -1],
+    [1, -1, -1],
+    [1, 1, -1],
+    [-1, 1, -1],
+    [-1, -1, 1],
+    [1, -1, 1],
+    [1, 1, 1],
+    [-1, 1, 1],
+    [-1, -1, -1],
+    [-1, 1, -1],
+    [-1, 1, 1],
+    [-1, -1, 1],
+    [1, -1, -1],
+    [1, 1, -1],
+    [1, 1, 1],
+    [1, -1, 1],
+    [-1, -1, -1],
+    [-1, -1, 1],
+    [1, -1, 1],
+    [1, -1, -1],
+    [-1, 1, -1],
+    [-1, 1, 1],
+    [1, 1, 1],
+    [1, 1, -1],
+  ].flat();
 
   const colors = [
-    5, 3, 7, 5, 3, 7, 5, 3, 7, 5, 3, 7, 1, 1, 3, 1, 1, 3, 1, 1, 3, 1, 1, 3, 0,
-    0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1,
-    0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0,
-  ];
+    [5, 3, 7],
+    [5, 3, 7],
+    [5, 3, 7],
+    [5, 3, 7],
+    [1, 1, 3],
+    [1, 1, 3],
+    [1, 1, 3],
+    [1, 1, 3],
+    [0, 0, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+    [0, 0, 1],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 0, 0],
+    [1, 1, 0],
+    [1, 1, 0],
+    [1, 1, 0],
+    [1, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+    [0, 1, 0],
+  ].flat();
 
   const indices = [
-    0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14,
-    15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23,
-  ];
+    [0, 1, 2],
+    [0, 2, 3],
+    [4, 5, 6],
+    [4, 6, 7],
+    [8, 9, 10],
+    [8, 10, 11],
+    [12, 13, 14],
+    [12, 14, 15],
+    [16, 17, 18],
+    [16, 18, 19],
+    [20, 21, 22],
+    [20, 22, 23],
+  ].flat();
 
   // Create and store data into vertex buffer
   const vertex_buffer = gl.createBuffer();
@@ -91,9 +142,9 @@ function setup(canvas: HTMLCanvasElement, model: RenderModel) {
   gl.linkProgram(shaderProgram);
 
   /* ====== Associating attributes to vertex shader =====*/
-  const Pmatrix = gl.getUniformLocation(shaderProgram, "Pmatrix");
-  const Vmatrix = gl.getUniformLocation(shaderProgram, "Vmatrix");
-  const Mmatrix = gl.getUniformLocation(shaderProgram, "Mmatrix");
+  const Pmatrix = gl.getUniformLocation(shaderProgram, "Pmatrix")!;
+  const Vmatrix = gl.getUniformLocation(shaderProgram, "Vmatrix")!;
+  const Mmatrix = gl.getUniformLocation(shaderProgram, "Mmatrix")!;
 
   gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
   const position = gl.getAttribLocation(shaderProgram, "position");

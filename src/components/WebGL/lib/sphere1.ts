@@ -5,21 +5,19 @@ import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
 import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
 import normMap from "../assets/aerial_rocks_02_nor_dx_1k.jpg";
 
-let singleton: CanvasRenderService;
+let renderService: CanvasRenderService;
 
-export const makeSphere1RenderSetup = (): RenderSetup => {
-  return {
-    model: {
-      title: "Torus with shadow",
-      seed: 0,
-      frame: 0,
-      dimensions: { width: 500, height: 200 },
-      camera: { x: 0, y: 0, zoom: 1 },
-      selected: true,
-      paused: false,
-    },
-    renderService: () => (singleton ??= new CanvasRenderService(setup)),
-  };
+export const sphere1RenderSetup = {
+  model: {
+    title: "Torus with shadow",
+    seed: 0,
+    frame: 0,
+    dimensions: { width: 500, height: 200 },
+    camera: { x: 0, y: 0, zoom: 1 },
+    selected: true,
+    paused: false,
+  },
+  renderService: () => (renderService ??= new CanvasRenderService(setup)),
 };
 
 function setup(canvas: HTMLCanvasElement, model: RenderModel) {

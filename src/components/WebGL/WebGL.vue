@@ -25,13 +25,13 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { RenderSetup } from "./lib/render";
-import { makeSphere1RenderSetup } from "./lib/sphere1";
-import { makeSphere2RenderSetup } from "./lib/sphere2";
+import { sphere1RenderSetup } from "./lib/sphere1";
+import { sphere2RenderSetup } from "./lib/sphere2";
 import CanvasRender from "./CanvasRender.vue";
 
 const renderSetups = ref<RenderSetup[]>([
-  makeSphere1RenderSetup(),
-  makeSphere2RenderSetup(),
+  sphere1RenderSetup,
+  sphere2RenderSetup,
 ]);
 </script>
 <style scoped></style>

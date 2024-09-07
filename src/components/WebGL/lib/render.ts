@@ -62,9 +62,8 @@ export class CanvasRenderService implements RenderService {
     this.model = toRaw(model);
 
     const start = self.performance.now();
-
     this.render(this.model);
-
+    
     const end = self.performance.now();
     if (!this.frameUpdated) return;
     this.frameUpdated({

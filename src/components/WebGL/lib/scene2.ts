@@ -6,7 +6,7 @@ import {
   glsl,
 } from "./render";
 
-export const sphere2RenderSetup = makeRenderSetup(
+export const scene2 = makeRenderSetup(
   "Cube without three.js",
   500,
   200,
@@ -47,7 +47,7 @@ function setup(canvas: Canvas, model: RenderModel) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     applyCamera();
-    
+
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   };
 }

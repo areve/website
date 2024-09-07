@@ -10,7 +10,7 @@ import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
 import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
 import normMap from "../assets/aerial_rocks_02_nor_dx_1k.jpg";
 
-export const sphere1RenderSetup = makeRenderSetup(
+export const scene1 = makeRenderSetup(
   "Torus with shadow, using three.js",
   500,
   200,

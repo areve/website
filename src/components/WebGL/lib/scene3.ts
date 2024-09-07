@@ -16,6 +16,8 @@ export const scene3 = makeRenderSetup(
   200,
   new CanvasRenderService(setup)
 );
+// scene3.model.paused = true;
+// scene3.model.selected = false;
 
 function setup(canvas: Canvas, model: RenderModel) {
   const { width, height } = model.dimensions;
@@ -37,8 +39,26 @@ function setup(canvas: Canvas, model: RenderModel) {
 
   const scene = new THREE.Scene();
 
+  const cube = createCube();
+  scene.add(cube);
+
   return function render(model: RenderModel, diffTime: number) {
     controls.update();
+    cube.rotateX(0.001);
+    cube.rotateY(0.003);
+    cube.rotateZ(0.007);
     renderer.render(scene, camera);
   };
+}
+function createCube() {
+  const geometry = new THREE.BoxGeometry();
+  //   const material = new THREE.MeshStandardMaterial({ color: "salmon" });
+  const material = new THREE.MeshNormalMaterial();
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.position.x = 0;
+  mesh.position.y = 0;
+
+  return mesh;
 }

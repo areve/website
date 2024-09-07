@@ -47,35 +47,46 @@ function setup(canvas: Canvas, model: RenderModel) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     applyCamera();
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indexBuffer);
+    
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   };
 }
 
 function createCamera(width: number, height: number): Camera {
-  // Projection
-  const proj_matrix = get_projection(40, width / height, 1, 100);
-
-  // View Translation
-  const mov_matrix = [
+  const projectionMatrix = createProjectionMatrix(40, width / height, 1, 100);
+  const translationMatrix = [
     [1, 0, 0, 0],
     [0, 1, 0, 0],
     [0, 0, 1, 0],
     [0, 0, 0, 1],
   ].flat();
-  const view_matrix = [
+  const viewMatrix = [
     [1, 0, 0, 0],
     [0, 1, 0, 0],
     [0, 0, 1, 0],
     [0, 0, 0, 1],
   ].flat();
-  view_matrix[14] = view_matrix[14] - 6;
+  viewMatrix[14] = viewMatrix[14] - 6;
   return {
-    translationMatrix: mov_matrix,
-    projectionMatrix: proj_matrix,
-    viewMatrix: view_matrix,
+    translationMatrix,
+    projectionMatrix,
+    viewMatrix,
   };
+
+  function createProjectionMatrix(
+    angle: number,
+    a: number,
+    zMin: number,
+    zMax: number
+  ) {
+    const ang = Math.tan((angle * 0.5 * Math.PI) / 180); //angle*.5
+    return [
+      [0.5 / ang, 0, 0, 0],
+      [0, (0.5 * a) / ang, 0, 0],
+      [0, 0, -(zMax + zMin) / (zMax - zMin), -1],
+      [0, 0, (-2 * zMax * zMin) / (zMax - zMin), 0],
+    ].flat();
+  }
 }
 
 function createShader(
@@ -318,14 +329,4 @@ function rotateY(m: number[], angle: number) {
   m[2] = c * m[2] - s * mv0;
   m[6] = c * m[6] - s * mv4;
   m[10] = c * m[10] - s * mv8;
-}
-
-function get_projection(angle: number, a: number, zMin: number, zMax: number) {
-  const ang = Math.tan((angle * 0.5 * Math.PI) / 180); //angle*.5
-  return [
-    [0.5 / ang, 0, 0, 0],
-    [0, (0.5 * a) / ang, 0, 0],
-    [0, 0, -(zMax + zMin) / (zMax - zMin), -1],
-    [0, 0, (-2 * zMax * zMin) / (zMax - zMin), 0],
-  ].flat();
 }

@@ -6,7 +6,7 @@ import {
 } from "./render";
 import * as THREE from "three/tsl";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import {
+const {
   mx_noise_float,
   color,
   cross,
@@ -22,7 +22,7 @@ import {
   vec2,
   vec3,
   Loop,
-} from "three/tsl";
+} = THREE;
 
 export const scene3 = makeRenderSetup(
   "WebGPU based on an example, using three.js, does noise on GPU which I've not tried yet",
@@ -116,7 +116,6 @@ function createTerrain() {
     ([position]: [
       THREE.ShaderNodeObject<THREE.Node>
     ]): THREE.ShaderNodeObject<THREE.VarNode> => {
-
       const elevation = float(0).toVar();
       Loop(
         {
@@ -136,7 +135,9 @@ function createTerrain() {
       );
 
       const elevationSign = sign(elevation);
-      elevation.assign(elevation.abs().pow(1.6).mul(elevationSign).mul(strength));
+      elevation.assign(
+        elevation.abs().pow(1.6).mul(elevationSign).mul(strength)
+      );
 
       return elevation;
     }

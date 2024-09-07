@@ -61,7 +61,7 @@ function setup(canvas: Canvas, model: RenderModel) {
 function createViewport(canvas: Canvas, width: number, height: number) {
   const renderer = new THREE.WebGPURenderer({
     antialias: true,
-    canvas: canvas as unknown,
+    canvas: canvas as any,
   });
   // renderer.toneMapping = THREE.ACESFilmicToneMapping;
 

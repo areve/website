@@ -27,8 +27,9 @@ import { ref } from "vue";
 import { RenderSetup } from "./lib/render";
 import { scene1 } from "./lib/scene1";
 import { scene2 } from "./lib/scene2";
+import { scene3 } from "./lib/scene3";
 import CanvasRender from "./CanvasRender.vue";
 
-const renderSetups = ref<RenderSetup[]>([scene1, scene2]);
+const renderSetups = ref<RenderSetup[]>([scene3, scene1, scene2]);
 </script>
 <style scoped></style>

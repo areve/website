@@ -27,7 +27,7 @@ import {
 export const scene3 = makeRenderSetup(
   "Experimental scene, using three.js",
   500,
-  200,
+  400,
   new CanvasRenderService(setup)
 );
 // scene3.model.paused = true;
@@ -187,19 +187,16 @@ function createTerrain() {
     const finalColor = colorSand.toVar();
 
     // grass
-
     const grassMix = step(-0.06, vPosition.y);
     finalColor.assign(grassMix.mix(finalColor, colorGrass));
 
     // rock
-
     const rockMix = step(0.5, dot(vNormal, vec3(0, 1, 0)))
       .oneMinus()
       .mul(step(-0.06, vPosition.y));
     finalColor.assign(rockMix.mix(finalColor, colorRock));
 
     // snow
-
     const snowThreshold = mx_noise_float(vPosition.xz.mul(25), 1, 0)
       .mul(0.1)
       .add(0.45);
@@ -209,25 +206,17 @@ function createTerrain() {
     return finalColor;
   })();
 
-  //   const geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
   const geometry = new THREE.PlaneGeometry(10, 10, 500, 500);
   geometry.rotateX(-Math.PI / 2);
 
   geometry.deleteAttribute("uv");
-  // geometry.deleteAttribute( 'normal' );
-  // geometry.rotateX( - Math.PI * 0.5 );
+  geometry.deleteAttribute("normal");
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
   mesh.position.x = 0;
   mesh.position.y = 0;
-
-  // const terrain = new THREE.Mesh( geometry, material );
-  // terrain.receiveShadow = true;
-  // terrain.castShadow = true;
-  // // scene.add( terrain );
-  // return terrain
   return mesh;
 }
 

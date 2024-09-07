@@ -1,26 +1,17 @@
 {
   "compilerOptions": {
-    "module": "amd",
-        "sourceMap": true,
-        "target": "es5",
-        "outDir": "public/js",
-        "lib": [
-            "dom",
-            "es2015"
-        ],
-        "moduleResolution": "node",
-    // "target": "esnext",
-    // "module": "esnext",
-    // "moduleResolution": "node",
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
     "strict": true,
     "jsx": "preserve",
-    // "sourceMap": true,
+    "sourceMap": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    // "lib": [
-    //   "esnext",
-    //   "dom"
-    // ],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "types": [
       "vite/client",
       "jest",

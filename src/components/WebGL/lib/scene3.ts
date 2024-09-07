@@ -29,18 +29,20 @@ function setup(canvas: Canvas, model: RenderModel) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-  camera.position.z = 3;
-  camera.rotation.x = 20;
-  camera.rotation.y = 0.7;
-  camera.rotation.z = 1;
+  camera.translateY(4);
+  camera.translateZ(2);
 
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.autoRotate = true;
-
   const scene = new THREE.Scene();
 
   const cube = createCube();
   scene.add(cube);
+
+  const landscape = createLandscape();
+  scene.add(landscape);
+
+  const sun = createSun();
+  scene.add(sun);
 
   return function render(model: RenderModel, diffTime: number) {
     controls.update();
@@ -50,10 +52,23 @@ function setup(canvas: Canvas, model: RenderModel) {
     renderer.render(scene, camera);
   };
 }
+
 function createCube() {
   const geometry = new THREE.BoxGeometry();
-  //   const material = new THREE.MeshStandardMaterial({ color: "salmon" });
-  const material = new THREE.MeshNormalMaterial();
+    const material = new THREE.MeshStandardMaterial({ color: "white" });
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  mesh.position.x = 0;
+  mesh.position.y = 1;
+
+  return mesh;
+}
+
+function createLandscape() {
+  const geometry = new THREE.PlaneGeometry(10, 10, 10, 10);
+  geometry.rotateX(-Math.PI / 2);
+  const material = new THREE.MeshStandardMaterial({ color: "lime" });
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -61,4 +76,15 @@ function createCube() {
   mesh.position.y = 0;
 
   return mesh;
+}
+
+function createSun() {
+  const light = new THREE.DirectionalLight("white", 4);
+  light.castShadow = true;
+//   light.shadow.mapSize.width = 512;
+//   light.shadow.mapSize.height = 512;
+//   light.shadow.camera.near = 0.05;
+//   light.shadow.camera.far = 200;
+  light.position.set(5, 5, 0);
+  return light;
 }

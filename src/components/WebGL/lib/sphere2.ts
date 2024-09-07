@@ -17,87 +17,20 @@ function setup(canvas: Canvas, model: RenderModel) {
   const program = gl.createProgram()!;
   gl.linkProgram(program);
 
-  const vertices = [
-    [-1, -1, -1],
-    [1, -1, -1],
-    [1, 1, -1],
-    [-1, 1, -1],
-    [-1, -1, 1],
-    [1, -1, 1],
-    [1, 1, 1],
-    [-1, 1, 1],
-    [-1, -1, -1],
-    [-1, 1, -1],
-    [-1, 1, 1],
-    [-1, -1, 1],
-    [1, -1, -1],
-    [1, 1, -1],
-    [1, 1, 1],
-    [1, -1, 1],
-    [-1, -1, -1],
-    [-1, -1, 1],
-    [1, -1, 1],
-    [1, -1, -1],
-    [-1, 1, -1],
-    [-1, 1, 1],
-    [1, 1, 1],
-    [1, 1, -1],
-  ].flat();
-
-  const colors = [
-    [5, 3, 7],
-    [5, 3, 7],
-    [5, 3, 7],
-    [5, 3, 7],
-    [1, 1, 3],
-    [1, 1, 3],
-    [1, 1, 3],
-    [1, 1, 3],
-    [0, 0, 1],
-    [0, 0, 1],
-    [0, 0, 1],
-    [0, 0, 1],
-    [1, 0, 0],
-    [1, 0, 0],
-    [1, 0, 0],
-    [1, 0, 0],
-    [1, 1, 0],
-    [1, 1, 0],
-    [1, 1, 0],
-    [1, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0],
-    [0, 1, 0],
-  ].flat();
-
-  const indices = [
-    [0, 1, 2],
-    [0, 2, 3],
-    [4, 5, 6],
-    [4, 6, 7],
-    [8, 9, 10],
-    [8, 10, 11],
-    [12, 13, 14],
-    [12, 14, 15],
-    [16, 17, 18],
-    [16, 18, 19],
-    [20, 21, 22],
-    [20, 22, 23],
-  ].flat();
+  const { vertices, colors, indices } = cubeModel();
 
   // Create and store data into vertex buffer
-  const vertex_buffer = gl.createBuffer();
+  const vertex_buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, vertex_buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
 
   // Create and store data into color buffer
-  const color_buffer = gl.createBuffer();
+  const color_buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ARRAY_BUFFER, color_buffer);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
   // Create and store data into index buffer
-  const index_buffer = gl.createBuffer();
+  const index_buffer = gl.createBuffer()!;
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
   gl.bufferData(
     gl.ELEMENT_ARRAY_BUFFER,
@@ -115,7 +48,7 @@ function setup(canvas: Canvas, model: RenderModel) {
     "attribute vec3 color;" + //the color of the point
     "varying vec3 vColor;" +
     "void main(void) { " + //pre-built function
-    "gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.);" +
+    "gl_Position = Pmatrix * Vmatrix * Mmatrix * vec4(position, 1.0);" +
     "vColor = color;" +
     "}";
 
@@ -123,7 +56,7 @@ function setup(canvas: Canvas, model: RenderModel) {
     "precision mediump float;" +
     "varying vec3 vColor;" +
     "void main(void) {" +
-    "gl_FragColor = vec4(vColor, 1.);" +
+    "gl_FragColor = vec4(vColor, 1.0);" +
     "}";
 
   const vertShader = gl.createShader(gl.VERTEX_SHADER)!;
@@ -184,6 +117,106 @@ function setup(canvas: Canvas, model: RenderModel) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, index_buffer);
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
   };
+}
+
+function cubeModel() {
+  const vertices = [
+    [
+      [-1, -1, -1],
+      [1, -1, -1],
+      [1, 1, -1],
+      [-1, 1, -1],
+    ],
+    [
+      [-1, -1, 1],
+      [1, -1, 1],
+      [1, 1, 1],
+      [-1, 1, 1],
+    ],
+    [
+      [-1, -1, -1],
+      [-1, 1, -1],
+      [-1, 1, 1],
+      [-1, -1, 1],
+    ],
+    [
+      [1, -1, -1],
+      [1, 1, -1],
+      [1, 1, 1],
+      [1, -1, 1],
+    ],
+    [
+      [-1, -1, -1],
+      [-1, -1, 1],
+      [1, -1, 1],
+      [1, -1, -1],
+    ],
+    [
+      [-1, 1, -1],
+      [-1, 1, 1],
+      [1, 1, 1],
+      [1, 1, -1],
+    ],
+  ]
+    .flat()
+    .flat();
+
+  const colors = [
+    [
+      [5, 3, 7],
+      [5, 3, 7],
+      [5, 3, 7],
+      [5, 3, 7],
+    ],
+    [
+      [1, 1, 3],
+      [1, 1, 3],
+      [1, 1, 3],
+      [1, 1, 3],
+    ],
+    [
+      [0, 0, 1],
+      [0, 0, 1],
+      [0, 0, 1],
+      [0, 0, 1],
+    ],
+    [
+      [1, 0, 0],
+      [1, 0, 0],
+      [1, 0, 0],
+      [1, 0, 0],
+    ],
+    [
+      [1, 1, 0],
+      [1, 1, 0],
+      [1, 1, 0],
+      [1, 1, 0],
+    ],
+    [
+      [0, 1, 0],
+      [0, 1, 0],
+      [0, 1, 0],
+      [0, 1, 0],
+    ],
+  ]
+    .flat()
+    .flat();
+
+  const indices = [
+    [0, 1, 2],
+    [0, 2, 3],
+    [4, 5, 6],
+    [4, 6, 7],
+    [8, 9, 10],
+    [8, 10, 11],
+    [12, 13, 14],
+    [12, 14, 15],
+    [16, 17, 18],
+    [16, 18, 19],
+    [20, 21, 22],
+    [20, 22, 23],
+  ].flat();
+  return { vertices, colors, indices };
 }
 
 function rotateZ(m: number[], angle: number) {

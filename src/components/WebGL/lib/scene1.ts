@@ -4,7 +4,7 @@ import {
   makeRenderSetup,
   Canvas,
 } from "./render";
-import * as THREE from "three";
+import * as THREE from "three/tsl";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import diffMap from "../assets/aerial_rocks_02_diff_4k.jpg";
 import dispMap from "../assets/aerial_rocks_02_disp_1k.jpg";
@@ -17,10 +17,13 @@ export const scene1 = makeRenderSetup(
   new CanvasRenderService(setup)
 );
 
-function setup(canvas: Canvas, model: RenderModel) {
+async function setup(canvas: Canvas, model: RenderModel) {
   const { width, height } = model.dimensions;
 
-  const renderer = new THREE.WebGLRenderer({ canvas });
+  const renderer = new THREE.WebGPURenderer({
+    canvas: canvas as any,
+    alpha: false,
+  });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setSize(width, height);
   renderer.shadowMap.enabled = true;
@@ -46,6 +49,7 @@ function setup(canvas: Canvas, model: RenderModel) {
   const torus = createTorus();
   scene.add(torus);
 
+  await renderer.init();
   return function render(model: RenderModel, diffTime: number) {
     torus.rotation.x += 0.02;
     controls.update();

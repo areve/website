@@ -64,8 +64,8 @@ const frameUpdated = (frameUpdated: FrameUpdated) => {
   busy = false;
 };
 
-onMounted(() => {
-  props.renderService.init(canvas.value, props.model);
+onMounted(async () => {
+  await props.renderService.init(canvas.value, props.model);
   props.renderService.frameUpdated = frameUpdated;
   next();
 });

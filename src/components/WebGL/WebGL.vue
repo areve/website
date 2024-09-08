@@ -2,7 +2,7 @@
   <article>
     <h1>WebGL</h1>
     <p>
-      WebGL is a technology to render 3D on the web. Here are some experiments I
+      WebGL (and WebGPU) is a technology to render 3D on the web. Here are some experiments I
       did, using different methods to render fairly primitive objects.
     </p>
     <div class="panels">
@@ -31,6 +31,6 @@ import { scene3 } from "./lib/scene3";
 import CanvasRender from "./CanvasRender.vue";
 
 const renderSetups = ref<RenderSetup[]>([scene3, scene1, scene2]);
-// const renderSetups = ref<RenderSetup[]>([scene3]);
+
 </script>
 <style scoped></style>

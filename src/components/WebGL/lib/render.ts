@@ -43,7 +43,7 @@ export type RenderMethod = (model: RenderModel, diffTime: number) => void;
 export type RenderSetupMethod = (
   canvas: Canvas,
   model: RenderModel
-) => RenderMethod;
+) => Promise<RenderMethod>;
 export class CanvasRenderService implements RenderService {
   private canvas!: Canvas;
   private model!: RenderModel;
@@ -55,11 +55,11 @@ export class CanvasRenderService implements RenderService {
   }
 
   frameUpdated?: ((frameUpdated: FrameUpdated) => void) | undefined;
-  init = (canvas: Canvas, model: RenderModel) => {
+  init = async (canvas: Canvas, model: RenderModel) => {
     this.model = toRaw(model);
     this.canvas = canvas;
     this.previousTime = self.performance.now();
-    this.render = this.setup(this.canvas, this.model);
+    this.render = await this.setup(this.canvas, this.model);
     this.update(model);
   };
   update(model: RenderModel): void {

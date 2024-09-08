@@ -25,8 +25,8 @@ interface Buffers {
   indexBuffer: WebGLBuffer;
 }
 
-function setup(canvas: Canvas, model: RenderModel) {
-  const gl = canvas.getContext("webgl2")!;
+async function setup(canvas: Canvas, model: RenderModel) {
+  const gl = canvas.getContext("webgl2") as WebGL2RenderingContext;
 
   const { vertices, colors, indices } = cubeModel();
   const camera = createCamera(canvas.width, canvas.height);

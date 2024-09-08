@@ -6,11 +6,11 @@ export default defineConfig({
     port: 3000,
   },
   resolve: {
-    // alias: {
-    //   "three/addons": "three/examples/jsm",
-    //   "three/tsl": "three/webgpu",
-    //   three: "three/webgpu",
-    // },
+    alias: {
+      "three/addons": "three/examples/jsm",
+      "three/tsl": "three/webgpu",
+      three: "three/webgpu",
+    },
   },
   plugins: [
     vue({

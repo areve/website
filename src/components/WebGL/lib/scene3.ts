@@ -33,7 +33,7 @@ export const scene3 = makeRenderSetup(
 // scene3.model.paused = true;
 // scene3.model.selected = false;
 
-function setup(canvas: Canvas, model: RenderModel) {
+async function setup(canvas: Canvas, model: RenderModel) {
   const { width, height } = model.dimensions;
 
   const { controls, renderer, camera } = createViewport(canvas, width, height);
@@ -49,6 +49,7 @@ function setup(canvas: Canvas, model: RenderModel) {
   const sun = createSun();
   scene.add(sun);
 
+  await renderer.init();
   return function render(model: RenderModel, diffTime: number) {
     controls.update();
     cube.rotateX(0.001);
@@ -62,6 +63,7 @@ function createViewport(canvas: Canvas, width: number, height: number) {
   const renderer = new THREE.WebGPURenderer({
     antialias: true,
     canvas: canvas as any,
+    alpha: false
   });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.setPixelRatio(window.devicePixelRatio);
@@ -204,7 +206,7 @@ function createTerrain() {
   geometry.rotateX(-Math.PI / 2);
 
   geometry.deleteAttribute("uv");
-  geometry.deleteAttribute("normal");
+  // geometry.deleteAttribute("normal");
 
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;

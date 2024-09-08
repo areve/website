@@ -91,6 +91,9 @@
           <li>
             <router-link to="/webgl" @click="toggle()">WebGL</router-link>
           </li>
+          <li>
+            <router-link to="/noise2" @click="toggle()">Noise2</router-link>
+          </li>
         </ul>
       </nav>
     </div>

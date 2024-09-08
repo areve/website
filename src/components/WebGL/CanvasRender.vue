@@ -40,7 +40,7 @@ let busy = false;
 let frame: number;
 
 let lastAnimFrame = 0;
-const update = (animFrame: number) => {
+const update = async (animFrame: number) => {
   if (busy) return next();
   if (!props.model.selected) return (lastAnimFrame = animFrame), next();
   if (!props.model.paused) {
@@ -51,7 +51,8 @@ const update = (animFrame: number) => {
   if (state === lastState) return next();
   lastState = state;
   busy = true;
-  props.renderService.update(props.model);
+  await props.renderService.update(props.model);
+  await new Promise((resolve) => setTimeout(resolve, 40))
   next();
 };
 

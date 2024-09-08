@@ -62,11 +62,11 @@ export class CanvasRenderService implements RenderService {
     this.render = await this.setup(this.canvas, this.model);
     this.update(model);
   };
-  update(model: RenderModel): void {
+  async update(model: RenderModel): Promise<void> {
     this.model = toRaw(model);
 
     const start = self.performance.now();
-    this.render(this.model, this.previousTime - start);
+    await this.render(this.model, this.previousTime - start);
 
     this.previousTime = start;
     const end = self.performance.now();

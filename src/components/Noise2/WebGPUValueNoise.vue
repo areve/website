@@ -22,33 +22,31 @@ async function main() {
     format: presentationFormat,
   });
 
-  
-// export const makeValueNoiseGenerator = (seed: number, scale: number = 8) => {
-//   const noise = makeNoiseGenerator(seed);
+  // export const makeValueNoiseGenerator = (seed: number, scale: number = 8) => {
+  //   const noise = makeNoiseGenerator(seed);
 
-//   const smoothstepHalf = (t: number): number => (t * t * (3 - t * 2) + t) / 2;
+  //   const smoothstepHalf = (t: number): number => (t * t * (3 - t * 2) + t) / 2;
 
-//   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+  //   const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-//   return (x: number, y: number): number => {
-//     const ix = Math.floor(x / scale);
-//     const iy = Math.floor(y / scale);
-//     const fx = (x % scale) / scale;
-//     const fy = (y % scale) / scale;
+  //   return (x: number, y: number): number => {
+  //     const ix = Math.floor(x / scale);
+  //     const iy = Math.floor(y / scale);
+  //     const fx = (x % scale) / scale;
+  //     const fy = (y % scale) / scale;
 
-//     const p0 = noise(ix, iy);
-//     const p1 = noise(ix, iy + 1);
-//     const p2 = noise(ix + 1, iy);
-//     const p3 = noise(ix + 1, iy + 1);
+  //     const p0 = noise(ix, iy);
+  //     const p1 = noise(ix, iy + 1);
+  //     const p2 = noise(ix + 1, iy);
+  //     const p3 = noise(ix + 1, iy + 1);
 
-//     const sx = smoothstepHalf(fx);
-//     const sy = smoothstepHalf(fy);
-//     const m1 = lerp(p0, p1, sy);
-//     const m2 = lerp(p2, p3, sy);
-//     return lerp(m1, m2, sx);
-//   };
-// };
-
+  //     const sx = smoothstepHalf(fx);
+  //     const sy = smoothstepHalf(fy);
+  //     const m1 = lerp(p0, p1, sy);
+  //     const m2 = lerp(p2, p3, sy);
+  //     return lerp(m1, m2, sx);
+  //   };
+  // };
 
   const module = device.createShaderModule({
     label: "our hardcoded red color shader",
@@ -72,6 +70,31 @@ async function main() {
         return f32(m) / f32(0xffffffff);
       }
 
+      fn smoothstepHalf(t: f32) -> f32 {
+        return (t * t * (3.0 - t * 2.0) + t) / 2.0;
+      }
+
+      fn lerp(a: f32, b: f32, t: f32) -> f32 {
+        return a + (b - a) * t;
+      }
+
+      fn value_noise(coord: vec4<f32>) -> f32 {
+        let i = floor(coord);
+        let f = coord - i;
+
+        let p0 = noise(vec4f(i.x, i.y, 0.0, 0.0));
+        let p1 = noise(vec4f(i.x, i.y + 1, 0.0, 0.0));
+        let p2 = noise(vec4f(i.x + 1, i.y, 0.0, 0.0));
+        let p3 = noise(vec4f(i.x + 1, i.y + 1, 0.0, 0.0));
+
+        let sx = smoothstepHalf(f.x);
+        let sy = smoothstepHalf(f.y);
+        let m1 = lerp(p0, p1, sy);
+        let m2 = lerp(p2, p3, sy);
+        
+        return lerp(m1, m2, sx);
+      }
+
       @vertex fn vs(
         @builtin(vertex_index) vertexIndex : u32
       ) -> @builtin(position) vec4f {
@@ -88,11 +111,8 @@ async function main() {
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        return vec4<f32>( 
-          noise(vec4(coord.xy, 0.0, 0.0)), 
-          noise(vec4(coord.xy, 1.0, 0.0)), 
-          noise(vec4(coord.xy, 2.0, 0.0)), 
-          1.0);
+        let n = value_noise(vec4(coord.xy / 8, 0.0, 0.0));
+        return vec4<f32>(n, n, n, 1.0);
       }
     `,
   });
@@ -113,7 +133,7 @@ async function main() {
     canvas.value.width,
     canvas.value.height,
     0,
-    12345
+    12345,
   ]);
   const uniformBuffer = device.createBuffer({
     size: uniformValues.byteLength,
@@ -135,8 +155,6 @@ async function main() {
     label: "our basic canvas renderPass",
     colorAttachments: [colorAttachment],
   };
-
-
 
   function render(time: DOMHighResTimeStamp) {
     uniformValues[3] = time * 0.001;

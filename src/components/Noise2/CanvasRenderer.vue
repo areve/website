@@ -23,19 +23,40 @@ async function main() {
   });
 
   console.clear();
+
+//   export const makeNoiseGenerator = (seed: number) => {
+//   const a = new Uint32Array(new Float64Array([seed]).buffer);
+//   const s = a[0] ^ (a[1] + 1440662683);
+//   return (x: number, y: number, z: number = 0, w: number = 0): number => {
+//     const n =
+//       s + x * 374761393 + y * 668265263 + z * 1440662683 + w * 3865785317;
+//     const m = (n ^ (n >> 13)) * 1274126177;
+//     return (m >>> 0) / 0xffffffff;
+//   };
+// };
+
   const module = device.createShaderModule({
     label: "our hardcoded red color shader",
     code: `
       struct Uniforms {
           width: f32,
           height: f32,
+          seed: f32,
           time: f32
       };
 
       @group(0) @binding(0) var<uniform> uUniforms: Uniforms;
 
-      fn zzz() -> f32 {
-        return 0.5;
+      fn noise(coord: vec4<f32>) -> f32 {
+        let s = bitcast<u32>(uUniforms.seed);
+
+        let n: u32 = s +
+          bitcast<u32>(coord.x * 374761393.0) +
+          bitcast<u32>(coord.y * 668265263.0) +
+          bitcast<u32>(coord.z * 1440662683.0) +
+          bitcast<u32>(coord.w * 3865785317.0);
+        let m: u32 = (n ^ (n >> 13)) * 1274126177;
+        return bitcast<f32>(m) / 0xffffffff;// / uUniforms.width;
       }
 
       @vertex fn vs(
@@ -54,7 +75,7 @@ async function main() {
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        return vec4<f32>( coord.x / uUniforms.width * sin(uUniforms.time), zzz(), zzz(), 1.0);
+        return vec4<f32>( coord.x / uUniforms.width * sin(uUniforms.time), noise(coord), noise(coord), 1.0);
       }
     `,
   });
@@ -71,7 +92,12 @@ async function main() {
     },
   });
 
-  const uniformValues = new Float32Array(3);
+  const uniformValues = new Float32Array([
+    canvas.value.width,
+    canvas.value.height,
+    0,
+    12345
+  ]);
   const uniformBuffer = device.createBuffer({
     size: uniformValues.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -93,8 +119,7 @@ async function main() {
     colorAttachments: [colorAttachment],
   };
 
-  uniformValues[0] = canvas.value.width;
-  uniformValues[1] = canvas.value.height;
+
 
   function render(time: DOMHighResTimeStamp) {
     uniformValues[2] = time * 0.001;

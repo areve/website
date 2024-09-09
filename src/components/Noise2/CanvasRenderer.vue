@@ -36,37 +36,36 @@ async function main() {
           height: f32,
           time: f32
       };
-      // @group(0) @binding(0) var<uniform> time: f32;
       @group(0) @binding(0) var<uniform> uUniforms: Uniforms;
 
-      @vertex fn vs(
-        @builtin(vertex_index) vNdx : u32
-      ) -> @builtin(position) vec4f {
-        let v = f32(vNdx) * 2.0 - 1.0;
-        let xy = vec2f(
-          v * cos(uUniforms.time),
-          v * sin(uUniforms.time),
-        );
-        return vec4f(xy, 0.0, 1.0);
-      }
       // @vertex fn vs(
-      //   @builtin(vertex_index) vertexIndex : u32
+      //   @builtin(vertex_index) vNdx : u32
       // ) -> @builtin(position) vec4f {
-      //   let pos = array(
-      //     vec2f(-1.0, -1.0),
-      //     vec2f(1.0, 1.0),
-      //     vec2f(-1.0, 1.0) ,
-      //     vec2f(-1.0, -1.0),
-      //     vec2f(1.0, 1.0),
-      //     vec2f(1.0, -1.0) 
+      //   let v = f32(vNdx) * 2.0 - 1.0;
+      //   let xy = vec2f(
+      //     v * cos(uUniforms.time),
+      //     v * sin(uUniforms.time),
       //   );
- 
-      //   return vec4f(pos[vertexIndex], 0.0, 1.0);
+      //   return vec4f(xy, 0.0, 1.0);
       // }
+      @vertex fn vs(
+        @builtin(vertex_index) vertexIndex : u32
+      ) -> @builtin(position) vec4f {
+        let pos = array(
+          vec2f(-1.0, -1.0),
+          vec2f(1.0, 1.0),
+          vec2f(-1.0, 1.0) ,
+          vec2f(-1.0, -1.0),
+          vec2f(1.0, 1.0),
+          vec2f(1.0, -1.0) 
+        );
+ 
+        return vec4f(pos[vertexIndex], 0.0, 1.0);
+      }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         //return vec4f(1, 0, 0, 1);
-        return vec4<f32>( coord.x / 400, coord.y / 400, 0.0, 1.0);
+        return vec4<f32>( coord.x / 400 * sin(uUniforms.time), coord.y / 400 * cos(uUniforms.time), cos(uUniforms.time  * 4), 1.0);
       }
     `,
   });
@@ -81,9 +80,9 @@ async function main() {
       module,
       targets: [{ format: presentationFormat }],
     },
-    primitive: {
-      topology: "line-list",
-    },
+    // primitive: {
+    //   topology: "line-list",
+    // },
   });
 
   const uniformValues = new Float32Array(3);

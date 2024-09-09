@@ -2,23 +2,23 @@
   <article>
     <h1>Noise2</h1>
     <p>
-      WebGPUNoise
+      <div>WebGPUNoise</div>
       <WebGPUNoise />
     </p>
     <p>
-      WebGPUColorNoise
+      <div>WebGPUColorNoise</div>
       <WebGPUColorNoise />
     </p>
     <p>
-      WebGPUValueNoise
+      <div>WebGPUValueNoise</div>
       <WebGPUValueNoise />
     </p>
     <p>
-      WebGPUMandelbrot
+      <div>WebGPUMandelbrot</div>
       <WebGPUMandelbrot />
     </p>
     <p>
-      WebGPUOpenSimplex
+      <div>WebGPUOpenSimplex</div>
       <WebGPUOpenSimplex />
     </p>
   </article>

@@ -13,6 +13,10 @@
       WebGPUValueNoise
       <WebGPUValueNoise />
     </p>
+    <p>
+      WebGPUMandelbrot
+      <WebGPUMandelbrot />
+    </p>
   </article>
 </template>
 
@@ -20,6 +24,7 @@
 import WebGPUNoise from "./WebGPUNoise.vue";
 import WebGPUColorNoise from "./WebGPUColorNoise.vue";
 import WebGPUValueNoise from "./WebGPUValueNoise.vue";
+import WebGPUMandelbrot from "./WebGPUMandelbrot.vue";
 </script>
 
 <style scoped></style>

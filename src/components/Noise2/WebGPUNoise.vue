@@ -22,19 +22,6 @@ async function main() {
     format: presentationFormat,
   });
 
-  console.clear();
-
-//   export const makeNoiseGenerator = (seed: number) => {
-//   const a = new Uint32Array(new Float64Array([seed]).buffer);
-//   const s = a[0] ^ (a[1] + 1440662683);
-//   return (x: number, y: number, z: number = 0, w: number = 0): number => {
-//     const n =
-//       s + x * 374761393 + y * 668265263 + z * 1440662683 + w * 3865785317;
-//     const m = (n ^ (n >> 13)) * 1274126177;
-//     return (m >>> 0) / 0xffffffff;
-//   };
-// };
-
   const module = device.createShaderModule({
     label: "our hardcoded red color shader",
     code: `
@@ -48,15 +35,13 @@ async function main() {
       @group(0) @binding(0) var<uniform> uUniforms: Uniforms;
 
       fn noise(coord: vec4<f32>) -> f32 {
-        let s = bitcast<u32>(uUniforms.seed);
-
-        let n: u32 = s +
+        let n: u32 = bitcast<u32>(uUniforms.seed) +
           bitcast<u32>(coord.x * 374761393.0) +
           bitcast<u32>(coord.y * 668265263.0) +
           bitcast<u32>(coord.z * 1440662683.0) +
           bitcast<u32>(coord.w * 3865785317.0);
         let m: u32 = (n ^ (n >> 13)) * 1274126177;
-        return bitcast<f32>(m) / 0xffffffff;// / uUniforms.width;
+        return f32(m) / f32(0xffffffff);
       }
 
       @vertex fn vs(
@@ -75,7 +60,7 @@ async function main() {
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        return vec4<f32>( coord.x / uUniforms.width * sin(uUniforms.time), noise(coord), noise(coord), 1.0);
+        return vec4<f32>( noise(coord), noise(coord), noise(coord), 1.0);
       }
     `,
   });
@@ -122,7 +107,7 @@ async function main() {
 
 
   function render(time: DOMHighResTimeStamp) {
-    uniformValues[2] = time * 0.001;
+    uniformValues[3] = time * 0.001;
     device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
     colorAttachment.view = context.getCurrentTexture().createView();
     const encoder = device.createCommandEncoder({ label: "our encoder" });

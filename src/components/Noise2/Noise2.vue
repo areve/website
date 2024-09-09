@@ -2,14 +2,19 @@
   <article>
     <h1>Noise2</h1>
     <p>
-      Noise2 coming soon
-      <CanvasRenderer />
+      WebGPUNoise
+      <WebGPUNoise />
+    </p>
+    <p>
+      WebGPUValueNoise
+      <WebGPUValueNoise />
     </p>
   </article>
 </template>
 
 <script lang="ts" setup>
-import CanvasRenderer from "./CanvasRenderer.vue";
+import WebGPUNoise from "./WebGPUNoise.vue";
+import WebGPUValueNoise from "./WebGPUValueNoise.vue";
 </script>
 
 <style scoped></style>

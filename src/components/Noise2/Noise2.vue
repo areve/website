@@ -6,6 +6,10 @@
       <WebGPUNoise />
     </p>
     <p>
+      WebGPUColorNoise
+      <WebGPUColorNoise />
+    </p>
+    <p>
       WebGPUValueNoise
       <WebGPUValueNoise />
     </p>
@@ -14,6 +18,7 @@
 
 <script lang="ts" setup>
 import WebGPUNoise from "./WebGPUNoise.vue";
+import WebGPUColorNoise from "./WebGPUColorNoise.vue";
 import WebGPUValueNoise from "./WebGPUValueNoise.vue";
 </script>
 

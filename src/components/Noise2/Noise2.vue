@@ -17,6 +17,10 @@
       WebGPUMandelbrot
       <WebGPUMandelbrot />
     </p>
+    <p>
+      WebGPUOpenSimplex
+      <WebGPUOpenSimplex />
+    </p>
   </article>
 </template>
 
@@ -25,6 +29,7 @@ import WebGPUNoise from "./WebGPUNoise.vue";
 import WebGPUColorNoise from "./WebGPUColorNoise.vue";
 import WebGPUValueNoise from "./WebGPUValueNoise.vue";
 import WebGPUMandelbrot from "./WebGPUMandelbrot.vue";
+import WebGPUOpenSimplex from "./WebGPUOpenSimplex.vue";
 </script>
 
 <style scoped></style>

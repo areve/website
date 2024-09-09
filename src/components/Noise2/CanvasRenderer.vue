@@ -65,7 +65,7 @@ async function main() {
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         //return vec4f(1, 0, 0, 1);
-        return vec4<f32>( coord.x / 400 * sin(uUniforms.time), coord.y / 400 * cos(uUniforms.time), cos(uUniforms.time  * 4), 1.0);
+        return vec4<f32>( coord.x / uUniforms.width * sin(uUniforms.time), coord.y / uUniforms.height * cos(uUniforms.time), cos(uUniforms.time  * 4), 1.0);
       }
     `,
   });

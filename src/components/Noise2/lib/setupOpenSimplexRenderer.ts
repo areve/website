@@ -3,13 +3,15 @@ export async function setupOpenSimplexRenderer(
   options: {
     width: number;
     height: number;
-    seed: number;
+    seed?: number;
+    scale?: number;
   }
 ) {
   const sharedData = {
     width: options.width,
     height: options.height,
-    seed: options.seed,
+    seed: options.seed ?? 12345,
+    scale: options.scale ?? 8,
     x: 0,
     y: 0,
     z: 0,
@@ -19,6 +21,7 @@ export async function setupOpenSimplexRenderer(
         this.width,
         this.height,
         this.seed,
+        this.scale,
         this.x,
         this.y,
         this.z,
@@ -48,6 +51,7 @@ export async function setupOpenSimplexRenderer(
         width: f32,
         height: f32,
         seed: f32,
+        scale: f32,
         x: f32,
         y: f32,
         z: f32,
@@ -134,10 +138,12 @@ export async function setupOpenSimplexRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let dummy = data.z;
+        let viewportCenterX = data.width / 2.0;
+        let viewportCenterY = data.height / 2.0;
+
         let n = simplex3d(
-          (coord.x + data.x) / 8 * data.zoom, 
-          (coord.y + data.y) / 8 * data.zoom, 
+          (coord.x - viewportCenterX) / data.scale * data.zoom + viewportCenterX + data.x / data.scale, 
+          (coord.y - viewportCenterY) / data.scale * data.zoom + viewportCenterY + data.y / data.scale, 
           data.z);
         return vec4<f32>(n, n, n, 1.0);
       }

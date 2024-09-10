@@ -215,6 +215,8 @@ export const makeController = function () {
     if (event.touches.length === 0) {
       states.touch.dragging = false;
     } else if (event.touches.length === 1) {
+      states.touch.currentX = states.touch.startX = event.touches[0].clientX;
+      states.touch.currentY = states.touch.startY = event.touches[0].clientY;
       states.touch.dragging = true; // Resume dragging if one finger is left
     }
     event.preventDefault();

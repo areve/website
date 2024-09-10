@@ -9,7 +9,7 @@
 import { onMounted, onUnmounted, ref } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
-import { setupOpenSimplexRenderer } from "./lib/setupOpenSimplexRenderer";
+import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();

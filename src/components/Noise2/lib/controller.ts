@@ -88,19 +88,18 @@ export const makeController = function () {
       controller.value.zoom *= 1 - states.buttons.zoom.speed * diffTime;
 
       if (states.pointer.dragging) {
-        // Calculate movement delta, scaled by zoom level
-        const deltaX = (states.pointer.startX - states.pointer.currentX) * controller.value.zoom;
-        const deltaY = (states.pointer.startY - states.pointer.currentY) * controller.value.zoom;
-      
-        // Update controller position
+        const deltaX =
+          (states.pointer.startX - states.pointer.currentX) *
+          controller.value.zoom;
+        const deltaY =
+          (states.pointer.startY - states.pointer.currentY) *
+          controller.value.zoom;
         controller.value.x += deltaX;
         controller.value.y += deltaY;
-      
-        // Update start position for the next movement
         states.pointer.startX = states.pointer.currentX;
         states.pointer.startY = states.pointer.currentY;
       }
-      
+
       prevTime = now;
     },
     x: 0,

@@ -31,10 +31,11 @@ export async function setupOpenSimplexRenderer(
       struct Uniforms {
         width: f32,
         height: f32,
+        seed: f32,
         x: f32,
         y: f32,
         z: f32,
-        seed: f32
+        zoom: f32
       };
 
       @group(0) @binding(0) var<uniform> uUniforms: Uniforms;
@@ -141,10 +142,11 @@ export async function setupOpenSimplexRenderer(
   const uniformValues = new Float32Array([
     options.width,
     options.height,
-    0,
-    0,
-    0,
     options.seed,
+    0,
+    0,
+    0,
+    1,
   ]);
 
   const uniformBuffer = device.createBuffer({
@@ -180,9 +182,9 @@ export async function setupOpenSimplexRenderer(
     ) {
       if (data?.x !== undefined) _data.x = data?.x;
       if (data?.y !== undefined) _data.y = data?.y;
-      uniformValues[2] = _data.x;
-      uniformValues[3] = _data.y;
-      uniformValues[4] = time * 0.001;
+      uniformValues[3] = _data.x;
+      uniformValues[4] = _data.y;
+      uniformValues[5] = time * 0.001;
       device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

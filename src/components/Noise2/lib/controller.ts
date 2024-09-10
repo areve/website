@@ -41,23 +41,27 @@ export const makeController = function () {
   };
 
   let bindElement: HTMLElement;
+  let bindGlobalElement: HTMLElement;
   const start = performance.now() / 1000;
   let prevTime = start;
   const controller = ref({
     mount(element?: HTMLElement) {
+      bindGlobalElement = document.body;
       bindElement = element ?? document.body;
-      bindElement.addEventListener("keydown", onKeyDown);
-      bindElement.addEventListener("keyup", onKeyUp);
+      bindGlobalElement.addEventListener("keydown", onKeyDown);
+      bindGlobalElement.addEventListener("keyup", onKeyUp);
       bindElement.addEventListener("pointerdown", onPointerDown);
       bindElement.addEventListener("pointermove", onPointerMove);
       bindElement.addEventListener("pointerup", onPointerEnd);
+      bindElement.addEventListener("wheel", onWheel); // Add this line
     },
     unmount() {
-      bindElement.removeEventListener("keydown", onKeyDown);
-      bindElement.removeEventListener("keyup", onKeyUp);
+      bindGlobalElement.removeEventListener("keydown", onKeyDown);
+      bindGlobalElement.removeEventListener("keyup", onKeyUp);
       bindElement.removeEventListener("pointerdown", onPointerDown);
       bindElement.removeEventListener("pointermove", onPointerMove);
       bindElement.removeEventListener("pointerup", onPointerEnd);
+      bindElement.removeEventListener("wheel", onWheel); // Add this line
     },
     update() {
       const now = performance.now() / 1000;
@@ -84,12 +88,19 @@ export const makeController = function () {
       controller.value.zoom *= 1 - states.buttons.zoom.speed * diffTime;
 
       if (states.pointer.dragging) {
-        controller.value.x += states.pointer.startX - states.pointer.currentX;
-        controller.value.y += states.pointer.startY - states.pointer.currentY;
+        // Calculate movement delta, scaled by zoom level
+        const deltaX = (states.pointer.startX - states.pointer.currentX) * controller.value.zoom;
+        const deltaY = (states.pointer.startY - states.pointer.currentY) * controller.value.zoom;
+      
+        // Update controller position
+        controller.value.x += deltaX;
+        controller.value.y += deltaY;
+      
+        // Update start position for the next movement
         states.pointer.startX = states.pointer.currentX;
         states.pointer.startY = states.pointer.currentY;
       }
-
+      
       prevTime = now;
     },
     x: 0,
@@ -147,5 +158,15 @@ export const makeController = function () {
 
   function onPointerEnd() {
     states.pointer.dragging = false;
+  }
+
+  function onWheel(event: WheelEvent) {
+    const zoomChange = event.deltaY;
+    states.buttons.zoom.speed = Math.max(
+      Math.min(states.buttons.zoom.speed - zoomChange, options.zoom.maxSpeed),
+      -options.zoom.maxSpeed
+    );
+
+    event.preventDefault();
   }
 };

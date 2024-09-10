@@ -1,9 +1,7 @@
 <template>
   <canvas ref="canvas"></canvas>
-  {{ stats.fps.toPrecision(3) }}fps
-  {{ controller.x.toFixed(1) }}x
-  {{ controller.y.toFixed(1) }}y
-  {{ controller.z.toFixed(1) }}z
+  {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
+  {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
   {{ controller.zoom.toFixed(2) }}zoom
 </template>
 
@@ -22,7 +20,7 @@ const seed = 12345;
 
 let frameId: number = 0;
 onMounted(async () => {
-  controller.value.mount()
+  controller.value.mount(canvas.value);
   const renderer = await setupOpenSimplexRenderer(canvas.value, {
     width,
     height,
@@ -41,7 +39,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   cancelAnimationFrame(frameId);
-  controller.value.unmount()
+  controller.value.unmount();
 });
 </script>
 

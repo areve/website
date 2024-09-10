@@ -136,8 +136,9 @@ export async function setupOpenSimplexRenderer(
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         let dummy = data.z;
         let n = simplex3d(
-          (coord.x + data.x) / 8, 
-          (coord.y + data.y) / 8, data.z);
+          (coord.x + data.x) / 8 * data.zoom, 
+          (coord.y + data.y) / 8 * data.zoom, 
+          data.z);
         return vec4<f32>(n, n, n, 1.0);
       }
     `,
@@ -187,7 +188,7 @@ export async function setupOpenSimplexRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.001;
+      sharedData.z = time * 0.00001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

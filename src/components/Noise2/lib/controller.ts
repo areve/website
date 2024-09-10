@@ -4,7 +4,7 @@ import { ref } from "vue";
 export const makeController = function () {
   let _tick = 0;
   let _element: HTMLElement;
-  const controller = {
+  const controller = ref({
     mount(element?: HTMLElement) {
       _element = element ?? document.body;
       _element.addEventListener("keydown", onKeydown);
@@ -24,16 +24,16 @@ export const makeController = function () {
     yaw: 0,
     roll: 0,
     zoom: 1,
-  };
-  return ref(controller);
+  });
+  return controller;
 
   function onKeydown(event: KeyboardEvent) {
     const key = event.key.toLowerCase();
-    if (key === "a") controller.x -= 10;
-    if (key === "d") controller.x += 10;
-    if (key === "w") controller.y -= 10;
-    if (key === "s") controller.y += 10;
-
-    // console.log("onKeydown", event.key);
+    if (key === "a") controller.value.x -= 10;
+    if (key === "d") controller.value.x += 10;
+    if (key === "w") controller.value.y -= 10;
+    if (key === "s") controller.value.y += 10;
+    if (key === "'") controller.value.zoom /= 1.2;
+    if (key === "/") controller.value.zoom *= 1.2;
   }
 };

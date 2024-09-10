@@ -1,8 +1,10 @@
 <template>
   <canvas ref="canvas"></canvas>
   {{ stats.fps.toPrecision(3) }}fps
-  {{ controller.x }}x
-  {{ controller.y }}y
+  {{ controller.x.toFixed(1) }}x
+  {{ controller.y.toFixed(1) }}y
+  {{ controller.z.toFixed(1) }}z
+  {{ controller.zoom.toFixed(2) }}zoom
 </template>
 
 <script lang="ts" setup>

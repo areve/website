@@ -1,11 +1,14 @@
 <template>
   <canvas ref="canvas"></canvas>
+  {{ stats.fps.toPrecision(3) }}fps
 </template>
 
 <script lang="ts" setup>
-import { Ref, ref } from "vue";
+import { computed, Ref, ref } from "vue";
+import { makeStats } from "./lib/stats";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
+const stats = makeStats();
 
 async function main() {
   const adapter = await navigator.gpu?.requestAdapter();
@@ -173,6 +176,8 @@ fn vertexContribution(
     pass.end();
     const commandBuffer = encoder.finish();
     device.queue.submit([commandBuffer]);
+    stats.value.update();
+
     requestAnimationFrame(render);
   }
 

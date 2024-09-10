@@ -114,19 +114,9 @@ export const makeController = function () {
       }
 
       if (states.pinching.zooming) {
-        // const distance = Math.sqrt(
-        //   Math.pow(states.pinching.currentX - states.pinching.startX, 2) +
-        //     Math.pow(states.pinching.currentY - states.pinching.startY, 2)
-        // );
-        // const scale = distance / states.pinching.startDistance;
-        // console.log('currentPinchDistance', states.pinching )
         controller.value.zoom *= states.pinching.pinchRatio;
-
         states.pinching.initialDistance = states.pinching.currentPinchDistance;
         states.pinching.pinchRatio = 1;
-        // states.pinching.startDistance = distance;
-        // states.pinching.startX = states.pinching.currentX;
-        // states.pinching.startY = states.pinching.currentY;
       }
 
       prevTime = now;
@@ -177,31 +167,31 @@ export const makeController = function () {
 
   function onTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
-      states.panning.currentX = states.panning.startX =
-        event.touches[0].clientX;
-      states.panning.currentY = states.panning.startY =
-        event.touches[0].clientY;
+      const [touch1] = event.touches as unknown as [Touch];
+      states.panning.currentX = states.panning.startX = touch1.clientX;
+      states.panning.currentY = states.panning.startY = touch1.clientY;
       states.panning.dragging = true;
+      event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       states.pinching.initialDistance = getDistance(touch1, touch2);
-      states.panning.dragging = false; // Disable dragging during pinch
+      states.panning.dragging = false;
+      event.preventDefault();
     }
-    event.preventDefault();
   }
 
   function onTouchMove(event: TouchEvent) {
     if (event.touches.length === 1 && states.panning.dragging) {
-      states.panning.currentX = event.touches[0].clientX;
-      states.panning.currentY = event.touches[0].clientY;
+      const [touch1] = event.touches as unknown as [Touch];
+      states.panning.currentX = touch1.clientX;
+      states.panning.currentY = touch1.clientY;
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       const currentPinchDistance = getDistance(touch1, touch2);
       states.pinching.currentPinchDistance = currentPinchDistance;
-      const pinchRatio = states.pinching.initialDistance / currentPinchDistance; // Invert the ratio
+      const pinchRatio = states.pinching.initialDistance / currentPinchDistance;
       states.pinching.pinchRatio = pinchRatio;
-      // controller.value.zoom *= pinchRatio;
       states.pinching.zooming = true;
       event.preventDefault();
     }
@@ -211,24 +201,22 @@ export const makeController = function () {
     if (event.touches.length === 0) {
       states.panning.dragging = false;
       states.pinching.zooming = false;
+      event.preventDefault();
     } else if (event.touches.length === 1) {
-      states.panning.currentX = states.panning.startX =
-        event.touches[0].clientX;
-      states.panning.currentY = states.panning.startY =
-        event.touches[0].clientY;
-      states.panning.dragging = true; // Resume dragging if one finger is left
+      const [touch1] = event.touches as unknown as [Touch];
+      states.panning.currentX = states.panning.startX = touch1.clientX;
+      states.panning.currentY = states.panning.startY = touch1.clientY;
+      states.panning.dragging = true;
       states.pinching.zooming = false;
+      event.preventDefault();
     }
-    event.preventDefault();
   }
 
   function onWheel(event: WheelEvent) {
     const zoomChange = event.deltaY;
-    states.buttons.zoom.speed = Math.max(
-      Math.min(states.buttons.zoom.speed - zoomChange, options.zoom.maxSpeed),
-      -options.zoom.maxSpeed
-    );
-
+    const maxSpeed = options.zoom.maxSpeed;
+    const zoomDiff = states.buttons.zoom.speed - zoomChange;
+    states.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
     event.preventDefault();
   }
 };
@@ -253,4 +241,8 @@ function getDistance(touch1: Touch, touch2: Touch): number {
     Math.pow(touch2.clientX - touch1.clientX, 2) +
       Math.pow(touch2.clientY - touch1.clientY, 2)
   );
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }

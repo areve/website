@@ -2,8 +2,15 @@ import { ref } from "vue";
 
 export const makeController = function () {
   let moveSpeedX = 0;
+  let maxSpeedX = 100;
+  let accelerationX = 1000;
+  let decelerationX = 1000;
   let moveSpeedY = 0;
   let zoomSpeed = 0;
+
+  let isMovingLeft = false;
+  let isMovingRight = false;
+
   let _element: HTMLElement;
   const start = performance.now() / 1000;
   let prevTime = start;
@@ -13,13 +20,27 @@ export const makeController = function () {
       _element.addEventListener("keydown", onKeydown);
       _element.addEventListener("keyup", onKeyup);
     },
-    unmount(element?: HTMLElement) {
+    unmount() {
       _element.removeEventListener("keydown", onKeydown);
       _element.removeEventListener("keyup", onKeyup);
     },
     update() {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
+      if (isMovingLeft) {
+        moveSpeedX = Math.max(
+          moveSpeedX - accelerationX * diffTime,
+          -maxSpeedX
+        );
+      } else if (isMovingRight) {
+        moveSpeedX = Math.min(moveSpeedX + accelerationX * diffTime, maxSpeedX);
+      } else {
+        if (moveSpeedX > 0)
+          moveSpeedX = Math.max(moveSpeedX - decelerationX * diffTime, 0);
+        else if (moveSpeedX < 0)
+          moveSpeedX = Math.min(moveSpeedX + decelerationX * diffTime, 0);
+      }
+
       controller.value.x += moveSpeedX * diffTime;
       controller.value.y += moveSpeedY * diffTime;
       controller.value.zoom *= 1 - zoomSpeed * diffTime;
@@ -37,8 +58,8 @@ export const makeController = function () {
 
   function onKeydown(event: KeyboardEvent) {
     const key = event.key.toLowerCase();
-    if (key === "a") moveSpeedX = -100;
-    if (key === "d") moveSpeedX = 100;
+    if (key === "a") isMovingLeft = true;
+    if (key === "d") isMovingRight = true;
     if (key === "w") moveSpeedY = -100;
     if (key === "s") moveSpeedY = 100;
     if (key === "'") zoomSpeed = 1;
@@ -47,8 +68,8 @@ export const makeController = function () {
 
   function onKeyup(event: KeyboardEvent) {
     const key = event.key.toLowerCase();
-    if (key === "a") moveSpeedX = 0;
-    if (key === "d") moveSpeedX = 0;
+    if (key === "a") isMovingLeft = false;
+    if (key === "d") isMovingRight = false;
     if (key === "w") moveSpeedY = 0;
     if (key === "s") moveSpeedY = 0;
     if (key === "'") zoomSpeed = 0;

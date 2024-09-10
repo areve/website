@@ -26,55 +26,82 @@ export const makeController = function () {
   };
 
   const states = {
-    moveX: { increasing: false, decreasing: false, speed: 0 },
-    moveY: { increasing: false, decreasing: false, speed: 0 },
-    zoom: { increasing: false, decreasing: false, speed: 0 },
+    buttons: {
+      moveX: { increasing: false, decreasing: false, speed: 0 },
+      moveY: { increasing: false, decreasing: false, speed: 0 },
+      zoom: { increasing: false, decreasing: false, speed: 0 },
+    },
+    pointer: {
+      startX: 0,
+      startY: 0,
+      dragging: false,
+      currentX: 0,
+      currentY: 0,
+    },
   };
 
-  let element: HTMLElement;
+  let bindElement: HTMLElement;
   const start = performance.now() / 1000;
   let prevTime = start;
   const controller = ref({
     mount(element?: HTMLElement) {
-      element = element ?? document.body;
-      element.addEventListener("keydown", onKeydown);
-      element.addEventListener("keyup", onKeyup);
+      bindElement = element ?? document.body;
+      bindElement.addEventListener("keydown", onKeyDown);
+      bindElement.addEventListener("keyup", onKeyUp);
+      bindElement.addEventListener("pointerdown", onPointerDown);
+      bindElement.addEventListener("pointermove", onPointerMove);
+      bindElement.addEventListener("pointerup", onPointerEnd);
     },
     unmount() {
-      element.removeEventListener("keydown", onKeydown);
-      element.removeEventListener("keyup", onKeyup);
+      bindElement.removeEventListener("keydown", onKeyDown);
+      bindElement.removeEventListener("keyup", onKeyUp);
+      bindElement.removeEventListener("pointerdown", onPointerDown);
+      bindElement.removeEventListener("pointermove", onPointerMove);
+      bindElement.removeEventListener("pointerup", onPointerEnd);
     },
     update() {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
 
-      states.moveX.speed = updateSpeed(options.moveX, states.moveX, diffTime);
-      states.moveY.speed = updateSpeed(options.moveY, states.moveY, diffTime);
-      states.zoom.speed = updateSpeed(options.zoom, states.zoom, diffTime);
+      states.buttons.moveX.speed = updateSpeed(
+        options.moveX,
+        states.buttons.moveX,
+        diffTime
+      );
+      states.buttons.moveY.speed = updateSpeed(
+        options.moveY,
+        states.buttons.moveY,
+        diffTime
+      );
+      states.buttons.zoom.speed = updateSpeed(
+        options.zoom,
+        states.buttons.zoom,
+        diffTime
+      );
 
-      controller.value.x += states.moveX.speed * diffTime;
-      controller.value.y -= states.moveY.speed * diffTime;
-      controller.value.zoom *= 1 - states.zoom.speed * diffTime;
+      controller.value.x += states.buttons.moveX.speed * diffTime;
+      controller.value.y -= states.buttons.moveY.speed * diffTime;
+      controller.value.zoom *= 1 - states.buttons.zoom.speed * diffTime;
+
+      if (states.pointer.dragging) {
+        controller.value.x += states.pointer.startX - states.pointer.currentX;
+        controller.value.y += states.pointer.startY - states.pointer.currentY;
+        states.pointer.startX = states.pointer.currentX;
+        states.pointer.startY = states.pointer.currentY;
+      }
 
       prevTime = now;
     },
     x: 0,
     y: 0,
     z: 0,
-    // pitch: 0, // reserved for future
-    // yaw: 0, // reserved for future
-    // roll: 0, // reserved for future
     zoom: 1,
   });
   return controller;
 
   function updateSpeed(
     options: { accel: number; decel: number; maxSpeed: number },
-    state: {
-      speed: number;
-      increasing: boolean;
-      decreasing: boolean;
-    },
+    state: { speed: number; increasing: boolean; decreasing: boolean },
     diffTime: number
   ): number {
     const { accel, decel, maxSpeed } = options;
@@ -87,21 +114,38 @@ export const makeController = function () {
     return speed;
   }
 
-  function onKeydown(event: KeyboardEvent) {
+  function onKeyDown(event: KeyboardEvent) {
     updateButtonState(event.key, true);
   }
 
-  function onKeyup(event: KeyboardEvent) {
+  function onKeyUp(event: KeyboardEvent) {
     updateButtonState(event.key, false);
   }
 
   function updateButtonState(key: string, pressed: boolean) {
     for (const k in options) {
       const { increaseKeys, decreaseKeys } = options[k as keyof typeof options];
-      const state = states[k as keyof typeof states];
+      const state = states.buttons[k as keyof typeof states.buttons];
       const lowerCaseKey = key.toLowerCase();
-      if (increaseKeys.indexOf(lowerCaseKey) !== -1) state.increasing = pressed;
-      if (decreaseKeys.indexOf(lowerCaseKey) !== -1) state.decreasing = pressed;
+      if (increaseKeys.includes(lowerCaseKey)) state.increasing = pressed;
+      if (decreaseKeys.includes(lowerCaseKey)) state.decreasing = pressed;
     }
+  }
+
+  function onPointerDown(event: PointerEvent) {
+    states.pointer.currentX = states.pointer.startX = event.clientX;
+    states.pointer.currentY = states.pointer.startY = event.clientY;
+    states.pointer.dragging = true;
+  }
+
+  function onPointerMove(event: PointerEvent) {
+    if (states.pointer.dragging) {
+      states.pointer.currentX = event.clientX;
+      states.pointer.currentY = event.clientY;
+    }
+  }
+
+  function onPointerEnd() {
+    states.pointer.dragging = false;
   }
 };

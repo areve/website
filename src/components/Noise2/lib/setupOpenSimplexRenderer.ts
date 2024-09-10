@@ -6,11 +6,27 @@ export async function setupOpenSimplexRenderer(
     seed: number;
   }
 ) {
-  const _data = {
+  const sharedData = {
+    width: options.width,
+    height: options.height,
+    seed: options.seed,
     x: 0,
     y: 0,
     z: 0,
+    zoom: 1,
+    asBuffer() {
+      return new Float32Array([
+        this.width,
+        this.height,
+        this.seed,
+        this.x,
+        this.y,
+        this.z,
+        this.zoom,
+      ]);
+    },
   };
+
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
   if (!device) return fail("need a browser that supports WebGPU");
@@ -38,10 +54,10 @@ export async function setupOpenSimplexRenderer(
         zoom: f32
       };
 
-      @group(0) @binding(0) var<uniform> uUniforms: Uniforms;
+      @group(0) @binding(0) var<uniform> data: Uniforms;
 
       fn noise(coord: vec4<f32>) -> f32 {
-        let n: u32 = bitcast<u32>(uUniforms.seed) +
+        let n: u32 = bitcast<u32>(data.seed) +
           bitcast<u32>(coord.x * 374761393.0) +
           bitcast<u32>(coord.y * 668265263.0) +
           bitcast<u32>(coord.z * 1440662683.0) +
@@ -118,10 +134,10 @@ export async function setupOpenSimplexRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let dummy = uUniforms.z;
+        let dummy = data.z;
         let n = simplex3d(
-          (coord.x + uUniforms.x) / 8, 
-          (coord.y + uUniforms.y) / 8, uUniforms.z);
+          (coord.x + data.x) / 8, 
+          (coord.y + data.y) / 8, data.z);
         return vec4<f32>(n, n, n, 1.0);
       }
     `,
@@ -139,24 +155,14 @@ export async function setupOpenSimplexRenderer(
     },
   });
 
-  const uniformValues = new Float32Array([
-    options.width,
-    options.height,
-    options.seed,
-    0,
-    0,
-    0,
-    1,
-  ]);
-
-  const uniformBuffer = device.createBuffer({
-    size: uniformValues.byteLength,
+  const dataBuffer = device.createBuffer({
+    size: sharedData.asBuffer().byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
   const bindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+    entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
 
   const colorAttachment: GPURenderPassColorAttachment = {
@@ -176,16 +182,13 @@ export async function setupOpenSimplexRenderer(
     async update(
       time: DOMHighResTimeStamp,
       data?: {
-        x: number;
-        y: number;
+        x?: number;
+        y?: number;
       }
     ) {
-      if (data?.x !== undefined) _data.x = data?.x;
-      if (data?.y !== undefined) _data.y = data?.y;
-      uniformValues[3] = _data.x;
-      uniformValues[4] = _data.y;
-      uniformValues[5] = time * 0.001;
-      device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
+      Object.assign(sharedData, data);
+      sharedData.z = time * 0.001;
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });
       const pass = encoder.beginRenderPass(renderPassDescriptor);

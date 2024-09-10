@@ -12,6 +12,8 @@
     "smootherstep",
     "unskew",
     "voronoi",
+    "webgpu",
+    "wgsl",
     "Worley"
   ]
 }

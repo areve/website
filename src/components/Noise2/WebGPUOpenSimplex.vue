@@ -45,6 +45,6 @@ onUnmounted(() => {
 
 <style scoped>
 .canvas {
-  touch-action: pinch-zoom;
+  touch-action: none;
 }
 </style>

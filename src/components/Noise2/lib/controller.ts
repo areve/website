@@ -1,108 +1,90 @@
 import { ref } from "vue";
 
 export const makeController = function () {
-  const buttons = {
+  const options = {
     moveX: {
-      increase: {
-        key: "d",
-        pressed: false,
-      },
-      decrease: {
-        key: "a",
-        pressed: false,
-      },
-      speed: 0,
+      increaseKeys: ["d"],
+      decreaseKeys: ["a"],
       accel: 2000,
       decel: 2000,
       maxSpeed: 300,
     },
     moveY: {
-      increase: {
-        key: "w",
-        pressed: false,
-      },
-      decrease: {
-        key: "s",
-        pressed: false,
-      },
-      speed: 0,
+      increaseKeys: ["w"],
+      decreaseKeys: ["s"],
       accel: 2000,
       decel: 2000,
       maxSpeed: 300,
     },
     zoom: {
-      increase: {
-        key: "'",
-        pressed: false,
-      },
-      decrease: {
-        key: "/",
-        pressed: false,
-      },
-      speed: 0,
+      increaseKeys: ["'"],
+      decreaseKeys: ["/"],
       accel: 20,
       decel: 20,
       maxSpeed: 2,
     },
   };
 
-  let _element: HTMLElement;
+  const states = {
+    moveX: { increasing: false, decreasing: false, speed: 0 },
+    moveY: { increasing: false, decreasing: false, speed: 0 },
+    zoom: { increasing: false, decreasing: false, speed: 0 },
+  };
+
+  let element: HTMLElement;
   const start = performance.now() / 1000;
   let prevTime = start;
   const controller = ref({
     mount(element?: HTMLElement) {
-      _element = element ?? document.body;
-      _element.addEventListener("keydown", onKeydown);
-      _element.addEventListener("keyup", onKeyup);
+      element = element ?? document.body;
+      element.addEventListener("keydown", onKeydown);
+      element.addEventListener("keyup", onKeyup);
     },
     unmount() {
-      _element.removeEventListener("keydown", onKeydown);
-      _element.removeEventListener("keyup", onKeyup);
+      element.removeEventListener("keydown", onKeydown);
+      element.removeEventListener("keyup", onKeyup);
     },
     update() {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
 
-      buttons.moveX.speed = updateSpeed(buttons.moveX, diffTime);
-      buttons.moveY.speed = updateSpeed(buttons.moveY, diffTime);
-      buttons.zoom.speed = updateSpeed(buttons.zoom, diffTime);
+      states.moveX.speed = updateSpeed(options.moveX, states.moveX, diffTime);
+      states.moveY.speed = updateSpeed(options.moveY, states.moveY, diffTime);
+      states.zoom.speed = updateSpeed(options.zoom, states.zoom, diffTime);
 
-      controller.value.x += buttons.moveX.speed * diffTime;
-      controller.value.y -= buttons.moveY.speed * diffTime;
-      controller.value.zoom *= 1 - buttons.zoom.speed * diffTime;
+      controller.value.x += states.moveX.speed * diffTime;
+      controller.value.y -= states.moveY.speed * diffTime;
+      controller.value.zoom *= 1 - states.zoom.speed * diffTime;
 
       prevTime = now;
     },
     x: 0,
     y: 0,
     z: 0,
-    pitch: 0,
-    yaw: 0,
-    roll: 0,
+    // pitch: 0, // reserved for future
+    // yaw: 0, // reserved for future
+    // roll: 0, // reserved for future
     zoom: 1,
   });
   return controller;
 
-  function updateSpeed(buttonConfig: any, diffTime: number): number {
-    const { speed, increase, decrease, accel, decel, maxSpeed } =
-      buttonConfig;
-
-    let newSpeed = speed;
-
-    if (increase.pressed === decrease.pressed) {
-      // No movement or both buttons pressed
-      if (newSpeed > 0) {
-        newSpeed = Math.max(newSpeed - decel * diffTime, 0);
-      } else if (newSpeed < 0) {
-        newSpeed = Math.min(newSpeed + decel * diffTime, 0);
-      }
-    } else if (increase.pressed) {
-      newSpeed = Math.min(newSpeed + accel * diffTime, maxSpeed);
-    } else if (decrease.pressed) {
-      newSpeed = Math.max(newSpeed - accel * diffTime, -maxSpeed);
-    }
-
-    return newSpeed;
+  function updateSpeed(
+    options: { accel: number; decel: number; maxSpeed: number },
+    state: {
+      speed: number;
+      increasing: boolean;
+      decreasing: boolean;
+    },
+    diffTime: number
+  ): number {
+    const { accel, decel, maxSpeed } = options;
+    const { speed, increasing, decreasing } = state;
+    const bothOrNone = increasing === decreasing;
+    if (bothOrNone && speed > 0) return Math.max(speed - decel * diffTime, 0);
+    if (bothOrNone && speed < 0) return Math.min(speed + decel * diffTime, 0);
+    if (increasing) return Math.min(speed + accel * diffTime, maxSpeed);
+    if (decreasing) return Math.max(speed - accel * diffTime, -maxSpeed);
+    return speed;
   }
 
   function onKeydown(event: KeyboardEvent) {
@@ -114,10 +96,12 @@ export const makeController = function () {
   }
 
   function updateButtonState(key: string, pressed: boolean) {
-    for (const k in buttons) {
-      const { increase, decrease } = buttons[k as keyof typeof buttons];
-      if (key.toLowerCase() === increase.key) increase.pressed = pressed;
-      if (key.toLowerCase() === decrease.key) decrease.pressed = pressed;
+    for (const k in options) {
+      const { increaseKeys, decreaseKeys } = options[k as keyof typeof options];
+      const state = states[k as keyof typeof states];
+      const lowerCaseKey = key.toLowerCase();
+      if (increaseKeys.indexOf(lowerCaseKey) !== -1) state.increasing = pressed;
+      if (decreaseKeys.indexOf(lowerCaseKey) !== -1) state.decreasing = pressed;
     }
   }
 };

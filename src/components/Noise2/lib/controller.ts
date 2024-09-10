@@ -31,23 +31,20 @@ export const makeController = function () {
       moveY: { increasing: false, decreasing: false, speed: 0 },
       zoom: { increasing: false, decreasing: false, speed: 0 },
     },
-    mouse: {
+    panning: {
       startX: 0,
       startY: 0,
+      currentX: 0,
+      currentY: 0,
       dragging: false,
-      currentX: 0,
-      currentY: 0,
     },
-    touch: {
-      startX: 0,
-      startY: 0,
-      currentX: 0,
-      currentY: 0,
+    pinching: {
+      initialDistance: 0,
       startDistance: 0,
+      pinchRatio: 1,
+      currentPinchDistance: 0,
       zooming: false,
-      dragging: false,
     },
-    initialPinchDistance: 0,
   };
 
   let bindElement: HTMLElement;
@@ -103,38 +100,33 @@ export const makeController = function () {
       controller.value.y -= states.buttons.moveY.speed * diffTime;
       controller.value.zoom *= 1 - states.buttons.zoom.speed * diffTime;
 
-      if (states.mouse.dragging) {
+      if (states.panning.dragging) {
         const deltaX =
-          (states.mouse.startX - states.mouse.currentX) * controller.value.zoom;
+          (states.panning.startX - states.panning.currentX) *
+          controller.value.zoom;
         const deltaY =
-          (states.mouse.startY - states.mouse.currentY) * controller.value.zoom;
+          (states.panning.startY - states.panning.currentY) *
+          controller.value.zoom;
         controller.value.x += deltaX;
         controller.value.y += deltaY;
-        states.mouse.startX = states.mouse.currentX;
-        states.mouse.startY = states.mouse.currentY;
+        states.panning.startX = states.panning.currentX;
+        states.panning.startY = states.panning.currentY;
       }
 
-      if (states.touch.dragging) {
-        const deltaX =
-          (states.touch.startX - states.touch.currentX) * controller.value.zoom;
-        const deltaY =
-          (states.touch.startY - states.touch.currentY) * controller.value.zoom;
-        controller.value.x += deltaX;
-        controller.value.y += deltaY;
-        states.touch.startX = states.touch.currentX;
-        states.touch.startY = states.touch.currentY;
-      }
+      if (states.pinching.zooming) {
+        // const distance = Math.sqrt(
+        //   Math.pow(states.pinching.currentX - states.pinching.startX, 2) +
+        //     Math.pow(states.pinching.currentY - states.pinching.startY, 2)
+        // );
+        // const scale = distance / states.pinching.startDistance;
+        // console.log('currentPinchDistance', states.pinching )
+        controller.value.zoom *= states.pinching.pinchRatio;
 
-      if (states.touch.zooming) {
-        const distance = Math.sqrt(
-          Math.pow(states.touch.currentX - states.touch.startX, 2) +
-            Math.pow(states.touch.currentY - states.touch.startY, 2)
-        );
-        const scale = distance / states.touch.startDistance;
-        controller.value.zoom *= scale;
-        states.touch.startDistance = distance;
-        states.touch.startX = states.touch.currentX;
-        states.touch.startY = states.touch.currentY;
+        states.pinching.initialDistance = states.pinching.currentPinchDistance;
+        states.pinching.pinchRatio = 1;
+        // states.pinching.startDistance = distance;
+        // states.pinching.startX = states.pinching.currentX;
+        // states.pinching.startY = states.pinching.currentY;
       }
 
       prevTime = now;
@@ -165,59 +157,67 @@ export const makeController = function () {
   }
 
   function onMouseDown(event: MouseEvent) {
-    states.mouse.currentX = states.mouse.startX = event.clientX;
-    states.mouse.currentY = states.mouse.startY = event.clientY;
-    states.mouse.dragging = true;
+    states.panning.currentX = states.panning.startX = event.clientX;
+    states.panning.currentY = states.panning.startY = event.clientY;
+    states.panning.dragging = true;
     event.preventDefault();
   }
 
   function onMouseMove(event: MouseEvent) {
-    if (states.mouse.dragging) {
-      states.mouse.currentX = event.clientX;
-      states.mouse.currentY = event.clientY;
+    if (states.panning.dragging) {
+      states.panning.currentX = event.clientX;
+      states.panning.currentY = event.clientY;
       event.preventDefault();
     }
   }
 
   function onMouseUp() {
-    states.mouse.dragging = false;
+    states.panning.dragging = false;
   }
 
   function onTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
-      states.touch.currentX = states.touch.startX = event.touches[0].clientX;
-      states.touch.currentY = states.touch.startY = event.touches[0].clientY;
-      states.touch.dragging = true;
+      states.panning.currentX = states.panning.startX =
+        event.touches[0].clientX;
+      states.panning.currentY = states.panning.startY =
+        event.touches[0].clientY;
+      states.panning.dragging = true;
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
-      states.initialPinchDistance = getDistance(touch1, touch2);
-      states.touch.dragging = false; // Disable dragging during pinch
+      states.pinching.initialDistance = getDistance(touch1, touch2);
+      states.panning.dragging = false; // Disable dragging during pinch
     }
     event.preventDefault();
   }
 
   function onTouchMove(event: TouchEvent) {
-    if (event.touches.length === 1 && states.touch.dragging) {
-      states.touch.currentX = event.touches[0].clientX;
-      states.touch.currentY = event.touches[0].clientY;
+    if (event.touches.length === 1 && states.panning.dragging) {
+      states.panning.currentX = event.touches[0].clientX;
+      states.panning.currentY = event.touches[0].clientY;
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       const currentPinchDistance = getDistance(touch1, touch2);
-      const pinchRatio = states.initialPinchDistance / currentPinchDistance; // Invert the ratio
-      controller.value.zoom *= pinchRatio;
-      states.initialPinchDistance = currentPinchDistance; // Update for continuous zooming
+      states.pinching.currentPinchDistance = currentPinchDistance;
+      const pinchRatio = states.pinching.initialDistance / currentPinchDistance; // Invert the ratio
+      states.pinching.pinchRatio = pinchRatio;
+      // controller.value.zoom *= pinchRatio;
+      states.pinching.zooming = true;
       event.preventDefault();
     }
   }
 
   function onTouchEnd(event: TouchEvent) {
     if (event.touches.length === 0) {
-      states.touch.dragging = false;
+      states.panning.dragging = false;
+      states.pinching.zooming = false;
     } else if (event.touches.length === 1) {
-      states.touch.currentX = states.touch.startX = event.touches[0].clientX;
-      states.touch.currentY = states.touch.startY = event.touches[0].clientY;
-      states.touch.dragging = true; // Resume dragging if one finger is left
+      states.panning.currentX = states.panning.startX =
+        event.touches[0].clientX;
+      states.panning.currentY = states.panning.startY =
+        event.touches[0].clientY;
+      states.panning.dragging = true; // Resume dragging if one finger is left
+      states.pinching.zooming = false;
     }
     event.preventDefault();
   }

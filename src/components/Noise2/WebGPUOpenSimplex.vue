@@ -1,5 +1,5 @@
 <template>
-  <canvas ref="canvas"></canvas>
+  <canvas ref="canvas" class="canvas"></canvas>
   {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
   {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
   {{ controller.zoom.toFixed(2) }}zoom
@@ -43,4 +43,8 @@ onUnmounted(() => {
 });
 </script>
 
-<style scoped></style>
+<style scoped>
+.canvas {
+  touch-action: pinch-zoom;
+}
+</style>

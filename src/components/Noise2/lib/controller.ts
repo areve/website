@@ -146,12 +146,14 @@ export const makeController = function () {
     states.pointer.currentX = states.pointer.startX = event.clientX;
     states.pointer.currentY = states.pointer.startY = event.clientY;
     states.pointer.dragging = true;
+    event.preventDefault();
   }
 
   function onPointerMove(event: PointerEvent) {
     if (states.pointer.dragging) {
       states.pointer.currentX = event.clientX;
       states.pointer.currentY = event.clientY;
+      event.preventDefault();
     }
   }
 

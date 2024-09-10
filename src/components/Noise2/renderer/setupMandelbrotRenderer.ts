@@ -48,9 +48,9 @@ export async function setupMandelbrotRenderer(
     label: "our hardcoded red color shader",
     code: /* wgsl */ `
       struct Uniforms {
-          width: f32,
-          height: f32,
-          seed: f32,
+        width: f32,
+        height: f32,
+        seed: f32,
         scale: f32,
         x: f32,
         y: f32,
@@ -70,10 +70,10 @@ export async function setupMandelbrotRenderer(
         var iteration: i32 = 0;
 
         while (r * r + i * i <= 4.0 && iteration < maxIterations) {
-            let rTemp: f32 = r * r - i * i + r0;
-            i = 2.0 * r * i + i0;
-            r = rTemp;
-            iteration = iteration + 1;
+          let rTemp: f32 = r * r - i * i + r0;
+          i = 2.0 * r * i + i0;
+          r = rTemp;
+          iteration = iteration + 1;
         }
 
         return f32(iteration) / f32(maxIterations);

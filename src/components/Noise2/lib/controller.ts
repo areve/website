@@ -2,14 +2,24 @@ import { ref } from "vue";
 
 export const makeController = function () {
   let moveSpeedX = 0;
-  let maxSpeedX = 100;
-  let accelerationX = 1000;
-  let decelerationX = 1000;
+  let maxSpeedX = 300;
+  const acceleration = 1000;
+  const deceleration = 2000;
   let moveSpeedY = 0;
+  let maxSpeedY = 300;
   let zoomSpeed = 0;
-
-  let isMovingLeft = false;
-  let isMovingRight = false;
+  let maxZoomSpeed = 2;
+  const zoomAcceleration = 5;
+  const zoomDeceleration = 20;
+  
+  const buttons = {
+    left: false,
+    right: false,
+    up: false,
+    down: false,
+    zoomIn: false,
+    zoomOut: false,
+  };
 
   let _element: HTMLElement;
   const start = performance.now() / 1000;
@@ -27,23 +37,43 @@ export const makeController = function () {
     update() {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
-      if (isMovingLeft) {
-        moveSpeedX = Math.max(
-          moveSpeedX - accelerationX * diffTime,
-          -maxSpeedX
-        );
-      } else if (isMovingRight) {
-        moveSpeedX = Math.min(moveSpeedX + accelerationX * diffTime, maxSpeedX);
-      } else {
+
+      if (buttons.left === buttons.right) {
         if (moveSpeedX > 0)
-          moveSpeedX = Math.max(moveSpeedX - decelerationX * diffTime, 0);
+          moveSpeedX = Math.max(moveSpeedX - deceleration * diffTime, 0);
         else if (moveSpeedX < 0)
-          moveSpeedX = Math.min(moveSpeedX + decelerationX * diffTime, 0);
+          moveSpeedX = Math.min(moveSpeedX + deceleration * diffTime, 0);
+      } else if (buttons.left) {
+        moveSpeedX = Math.max(moveSpeedX - acceleration * diffTime, -maxSpeedX);
+      } else if (buttons.right) {
+        moveSpeedX = Math.min(moveSpeedX + acceleration * diffTime, maxSpeedX);
+      }
+
+      if (buttons.up === buttons.down) {
+        if (moveSpeedY > 0)
+          moveSpeedY = Math.max(moveSpeedY - deceleration * diffTime, 0);
+        else if (moveSpeedY < 0)
+          moveSpeedY = Math.min(moveSpeedY + deceleration * diffTime, 0);
+      } else if (buttons.down) {
+        moveSpeedY = Math.max(moveSpeedY - acceleration * diffTime, -maxSpeedY);
+      } else if (buttons.up) {
+        moveSpeedY = Math.min(moveSpeedY + acceleration * diffTime, maxSpeedY);
+      }
+
+      if (buttons.zoomIn === buttons.zoomOut) {
+        if (zoomSpeed > 0)
+          zoomSpeed = Math.max(zoomSpeed - zoomDeceleration * diffTime, 0);
+        else if (zoomSpeed < 0)
+          zoomSpeed = Math.min(zoomSpeed + zoomDeceleration * diffTime, 0);
+      } else if (buttons.zoomIn) {
+        zoomSpeed = Math.max(zoomSpeed - zoomAcceleration * diffTime, -maxZoomSpeed);
+      } else if (buttons.zoomOut) {
+        zoomSpeed = Math.min(zoomSpeed + zoomAcceleration * diffTime, maxZoomSpeed);
       }
 
       controller.value.x += moveSpeedX * diffTime;
       controller.value.y += moveSpeedY * diffTime;
-      controller.value.zoom *= 1 - zoomSpeed * diffTime;
+      controller.value.zoom *= 1 + zoomSpeed * diffTime;
       prevTime = now;
     },
     x: 0,
@@ -58,21 +88,21 @@ export const makeController = function () {
 
   function onKeydown(event: KeyboardEvent) {
     const key = event.key.toLowerCase();
-    if (key === "a") isMovingLeft = true;
-    if (key === "d") isMovingRight = true;
-    if (key === "w") moveSpeedY = -100;
-    if (key === "s") moveSpeedY = 100;
-    if (key === "'") zoomSpeed = 1;
-    if (key === "/") zoomSpeed = -1;
+    if (key === "a") buttons.left = true;
+    if (key === "d") buttons.right = true;
+    if (key === "w") buttons.up = true;
+    if (key === "s") buttons.down = true;
+    if (key === "'") buttons.zoomIn = true;
+    if (key === "/") buttons.zoomOut = true;
   }
 
   function onKeyup(event: KeyboardEvent) {
     const key = event.key.toLowerCase();
-    if (key === "a") isMovingLeft = false;
-    if (key === "d") isMovingRight = false;
-    if (key === "w") moveSpeedY = 0;
-    if (key === "s") moveSpeedY = 0;
-    if (key === "'") zoomSpeed = 0;
-    if (key === "/") zoomSpeed = 0;
+    if (key === "a") buttons.left = false;
+    if (key === "d") buttons.right = false;
+    if (key === "w") buttons.up = false;
+    if (key === "s") buttons.down = false;
+    if (key === "'") buttons.zoomIn = false;
+    if (key === "/") buttons.zoomOut = false;
   }
 };

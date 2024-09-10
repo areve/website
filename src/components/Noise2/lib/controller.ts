@@ -146,21 +146,6 @@ export const makeController = function () {
   });
   return controller;
 
-  function updateSpeed(
-    options: { accel: number; decel: number; maxSpeed: number },
-    state: { speed: number; increasing: boolean; decreasing: boolean },
-    diffTime: number
-  ): number {
-    const { accel, decel, maxSpeed } = options;
-    const { speed, increasing, decreasing } = state;
-    const bothOrNone = increasing === decreasing;
-    if (bothOrNone && speed > 0) return Math.max(speed - decel * diffTime, 0);
-    if (bothOrNone && speed < 0) return Math.min(speed + decel * diffTime, 0);
-    if (increasing) return Math.min(speed + accel * diffTime, maxSpeed);
-    if (decreasing) return Math.max(speed - accel * diffTime, -maxSpeed);
-    return speed;
-  }
-
   function onKeyDown(event: KeyboardEvent) {
     updateButtonState(event.key, true);
   }
@@ -196,7 +181,6 @@ export const makeController = function () {
 
   function onMouseUp() {
     states.mouse.dragging = false;
-    
   }
 
   function onTouchStart(event: TouchEvent) {
@@ -245,11 +229,26 @@ export const makeController = function () {
 
     event.preventDefault();
   }
-
-  function getDistance(touch1: Touch, touch2: Touch): number {
-    return Math.sqrt(
-      Math.pow(touch2.clientX - touch1.clientX, 2) +
-        Math.pow(touch2.clientY - touch1.clientY, 2)
-    );
-  }
 };
+
+function updateSpeed(
+  options: { accel: number; decel: number; maxSpeed: number },
+  state: { speed: number; increasing: boolean; decreasing: boolean },
+  diffTime: number
+): number {
+  const { accel, decel, maxSpeed } = options;
+  const { speed, increasing, decreasing } = state;
+  const bothOrNone = increasing === decreasing;
+  if (bothOrNone && speed > 0) return Math.max(speed - decel * diffTime, 0);
+  if (bothOrNone && speed < 0) return Math.min(speed + decel * diffTime, 0);
+  if (increasing) return Math.min(speed + accel * diffTime, maxSpeed);
+  if (decreasing) return Math.max(speed - accel * diffTime, -maxSpeed);
+  return speed;
+}
+
+function getDistance(touch1: Touch, touch2: Touch): number {
+  return Math.sqrt(
+    Math.pow(touch2.clientX - touch1.clientX, 2) +
+      Math.pow(touch2.clientY - touch1.clientY, 2)
+  );
+}

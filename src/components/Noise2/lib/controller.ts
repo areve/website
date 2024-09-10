@@ -1,24 +1,49 @@
 import { ref } from "vue";
 
 export const makeController = function () {
-  let moveSpeedX = 0;
-  let moveSpeedY = 0;
-  let zoomSpeed = 0;
-  const maxSpeedX = 300;
-  const maxSpeedY = 300;
-  const maxZoomSpeed = 2;
-  const acceleration = 2000;
-  const deceleration = 2000;
-  const zoomAcceleration = 20;
-  const zoomDeceleration = 20;
-
   const buttons = {
-    left: false,
-    right: false,
-    up: false,
-    down: false,
-    zoomIn: false,
-    zoomOut: false,
+    moveX: {
+      increase: {
+        key: "d",
+        pressed: false,
+      },
+      decrease: {
+        key: "a",
+        pressed: false,
+      },
+      speed: 0,
+      accel: 2000,
+      decel: 2000,
+      maxSpeed: 300,
+    },
+    moveY: {
+      increase: {
+        key: "w",
+        pressed: false,
+      },
+      decrease: {
+        key: "s",
+        pressed: false,
+      },
+      speed: 0,
+      accel: 2000,
+      decel: 2000,
+      maxSpeed: 300,
+    },
+    zoom: {
+      increase: {
+        key: "'",
+        pressed: false,
+      },
+      decrease: {
+        key: "/",
+        pressed: false,
+      },
+      speed: 0,
+      accel: 20,
+      decel: 20,
+      maxSpeed: 2,
+    },
   };
 
   let _element: HTMLElement;
@@ -38,37 +63,13 @@ export const makeController = function () {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
 
-      moveSpeedX = updateSpeed(
-        moveSpeedX,
-        buttons.left,
-        buttons.right,
-        acceleration,
-        deceleration,
-        maxSpeedX,
-        diffTime
-      );
-      moveSpeedY = updateSpeed(
-        moveSpeedY,
-        buttons.up,
-        buttons.down,
-        acceleration,
-        deceleration,
-        maxSpeedY,
-        diffTime
-      );
-      zoomSpeed = updateSpeed(
-        zoomSpeed,
-        buttons.zoomIn,
-        buttons.zoomOut,
-        zoomAcceleration,
-        zoomDeceleration,
-        maxZoomSpeed,
-        diffTime
-      );
+      buttons.moveX.speed = updateSpeed(buttons.moveX, diffTime);
+      buttons.moveY.speed = updateSpeed(buttons.moveY, diffTime);
+      buttons.zoom.speed = updateSpeed(buttons.zoom, diffTime);
 
-      controller.value.x += moveSpeedX * diffTime;
-      controller.value.y += moveSpeedY * diffTime;
-      controller.value.zoom *= 1 - zoomSpeed * diffTime;
+      controller.value.x += buttons.moveX.speed * diffTime;
+      controller.value.y -= buttons.moveY.speed * diffTime;
+      controller.value.zoom *= 1 - buttons.zoom.speed * diffTime;
 
       prevTime = now;
     },
@@ -82,46 +83,41 @@ export const makeController = function () {
   });
   return controller;
 
-  function updateSpeed(
-    speed: number,
-    positiveButton: boolean,
-    negativeButton: boolean,
-    accel: number,
-    decel: number,
-    maxSpeed: number,
-    diffTime: number
-  ): number {
-    if (positiveButton === negativeButton) {
-      if (speed > 0) {
-        speed = Math.max(speed - decel * diffTime, 0);
-      } else if (speed < 0) {
-        speed = Math.min(speed + decel * diffTime, 0);
+  function updateSpeed(buttonConfig: any, diffTime: number): number {
+    const { speed, increase, decrease, accel, decel, maxSpeed } =
+      buttonConfig;
+
+    let newSpeed = speed;
+
+    if (increase.pressed === decrease.pressed) {
+      // No movement or both buttons pressed
+      if (newSpeed > 0) {
+        newSpeed = Math.max(newSpeed - decel * diffTime, 0);
+      } else if (newSpeed < 0) {
+        newSpeed = Math.min(newSpeed + decel * diffTime, 0);
       }
-    } else if (positiveButton) {
-      speed = Math.min(speed + accel * diffTime, maxSpeed);
-    } else if (negativeButton) {
-      speed = Math.max(speed - accel * diffTime, -maxSpeed);
+    } else if (increase.pressed) {
+      newSpeed = Math.min(newSpeed + accel * diffTime, maxSpeed);
+    } else if (decrease.pressed) {
+      newSpeed = Math.max(newSpeed - accel * diffTime, -maxSpeed);
     }
-    return speed;
+
+    return newSpeed;
   }
 
   function onKeydown(event: KeyboardEvent) {
-    const key = event.key.toLowerCase();
-    if (key === "a") buttons.left = true;
-    if (key === "d") buttons.right = true;
-    if (key === "w") buttons.up = true;
-    if (key === "s") buttons.down = true;
-    if (key === "'") buttons.zoomIn = true;
-    if (key === "/") buttons.zoomOut = true;
+    updateButtonState(event.key, true);
   }
 
   function onKeyup(event: KeyboardEvent) {
-    const key = event.key.toLowerCase();
-    if (key === "a") buttons.left = false;
-    if (key === "d") buttons.right = false;
-    if (key === "w") buttons.up = false;
-    if (key === "s") buttons.down = false;
-    if (key === "'") buttons.zoomIn = false;
-    if (key === "/") buttons.zoomOut = false;
+    updateButtonState(event.key, false);
+  }
+
+  function updateButtonState(key: string, pressed: boolean) {
+    for (const k in buttons) {
+      const { increase, decrease } = buttons[k as keyof typeof buttons];
+      if (key.toLowerCase() === increase.key) increase.pressed = pressed;
+      if (key.toLowerCase() === decrease.key) decrease.pressed = pressed;
+    }
   }
 };

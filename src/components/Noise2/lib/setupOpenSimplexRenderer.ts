@@ -6,6 +6,11 @@ export async function setupOpenSimplexRenderer(
     seed: number;
   }
 ) {
+  const _data = {
+    x: 0,
+    y: 0,
+    z: 0,
+  };
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
   if (!device) return fail("need a browser that supports WebGPU");
@@ -26,8 +31,10 @@ export async function setupOpenSimplexRenderer(
       struct Uniforms {
         width: f32,
         height: f32,
-        seed: f32,
-        time: f32
+        x: f32,
+        y: f32,
+        z: f32,
+        seed: f32
       };
 
       @group(0) @binding(0) var<uniform> uUniforms: Uniforms;
@@ -110,8 +117,10 @@ export async function setupOpenSimplexRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let dummy = uUniforms.time;
-        let n = simplex3d(coord.x / 8, coord.y / 8, uUniforms.time);
+        let dummy = uUniforms.z;
+        let n = simplex3d(
+          (coord.x + uUniforms.x) / 8, 
+          (coord.y + uUniforms.y) / 8, uUniforms.z);
         return vec4<f32>(n, n, n, 1.0);
       }
     `,
@@ -133,9 +142,11 @@ export async function setupOpenSimplexRenderer(
     options.width,
     options.height,
     0,
+    0,
+    0,
     options.seed,
   ]);
-  
+
   const uniformBuffer = device.createBuffer({
     size: uniformValues.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -159,8 +170,19 @@ export async function setupOpenSimplexRenderer(
   };
 
   return {
-    update(time: DOMHighResTimeStamp) {
-      uniformValues[3] = time * 0.001;
+    async init() {},
+    async update(
+      time: DOMHighResTimeStamp,
+      data?: {
+        x: number;
+        y: number;
+      }
+    ) {
+      if (data?.x !== undefined) _data.x = data?.x;
+      if (data?.y !== undefined) _data.y = data?.y;
+      uniformValues[2] = _data.x;
+      uniformValues[3] = _data.y;
+      uniformValues[4] = time * 0.001;
       device.queue.writeBuffer(uniformBuffer, 0, uniformValues);
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });
@@ -171,6 +193,7 @@ export async function setupOpenSimplexRenderer(
       pass.end();
       const commandBuffer = encoder.finish();
       device.queue.submit([commandBuffer]);
+      return device.queue.onSubmittedWorkDone();
     },
   };
 }

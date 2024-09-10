@@ -193,8 +193,8 @@ export abstract class RenderThread {
     dimensions: Dimensions,
     buffer: ArrayBuffer
   ): ArrayBuffer {
-    const cameraX = camera?.x ?? 0;
-    const cameraY = -camera?.y ?? 0;
+    const cameraX = camera?.x;
+    const cameraY = -camera?.y;
     const cameraZoom = camera?.zoom ?? 1;
     const viewportCenterX = dimensions.width / 2 - x;
     const viewportCenterY = dimensions.height / 2 - y;

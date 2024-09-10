@@ -114,6 +114,17 @@ export const makeController = function () {
         states.mouse.startY = states.mouse.currentY;
       }
 
+      if (states.touch.dragging) {
+        const deltaX =
+          (states.touch.startX - states.touch.currentX) * controller.value.zoom;
+        const deltaY =
+          (states.touch.startY - states.touch.currentY) * controller.value.zoom;
+        controller.value.x += deltaX;
+        controller.value.y += deltaY;
+        states.touch.startX = states.touch.currentX;
+        states.touch.startY = states.touch.currentY;
+      }
+
       if (states.touch.zooming) {
         const distance = Math.sqrt(
           Math.pow(states.touch.currentX - states.touch.startX, 2) +
@@ -169,8 +180,8 @@ export const makeController = function () {
   }
 
   function onMouseDown(event: MouseEvent) {
-    states.mouse.startX = event.clientX;
-    states.mouse.startY = event.clientY;
+    states.mouse.currentX = states.mouse.startX = event.clientX;
+    states.mouse.currentY = states.mouse.startY = event.clientY;
     states.mouse.dragging = true;
     event.preventDefault();
   }
@@ -185,12 +196,13 @@ export const makeController = function () {
 
   function onMouseUp() {
     states.mouse.dragging = false;
+    
   }
 
   function onTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
-      states.touch.startX = event.touches[0].clientX;
-      states.touch.startY = event.touches[0].clientY;
+      states.touch.currentX = states.touch.startX = event.touches[0].clientX;
+      states.touch.currentY = states.touch.startY = event.touches[0].clientY;
       states.touch.dragging = true;
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];

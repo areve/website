@@ -136,6 +136,12 @@ export const makeController = function () {
   });
   return controller;
 
+  function getScale() {
+    return bindElement.nodeName === "CANVAS"
+      ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
+      : 1;
+  }
+
   function onKeyDown(event: KeyboardEvent) {
     updateButtonState(event.key, true);
   }
@@ -156,8 +162,9 @@ export const makeController = function () {
   }
 
   function onMouseDown(event: MouseEvent) {
-    states.panning.currentX = states.panning.startX = event.clientX;
-    states.panning.currentY = states.panning.startY = event.clientY;
+    const scale = getScale();
+    states.panning.currentX = states.panning.startX = event.clientX * scale;
+    states.panning.currentY = states.panning.startY = event.clientY * scale;
     states.panning.dragging = true;
     event.preventDefault();
   }
@@ -165,8 +172,9 @@ export const makeController = function () {
   function onMouseMove(event: MouseEvent) {
     states.keyboard.mouseover = true;
     if (states.panning.dragging) {
-      states.panning.currentX = event.clientX;
-      states.panning.currentY = event.clientY;
+      const scale = getScale();
+      states.panning.currentX = event.clientX * scale;
+      states.panning.currentY = event.clientY * scale;
       event.preventDefault();
     }
   }

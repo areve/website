@@ -112,7 +112,6 @@ export const makeController = function () {
         controller.value.y -= states.keyboard.buttons.moveY.speed * diffTime;
 
         const zoomChange = 1 - states.keyboard.buttons.zoom.speed * diffTime;
-
         controller.value.x +=
           states.zooming.originX *
           (controller.value.zoom - controller.value.zoom * zoomChange);
@@ -136,7 +135,14 @@ export const makeController = function () {
       }
 
       if (states.pinching.zooming) {
-        controller.value.zoom *= states.pinching.pinchRatio;
+        const zoomChange = states.pinching.pinchRatio;
+        controller.value.x +=
+          states.zooming.originX *
+          (controller.value.zoom - controller.value.zoom * zoomChange);
+        controller.value.y +=
+          states.zooming.originY *
+          (controller.value.zoom - controller.value.zoom * zoomChange);
+        controller.value.zoom *= zoomChange;
         states.pinching.initialDistance = states.pinching.currentPinchDistance;
         states.pinching.pinchRatio = 1;
       }
@@ -183,10 +189,16 @@ export const makeController = function () {
     event.preventDefault();
   }
 
-  function updateZoomingOrigin(event: MouseEvent) {
+  function updateZoomingOrigin(event: MouseEvent | Touch, touch2?: Touch) {
     const canvasRect = bindElement.getBoundingClientRect();
-    states.zooming.originX = event.clientX - canvasRect.left;
-    states.zooming.originY = event.clientY - canvasRect.top;
+    states.zooming.originX =
+      (touch2?.clientX
+        ? (touch2?.clientX + event.clientX) / 2
+        : event.clientX) - canvasRect.left;
+    states.zooming.originY =
+      (touch2?.clientY
+        ? (touch2?.clientY + event.clientY) / 2
+        : event.clientY) - canvasRect.top;
   }
 
   function onMouseMove(event: MouseEvent) {
@@ -207,7 +219,7 @@ export const makeController = function () {
     states.keyboard.mouseover = true;
   }
 
-  function onMouseOut() {  
+  function onMouseOut() {
     states.keyboard.mouseover = false;
   }
 
@@ -234,6 +246,7 @@ export const makeController = function () {
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
+      updateZoomingOrigin(touch1, touch2);
       const currentPinchDistance = getDistance(touch1, touch2);
       states.pinching.currentPinchDistance = currentPinchDistance;
       const pinchRatio = states.pinching.initialDistance / currentPinchDistance;

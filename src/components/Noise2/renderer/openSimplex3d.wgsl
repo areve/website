@@ -1,3 +1,4 @@
+// requires noise.wgsl
 const skew3d: f32 = 1.0 / 3.0;
 const unskew3d: f32 = 1.0 / 6.0;
 const rSquared3d: f32 = 3.0 / 4.0;

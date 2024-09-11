@@ -69,6 +69,7 @@ export const makeController = function () {
       bindGlobalElement.addEventListener("mousemove", onMouseMove);
       bindGlobalElement.addEventListener("mouseup", onMouseUp);
       bindElement.addEventListener("mouseout", onMouseOut);
+      bindElement.addEventListener("mouseover", onMouseOver);
       bindElement.addEventListener("wheel", onWheel);
       bindElement.addEventListener("touchstart", onTouchStart);
       bindElement.addEventListener("touchmove", onTouchMove);
@@ -81,6 +82,7 @@ export const makeController = function () {
       bindGlobalElement.removeEventListener("mousemove", onMouseMove);
       bindGlobalElement.removeEventListener("mouseup", onMouseUp);
       bindElement.removeEventListener("mouseout", onMouseOut);
+      bindElement.removeEventListener("mouseover", onMouseOver);
       bindElement.removeEventListener("wheel", onWheel);
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindElement.removeEventListener("touchmove", onTouchMove);
@@ -189,7 +191,6 @@ export const makeController = function () {
   }
 
   function onMouseMove(event: MouseEvent) {
-    states.keyboard.mouseover = true;
     updateZoomingOrigin(event);
     if (states.panning.dragging) {
       const scale = getScale();
@@ -203,7 +204,11 @@ export const makeController = function () {
     states.panning.dragging = false;
   }
 
-  function onMouseOut() {
+  function onMouseOver() {
+    states.keyboard.mouseover = true;
+  }
+
+  function onMouseOut() {  
     states.keyboard.mouseover = false;
   }
 

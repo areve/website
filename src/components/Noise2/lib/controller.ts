@@ -190,15 +190,16 @@ export const makeController = function () {
   }
 
   function updateZoomingOrigin(event: MouseEvent | Touch, touch2?: Touch) {
+    const scale = getScale();
     const canvasRect = bindElement.getBoundingClientRect();
     states.zooming.originX =
-      (touch2?.clientX
+      ((touch2?.clientX
         ? (touch2?.clientX + event.clientX) / 2
-        : event.clientX) - canvasRect.left;
+        : event.clientX) - canvasRect.left) * scale;
     states.zooming.originY =
-      (touch2?.clientY
+      ((touch2?.clientY
         ? (touch2?.clientY + event.clientY) / 2
-        : event.clientY) - canvasRect.top;
+        : event.clientY) - canvasRect.top) * scale;
   }
 
   function onMouseMove(event: MouseEvent) {

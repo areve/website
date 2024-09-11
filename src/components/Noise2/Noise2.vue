@@ -1,7 +1,7 @@
 <template>
   <article>
     <h1>Noise2</h1>
-    <p>
+    <!-- <p>
       <div>WebGPUNoise</div>
       <WebGPUNoise />
     </p>
@@ -12,15 +12,15 @@
     <p>
       <div>WebGPUValueNoise</div>
       <WebGPUValueNoise />
-    </p>
+    </p>-->
     <p>
       <div>WebGPUMandelbrot</div>
       <WebGPUMandelbrot />
     </p>
-    <p>
+    <!--<p>
       <div>WebGPUOpenSimplex</div>
       <WebGPUOpenSimplex />
-    </p>
+    </p> -->
   </article>
 </template>
 

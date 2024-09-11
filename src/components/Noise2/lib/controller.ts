@@ -26,10 +26,13 @@ export const makeController = function () {
   };
 
   const states = {
-    buttons: {
-      moveX: { increasing: false, decreasing: false, speed: 0 },
-      moveY: { increasing: false, decreasing: false, speed: 0 },
-      zoom: { increasing: false, decreasing: false, speed: 0 },
+    keyboard: {
+      buttons: {
+        moveX: { increasing: false, decreasing: false, speed: 0 },
+        moveY: { increasing: false, decreasing: false, speed: 0 },
+        zoom: { increasing: false, decreasing: false, speed: 0 },
+      },
+      mouseover: false,
     },
     panning: {
       startX: 0,
@@ -60,6 +63,7 @@ export const makeController = function () {
       bindElement.addEventListener("mousedown", onMouseDown);
       bindElement.addEventListener("mousemove", onMouseMove);
       bindElement.addEventListener("mouseup", onMouseUp);
+      bindElement.addEventListener("mouseout", onMouseOut);
       bindElement.addEventListener("wheel", onWheel);
       bindElement.addEventListener("touchstart", onTouchStart);
       bindElement.addEventListener("touchmove", onTouchMove);
@@ -71,6 +75,7 @@ export const makeController = function () {
       bindElement.removeEventListener("mousedown", onMouseDown);
       bindElement.removeEventListener("mousemove", onMouseMove);
       bindElement.removeEventListener("mouseup", onMouseUp);
+      bindElement.removeEventListener("mouseout", onMouseOut);
       bindElement.removeEventListener("wheel", onWheel);
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindElement.removeEventListener("touchmove", onTouchMove);
@@ -80,25 +85,28 @@ export const makeController = function () {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
 
-      states.buttons.moveX.speed = updateSpeed(
-        options.moveX,
-        states.buttons.moveX,
-        diffTime
-      );
-      states.buttons.moveY.speed = updateSpeed(
-        options.moveY,
-        states.buttons.moveY,
-        diffTime
-      );
-      states.buttons.zoom.speed = updateSpeed(
-        options.zoom,
-        states.buttons.zoom,
-        diffTime
-      );
+      if (states.keyboard.mouseover) {
+        states.keyboard.buttons.moveX.speed = updateSpeed(
+          options.moveX,
+          states.keyboard.buttons.moveX,
+          diffTime
+        );
+        states.keyboard.buttons.moveY.speed = updateSpeed(
+          options.moveY,
+          states.keyboard.buttons.moveY,
+          diffTime
+        );
+        states.keyboard.buttons.zoom.speed = updateSpeed(
+          options.zoom,
+          states.keyboard.buttons.zoom,
+          diffTime
+        );
 
-      controller.value.x += states.buttons.moveX.speed * diffTime;
-      controller.value.y -= states.buttons.moveY.speed * diffTime;
-      controller.value.zoom *= 1 - states.buttons.zoom.speed * diffTime;
+        controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
+        controller.value.y -= states.keyboard.buttons.moveY.speed * diffTime;
+        controller.value.zoom *=
+          1 - states.keyboard.buttons.zoom.speed * diffTime;
+      }
 
       if (states.panning.dragging) {
         const deltaX =
@@ -139,7 +147,8 @@ export const makeController = function () {
   function updateButtonState(key: string, pressed: boolean) {
     for (const k in options) {
       const { increaseKeys, decreaseKeys } = options[k as keyof typeof options];
-      const state = states.buttons[k as keyof typeof states.buttons];
+      const state =
+        states.keyboard.buttons[k as keyof typeof states.keyboard.buttons];
       const lowerCaseKey = key.toLowerCase();
       if (increaseKeys.includes(lowerCaseKey)) state.increasing = pressed;
       if (decreaseKeys.includes(lowerCaseKey)) state.decreasing = pressed;
@@ -154,6 +163,7 @@ export const makeController = function () {
   }
 
   function onMouseMove(event: MouseEvent) {
+    states.keyboard.mouseover = true;
     if (states.panning.dragging) {
       states.panning.currentX = event.clientX;
       states.panning.currentY = event.clientY;
@@ -163,6 +173,10 @@ export const makeController = function () {
 
   function onMouseUp() {
     states.panning.dragging = false;
+  }
+
+  function onMouseOut() {
+    states.keyboard.mouseover = false;
   }
 
   function onTouchStart(event: TouchEvent) {
@@ -215,8 +229,8 @@ export const makeController = function () {
   function onWheel(event: WheelEvent) {
     const zoomChange = event.deltaY;
     const maxSpeed = options.zoom.maxSpeed;
-    const zoomDiff = states.buttons.zoom.speed - zoomChange;
-    states.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
+    const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
+    states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
     event.preventDefault();
   }
 };

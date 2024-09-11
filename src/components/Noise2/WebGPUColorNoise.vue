@@ -196,17 +196,17 @@ async function setupNoiseRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.001;
+      // sharedData.z = time * 0.001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
-    colorAttachment.view = context.getCurrentTexture().createView();
-    const encoder = device.createCommandEncoder({ label: "our encoder" });
-    const pass = encoder.beginRenderPass(renderPassDescriptor);
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup);
-    pass.draw(6); // call our vertex shader 3 times.
-    pass.end();
-    const commandBuffer = encoder.finish();
-    device.queue.submit([commandBuffer]);
+      colorAttachment.view = context.getCurrentTexture().createView();
+      const encoder = device.createCommandEncoder({ label: "our encoder" });
+      const pass = encoder.beginRenderPass(renderPassDescriptor);
+      pass.setPipeline(pipeline);
+      pass.setBindGroup(0, bindGroup);
+      pass.draw(6); // call our vertex shader 3 times.
+      pass.end();
+      const commandBuffer = encoder.finish();
+      device.queue.submit([commandBuffer]);
       return device.queue.onSubmittedWorkDone();
     },
   };

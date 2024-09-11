@@ -61,8 +61,8 @@ export async function setupMandelbrotRenderer(
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
       fn mandelbrot(x: f32, y: f32) -> f32 {
-        let r0: f32 = x / 300.0 - 2.0;
-        let i0: f32 = y / 300.0 - 0.05;
+        let r0: f32 = x / data.width * 20 - 2.0;
+        let i0: f32 = y / data.width * 20 - 1.2;
         let maxIterations: i32 = 500;
 
         var r: f32 = 0.0;

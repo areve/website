@@ -22,7 +22,6 @@ export const makeController = function () {
       accel: 20,
       decel: 20,
       maxSpeed: 2,
-      wheelZoomSpeed: 6,
     },
   };
 
@@ -261,7 +260,7 @@ export const makeController = function () {
 
   function onWheel(event: WheelEvent) {
     updateZoomingOrigin(event);
-    const maxSpeed = options.zoom.wheelZoomSpeed;
+    const maxSpeed = options.zoom.maxSpeed;
     const zoomChange = event.deltaY * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
     states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);

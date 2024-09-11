@@ -14,8 +14,8 @@ import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
 const controller = makeController();
-const width = 1000;
-const height = 400;
+const width = 500;
+const height = 200;
 const seed = 12345;
 
 let frameId: number = 0;

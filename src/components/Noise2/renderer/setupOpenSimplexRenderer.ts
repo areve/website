@@ -1,5 +1,5 @@
-import noise from './noise.wgsl?raw'
-import openSimplex3d from './openSimplex3d.wgsl?raw'
+import noise from "./noise.wgsl?raw";
+import openSimplex3d from "./openSimplex3d.wgsl?raw";
 
 export async function setupOpenSimplexRenderer(
   canvas: HTMLCanvasElement,
@@ -82,12 +82,9 @@ export async function setupOpenSimplexRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let viewportCenterX = data.width / 2.0;
-        let viewportCenterY = data.height / 2.0;
-
         let n = openSimplex3d(
-          (coord.x - viewportCenterX) / data.scale * data.zoom + viewportCenterX + data.x / data.scale, 
-          (coord.y - viewportCenterY) / data.scale * data.zoom + viewportCenterY + data.y / data.scale, 
+          coord.x / data.scale * data.zoom + data.x / data.scale, 
+          coord.y / data.scale * data.zoom + data.y / data.scale, 
           data.z);
         return vec4<f32>(n, n, n, 1.0);
       }

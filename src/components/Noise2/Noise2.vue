@@ -23,7 +23,7 @@
     </p>
     <p>
       <div>WebGPUWorld</div>
-      <WebGPUOpenSimplex />
+      <WebGPUWorld />
     </p>
   </article>
 </template>

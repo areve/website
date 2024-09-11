@@ -106,8 +106,8 @@ async function setupWorldRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
       
-      fn noise(coord: vec4<f32>) -> f32 {
-        let n: u32 = bitcast<u32>(data.seed) +
+      fn noise(seed: f32, coord: vec4<f32>) -> f32 {
+        let n: u32 = bitcast<u32>(seed) +
           bitcast<u32>(coord.x * 374761393.0) +
           bitcast<u32>(coord.y * 668265263.0) +
           bitcast<u32>(coord.z * 1440662683.0) +
@@ -120,7 +120,7 @@ async function setupWorldRenderer(
       const unskew3d: f32 = 1.0 / 6.0;
       const rSquared3d: f32 = 3.0 / 4.0;
 
-      fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
+      fn openSimplex3d(seed: f32, x: f32, y: f32, z: f32) -> f32 {
         let sx: f32 = x;
         let sy: f32 = y;
         let sz: f32 = z;
@@ -133,17 +133,18 @@ async function setupWorldRenderer(
         let fz: f32 = sz + skew - f32(iz);
 
         return 0.5 + 
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1) ;
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 0, 0, 0) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 1, 0, 0) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 0, 1, 0) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 1, 1, 0) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 0, 0, 1) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 1, 0, 1) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 0, 1, 1) +
+          vertexContribution(seed, ix, iy, iz, fx, fy, fz, 1, 1, 1) ;
       }
 
       fn vertexContribution(
+        seed: f32,
         ix: i32, iy: i32, iz: i32,
         fx: f32, fy: f32, fz: f32,
         cx: i32, cy: i32, cz: i32
@@ -161,7 +162,7 @@ async function setupWorldRenderer(
           return 0.0;
         }
 
-        let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
+        let h: i32 = bitcast<i32>(noise(seed, vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
         let u: i32 = (h & 0xf) - 8;
         let v: i32 = ((h >> 4) & 0xf) - 8;
         let w: i32 = ((h >> 8) & 0xf) - 8;
@@ -184,11 +185,31 @@ async function setupWorldRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let n = openSimplex3d(
-          coord.x / data.scale * data.zoom + data.x / data.scale, 
-          coord.y / data.scale * data.zoom + data.y / data.scale, 
-          data.z);
-        return vec4<f32>(n, n, n, 1.0);
+
+        let x = coord.x / data.scale * data.zoom + data.x / data.scale;
+        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
+        let z = data.z;
+
+        let height1 = openSimplex3d(0.1, x / 129, y / 129, z / 129);
+        let height2 = openSimplex3d(0.2, x / 47, y / 47, z / 47);
+        let height3 = openSimplex3d(0.3, x / 7, y / 7, z / 7);
+        let height4 = openSimplex3d(0.4, x / 1, y / 1, z / 1);
+        let temperature1 = openSimplex3d(0.5, x / 71, y / 71, z / 71);
+        let temperature2 = openSimplex3d(0.5, x / 15, y / 15, z / 15);
+        let moisture1 = openSimplex3d(0.6, x / 67, y / 67, z / 67);
+        let moisture2 = openSimplex3d(0.6, x / 13, y / 13, z / 13);
+        let height = 
+          0.6 * height1 +
+          0.3 * height2 +
+          0.15 * height3 +
+          0.05 * height4;
+        let temperature =
+          0.7 * temperature1 +
+          0.3 * temperature2;
+        let moisture =
+          0.7 * moisture1 +
+          0.3 * moisture2;
+        return vec4<f32>(height, temperature, moisture, 1.0);
       }
     `,
   });
@@ -237,7 +258,7 @@ async function setupWorldRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.001;
+      sharedData.z = time * 0.01;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

@@ -54,7 +54,7 @@ async function setupValueNoiseRenderer(
     width: options.width,
     height: options.height,
     seed: options.seed ?? 12345,
-    scale: options.scale ?? 8,
+    scale: options.scale ?? 4,
     x: 0,
     y: 0,
     z: 0,

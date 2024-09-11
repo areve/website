@@ -21,6 +21,10 @@
       <div>WebGPUOpenSimplex</div>
       <WebGPUOpenSimplex />
     </p>
+    <p>
+      <div>WebGPUWorld</div>
+      <WebGPUOpenSimplex />
+    </p>
   </article>
 </template>
 
@@ -30,6 +34,7 @@ import WebGPUColorNoise from "./WebGPUColorNoise.vue";
 import WebGPUValueNoise from "./WebGPUValueNoise.vue";
 import WebGPUMandelbrot from "./WebGPUMandelbrot.vue";
 import WebGPUOpenSimplex from "./WebGPUOpenSimplex.vue";
+import WebGPUWorld from "./WebGPUWorld.vue";
 </script>
 
 <style scoped></style>

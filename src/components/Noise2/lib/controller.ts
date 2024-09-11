@@ -56,18 +56,18 @@ export const makeController = function () {
   };
 
   let bindElement: HTMLElement;
-  let bindGlobalElement: HTMLElement;
+  let bindGlobalElement: Document;
   const start = performance.now() / 1000;
   let prevTime = start;
   const controller = ref({
-    mount(element?: HTMLElement) {
-      bindGlobalElement = document.body;
-      bindElement = element ?? document.body;
+    mount(element: HTMLElement) {
+      bindGlobalElement = document;
+      bindElement = element;
       bindGlobalElement.addEventListener("keydown", onKeyDown);
       bindGlobalElement.addEventListener("keyup", onKeyUp);
       bindElement.addEventListener("mousedown", onMouseDown);
-      bindElement.addEventListener("mousemove", onMouseMove);
-      bindElement.addEventListener("mouseup", onMouseUp);
+      bindGlobalElement.addEventListener("mousemove", onMouseMove);
+      bindGlobalElement.addEventListener("mouseup", onMouseUp);
       bindElement.addEventListener("mouseout", onMouseOut);
       bindElement.addEventListener("wheel", onWheel);
       bindElement.addEventListener("touchstart", onTouchStart);
@@ -78,8 +78,8 @@ export const makeController = function () {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
       bindElement.removeEventListener("mousedown", onMouseDown);
-      bindElement.removeEventListener("mousemove", onMouseMove);
-      bindElement.removeEventListener("mouseup", onMouseUp);
+      bindGlobalElement.removeEventListener("mousemove", onMouseMove);
+      bindGlobalElement.removeEventListener("mouseup", onMouseUp);
       bindElement.removeEventListener("mouseout", onMouseOut);
       bindElement.removeEventListener("wheel", onWheel);
       bindElement.removeEventListener("touchstart", onTouchStart);

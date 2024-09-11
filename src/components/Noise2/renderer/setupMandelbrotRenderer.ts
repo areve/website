@@ -95,12 +95,10 @@ export async function setupMandelbrotRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let viewportCenterX = data.width / 2.0;
-        let viewportCenterY = data.height / 2.0;
         let color = abs((data.z - floor(data.z)) * 2 - 1.0);
         let n = mandelbrot(
-          (coord.x - viewportCenterX) / data.scale * data.zoom + viewportCenterX + data.x / data.scale, 
-          (coord.y - viewportCenterY) / data.scale * data.zoom + viewportCenterY + data.y / data.scale);
+          coord.x / data.scale * data.zoom + data.x / data.scale, 
+          coord.y / data.scale * data.zoom + data.y / data.scale);
         return vec4<f32>(pow(n, 0.1) , pow(n, 0.2), color, 1.0);
       }
     `,

@@ -35,6 +35,10 @@ export const makeController = function () {
       },
       mouseover: false,
     },
+    zooming: {
+      originX: 0,
+      originY: 0,
+    },
     panning: {
       startX: 0,
       startY: 0,
@@ -105,8 +109,16 @@ export const makeController = function () {
 
         controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
         controller.value.y -= states.keyboard.buttons.moveY.speed * diffTime;
-        controller.value.zoom *=
-          1 - states.keyboard.buttons.zoom.speed * diffTime;
+
+        const zoomChange = 1 - states.keyboard.buttons.zoom.speed * diffTime;
+
+        controller.value.x +=
+          states.zooming.originX *
+          (controller.value.zoom - controller.value.zoom * zoomChange);
+        controller.value.y +=
+          states.zooming.originY *
+          (controller.value.zoom - controller.value.zoom * zoomChange);
+        controller.value.zoom *= zoomChange;
       }
 
       if (states.panning.dragging) {
@@ -170,8 +182,15 @@ export const makeController = function () {
     event.preventDefault();
   }
 
+  function updateZoomingOrigin(event: MouseEvent) {
+    const canvasRect = bindElement.getBoundingClientRect();
+    states.zooming.originX = event.clientX - canvasRect.left;
+    states.zooming.originY = event.clientY - canvasRect.top;
+  }
+
   function onMouseMove(event: MouseEvent) {
     states.keyboard.mouseover = true;
+    updateZoomingOrigin(event);
     if (states.panning.dragging) {
       const scale = getScale();
       states.panning.currentX = event.clientX * scale;
@@ -236,7 +255,7 @@ export const makeController = function () {
   }
 
   function onWheel(event: WheelEvent) {
-    
+    updateZoomingOrigin(event);
     const maxSpeed = options.zoom.wheelZoomSpeed;
     const zoomChange = event.deltaY * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;

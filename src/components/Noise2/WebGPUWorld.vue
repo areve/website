@@ -184,8 +184,35 @@ async function setupWorldRenderer(
         return vec4f(pos[vertexIndex], 0.0, 1.0);
       }
 
+      fn clamp(value: f32, low: f32, high: f32) -> f32 {
+        return min(max(value, low), high);
+      }
+
+      fn c(v: f32) -> f32 {
+        return clamp(v, 0, 1);
+      }
+
+      fn hsv2rgb(hsv: vec3f) -> vec3f {
+        let h = hsv.x;
+        let s = hsv.y;
+        let v = hsv.z;
+        let hue = (((h * 360) % 360) + 360) % 360;
+        let sector = floor(hue / 60);
+        let sectorFloat = hue / 60 - sector;
+        let x = v * (1 - s);
+        let y = v * (1 - s * sectorFloat);
+        let z = v * (1 - s * (1 - sectorFloat));
+        // const rgb = [x, x, z, v, v, y, x, x, z, v];
+        let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
+
+        return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
+        // return vec3f(0.0, 1.0, 1.0);
+      }
+
+
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
 
+        // calculate point
         let x = coord.x / data.scale * data.zoom + data.x / data.scale;
         let y = coord.y / data.scale * data.zoom + data.y / data.scale;
         let z = data.z;
@@ -198,18 +225,58 @@ async function setupWorldRenderer(
         let temperature2 = openSimplex3d(0.5, x / 15, y / 15, z / 15);
         let moisture1 = openSimplex3d(0.6, x / 67, y / 67, z / 67);
         let moisture2 = openSimplex3d(0.6, x / 13, y / 13, z / 13);
-        let height = 
-          0.6 * height1 +
-          0.3 * height2 +
-          0.15 * height3 +
-          0.05 * height4;
-        let temperature =
-          0.7 * temperature1 +
-          0.3 * temperature2;
-        let moisture =
-          0.7 * moisture1 +
-          0.3 * moisture2;
-        return vec4<f32>(height, temperature, moisture, 1.0);
+        let height = 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
+        let temperature = 0.7 * temperature1 + 0.3 * temperature2;
+        let moisture = 0.7 * moisture1 + 0.3 * moisture2;
+
+        let seaLevel = 0.6;
+        let isSea = height < seaLevel;
+
+        let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
+        let seaDepth = c(1 - height / seaLevel);
+        let iciness = 0.0;
+        // c(
+        //   (height) + (temperature)
+        //   //heightIcinessCurve(height) + temperatureIcinessCurve(temperature)
+        // );
+        let desert = 0.0;
+        // c(
+        //   (moisture) + (temperature)
+        //   //moistureDesertCurve(moisture) + temperatureDesertCurve(temperature)
+        // );
+
+        // convert point to color
+        let sh = heightAboveSeaLevel;
+        let sd = seaDepth;
+        let m = moisture;
+        let t = temperature;
+        let i = iciness;
+        let d = desert;
+
+        if (isSea) {
+          let seaHsv = vec3f(
+            229.0 / 360.0,
+            0.47 + sd * 0.242 - 0.1 + t * 0.2,
+            0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
+          );
+          
+          return vec4<f32>(hsv2rgb(vec3f(
+            seaHsv[0], 
+            c(seaHsv[1] - 0.2 * i), 
+            c(seaHsv[2] + 0.2 * i)
+          )), 1.0);
+        } else {
+          let landHsv = vec3f(
+            77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
+            0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
+            0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
+  );
+          return vec4<f32>(hsv2rgb(vec3f(
+            landHsv[0] - d * 0.1,
+            c(landHsv[1] - 0.3 * i + d * 0.1),
+            c(landHsv[2] + 0.6 * i + d * 0.45),
+          )), 1.0);
+        }
       }
     `,
   });

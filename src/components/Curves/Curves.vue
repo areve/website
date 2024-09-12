@@ -30,6 +30,18 @@
         label=""
       ></CurvesGraph>
     </figure>
+
+    <figure>
+      <figcaption>Trying to create more flexible piecewise function</figcaption>
+      <CurvesGraph
+        :dimensions="{
+          width: 300 * getDevicePixelRatio(),
+          height: 300 * getDevicePixelRatio(),
+        }"
+        :funcs="funcs3"
+        label=""
+      ></CurvesGraph>
+    </figure>
   </section>
 </template>
 
@@ -79,6 +91,11 @@ const funcs = [
     label: "smoothstepHalf - my own in-between variation",
     color: [0.3, 0.5, 1] as Rgb,
     func: smoothstepHalf,
+  },
+  {
+    label: "piecewiseCurve - 0.5, 2.1",
+    color: [0.0, 0.7, 0] as Rgb,
+    func: (t: number) => piecewiseCurve(t, 0.5, 2.1),
   },
 ];
 
@@ -135,18 +152,28 @@ const funcs2 = [
   },
 ];
 
+const funcs3 = [
+  {
+    label: "v1",
+    color: [1, 0, 0] as Rgb,
+    func: (t: number) => 1 - piecewiseCurve(t, 0.18, 6),
+  },
+];
+
 function piecewiseCurve(x: number, p: number, s: number): number {
-  const c = s === 3 ? 0xffffffff : (1 - s) / (s - 3);
+  const c = s === 3 ? 1e10 : (1 - s) / (s - 3);
 
   if (x < p) {
     const n = x * (1 + c);
     const d = x + p * c;
-    return x * (n / d) ** 2;
+    const r = n / d;
+    return x * r * r;
   } else {
     const v = 1 - x;
     const n = v * (1 + c);
     const d = v + (1 - p) * c;
-    return 1 - v * (n / d) ** 2;
+    const r = n / d;
+    return 1 - v * r * r;
   }
 }
 </script>

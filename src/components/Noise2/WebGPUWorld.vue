@@ -350,7 +350,7 @@ async function setupWorldRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.01;
+      sharedData.z = time * 0.001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

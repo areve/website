@@ -250,14 +250,14 @@ async function setupWorldRenderer(
         let y = coord.y / data.scale * data.zoom + data.y / data.scale;
         let z = data.z;
 
-        let height1 = openSimplex3d(data.seed * 0.1, x / 129, y / 129, z / 129);
-        let height2 = openSimplex3d(data.seed * 0.2, x / 47, y / 47, z / 47);
-        let height3 = openSimplex3d(data.seed * 0.3, x / 7, y / 7, z / 7);
-        let height4 = openSimplex3d(data.seed * 0.4, x / 1, y / 1, z / 1);
-        let temperature1 = openSimplex3d(data.seed * 0.5, x / 71, y / 71, z / 71);
-        let temperature2 = openSimplex3d(data.seed * 0.6, x / 15, y / 15, z / 15);
-        let moisture1 = openSimplex3d(data.seed * 0.7, x / 67, y / 67, z / 67);
-        let moisture2 = openSimplex3d(data.seed * 0.8, x / 13, y / 13, z / 13);
+        let height1 = openSimplex3d(data.seed * 112345, x / 129, y / 129, z / 129);
+        let height2 = openSimplex3d(data.seed * 212345, x / 47, y / 47, z / 47);
+        let height3 = openSimplex3d(data.seed * 312345, x / 7, y / 7, z / 7);
+        let height4 = openSimplex3d(data.seed * 412345, x / 1, y / 1, z / 1);
+        let temperature1 = openSimplex3d(data.seed * 512345, x / 71, y / 71, z / 71);
+        let temperature2 = openSimplex3d(data.seed * 612345, x / 15, y / 15, z / 15);
+        let moisture1 = openSimplex3d(data.seed * 712345, x / 67, y / 67, z / 67);
+        let moisture2 = openSimplex3d(data.seed * 812345, x / 13, y / 13, z / 13);
         let height = 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
         let temperature = 0.7 * temperature1 + 0.3 * temperature2;
         let moisture = 0.7 * moisture1 + 0.3 * moisture2;

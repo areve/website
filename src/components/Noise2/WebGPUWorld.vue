@@ -228,7 +228,7 @@ async function setupWorldRenderer(
       }
 
       fn heightIcinessCurve(t: f32) -> f32 {
-        return piecewiseCurve(t, 0.7, 15.0);
+        return piecewiseCurve(t, 0.8, 15.0);
       }
       
       fn temperatureIcinessCurve(t: f32) -> f32 {
@@ -267,7 +267,7 @@ async function setupWorldRenderer(
 
         let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
         let seaDepth = c(1 - height / seaLevel);
-        let iciness = c(heightIcinessCurve(heightAboveSeaLevel) + temperatureIcinessCurve(temperature));
+        let iciness = c(heightIcinessCurve(height) + temperatureIcinessCurve(temperature));
         let desert = c(moistureDesertCurve(moisture) + temperatureDesertCurve(temperature));
 
         // convert point to color

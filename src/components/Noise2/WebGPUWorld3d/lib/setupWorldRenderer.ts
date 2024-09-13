@@ -36,9 +36,11 @@ export async function setupWorldRenderer(
 
   const cube = createCube("cube");
   const cubeVertexBuffer = createVertexBuffer(device, cube);
+  const cubeMatrix = mat4.create();
 
   const plane = createPlane("plane");
   const planeVerticesBuffer = createVertexBuffer(device, plane);
+  const planeMatrix = mat4.create();
 
   const pipeline = createPipeline(
     device,
@@ -69,21 +71,11 @@ export async function setupWorldRenderer(
     },
   };
 
-  // function createVertexUniforms() {
-  //   return {
-  //     modelViewProjectionMatrix: mat4.create(), // temp
-  //     asBuffer() {
-  //       return new Float32Array(this.modelViewProjectionMatrix.buffer);
-  //     },
-  //   };
-  // }
-
   const uniformBuffer = device.createBuffer({
     size: 1024 * 4,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  // console.log(sharedData.asBuffer().byteLength)
   const uniformBindGroup0 = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
     entries: [
@@ -97,9 +89,6 @@ export async function setupWorldRenderer(
       },
     ],
   });
-
-  const cubeMatrix = mat4.create();
-  const planeMatrix = mat4.create();
 
   const uniformBindGroup1 = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(1),
@@ -129,29 +118,18 @@ export async function setupWorldRenderer(
     ],
   });
 
-  const modelMatrix1 = mat4.translation(vec3.create(-1, 3, -4));
-  const modelMatrix2 = mat4.translation(vec3.create(-3, -2, 0));
-
   const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
 
-  const tmpMat41 = mat4.create();
-  const tmpMat42 = mat4.create();
   function updateTransformationMatrix() {
     const now = Date.now() / 1000;
 
-    mat4.rotate(
-      modelMatrix1,
-      vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-      1,
-      tmpMat41
-    );
+    const rot1 = vec3.fromValues(Math.sin(now), Math.cos(now), 0);
+    const tran1 = mat4.translation(vec3.create(-1, 3, -4));
+    cubeMatrix.set(applyMatrix(tran1, rot1, viewMatrix, projectionMatrix));
 
-    mat4.rotate(modelMatrix2, vec3.fromValues(-0.2, 0, 0), 1, tmpMat42);
-
-    mat4.multiply(viewMatrix, tmpMat41, cubeMatrix);
-    mat4.multiply(projectionMatrix, cubeMatrix, cubeMatrix);
-    mat4.multiply(viewMatrix, tmpMat42, planeMatrix);
-    mat4.multiply(projectionMatrix, planeMatrix, planeMatrix);
+    const rot2 = vec3.fromValues(-0.2, 0, 0);
+    const tran2 = mat4.translation(vec3.create(-3, -2, 0));
+    planeMatrix.set(applyMatrix(tran2, rot2, viewMatrix, projectionMatrix));
   }
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -192,6 +170,19 @@ export async function setupWorldRenderer(
       return device.queue.onSubmittedWorkDone();
     },
   };
+}
+
+function applyMatrix(
+  tran1: Float32Array,
+  rot1: Float32Array,
+  viewMatrix: Float32Array,
+  projectionMatrix: Float32Array
+) {
+  const temp1 = mat4.create();
+  mat4.rotate(tran1, rot1, 1, temp1);
+  mat4.multiply(viewMatrix, temp1, temp1);
+  mat4.multiply(projectionMatrix, temp1, temp1);
+  return temp1;
 }
 
 function createRenderer(device: GPUDevice, width: number, height: number) {

@@ -6,11 +6,10 @@ struct Uniforms {
     x: f32,
     y: f32,
     z: f32,
-    zoom: f32,
-    modelViewProjectionMatrix: mat4x4f
+    zoom: f32
 };
 
-@group(0) @binding(0) 
+@group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
 
 fn noise(seed: f32, coord: vec4<f32>) -> f32 {

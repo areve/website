@@ -25,56 +25,6 @@ export async function setupWorldRenderer(
     100.0
   );
 
-  const sharedData = {
-    width: options.width,
-    height: options.height,
-    seed: options.seed ?? 12345,
-    scale: options.scale ?? 1,
-    x: 0,
-    y: 0,
-    z: 0,
-    zoom: 1,
-    modelViewProjectionMatrix: mat4.create(), // temp
-    asBuffer() {
-      return new Float32Array([
-        this.width,
-        this.height,
-        this.seed,
-        this.scale,
-        this.x,
-        this.y,
-        this.z,
-        this.zoom,
-        ...new Float32Array(this.modelViewProjectionMatrix.buffer),
-      ]);
-    },
-  };
-
-  const sharedData2 = {
-    width: options.width,
-    height: options.height,
-    seed: options.seed ?? 12345,
-    scale: options.scale ?? 1,
-    x: 0,
-    y: 0,
-    z: 0,
-    zoom: 1,
-    modelViewProjectionMatrix: mat4.create(), // temp
-    asBuffer() {
-      return new Float32Array([
-        this.width,
-        this.height,
-        this.seed,
-        this.scale,
-        this.x,
-        this.y,
-        this.z,
-        this.zoom,
-        ...new Float32Array(this.modelViewProjectionMatrix.buffer),
-      ]);
-    },
-  };
-
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
   if (!device) return fail("need a browser that supports WebGPU");
@@ -97,6 +47,30 @@ export async function setupWorldRenderer(
 
   new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
   verticesBuffer.unmap();
+
+  // const bindGroupLayout0 = device.createBindGroupLayout({
+  //   entries: [
+  //     {
+  //       binding: 0,
+  //       visibility: GPUShaderStage.FRAGMENT,
+  //       buffer: { type: "storage" },
+  //     },
+  //   ],
+  // });
+
+  // const bindGroupLayout1 = device.createBindGroupLayout({
+  //   entries: [
+  //     {
+  //       binding: 0,
+  //       visibility: GPUShaderStage.FRAGMENT,
+  //       buffer: { type: "storage" },
+  //     },
+  //   ],
+  // });
+
+  // const pipelineLayout = device.createPipelineLayout({
+  //   bindGroupLayouts: [bindGroupLayout0, bindGroupLayout1],
+  // });
 
   const pipeline = device.createRenderPipeline({
     label: "our hardcoded red line pipeline",
@@ -150,17 +124,47 @@ export async function setupWorldRenderer(
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
-  const s1 = sharedData.asBuffer().byteLength;
-  const offset = 256; // uniformBindGroup offset must be 256-byte aligned
-  const uniformBufferSize = offset + s1;
+  const fragmentUniforms = {
+    width: options.width,
+    height: options.height,
+    seed: options.seed ?? 12345,
+    scale: options.scale ?? 1,
+    x: 0,
+    y: 0,
+    z: 0,
+    zoom: 1,
+    asBuffer() {
+      return new Float32Array([
+        this.width,
+        this.height,
+        this.seed,
+        this.scale,
+        this.x,
+        this.y,
+        this.z,
+        this.zoom,
+      ]);
+    },
+  };
+
+  function createVertexUniforms() {
+    return {
+      modelViewProjectionMatrix: mat4.create(), // temp
+      asBuffer() {
+        return new Float32Array(
+          new Float32Array(this.modelViewProjectionMatrix.buffer)
+        );
+      },
+    };
+  }
 
   const uniformBuffer = device.createBuffer({
-    size: uniformBufferSize,
+    size: 1024,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
   // console.log(sharedData.asBuffer().byteLength)
-  const uniformBindGroup = device.createBindGroup({
+  const uniformBindGroup0 = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
     entries: [
       {
@@ -168,21 +172,38 @@ export async function setupWorldRenderer(
         resource: {
           buffer: uniformBuffer,
           offset: 0,
-          size: sharedData.asBuffer().byteLength,
+          size: fragmentUniforms.asBuffer().byteLength + 100,
+        },
+      },
+    ],
+  });
+
+  const a1 = createVertexUniforms();
+  const a2 = createVertexUniforms();
+
+  const uniformBindGroup1 = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(1),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 256,
+          size: a1.asBuffer().byteLength + 100,
         },
       },
     ],
   });
 
   const uniformBindGroup2 = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
+    layout: pipeline.getBindGroupLayout(1),
     entries: [
       {
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: offset,
-          size: sharedData2.asBuffer().byteLength,
+          offset: 512,
+          size: a2.asBuffer().byteLength + 100,
         },
       },
     ],
@@ -254,28 +275,40 @@ export async function setupWorldRenderer(
         y?: number;
       }
     ) {
-      Object.assign(sharedData, data);
-      Object.assign(sharedData2, data);
-      sharedData.z = time * 0.001;
+      Object.assign(fragmentUniforms, data);
+      fragmentUniforms.z = time * 0.001;
       updateTransformationMatrix();
 
-      sharedData.modelViewProjectionMatrix = modelViewProjectionMatrix1;
-      device.queue.writeBuffer(uniformBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(uniformBuffer, 0, fragmentUniforms.asBuffer());
 
-      sharedData2.modelViewProjectionMatrix = modelViewProjectionMatrix2;
-      device.queue.writeBuffer(uniformBuffer, offset, sharedData2.asBuffer());
+      a1.modelViewProjectionMatrix.set(modelViewProjectionMatrix1);
+      device.queue.writeBuffer(
+        uniformBuffer,
+        256,
+        a1.asBuffer()
+      );
+
+      a2.modelViewProjectionMatrix.set(modelViewProjectionMatrix2);
+      device.queue.writeBuffer(
+        uniformBuffer,
+        512,
+        a2.asBuffer()
+      );
 
       // console.log(modelViewProjectionMatrix2.byteOffset, modelViewProjectionMatrix1.byteOffset)
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });
+
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setVertexBuffer(0, verticesBuffer);
 
-      pass.setBindGroup(0, uniformBindGroup);
+      pass.setBindGroup(0, uniformBindGroup0);
+      pass.setBindGroup(1, uniformBindGroup1);
       pass.draw(cubeVertexCount);
 
-      pass.setBindGroup(0, uniformBindGroup2);
+      pass.setBindGroup(0, uniformBindGroup0);
+      pass.setBindGroup(1, uniformBindGroup2);
       pass.draw(cubeVertexCount);
 
       pass.end();

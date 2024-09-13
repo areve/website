@@ -5,18 +5,10 @@ struct VertexOutput {
 }
 
 struct Uniforms {
-  width: f32,
-  height: f32,
-  seed: f32,
-  scale: f32,
-  x: f32,
-  y: f32,
-  z: f32,
-  zoom: f32,
-  modelViewProjectionMatrix: mat4x4f,
+  modelViewProjectionMatrix: mat4x4f
 };
 
-@group(0) @binding(0) 
+@group(1) @binding(0) 
 var<uniform> uniforms: Uniforms;
 
 @vertex

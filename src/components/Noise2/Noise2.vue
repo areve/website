@@ -40,7 +40,7 @@ import WebGPUValueNoise from "./WebGPUValueNoise.vue";
 import WebGPUMandelbrot from "./WebGPUMandelbrot.vue";
 import WebGPUOpenSimplex from "./WebGPUOpenSimplex.vue";
 import WebGPUWorld from "./WebGPUWorld.vue";
-import WebGPUWorld3d from "./WebGPUWorld3d.vue";
+import WebGPUWorld3d from "./WebGPUWorld3d/WebGPUWorld3d.vue";
 </script>
 
 <style scoped></style>

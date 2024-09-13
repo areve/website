@@ -7,8 +7,8 @@
 
 <script lang="ts" setup>
 import { onMounted, onUnmounted, ref } from "vue";
-import { makeStats } from "./lib/stats";
-import { makeController } from "./lib/controller";
+import { makeStats } from "../lib/stats";
+import { makeController } from "../lib/controller";
 import { mat4, vec3 } from "wgpu-matrix";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);

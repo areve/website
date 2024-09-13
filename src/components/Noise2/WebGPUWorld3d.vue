@@ -505,7 +505,7 @@ async function setupWorldRenderer(
     const now = Date.now() / 1000;
     mat4.rotate(
       viewMatrix,
-      vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      vec3.fromValues(Math.sin(now), Math.cos(now * 0.7), Math.sin(now * 1.3)),
       1,
       viewMatrix
     );

@@ -42,7 +42,7 @@ export async function setupWorldRenderer(
   plane.rotation = vec3.create(-0.2, 0, 0);
   plane.translation = vec3.create(-3, -2, 0);
 
-  const pipeline = createPipeline(device, cube.layout, presentationFormat);
+  const commonLayout = cube.layout;
 
   const worldMapUniforms = {
     width: options.width,
@@ -67,12 +67,14 @@ export async function setupWorldRenderer(
     },
   };
 
+  const pipeline = createPipeline(device, commonLayout, presentationFormat);
+
   const buffers = createBuffers(
     device,
     pipeline,
-    worldMapUniforms.toBuffer(),
-    cube.matrix(viewMatrix, projectionMatrix),
-    plane.matrix(viewMatrix, projectionMatrix)
+    () => worldMapUniforms.toBuffer(),
+    () => cube.matrix(viewMatrix, projectionMatrix),
+    () => plane.matrix(viewMatrix, projectionMatrix)
   );
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -91,24 +93,7 @@ export async function setupWorldRenderer(
       worldMapUniforms.z = t;
       cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      device.queue.writeBuffer(
-        buffers.uniformBuffer,
-        buffers.groups.worldMapUniforms.offset,
-        worldMapUniforms.toBuffer()
-      );
-      device.queue.writeBuffer(
-        buffers.uniformBuffer,
-        buffers.groups.cubeMatrix.offset,
-        cube.matrix(viewMatrix, projectionMatrix)
-      );
-      device.queue.writeBuffer(
-        buffers.uniformBuffer,
-        buffers.groups.planeMatrix.offset,
-        plane.matrix(viewMatrix, projectionMatrix)
-      );
-
-      const pass = renderer.initFrame(context);
-
+      const pass = renderer.initFrame(context, buffers);
       pass.setPipeline(pipeline);
 
       pass.setVertexBuffer(0, cube.buffer);
@@ -128,10 +113,43 @@ export async function setupWorldRenderer(
   };
 }
 
+function writeBuffers(
+  device: GPUDevice,
+  buffers: {
+    uniformBuffer: GPUBuffer;
+    groups: {
+      worldMapUniforms: {
+        bindGroup: GPUBindGroup;
+        getBuffer: () => Float32Array;
+        offset: number;
+      };
+      cubeMatrix: {
+        bindGroup: GPUBindGroup;
+        getBuffer: () => Float32Array;
+        offset: number;
+      };
+      planeMatrix: {
+        bindGroup: GPUBindGroup;
+        getBuffer: () => Float32Array;
+        offset: number;
+      };
+    };
+  }
+) {
+  Object.keys(buffers.groups).forEach((k: unknown) => {
+    const group = buffers.groups[k as keyof typeof buffers.groups];
+    device.queue.writeBuffer(
+      buffers.uniformBuffer,
+      group.offset,
+      group.getBuffer()
+    );
+  });
+}
+
 function createBuffers(
   device: GPUDevice,
   pipeline: GPURenderPipeline,
-  ...objects: Float32Array[]
+  ...getBuffers: (() => Float32Array)[]
 ) {
   const uniformBuffer = device.createBuffer({
     size: 1024 * 4,
@@ -147,7 +165,7 @@ function createBuffers(
         resource: {
           buffer: uniformBuffer,
           offset: 0,
-          size: objects[0].byteLength + 100,
+          size: getBuffers[0]().byteLength + 100,
         },
       },
     ],
@@ -161,7 +179,7 @@ function createBuffers(
         resource: {
           buffer: uniformBuffer,
           offset: 256,
-          size: objects[1].byteLength + 100,
+          size: getBuffers[1]().byteLength + 100,
         },
       },
     ],
@@ -175,7 +193,7 @@ function createBuffers(
         resource: {
           buffer: uniformBuffer,
           offset: 512,
-          size: objects[2].byteLength + 100,
+          size: getBuffers[2]().byteLength + 100,
         },
       },
     ],
@@ -185,14 +203,17 @@ function createBuffers(
     groups: {
       worldMapUniforms: {
         bindGroup: worldMapUniformsBindGroup,
+        getBuffer: getBuffers[0],
         offset: 0,
       },
       cubeMatrix: {
         bindGroup: cubeMatrixBindGroup,
+        getBuffer: getBuffers[1],
         offset: 256,
       },
       planeMatrix: {
         bindGroup: planeMatrixBindGroup,
+        getBuffer: getBuffers[2],
         offset: 512,
       },
     },
@@ -228,7 +249,31 @@ function createRenderer(device: GPUDevice, width: number, height: number) {
     descriptor: renderPassDescriptor,
     encoder: null as GPUCommandEncoder | null,
     pass: null as GPURenderPassEncoder | null,
-    initFrame(context: GPUCanvasContext) {
+    initFrame(
+      context: GPUCanvasContext,
+      buffers: {
+        uniformBuffer: GPUBuffer;
+        groups: {
+          worldMapUniforms: {
+            bindGroup: GPUBindGroup;
+            getBuffer: () => Float32Array;
+            offset: number;
+          };
+          cubeMatrix: {
+            bindGroup: GPUBindGroup;
+            getBuffer: () => Float32Array;
+            offset: number;
+          };
+          planeMatrix: {
+            bindGroup: GPUBindGroup;
+            getBuffer: () => Float32Array;
+            offset: number;
+          };
+        };
+      }
+    ) {
+      writeBuffers(device, buffers);
+
       colorAttachment.view = context.getCurrentTexture().createView();
       this.encoder = device.createCommandEncoder({ label: "our encoder" });
       this.pass = this.encoder.beginRenderPass(renderPassDescriptor);

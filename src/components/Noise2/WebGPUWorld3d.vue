@@ -52,7 +52,7 @@ async function setupWorldRenderer(
   }
 ) {
   const projectionMatrix = mat4.perspective(
-    (2 * Math.PI) / 5,
+    (2 * Math.PI) / 8,
     width / height,
     1,
     100.0
@@ -558,7 +558,7 @@ async function setupWorldRenderer(
   const modelMatrix2 = mat4.translation(vec3.create(2, 0, 0));
   const modelViewProjectionMatrix1 = mat4.create();
   const modelViewProjectionMatrix2 = mat4.create();
-  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -7));
+  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -5));
 
   const tmpMat41 = mat4.create();
   const tmpMat42 = mat4.create();
@@ -612,7 +612,7 @@ async function setupWorldRenderer(
       sharedData2.modelViewProjectionMatrix = modelViewProjectionMatrix2;
       device.queue.writeBuffer(uniformBuffer, offset, sharedData2.asBuffer());
 
-      console.log(modelViewProjectionMatrix2.byteOffset, modelViewProjectionMatrix1.byteOffset)
+      // console.log(modelViewProjectionMatrix2.byteOffset, modelViewProjectionMatrix1.byteOffset)
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });
       const pass = encoder.beginRenderPass(renderPassDescriptor);

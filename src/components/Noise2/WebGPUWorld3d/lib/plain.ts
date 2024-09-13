@@ -7,7 +7,7 @@
 export function createPlain() {
   let foo = [];
   let Y = 9;
-  let X = 9;
+  let X = 4;
 
   // prettier-ignore
   for (var y = 0; y < Y; y++) {

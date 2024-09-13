@@ -242,8 +242,8 @@ export async function setupWorldRenderer(
     },
   };
 
-  const modelMatrix1 = mat4.translation(vec3.create(-2, 2, 0));
-  const modelMatrix2 = mat4.translation(vec3.create(2, 2, 0));
+  const modelMatrix1 = mat4.translation(vec3.create(-1, 3, -4));
+  const modelMatrix2 = mat4.translation(vec3.create(-3, -2, 0));
   const modelViewProjectionMatrix1 = mat4.create();
   const modelViewProjectionMatrix2 = mat4.create();
   const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
@@ -259,9 +259,10 @@ export async function setupWorldRenderer(
       1,
       tmpMat41
     );
+
     mat4.rotate(
       modelMatrix2,
-      vec3.fromValues(Math.cos(now), Math.sin(now), 0),
+      vec3.fromValues(-0.2, 0, 0),
       1,
       tmpMat42
     );

@@ -40,39 +40,11 @@ export async function setupWorldRenderer(
   const plane = createPlane("plane");
   const planeVerticesBuffer = createVertexBuffer(device, plane);
 
-  const pipeline = device.createRenderPipeline({
-    label: "blah pipeline",
-    layout: "auto",
-    vertex: {
-      module: device.createShaderModule({
-        label: "blah vertex",
-        code: vertexWgsl,
-      }),
-      buffers: [cubeVertexBuffer.layout],
-    },
-    fragment: {
-      module: device.createShaderModule({
-        label: "our hardcoded red color shader",
-        code: fragmentWgsl,
-      }),
-      targets: [{ format: presentationFormat }],
-    },
-    primitive: {
-      topology: "triangle-list",
-      cullMode: "back",
-    },
-    depthStencil: {
-      depthWriteEnabled: true,
-      depthCompare: "less",
-      format: "depth24plus",
-    },
-  });
-
-  const depthTexture = device.createTexture({
-    size: [canvas.width, canvas.height],
-    format: "depth24plus",
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  });
+  const pipeline = createPipeline(
+    device,
+    cubeVertexBuffer.layout,
+    presentationFormat
+  );
 
   const fragmentUniforms = {
     width: options.width,
@@ -83,7 +55,7 @@ export async function setupWorldRenderer(
     y: 0,
     z: 0,
     zoom: 1,
-    asBuffer() {
+    get buffer() {
       return new Float32Array([
         this.width,
         this.height,
@@ -97,16 +69,14 @@ export async function setupWorldRenderer(
     },
   };
 
-  function createVertexUniforms() {
-    return {
-      modelViewProjectionMatrix: mat4.create(), // temp
-      asBuffer() {
-        return new Float32Array(
-          new Float32Array(this.modelViewProjectionMatrix.buffer)
-        );
-      },
-    };
-  }
+  // function createVertexUniforms() {
+  //   return {
+  //     modelViewProjectionMatrix: mat4.create(), // temp
+  //     asBuffer() {
+  //       return new Float32Array(this.modelViewProjectionMatrix.buffer);
+  //     },
+  //   };
+  // }
 
   const uniformBuffer = device.createBuffer({
     size: 1024 * 4,
@@ -122,14 +92,14 @@ export async function setupWorldRenderer(
         resource: {
           buffer: uniformBuffer,
           offset: 0,
-          size: fragmentUniforms.asBuffer().byteLength + 100,
+          size: fragmentUniforms.buffer.byteLength + 100,
         },
       },
     ],
   });
 
-  const a1 = createVertexUniforms();
-  const a2 = createVertexUniforms();
+  const cubeMatrix = mat4.create();
+  const planeMatrix = mat4.create();
 
   const uniformBindGroup1 = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(1),
@@ -139,7 +109,7 @@ export async function setupWorldRenderer(
         resource: {
           buffer: uniformBuffer,
           offset: 256,
-          size: a1.asBuffer().byteLength + 100,
+          size: mat4.create().byteLength + 100,
         },
       },
     ],
@@ -153,10 +123,82 @@ export async function setupWorldRenderer(
         resource: {
           buffer: uniformBuffer,
           offset: 512,
-          size: a2.asBuffer().byteLength + 100,
+          size: mat4.create().byteLength + 100,
         },
       },
     ],
+  });
+
+  const modelMatrix1 = mat4.translation(vec3.create(-1, 3, -4));
+  const modelMatrix2 = mat4.translation(vec3.create(-3, -2, 0));
+
+  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
+
+  const tmpMat41 = mat4.create();
+  const tmpMat42 = mat4.create();
+  function updateTransformationMatrix() {
+    const now = Date.now() / 1000;
+
+    mat4.rotate(
+      modelMatrix1,
+      vec3.fromValues(Math.sin(now), Math.cos(now), 0),
+      1,
+      tmpMat41
+    );
+
+    mat4.rotate(modelMatrix2, vec3.fromValues(-0.2, 0, 0), 1, tmpMat42);
+
+    mat4.multiply(viewMatrix, tmpMat41, cubeMatrix);
+    mat4.multiply(projectionMatrix, cubeMatrix, cubeMatrix);
+    mat4.multiply(viewMatrix, tmpMat42, planeMatrix);
+    mat4.multiply(projectionMatrix, planeMatrix, planeMatrix);
+  }
+
+  const renderer = createRenderer(device, options.width, options.height);
+
+  return {
+    async init() {},
+    async update(
+      time: DOMHighResTimeStamp,
+      data?: {
+        x?: number;
+        y?: number;
+      }
+    ) {
+      Object.assign(fragmentUniforms, data);
+      fragmentUniforms.z = time * 0.001;
+      updateTransformationMatrix();
+
+      device.queue.writeBuffer(uniformBuffer, 0, fragmentUniforms.buffer);
+      device.queue.writeBuffer(uniformBuffer, 256, cubeMatrix.buffer);
+      device.queue.writeBuffer(uniformBuffer, 512, planeMatrix.buffer);
+
+      const pass = renderer.initFrame(context);
+
+      pass.setPipeline(pipeline);
+      pass.setVertexBuffer(0, cubeVertexBuffer.buffer);
+
+      pass.setBindGroup(0, uniformBindGroup0);
+      pass.setBindGroup(1, uniformBindGroup1);
+      pass.draw(cube.vertexCount);
+
+      pass.setVertexBuffer(0, planeVerticesBuffer.buffer);
+      pass.setBindGroup(0, uniformBindGroup0);
+      pass.setBindGroup(1, uniformBindGroup2);
+      pass.draw(plane.vertexCount);
+
+      renderer.end();
+
+      return device.queue.onSubmittedWorkDone();
+    },
+  };
+}
+
+function createRenderer(device: GPUDevice, width: number, height: number) {
+  const depthTexture = device.createTexture({
+    size: [width, height],
+    format: "depth24plus",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
   const colorAttachment: GPURenderPassColorAttachment = {
@@ -177,85 +219,55 @@ export async function setupWorldRenderer(
       depthStoreOp: "store",
     },
   };
-
-  const modelMatrix1 = mat4.translation(vec3.create(-1, 3, -4));
-  const modelMatrix2 = mat4.translation(vec3.create(-3, -2, 0));
-  const modelViewProjectionMatrix1 = mat4.create();
-  const modelViewProjectionMatrix2 = mat4.create();
-  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
-
-  const tmpMat41 = mat4.create();
-  const tmpMat42 = mat4.create();
-  function updateTransformationMatrix() {
-    const now = Date.now() / 1000;
-
-    mat4.rotate(
-      modelMatrix1,
-      vec3.fromValues(Math.sin(now), Math.cos(now), 0),
-      1,
-      tmpMat41
-    );
-
-    mat4.rotate(modelMatrix2, vec3.fromValues(-0.2, 0, 0), 1, tmpMat42);
-
-    mat4.multiply(viewMatrix, tmpMat41, modelViewProjectionMatrix1);
-    mat4.multiply(
-      projectionMatrix,
-      modelViewProjectionMatrix1,
-      modelViewProjectionMatrix1
-    );
-    mat4.multiply(viewMatrix, tmpMat42, modelViewProjectionMatrix2);
-    mat4.multiply(
-      projectionMatrix,
-      modelViewProjectionMatrix2,
-      modelViewProjectionMatrix2
-    );
-  }
-
   return {
-    async init() {},
-    async update(
-      time: DOMHighResTimeStamp,
-      data?: {
-        x?: number;
-        y?: number;
-      }
-    ) {
-      Object.assign(fragmentUniforms, data);
-      fragmentUniforms.z = time * 0.001;
-      updateTransformationMatrix();
-
-      device.queue.writeBuffer(uniformBuffer, 0, fragmentUniforms.asBuffer());
-
-      a1.modelViewProjectionMatrix.set(modelViewProjectionMatrix1);
-      device.queue.writeBuffer(uniformBuffer, 256, a1.asBuffer());
-
-      // console.log(a2.asBuffer().byteLength);
-      a2.modelViewProjectionMatrix.set(modelViewProjectionMatrix2);
-      device.queue.writeBuffer(uniformBuffer, 512, a2.asBuffer());
-
+    descriptor: renderPassDescriptor,
+    encoder: null as GPUCommandEncoder | null,
+    pass: null as GPURenderPassEncoder | null,
+    initFrame(context: GPUCanvasContext) {
       colorAttachment.view = context.getCurrentTexture().createView();
-      const encoder = device.createCommandEncoder({ label: "our encoder" });
-
-      const pass = encoder.beginRenderPass(renderPassDescriptor);
-      pass.setPipeline(pipeline);
-      pass.setVertexBuffer(0, cubeVertexBuffer.buffer);
-
-      pass.setBindGroup(0, uniformBindGroup0);
-      pass.setBindGroup(1, uniformBindGroup1);
-      pass.draw(cube.vertexCount);
-
-      pass.setVertexBuffer(0, planeVerticesBuffer.buffer);
-      pass.setBindGroup(0, uniformBindGroup0);
-      pass.setBindGroup(1, uniformBindGroup2);
-      pass.draw(plane.vertexCount);
-
-      pass.end();
-      device.queue.submit([encoder.finish()]);
-
-      return device.queue.onSubmittedWorkDone();
+      this.encoder = device.createCommandEncoder({ label: "our encoder" });
+      this.pass = this.encoder.beginRenderPass(renderPassDescriptor);
+      return this.pass;
+    },
+    end() {
+      if (this.pass) this.pass.end();
+      if (this.encoder) device.queue.submit([this.encoder.finish()]);
     },
   };
+}
+
+function createPipeline(
+  device: GPUDevice,
+  layout: GPUVertexBufferLayout,
+  presentationFormat: string
+) {
+  return device.createRenderPipeline({
+    label: "blah pipeline",
+    layout: "auto",
+    vertex: {
+      module: device.createShaderModule({
+        label: "blah vertex",
+        code: vertexWgsl,
+      }),
+      buffers: [layout],
+    },
+    fragment: {
+      module: device.createShaderModule({
+        label: "our hardcoded red color shader",
+        code: fragmentWgsl,
+      }),
+      targets: [{ format: presentationFormat } as GPUColorTargetState],
+    },
+    primitive: {
+      topology: "triangle-list",
+      cullMode: "back",
+    },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: "less",
+      format: "depth24plus",
+    },
+  });
 }
 
 function createVertexBuffer(

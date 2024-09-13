@@ -62,30 +62,6 @@ export async function setupWorldRenderer(
     return verticesBuffer;
   }
 
-  // const bindGroupLayout0 = device.createBindGroupLayout({
-  //   entries: [
-  //     {
-  //       binding: 0,
-  //       visibility: GPUShaderStage.FRAGMENT,
-  //       buffer: { type: "storage" },
-  //     },
-  //   ],
-  // });
-
-  // const bindGroupLayout1 = device.createBindGroupLayout({
-  //   entries: [
-  //     {
-  //       binding: 0,
-  //       visibility: GPUShaderStage.FRAGMENT,
-  //       buffer: { type: "storage" },
-  //     },
-  //   ],
-  // });
-
-  // const pipelineLayout = device.createPipelineLayout({
-  //   bindGroupLayouts: [bindGroupLayout0, bindGroupLayout1],
-  // });
-
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
     layout: "auto",

@@ -34,26 +34,11 @@ export async function setupWorldRenderer(
     format: presentationFormat,
   });
 
-  const cube = createCube();
-  const cubeVertexBuffer = createVerticesBuffer(cube);
+  const cube = createCube("cube");
+  const cubeVertexBuffer = createVertexBuffer(device, cube);
 
-  const plane = createPlane();
-  const planeVerticesBuffer = createVerticesBuffer(plane);
-
-  function createVerticesBuffer(geometry: {
-    vertexArray: Float32Array; //
-  }) {
-    const verticesBuffer = device.createBuffer({
-      label: "cube",
-      size: geometry.vertexArray.byteLength,
-      usage: GPUBufferUsage.VERTEX,
-      mappedAtCreation: true,
-    });
-
-    new Float32Array(verticesBuffer.getMappedRange()).set(geometry.vertexArray);
-    verticesBuffer.unmap();
-    return verticesBuffer;
-  }
+  const plane = createPlane("plane");
+  const planeVerticesBuffer = createVertexBuffer(device, plane);
 
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -63,25 +48,7 @@ export async function setupWorldRenderer(
         label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [
-        {
-          arrayStride: cube.vertexSize,
-          attributes: [
-            {
-              // position
-              shaderLocation: 0,
-              offset: cube.positionOffset,
-              format: "float32x4",
-            },
-            {
-              // uv
-              shaderLocation: 1,
-              offset: cube.uvOffset,
-              format: "float32x2",
-            },
-          ],
-        },
-      ],
+      buffers: [cubeVertexBuffer.layout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -272,13 +239,13 @@ export async function setupWorldRenderer(
 
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
-      pass.setVertexBuffer(0, cubeVertexBuffer);
+      pass.setVertexBuffer(0, cubeVertexBuffer.buffer);
 
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup1);
       pass.draw(cube.vertexCount);
 
-      pass.setVertexBuffer(0, planeVerticesBuffer);
+      pass.setVertexBuffer(0, planeVerticesBuffer.buffer);
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup2);
       pass.draw(plane.vertexCount);
@@ -288,5 +255,48 @@ export async function setupWorldRenderer(
 
       return device.queue.onSubmittedWorkDone();
     },
+  };
+}
+
+function createVertexBuffer(
+  device: GPUDevice,
+  geometry: {
+    vertexArray: Float32Array;
+    label: string;
+    vertexSize: number;
+    positionOffset: number;
+    uvOffset: number;
+  }
+) {
+  const buffer = device.createBuffer({
+    label: geometry.label,
+    size: geometry.vertexArray.byteLength,
+    usage: GPUBufferUsage.VERTEX,
+    mappedAtCreation: true,
+  });
+
+  new Float32Array(buffer.getMappedRange()).set(geometry.vertexArray);
+  buffer.unmap();
+
+  const layout: GPUVertexBufferLayout = {
+    arrayStride: geometry.vertexSize,
+    attributes: [
+      {
+        // position
+        shaderLocation: 0,
+        offset: geometry.positionOffset,
+        format: "float32x4",
+      },
+      {
+        // uv
+        shaderLocation: 1,
+        offset: geometry.uvOffset,
+        format: "float32x2",
+      },
+    ],
+  };
+  return {
+    buffer,
+    layout,
   };
 }

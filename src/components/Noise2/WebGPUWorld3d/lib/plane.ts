@@ -1,4 +1,4 @@
-export function createPlane() {
+export function createPlane(label: string) {
   let data = [];
   let Y = 9;
   let X = 4;
@@ -24,5 +24,9 @@ export function createPlane() {
   return {
     vertexArray,
     vertexCount: X * Y * 6,
+    vertexSize: 4 * 10, // Byte size of one cube vertex.
+    positionOffset: 0,
+    uvOffset: 4 * 8,
+    label,
   };
 }

@@ -19,6 +19,7 @@ export async function setupWorldRenderer(
     1,
     100.0
   );
+  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
 
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
@@ -43,7 +44,7 @@ export async function setupWorldRenderer(
 
   const pipeline = createPipeline(device, cube.layout, presentationFormat);
 
-  const fragmentUniforms = {
+  const worldMapUniforms = {
     width: options.width,
     height: options.height,
     seed: options.seed ?? 12345,
@@ -52,7 +53,7 @@ export async function setupWorldRenderer(
     y: 0,
     z: 0,
     zoom: 1,
-    get buffer() {
+    toBuffer() {
       return new Float32Array([
         this.width,
         this.height,
@@ -66,54 +67,13 @@ export async function setupWorldRenderer(
     },
   };
 
-  const uniformBuffer = device.createBuffer({
-    size: 1024 * 4,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  const uniformBindGroup0 = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: 0,
-          size: fragmentUniforms.buffer.byteLength + 100,
-        },
-      },
-    ],
-  });
-
-  const uniformBindGroup1 = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(1),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: 256,
-          size: mat4.create().byteLength + 100,
-        },
-      },
-    ],
-  });
-
-  const uniformBindGroup2 = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(1),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: 512,
-          size: mat4.create().byteLength + 100,
-        },
-      },
-    ],
-  });
-
-  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
+  const buffers = createBuffers(
+    device,
+    pipeline,
+    worldMapUniforms.toBuffer(),
+    cube.matrix(viewMatrix, projectionMatrix),
+    plane.matrix(viewMatrix, projectionMatrix)
+  );
 
   const renderer = createRenderer(device, options.width, options.height);
 
@@ -126,20 +86,24 @@ export async function setupWorldRenderer(
         y?: number;
       }
     ) {
-      Object.assign(fragmentUniforms, data);
+      Object.assign(worldMapUniforms, data);
       const t = time * 0.001;
-      fragmentUniforms.z = t;
+      worldMapUniforms.z = t;
       cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      device.queue.writeBuffer(uniformBuffer, 0, fragmentUniforms.buffer);
       device.queue.writeBuffer(
-        uniformBuffer,
-        256,
+        buffers.uniformBuffer,
+        buffers.groups.worldMapUniforms.offset,
+        worldMapUniforms.toBuffer()
+      );
+      device.queue.writeBuffer(
+        buffers.uniformBuffer,
+        buffers.groups.cubeMatrix.offset,
         cube.matrix(viewMatrix, projectionMatrix)
       );
       device.queue.writeBuffer(
-        uniformBuffer,
-        512,
+        buffers.uniformBuffer,
+        buffers.groups.planeMatrix.offset,
         plane.matrix(viewMatrix, projectionMatrix)
       );
 
@@ -148,18 +112,89 @@ export async function setupWorldRenderer(
       pass.setPipeline(pipeline);
 
       pass.setVertexBuffer(0, cube.buffer);
-      pass.setBindGroup(0, uniformBindGroup0);
-      pass.setBindGroup(1, uniformBindGroup1);
+      pass.setBindGroup(0, buffers.groups.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, buffers.groups.cubeMatrix.bindGroup);
       pass.draw(cube.geometry.vertexCount);
 
       pass.setVertexBuffer(0, plane.buffer);
-      pass.setBindGroup(0, uniformBindGroup0);
-      pass.setBindGroup(1, uniformBindGroup2);
+      pass.setBindGroup(0, buffers.groups.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, buffers.groups.planeMatrix.bindGroup);
       pass.draw(plane.geometry.vertexCount);
 
       renderer.end();
 
       return device.queue.onSubmittedWorkDone();
+    },
+  };
+}
+
+function createBuffers(
+  device: GPUDevice,
+  pipeline: GPURenderPipeline,
+  ...objects: Float32Array[]
+) {
+  const uniformBuffer = device.createBuffer({
+    size: 1024 * 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  // TODO iterate
+  const worldMapUniformsBindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 0,
+          size: objects[0].byteLength + 100,
+        },
+      },
+    ],
+  });
+
+  const cubeMatrixBindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(1),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 256,
+          size: objects[1].byteLength + 100,
+        },
+      },
+    ],
+  });
+
+  const planeMatrixBindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(1),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 512,
+          size: objects[2].byteLength + 100,
+        },
+      },
+    ],
+  });
+  return {
+    uniformBuffer,
+    groups: {
+      worldMapUniforms: {
+        bindGroup: worldMapUniformsBindGroup,
+        offset: 0,
+      },
+      cubeMatrix: {
+        bindGroup: cubeMatrixBindGroup,
+        offset: 256,
+      },
+      planeMatrix: {
+        bindGroup: planeMatrixBindGroup,
+        offset: 512,
+      },
     },
   };
 }

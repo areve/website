@@ -8,7 +8,7 @@ import {
 } from "./cube";
 import vertexWgsl from "./vertex.wgsl?raw";
 import fragmentWgsl from "./fragment.wgsl?raw";
-import { plainVertexArray, plainVertexCount } from "./plain";
+import { createPlain } from "./plain";
 
 export async function setupWorldRenderer(
   canvas: HTMLCanvasElement,
@@ -42,7 +42,8 @@ export async function setupWorldRenderer(
 
   const verticesBuffer = createVerticesBuffer(cubeVertexArray);
 
-  const plainVerticesBuffer = createVerticesBuffer(plainVertexArray);
+  const plain = createPlain();
+  const plainVerticesBuffer = createVerticesBuffer(plain.vertexArray);
 
   function createVerticesBuffer(vertexArray: Float32Array) {
     const verticesBuffer = device.createBuffer({
@@ -310,7 +311,7 @@ export async function setupWorldRenderer(
       pass.setVertexBuffer(0, plainVerticesBuffer);
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup2);
-      pass.draw(plainVertexCount);
+      pass.draw(plain.vertexCount);
 
       pass.end();
       device.queue.submit([encoder.finish()]);

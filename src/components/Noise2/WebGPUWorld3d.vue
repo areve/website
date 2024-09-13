@@ -15,7 +15,7 @@ const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
 const controller = makeController();
 const width = 500;
-const height = 200;
+const height = 500;
 const seed = 12345;
 
 let frameId: number = 0;
@@ -554,11 +554,11 @@ async function setupWorldRenderer(
   };
 
 
-  const modelMatrix1 = mat4.translation(vec3.create(-2, 0, 0));
-  const modelMatrix2 = mat4.translation(vec3.create(2, 0, 0));
+  const modelMatrix1 = mat4.translation(vec3.create(-2, 2, 0));
+  const modelMatrix2 = mat4.translation(vec3.create(2, 2, 0));
   const modelViewProjectionMatrix1 = mat4.create();
   const modelViewProjectionMatrix2 = mat4.create();
-  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -5));
+  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
 
   const tmpMat41 = mat4.create();
   const tmpMat42 = mat4.create();

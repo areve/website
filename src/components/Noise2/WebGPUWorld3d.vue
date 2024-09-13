@@ -57,7 +57,6 @@ async function setupWorldRenderer(
     1,
     100.0
   );
-  const modelViewProjectionMatrix = mat4.create();
 
   const sharedData = {
     width: options.width,
@@ -68,7 +67,7 @@ async function setupWorldRenderer(
     y: 0,
     z: 0,
     zoom: 1,
-    transformationMatrix: getTransformationMatrix(),
+    modelViewProjectionMatrix: mat4.create(), // temp
     asBuffer() {
       return new Float32Array([
         this.width,
@@ -79,7 +78,32 @@ async function setupWorldRenderer(
         this.y,
         this.z,
         this.zoom,
-        ...new Float32Array(this.transformationMatrix.buffer),
+        ...new Float32Array(this.modelViewProjectionMatrix.buffer),
+      ]);
+    },
+  };
+
+  const sharedData2 = {
+    width: options.width,
+    height: options.height,
+    seed: options.seed ?? 12345,
+    scale: options.scale ?? 1,
+    x: 0,
+    y: 0,
+    z: 0,
+    zoom: 1,
+    modelViewProjectionMatrix: mat4.create(), // temp
+    asBuffer() {
+      return new Float32Array([
+        this.width,
+        this.height,
+        this.seed,
+        this.scale,
+        this.x,
+        this.y,
+        this.z,
+        this.zoom,
+        ...new Float32Array(this.modelViewProjectionMatrix.buffer),
       ]);
     },
   };
@@ -234,7 +258,7 @@ async function setupWorldRenderer(
             y: f32,
             z: f32,
             zoom: f32,
-            modelViewProjectionMatrix : mat4x4f,
+            modelViewProjectionMatrix : mat4x4f
           };
 
           @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -470,14 +494,44 @@ async function setupWorldRenderer(
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
+
+  const s1 = sharedData.asBuffer().byteLength;
+  const offset = 256; // uniformBindGroup offset must be 256-byte aligned
+  const uniformBufferSize = offset + s1;
+
+
   const uniformBuffer = device.createBuffer({
-    size: sharedData.asBuffer().byteLength,
+    size: uniformBufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+  // console.log(sharedData.asBuffer().byteLength)
   const uniformBindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 0,
+          size: sharedData.asBuffer().byteLength,
+        },
+      },
+    ],
+  });
+
+  const uniformBindGroup2 = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: offset,
+          size: sharedData2.asBuffer().byteLength,
+        },
+      },
+    ],
   });
 
   const colorAttachment: GPURenderPassColorAttachment = {
@@ -499,20 +553,43 @@ async function setupWorldRenderer(
     },
   };
 
-  function getTransformationMatrix() {
-    const viewMatrix = mat4.identity();
-    mat4.translate(viewMatrix, vec3.fromValues(0, 0, -4), viewMatrix);
+
+  const modelMatrix1 = mat4.translation(vec3.create(-2, 0, 0));
+  const modelMatrix2 = mat4.translation(vec3.create(2, 0, 0));
+  const modelViewProjectionMatrix1 = mat4.create();
+  const modelViewProjectionMatrix2 = mat4.create();
+  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -7));
+
+  const tmpMat41 = mat4.create();
+  const tmpMat42 = mat4.create();
+  function updateTransformationMatrix() {
     const now = Date.now() / 1000;
+
     mat4.rotate(
-      viewMatrix,
-      vec3.fromValues(Math.sin(now), Math.cos(now * 0.7), Math.sin(now * 1.3)),
+      modelMatrix1,
+      vec3.fromValues(Math.sin(now), Math.cos(now), 0),
       1,
-      viewMatrix
+      tmpMat41
+    );
+    mat4.rotate(
+      modelMatrix2,
+      vec3.fromValues(Math.cos(now), Math.sin(now), 0),
+      1,
+      tmpMat42
     );
 
-    mat4.multiply(projectionMatrix, viewMatrix, modelViewProjectionMatrix);
-
-    return modelViewProjectionMatrix;
+    mat4.multiply(viewMatrix, tmpMat41, modelViewProjectionMatrix1);
+    mat4.multiply(
+      projectionMatrix,
+      modelViewProjectionMatrix1,
+      modelViewProjectionMatrix1
+    );
+    mat4.multiply(viewMatrix, tmpMat42, modelViewProjectionMatrix2);
+    mat4.multiply(
+      projectionMatrix,
+      modelViewProjectionMatrix2,
+      modelViewProjectionMatrix2
+    );
   }
 
   return {
@@ -525,31 +602,32 @@ async function setupWorldRenderer(
       }
     ) {
       Object.assign(sharedData, data);
+      Object.assign(sharedData2, data);
       sharedData.z = time * 0.001;
+      updateTransformationMatrix();
 
-      sharedData.transformationMatrix = getTransformationMatrix();
-      //console.log(sharedData.transformationMatrix)
-
+      sharedData.modelViewProjectionMatrix = modelViewProjectionMatrix1;
       device.queue.writeBuffer(uniformBuffer, 0, sharedData.asBuffer());
 
-      // device.queue.writeBuffer(
-      //   uniformBuffer,
-      //   0,
-      //   transformationMatrix.buffer,
-      //   transformationMatrix.byteOffset,
-      //   transformationMatrix.byteLength
-      // );
+      sharedData2.modelViewProjectionMatrix = modelViewProjectionMatrix2;
+      device.queue.writeBuffer(uniformBuffer, offset, sharedData2.asBuffer());
 
+      console.log(modelViewProjectionMatrix2.byteOffset, modelViewProjectionMatrix1.byteOffset)
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
-      pass.setBindGroup(0, uniformBindGroup);
       pass.setVertexBuffer(0, verticesBuffer);
+
+      pass.setBindGroup(0, uniformBindGroup);
       pass.draw(cubeVertexCount);
+
+      pass.setBindGroup(0, uniformBindGroup2);
+      pass.draw(cubeVertexCount);
+
       pass.end();
-      const commandBuffer = encoder.finish();
-      device.queue.submit([commandBuffer]);
+      device.queue.submit([encoder.finish()]);
+
       return device.queue.onSubmittedWorkDone();
     },
   };

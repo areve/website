@@ -7126,9 +7126,17 @@ __metadata:
     vue-router: "npm:^4.4.3"
     vue3-google-auth: "npm:^0.0.2"
     vuex: "npm:^4.1.0"
+    wgpu-matrix: "npm:^3.2.0"
     yfinance-live: "npm:^0.3.3"
   languageName: unknown
   linkType: soft
+
+"wgpu-matrix@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "wgpu-matrix@npm:3.2.0"
+  checksum: 10/64fd586ed9f62446b2adb92b316896a60b78ed501714b18bccdfc6bb2687e27e50444ad0e493daf9209db295abfb5ef1a3b6f21b5432a8e2b7038d7cdc913d4f
+  languageName: node
+  linkType: hard
 
 "whatwg-encoding@npm:^2.0.0":
   version: 2.0.0

@@ -7,7 +7,7 @@ import {
 } from "./render";
 
 export const scene2 = makeRenderSetup(
-  "Cube without three.js",
+  "webgl2 Cube without three.js",
   500,
   200,
   new CanvasRenderService(setup)

@@ -2,7 +2,7 @@ import { mat4, vec3 } from "wgpu-matrix";
 import { createCube } from "./cube";
 import vertexWgsl from "./vertex.wgsl?raw";
 import fragmentWgsl from "./fragment.wgsl?raw";
-import { createPlain } from "./plain";
+import { createPlane } from "./plane";
 
 export async function setupWorldRenderer(
   canvas: HTMLCanvasElement,
@@ -35,10 +35,10 @@ export async function setupWorldRenderer(
   });
 
   const cube = createCube();
-  const verticesBuffer = createVerticesBuffer(cube);
+  const cubeVertexBuffer = createVerticesBuffer(cube);
 
-  const plain = createPlain();
-  const plainVerticesBuffer = createVerticesBuffer(plain);
+  const plane = createPlane();
+  const planeVerticesBuffer = createVerticesBuffer(plane);
 
   function createVerticesBuffer(geometry: {
     vertexArray: Float32Array; //
@@ -272,16 +272,16 @@ export async function setupWorldRenderer(
 
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
-      pass.setVertexBuffer(0, verticesBuffer);
+      pass.setVertexBuffer(0, cubeVertexBuffer);
 
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup1);
       pass.draw(cube.vertexCount);
 
-      pass.setVertexBuffer(0, plainVerticesBuffer);
+      pass.setVertexBuffer(0, planeVerticesBuffer);
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup2);
-      pass.draw(plain.vertexCount);
+      pass.draw(plane.vertexCount);
 
       pass.end();
       device.queue.submit([encoder.finish()]);

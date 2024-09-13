@@ -1,4 +1,4 @@
-export function createPlain() {
+export function createPlane() {
   let data = [];
   let Y = 9;
   let X = 4;

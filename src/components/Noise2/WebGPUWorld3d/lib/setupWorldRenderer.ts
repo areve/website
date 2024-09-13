@@ -34,19 +34,14 @@ export async function setupWorldRenderer(
     format: presentationFormat,
   });
 
-  const cube = createCube("cube");
-  const cubeVertexBuffer = createVertexBuffer(device, cube);
-  const cubeMatrix = mat4.create();
+  const cube = createModel(device, createCube("cube"));
+  cube.translation = vec3.create(-1, 3, -4);
 
-  const plane = createPlane("plane");
-  const planeVerticesBuffer = createVertexBuffer(device, plane);
-  const planeMatrix = mat4.create();
+  const plane = createModel(device, createPlane("plane"));
+  plane.rotation = vec3.create(-0.2, 0, 0);
+  plane.translation = vec3.create(-3, -2, 0);
 
-  const pipeline = createPipeline(
-    device,
-    cubeVertexBuffer.layout,
-    presentationFormat
-  );
+  const pipeline = createPipeline(device, cube.layout, presentationFormat);
 
   const fragmentUniforms = {
     width: options.width,
@@ -120,18 +115,6 @@ export async function setupWorldRenderer(
 
   const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
 
-  function updateTransformationMatrix() {
-    const now = Date.now() / 1000;
-
-    const rot1 = vec3.fromValues(Math.sin(now), Math.cos(now), 0);
-    const tran1 = mat4.translation(vec3.create(-1, 3, -4));
-    cubeMatrix.set(applyMatrix(tran1, rot1, viewMatrix, projectionMatrix));
-
-    const rot2 = vec3.fromValues(-0.2, 0, 0);
-    const tran2 = mat4.translation(vec3.create(-3, -2, 0));
-    planeMatrix.set(applyMatrix(tran2, rot2, viewMatrix, projectionMatrix));
-  }
-
   const renderer = createRenderer(device, options.width, options.height);
 
   return {
@@ -144,45 +127,41 @@ export async function setupWorldRenderer(
       }
     ) {
       Object.assign(fragmentUniforms, data);
-      fragmentUniforms.z = time * 0.001;
-      updateTransformationMatrix();
+      const t = time * 0.001;
+      fragmentUniforms.z = t;
+      cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
       device.queue.writeBuffer(uniformBuffer, 0, fragmentUniforms.buffer);
-      device.queue.writeBuffer(uniformBuffer, 256, cubeMatrix.buffer);
-      device.queue.writeBuffer(uniformBuffer, 512, planeMatrix.buffer);
+      device.queue.writeBuffer(
+        uniformBuffer,
+        256,
+        cube.matrix(viewMatrix, projectionMatrix)
+      );
+      device.queue.writeBuffer(
+        uniformBuffer,
+        512,
+        plane.matrix(viewMatrix, projectionMatrix)
+      );
 
       const pass = renderer.initFrame(context);
 
       pass.setPipeline(pipeline);
-      pass.setVertexBuffer(0, cubeVertexBuffer.buffer);
 
+      pass.setVertexBuffer(0, cube.buffer);
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup1);
-      pass.draw(cube.vertexCount);
+      pass.draw(cube.geometry.vertexCount);
 
-      pass.setVertexBuffer(0, planeVerticesBuffer.buffer);
+      pass.setVertexBuffer(0, plane.buffer);
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup2);
-      pass.draw(plane.vertexCount);
+      pass.draw(plane.geometry.vertexCount);
 
       renderer.end();
 
       return device.queue.onSubmittedWorkDone();
     },
   };
-}
-
-function applyMatrix(
-  tran1: Float32Array,
-  rot1: Float32Array,
-  viewMatrix: Float32Array,
-  projectionMatrix: Float32Array
-) {
-  const temp1 = mat4.create();
-  mat4.rotate(tran1, rot1, 1, temp1);
-  mat4.multiply(viewMatrix, temp1, temp1);
-  mat4.multiply(projectionMatrix, temp1, temp1);
-  return temp1;
 }
 
 function createRenderer(device: GPUDevice, width: number, height: number) {
@@ -261,7 +240,7 @@ function createPipeline(
   });
 }
 
-function createVertexBuffer(
+function createModel(
   device: GPUDevice,
   geometry: {
     vertexArray: Float32Array;
@@ -269,6 +248,7 @@ function createVertexBuffer(
     vertexSize: number;
     positionOffset: number;
     uvOffset: number;
+    vertexCount: number;
   }
 ) {
   const buffer = device.createBuffer({
@@ -301,5 +281,30 @@ function createVertexBuffer(
   return {
     buffer,
     layout,
+    translation: vec3.create(0, 0, 0),
+    rotation: vec3.create(0, 0, 0),
+    geometry,
+    matrix(viewMatrix: Float32Array, projectionMatrix: Float32Array) {
+      return applyMatrix(
+        this.translation,
+        this.rotation,
+        viewMatrix,
+        projectionMatrix
+      );
+    },
   };
+}
+
+function applyMatrix(
+  translation: Float32Array, // vec3
+  rotation: Float32Array, // vec3
+  viewMatrix: Float32Array, // matrix44
+  projectionMatrix: Float32Array // matrix44
+) {
+  const result = mat4.create();
+  mat4.translation(translation, result);
+  mat4.rotate(result, rotation, 1, result);
+  mat4.multiply(viewMatrix, result, result);
+  mat4.multiply(projectionMatrix, result, result);
+  return result;
 }

@@ -8,6 +8,7 @@ import {
 } from "./cube";
 import vertexWgsl from "./vertex.wgsl?raw";
 import fragmentWgsl from "./fragment.wgsl?raw";
+import { plainVertexArray, plainVertexCount } from "./plain";
 
 export async function setupWorldRenderer(
   canvas: HTMLCanvasElement,
@@ -39,14 +40,22 @@ export async function setupWorldRenderer(
     format: presentationFormat,
   });
 
-  const verticesBuffer = device.createBuffer({
-    size: cubeVertexArray.byteLength,
-    usage: GPUBufferUsage.VERTEX,
-    mappedAtCreation: true,
-  });
+  const verticesBuffer = createVerticesBuffer(cubeVertexArray);
 
-  new Float32Array(verticesBuffer.getMappedRange()).set(cubeVertexArray);
-  verticesBuffer.unmap();
+  const plainVerticesBuffer = createVerticesBuffer(plainVertexArray);
+
+  function createVerticesBuffer(vertexArray: Float32Array) {
+    const verticesBuffer = device.createBuffer({
+      label: "cube",
+      size: cubeVertexArray.byteLength,
+      usage: GPUBufferUsage.VERTEX,
+      mappedAtCreation: true,
+    });
+
+    new Float32Array(verticesBuffer.getMappedRange()).set(vertexArray);
+    verticesBuffer.unmap();
+    return verticesBuffer;
+  }
 
   // const bindGroupLayout0 = device.createBindGroupLayout({
   //   entries: [
@@ -73,11 +82,11 @@ export async function setupWorldRenderer(
   // });
 
   const pipeline = device.createRenderPipeline({
-    label: "our hardcoded red line pipeline",
+    label: "blah pipeline",
     layout: "auto",
     vertex: {
       module: device.createShaderModule({
-        label: "our hardcoded red color shader",
+        label: "blah vertex",
         code: vertexWgsl,
       }),
       buffers: [
@@ -282,20 +291,11 @@ export async function setupWorldRenderer(
       device.queue.writeBuffer(uniformBuffer, 0, fragmentUniforms.asBuffer());
 
       a1.modelViewProjectionMatrix.set(modelViewProjectionMatrix1);
-      device.queue.writeBuffer(
-        uniformBuffer,
-        256,
-        a1.asBuffer()
-      );
+      device.queue.writeBuffer(uniformBuffer, 256, a1.asBuffer());
 
       a2.modelViewProjectionMatrix.set(modelViewProjectionMatrix2);
-      device.queue.writeBuffer(
-        uniformBuffer,
-        512,
-        a2.asBuffer()
-      );
+      device.queue.writeBuffer(uniformBuffer, 512, a2.asBuffer());
 
-      // console.log(modelViewProjectionMatrix2.byteOffset, modelViewProjectionMatrix1.byteOffset)
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });
 
@@ -307,9 +307,10 @@ export async function setupWorldRenderer(
       pass.setBindGroup(1, uniformBindGroup1);
       pass.draw(cubeVertexCount);
 
+      pass.setVertexBuffer(0, plainVerticesBuffer);
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup2);
-      pass.draw(cubeVertexCount);
+      pass.draw(plainVertexCount);
 
       pass.end();
       device.queue.submit([encoder.finish()]);

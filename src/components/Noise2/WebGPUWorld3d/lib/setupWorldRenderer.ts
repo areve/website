@@ -1,11 +1,5 @@
 import { mat4, vec3 } from "wgpu-matrix";
-import {
-  cubeVertexArray,
-  cubeVertexSize,
-  cubePositionOffset,
-  cubeUVOffset,
-  cubeVertexCount,
-} from "./cube";
+import { createCube } from "./cube";
 import vertexWgsl from "./vertex.wgsl?raw";
 import fragmentWgsl from "./fragment.wgsl?raw";
 import { createPlain } from "./plain";
@@ -40,9 +34,8 @@ export async function setupWorldRenderer(
     format: presentationFormat,
   });
 
-  const verticesBuffer = createVerticesBuffer({
-    vertexArray: cubeVertexArray,
-  });
+  const cube = createCube();
+  const verticesBuffer = createVerticesBuffer(cube);
 
   const plain = createPlain();
   const plainVerticesBuffer = createVerticesBuffer(plain);
@@ -72,18 +65,18 @@ export async function setupWorldRenderer(
       }),
       buffers: [
         {
-          arrayStride: cubeVertexSize,
+          arrayStride: cube.vertexSize,
           attributes: [
             {
               // position
               shaderLocation: 0,
-              offset: cubePositionOffset,
+              offset: cube.positionOffset,
               format: "float32x4",
             },
             {
               // uv
               shaderLocation: 1,
-              offset: cubeUVOffset,
+              offset: cube.uvOffset,
               format: "float32x2",
             },
           ],
@@ -236,12 +229,7 @@ export async function setupWorldRenderer(
       tmpMat41
     );
 
-    mat4.rotate(
-      modelMatrix2,
-      vec3.fromValues(-0.2, 0, 0),
-      1,
-      tmpMat42
-    );
+    mat4.rotate(modelMatrix2, vec3.fromValues(-0.2, 0, 0), 1, tmpMat42);
 
     mat4.multiply(viewMatrix, tmpMat41, modelViewProjectionMatrix1);
     mat4.multiply(
@@ -288,7 +276,7 @@ export async function setupWorldRenderer(
 
       pass.setBindGroup(0, uniformBindGroup0);
       pass.setBindGroup(1, uniformBindGroup1);
-      pass.draw(cubeVertexCount);
+      pass.draw(cube.vertexCount);
 
       pass.setVertexBuffer(0, plainVerticesBuffer);
       pass.setBindGroup(0, uniformBindGroup0);

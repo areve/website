@@ -6,10 +6,12 @@
 
 export function createPlain() {
   let foo = [];
+  let Y = 9;
+  let X = 9;
 
   // prettier-ignore
-  for (var y = 0; y < 3; y++) {
-    for (var x = 0; x < 2; x++) {
+  for (var y = 0; y < Y; y++) {
+    for (var x = 0; x < X; x++) {
       let v = 0.5;
       let a = -1 / v / 2;
       let b = 1 / v / 2;
@@ -26,6 +28,6 @@ export function createPlain() {
   const vertexArray = new Float32Array(foo.flat());
   return {
     vertexArray,
-    vertexCount: 3 * 2 * 6,
+    vertexCount: X * Y * 6,
   };
 }

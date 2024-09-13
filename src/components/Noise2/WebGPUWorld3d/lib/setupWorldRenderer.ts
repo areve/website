@@ -40,20 +40,24 @@ export async function setupWorldRenderer(
     format: presentationFormat,
   });
 
-  const verticesBuffer = createVerticesBuffer(cubeVertexArray);
+  const verticesBuffer = createVerticesBuffer({
+    vertexArray: cubeVertexArray,
+  });
 
   const plain = createPlain();
-  const plainVerticesBuffer = createVerticesBuffer(plain.vertexArray);
+  const plainVerticesBuffer = createVerticesBuffer(plain);
 
-  function createVerticesBuffer(vertexArray: Float32Array) {
+  function createVerticesBuffer(geometry: {
+    vertexArray: Float32Array; //
+  }) {
     const verticesBuffer = device.createBuffer({
       label: "cube",
-      size: cubeVertexArray.byteLength,
+      size: geometry.vertexArray.byteLength,
       usage: GPUBufferUsage.VERTEX,
       mappedAtCreation: true,
     });
 
-    new Float32Array(verticesBuffer.getMappedRange()).set(vertexArray);
+    new Float32Array(verticesBuffer.getMappedRange()).set(geometry.vertexArray);
     verticesBuffer.unmap();
     return verticesBuffer;
   }
@@ -169,7 +173,7 @@ export async function setupWorldRenderer(
   }
 
   const uniformBuffer = device.createBuffer({
-    size: 1024,
+    size: 1024 * 4,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -294,6 +298,7 @@ export async function setupWorldRenderer(
       a1.modelViewProjectionMatrix.set(modelViewProjectionMatrix1);
       device.queue.writeBuffer(uniformBuffer, 256, a1.asBuffer());
 
+      // console.log(a2.asBuffer().byteLength);
       a2.modelViewProjectionMatrix.set(modelViewProjectionMatrix2);
       device.queue.writeBuffer(uniformBuffer, 512, a2.asBuffer());
 

@@ -1,8 +1,8 @@
 import { mat4, vec3 } from "wgpu-matrix";
-import { createCube } from "./cube";
+import { createCubeGeometry } from "./cube";
 import vertexWgsl from "./vertex.wgsl?raw";
 import fragmentWgsl from "./fragment.wgsl?raw";
-import { createPlane } from "./plane";
+import { createPlaneGeometry } from "./plane";
 
 export async function setupWorldRenderer(
   canvas: HTMLCanvasElement,
@@ -58,7 +58,7 @@ export async function setupWorldRenderer(
     },
   };
 
-  const cubePipeline = createCubePipeline(
+  const cube = createCube(
     device,
     presentationFormat,
     () => worldMapUniforms.toBuffer(),
@@ -66,7 +66,7 @@ export async function setupWorldRenderer(
     projectionMatrix
   );
 
-  const planePipeline = createPlanePipeline(
+  const plane = createPlane(
     device,
     presentationFormat,
     () => worldMapUniforms.toBuffer(),
@@ -88,29 +88,29 @@ export async function setupWorldRenderer(
       Object.assign(worldMapUniforms, data);
       const t = time * 0.001;
       worldMapUniforms.z = t;
-      cubePipeline.model.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
+      cube.model.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      for (const [_, v] of Object.entries(cubePipeline.buffers)) {
+      for (const [_, v] of Object.entries(cube.buffers)) {
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
       }
 
-      for (const [_, v] of Object.entries(planePipeline.buffers)) {
+      for (const [_, v] of Object.entries(plane.buffers)) {
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
       }
 
       const pass = renderer.initFrame(context);
 
-      pass.setPipeline(cubePipeline.pipeline);
-      pass.setVertexBuffer(0, cubePipeline.model.buffer);
-      pass.setBindGroup(0, cubePipeline.buffers.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, cubePipeline.buffers.cubeMatrix.bindGroup);
-      pass.draw(cubePipeline.model.geometry.vertexCount);
+      pass.setPipeline(cube.pipeline);
+      pass.setVertexBuffer(0, cube.model.buffer);
+      pass.setBindGroup(0, cube.buffers.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, cube.buffers.cubeMatrix.bindGroup);
+      pass.draw(cube.model.geometry.vertexCount);
 
-      pass.setPipeline(planePipeline.pipeline);
-      pass.setVertexBuffer(0, planePipeline.model.buffer);
-      pass.setBindGroup(0, planePipeline.buffers.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, planePipeline.buffers.planeMatrix.bindGroup);
-      pass.draw(planePipeline.model.geometry.vertexCount);
+      pass.setPipeline(plane.pipeline);
+      pass.setVertexBuffer(0, plane.model.buffer);
+      pass.setBindGroup(0, plane.buffers.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, plane.buffers.planeMatrix.bindGroup);
+      pass.draw(plane.model.geometry.vertexCount);
 
       renderer.end();
 
@@ -119,14 +119,14 @@ export async function setupWorldRenderer(
   };
 }
 
-function createCubePipeline(
+function createCube(
   device: GPUDevice,
   presentationFormat: string,
   getWorldMapUniforms: () => Float32Array,
   viewMatrix: Float32Array,
   projectionMatrix: Float32Array
 ) {
-  const cube = createModel(device, createCube("cube"));
+  const cube = createModel(device, createCubeGeometry("cube"));
   cube.translation = vec3.create(-1, 3, -4);
 
   const pipeline = device.createRenderPipeline({
@@ -169,14 +169,14 @@ function createCubePipeline(
   return { buffers, pipeline, model: cube };
 }
 
-function createPlanePipeline(
+function createPlane(
   device: GPUDevice,
   presentationFormat: string,
   getWorldMapUniforms: () => Float32Array,
   viewMatrix: Float32Array,
   projectionMatrix: Float32Array
 ) {
-  const plane = createModel(device, createPlane("plane"));
+  const plane = createModel(device, createPlaneGeometry("plane"));
   plane.rotation = vec3.create(-0.2, 0, 0);
   plane.translation = vec3.create(-3, -2, 0);
 

@@ -1,4 +1,4 @@
-export function createPlane(label: string) {
+export function createPlaneGeometry(label: string) {
   let data = [];
   let Y = 9;
   let X = 4;

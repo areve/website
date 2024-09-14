@@ -46,7 +46,7 @@ const cubeVertexArray = new Float32Array([
 
 const cubeColorOffset = 4 * 4; // Byte offset of cube vertex color attribute.
 
-export function createCube(label: string) {
+export function createCubeGeometry(label: string) {
   return {
     vertexArray: cubeVertexArray,
     vertexCount: 36,

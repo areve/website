@@ -68,70 +68,63 @@ export async function setupWorldRenderer(
   };
 
   const pipeline1 = createPipeline(device, commonLayout, presentationFormat);
-  const pipeline2 = createPipeline(device, commonLayout, presentationFormat);
 
   const uniformBufferInfo1 = {
     uniformBuffer: device.createBuffer({
-      size: 1024 * 4,
+      size: getSizeFor(
+        worldMapUniforms.toBuffer(),
+        cube.matrix(viewMatrix, projectionMatrix)
+      ),
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     }),
     offset: 0,
   };
 
   const buffers1 = {
-    uniformBuffer: uniformBufferInfo1.uniformBuffer,
-    groups: {
-      worldMapUniforms: createBuffer(
-        device,
-        uniformBufferInfo1,
-        pipeline1.getBindGroupLayout(0),
-        () => worldMapUniforms.toBuffer()
-      ),
-      cubeMatrix: createBuffer(
-        device,
-        uniformBufferInfo1,
-        pipeline1.getBindGroupLayout(1),
-        () => cube.matrix(viewMatrix, projectionMatrix)
-      ),
-      planeMatrix: createBuffer(
-        device,
-        uniformBufferInfo1,
-        pipeline1.getBindGroupLayout(1),
-        () => plane.matrix(viewMatrix, projectionMatrix)
-      ),
-    },
+    worldMapUniforms: createBuffer(
+      device,
+      uniformBufferInfo1,
+      pipeline1.getBindGroupLayout(0),
+      () => worldMapUniforms.toBuffer()
+    ),
+    cubeMatrix: createBuffer(
+      device,
+      uniformBufferInfo1,
+      pipeline1.getBindGroupLayout(1),
+      () => cube.matrix(viewMatrix, projectionMatrix)
+    ),
   };
+
+  const planePipeline = createPipeline(
+    device,
+    commonLayout,
+    presentationFormat
+  );
 
   const uniformBufferInfo2 = {
     uniformBuffer: device.createBuffer({
-      size: 1024 * 4,
+      size: getSizeFor(
+        worldMapUniforms.toBuffer(),
+        plane.matrix(viewMatrix, projectionMatrix)
+      ),
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     }),
     offset: 0,
   };
 
-  const buffers2 = {
-    uniformBuffer: uniformBufferInfo2.uniformBuffer,
-    groups: {
-      worldMapUniforms: createBuffer(
-        device,
-        uniformBufferInfo2,
-        pipeline2.getBindGroupLayout(0),
-        () => worldMapUniforms.toBuffer()
-      ),
-      cubeMatrix: createBuffer(
-        device,
-        uniformBufferInfo2,
-        pipeline2.getBindGroupLayout(1),
-        () => cube.matrix(viewMatrix, projectionMatrix)
-      ),
-      planeMatrix: createBuffer(
-        device,
-        uniformBufferInfo2,
-        pipeline2.getBindGroupLayout(1),
-        () => plane.matrix(viewMatrix, projectionMatrix)
-      ),
-    },
+  const planeBuffers = {
+    worldMapUniforms: createBuffer(
+      device,
+      uniformBufferInfo2,
+      planePipeline.getBindGroupLayout(0),
+      () => worldMapUniforms.toBuffer()
+    ),
+    planeMatrix: createBuffer(
+      device,
+      uniformBufferInfo2,
+      planePipeline.getBindGroupLayout(1),
+      () => plane.matrix(viewMatrix, projectionMatrix)
+    ),
   };
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -150,37 +143,26 @@ export async function setupWorldRenderer(
       worldMapUniforms.z = t;
       cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      Object.keys(buffers1.groups).forEach((k: unknown) => {
-        const group = buffers1.groups[k as keyof typeof buffers1.groups];
-        device.queue.writeBuffer(
-          buffers1.uniformBuffer,
-          group.offset,
-          group.getBuffer()
-        );
-      });
+      for (const [_, v] of Object.entries(buffers1)) {
+        device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
+      }
 
-      Object.keys(buffers2.groups).forEach((k: unknown) => {
-        const group = buffers2.groups[k as keyof typeof buffers2.groups];
-        device.queue.writeBuffer(
-          buffers2.uniformBuffer,
-          group.offset,
-          group.getBuffer()
-        );
-      });
-
+      for (const [_, v] of Object.entries(planeBuffers)) {
+        device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
+      }
 
       const pass = renderer.initFrame(context);
-      pass.setPipeline(pipeline1);
 
+      pass.setPipeline(pipeline1);
       pass.setVertexBuffer(0, cube.buffer);
-      pass.setBindGroup(0, buffers1.groups.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, buffers1.groups.cubeMatrix.bindGroup);
+      pass.setBindGroup(0, buffers1.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, buffers1.cubeMatrix.bindGroup);
       pass.draw(cube.geometry.vertexCount);
 
-      pass.setPipeline(pipeline2);
+      pass.setPipeline(planePipeline);
       pass.setVertexBuffer(0, plane.buffer);
-      pass.setBindGroup(0, buffers2.groups.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, buffers2.groups.planeMatrix.bindGroup);
+      pass.setBindGroup(0, planeBuffers.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, planeBuffers.planeMatrix.bindGroup);
       pass.draw(plane.geometry.vertexCount);
 
       renderer.end();
@@ -343,10 +325,11 @@ function createBuffer(
 ): {
   bindGroup: GPUBindGroup;
   getBuffer: () => Float32Array;
+  buffer: GPUBuffer;
   offset: number;
 } {
   const offset = uniformBufferInfo.offset;
-  const size = getBuffer().byteLength + 100;
+  const size = getBuffer().byteLength;
   uniformBufferInfo.offset = offset + Math.ceil(size / 256) * 256;
   console.log(offset, size);
   const bindGroup = device.createBindGroup({
@@ -366,6 +349,14 @@ function createBuffer(
   return {
     bindGroup,
     getBuffer,
+    buffer: uniformBufferInfo.uniformBuffer,
     offset,
   };
+}
+
+function getSizeFor(...buffers: Float32Array[]) {
+  return buffers.reduce(
+    (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
+    0
+  );
 }

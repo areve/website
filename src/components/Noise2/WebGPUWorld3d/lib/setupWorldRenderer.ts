@@ -329,7 +329,12 @@ function getSizeFor(buffers: Float32Array[]) {
   );
 }
 
-function createUniformBuffer<T extends object>(
+type BufferInfo = {
+  layout: number;
+  getBuffer: () => Float32Array;
+};
+
+function createUniformBuffer<T extends Record<string, BufferInfo>>(
   device: GPUDevice,
   pipeline: GPURenderPipeline,
   bufferInfo: T

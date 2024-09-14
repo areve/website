@@ -234,7 +234,7 @@ fn vertexMain(
 
     let height = worldPointHeight(coord.x, coord.y, 0.0);
 
-    output.position = uniforms2.transform * vec4f(position.xy, 2.5 + height * -4.0, 1.0);
+    output.position = uniforms2.transform * vec4f(position.xy, 2.5 + height * -2.0, 1.0);
     output.uv = uv;
     // TODO fragPosition is not being used, probably should be instead of face 
     output.fragPosition = (position + vec4(1.0, 1.0, 1.0, 1.0));

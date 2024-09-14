@@ -10,8 +10,8 @@ export const makeController = function () {
       maxSpeed: 300,
     },
     moveY: {
-      increaseKeys: ["s"],
-      decreaseKeys: ["w"],
+      increaseKeys: ["w"],
+      decreaseKeys: ["s"],
       accel: 2000,
       decel: 2000,
       maxSpeed: 300,

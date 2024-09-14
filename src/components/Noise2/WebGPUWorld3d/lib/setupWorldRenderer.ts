@@ -67,46 +67,40 @@ export async function setupWorldRenderer(
     },
   };
 
-  const pipeline1 = createPipeline(device, commonLayout, presentationFormat);
-
-  const uniformBufferInfo1 = {
-    uniformBuffer: device.createBuffer({
-      size: getSizeFor(
-        worldMapUniforms.toBuffer(),
-        cube.matrix(viewMatrix, projectionMatrix)
-      ),
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    }),
-    offset: 0,
-  };
-
-  const buffers1 = {
-    worldMapUniforms: createBuffer(
-      device,
-      uniformBufferInfo1,
-      pipeline1.getBindGroupLayout(0),
-      () => worldMapUniforms.toBuffer()
-    ),
-    cubeMatrix: createBuffer(
-      device,
-      uniformBufferInfo1,
-      pipeline1.getBindGroupLayout(1),
-      () => cube.matrix(viewMatrix, projectionMatrix)
-    ),
-  };
+  const cubePipeline = createPipeline(device, commonLayout, presentationFormat);
+  const cubeBuffers = createUniformBuffer(device, cubePipeline, {
+    worldMapUniforms: {
+      layout: 0,
+      getBuffer: () => worldMapUniforms.toBuffer(),
+    },
+    cubeMatrix: {
+      layout: 1,
+      getBuffer: () => cube.matrix(viewMatrix, projectionMatrix),
+    },
+  });
 
   const planePipeline = createPipeline(
     device,
     commonLayout,
     presentationFormat
   );
+  // const planeBuffers = createUniformBuffer(device, planePipeline, {
+  //   worldMapUniforms: {
+  //     layout: 0,
+  //     getBuffer: () => worldMapUniforms.toBuffer(),
+  //   },
+  //   cubeMatrix: {
+  //     layout: 1,
+  //     getBuffer: () => plane.matrix(viewMatrix, projectionMatrix),
+  //   },
+  // });
 
   const uniformBufferInfo2 = {
     uniformBuffer: device.createBuffer({
-      size: getSizeFor(
+      size: getSizeFor([
         worldMapUniforms.toBuffer(),
-        plane.matrix(viewMatrix, projectionMatrix)
-      ),
+        plane.matrix(viewMatrix, projectionMatrix),
+      ]),
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     }),
     offset: 0,
@@ -143,7 +137,7 @@ export async function setupWorldRenderer(
       worldMapUniforms.z = t;
       cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      for (const [_, v] of Object.entries(buffers1)) {
+      for (const [_, v] of Object.entries(cubeBuffers)) {
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
       }
 
@@ -153,10 +147,10 @@ export async function setupWorldRenderer(
 
       const pass = renderer.initFrame(context);
 
-      pass.setPipeline(pipeline1);
+      pass.setPipeline(cubePipeline);
       pass.setVertexBuffer(0, cube.buffer);
-      pass.setBindGroup(0, buffers1.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, buffers1.cubeMatrix.bindGroup);
+      pass.setBindGroup(0, cubeBuffers.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, cubeBuffers.cubeMatrix.bindGroup);
       pass.draw(cube.geometry.vertexCount);
 
       pass.setPipeline(planePipeline);
@@ -354,9 +348,60 @@ function createBuffer(
   };
 }
 
-function getSizeFor(...buffers: Float32Array[]) {
+function getSizeFor(buffers: Float32Array[]) {
   return buffers.reduce(
     (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
     0
   );
+}
+
+function createUniformBuffer<T extends object>(
+  device: GPUDevice,
+  pipeline: GPURenderPipeline,
+  bufferInfo: T
+) {
+  const buffers: Float32Array[] = [];
+  for (const key in bufferInfo) {
+    if (bufferInfo.hasOwnProperty(key)) {
+      const b = bufferInfo[key] as {
+        layout: number;
+        getBuffer: () => Float32Array;
+      };
+      buffers.push(b.getBuffer());
+    }
+  }
+
+  const uniformBuffer = {
+    uniformBuffer: device.createBuffer({
+      size: getSizeFor(buffers),
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    }),
+    offset: 0,
+  };
+
+  const result = {} as {
+    [K in keyof T]: {
+      bindGroup: GPUBindGroup;
+      getBuffer: () => Float32Array;
+      buffer: GPUBuffer;
+      offset: number;
+    };
+  };
+
+  for (const key in bufferInfo) {
+    if (bufferInfo.hasOwnProperty(key)) {
+      const b = bufferInfo[key] as {
+        layout: number;
+        getBuffer: () => Float32Array;
+      };
+      result[key] = createBuffer(
+        device,
+        uniformBuffer,
+        pipeline.getBindGroupLayout(b.layout), // TODO pipeline1?
+        b.getBuffer
+      );
+    }
+  }
+
+  return result;
 }

@@ -9,8 +9,25 @@ struct Uniforms {
     zoom: f32
 };
 
+
+struct VertexOutput {
+  @builtin(position) position: vec4f,
+  @location(0) uv: vec2f,
+  @location(1) fragPosition: vec4f,
+  @location(2) face: vec2f,
+}
+
+struct Uniforms2 {
+  transform: mat4x4f
+};
+
+
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
+
+@group(1) @binding(0) 
+var<uniform> uniforms2: Uniforms2;
+
 
 fn noise(seed: f32, coord: vec4<f32>) -> f32 {
     let n: u32 = bitcast<u32>(seed) + bitcast<u32>(coord.x * 374761393.0) + bitcast<u32>(coord.y * 668265263.0) + bitcast<u32>(coord.z * 1440662683.0) + bitcast<u32>(coord.w * 3865785317.0);
@@ -124,8 +141,24 @@ fn temperatureDesertCurve(t: f32) -> f32 {
     return piecewiseCurve(t, 0.7, 8.0);
 }
 
+// struct WorldPointOutput {
+//   height: f32,
+// }
+
+
+fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
+    
+    let height1 = openSimplex3d(uniforms.seed * 112345, x / 129, y / 129, z / 129);
+    let height2 = openSimplex3d(uniforms.seed * 212345, x / 47, y / 47, z / 47);
+    let height3 = openSimplex3d(uniforms.seed * 312345, x / 7, y / 7, z / 7);
+    let height4 = openSimplex3d(uniforms.seed * 412345, x / 1, y / 1, z / 1);
+    let height = 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
+    
+    return height;
+}
+
 @fragment
-fn main(
+fn fragMain(
     @location(0) fragUV: vec2f,
     @location(1) fragPosition: vec4f,
     @location(2) face: vec2f,
@@ -137,15 +170,12 @@ fn main(
     let y = coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
     let z = uniforms.z;
 
-    let height1 = openSimplex3d(uniforms.seed * 112345, x / 129, y / 129, z / 129);
-    let height2 = openSimplex3d(uniforms.seed * 212345, x / 47, y / 47, z / 47);
-    let height3 = openSimplex3d(uniforms.seed * 312345, x / 7, y / 7, z / 7);
-    let height4 = openSimplex3d(uniforms.seed * 412345, x / 1, y / 1, z / 1);
+    let height = worldPointHeight(x, y, z);
+    
     let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
     let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
     let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
     let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
-    let height = 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
     let temperature = 0.7 * temperature1 + 0.3 * temperature2;
     let moisture = 0.7 * moisture1 + 0.3 * moisture2;
 
@@ -190,4 +220,24 @@ fn main(
             c(landHsv[2] + 0.6 * i + d * 0.45),
         )), 1.0);
     }
+}
+
+@vertex
+fn vertexMain(
+    @location(0) position: vec4f,
+    @location(1) uv: vec2f,
+    @location(2) face: vec2f,
+) -> VertexOutput {
+    var output: VertexOutput;
+    let scale = 125.0;
+    let coord = vec4( (face.x + uv.x)  * scale, (face.y + uv.y) * scale, 0.0, 0.0);
+
+    let height = worldPointHeight(coord.x, coord.y, 0.0);
+
+    output.position = uniforms2.transform * vec4f(position.xy, 2.5 + height * -4.0, 1.0);
+    output.uv = uv;
+    // TODO fragPosition is not being used, probably should be instead of face 
+    output.fragPosition = (position + vec4(1.0, 1.0, 1.0, 1.0));
+    output.face = face;
+    return output;
 }

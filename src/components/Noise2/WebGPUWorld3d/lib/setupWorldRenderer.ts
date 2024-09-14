@@ -69,13 +69,35 @@ export async function setupWorldRenderer(
 
   const pipeline = createPipeline(device, commonLayout, presentationFormat);
 
-  const buffers = createBuffers(
+  const uniformBufferInfo = {
     device,
-    pipeline,
-    () => worldMapUniforms.toBuffer(),
-    () => cube.matrix(viewMatrix, projectionMatrix),
-    () => plane.matrix(viewMatrix, projectionMatrix)
-  );
+    uniformBuffer: device.createBuffer({
+      size: 1024 * 4,
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    }),
+    offset: 0,
+  };
+
+  const buffers = {
+    uniformBuffer: uniformBufferInfo.uniformBuffer,
+    groups: {
+      worldMapUniforms: createBuffer(
+        uniformBufferInfo,
+        pipeline.getBindGroupLayout(0),
+        () => worldMapUniforms.toBuffer()
+      ),
+      cubeMatrix: createBuffer(
+        uniformBufferInfo,
+        pipeline.getBindGroupLayout(1),
+        () => cube.matrix(viewMatrix, projectionMatrix)
+      ),
+      planeMatrix: createBuffer(
+        uniformBufferInfo,
+        pipeline.getBindGroupLayout(1),
+        () => plane.matrix(viewMatrix, projectionMatrix)
+      ),
+    },
+  };
 
   const renderer = createRenderer(device, options.width, options.height);
 
@@ -144,80 +166,6 @@ function writeBuffers(
       group.getBuffer()
     );
   });
-}
-
-function createBuffers(
-  device: GPUDevice,
-  pipeline: GPURenderPipeline,
-  ...getBuffers: (() => Float32Array)[]
-) {
-  const uniformBuffer = device.createBuffer({
-    size: 1024 * 4,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  // TODO iterate
-  const worldMapUniformsBindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: 0,
-          size: getBuffers[0]().byteLength + 100,
-        },
-      },
-    ],
-  });
-
-  const cubeMatrixBindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(1),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: 256,
-          size: getBuffers[1]().byteLength + 100,
-        },
-      },
-    ],
-  });
-
-  const planeMatrixBindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(1),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: 512,
-          size: getBuffers[2]().byteLength + 100,
-        },
-      },
-    ],
-  });
-  return {
-    uniformBuffer,
-    groups: {
-      worldMapUniforms: {
-        bindGroup: worldMapUniformsBindGroup,
-        getBuffer: getBuffers[0],
-        offset: 0,
-      },
-      cubeMatrix: {
-        bindGroup: cubeMatrixBindGroup,
-        getBuffer: getBuffers[1],
-        offset: 256,
-      },
-      planeMatrix: {
-        bindGroup: planeMatrixBindGroup,
-        getBuffer: getBuffers[2],
-        offset: 512,
-      },
-    },
-  };
 }
 
 function createRenderer(device: GPUDevice, width: number, height: number) {
@@ -387,4 +335,38 @@ function applyMatrix(
   mat4.multiply(viewMatrix, result, result);
   mat4.multiply(projectionMatrix, result, result);
   return result;
+}
+
+function createBuffer(
+  uniformBufferInfo: { uniformBuffer: GPUBuffer; offset: number },
+  layout: GPUBindGroupLayout,
+  getBuffer: () => Float32Array
+): {
+  bindGroup: GPUBindGroup;
+  getBuffer: () => Float32Array;
+  offset: number;
+} {
+  const offset = uniformBufferInfo.offset;
+  const size = getBuffer().byteLength + 100;
+  uniformBufferInfo.offset = offset + Math.ceil(size / 256) * 256;
+  console.log(offset, size);
+  const bindGroup = uniformBufferInfo.device.createBindGroup({
+    layout,
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBufferInfo.uniformBuffer,
+          offset,
+          size,
+        },
+      },
+    ],
+  });
+
+  return {
+    bindGroup,
+    getBuffer,
+    offset,
+  };
 }

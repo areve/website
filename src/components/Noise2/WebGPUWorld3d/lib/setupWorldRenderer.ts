@@ -60,36 +60,27 @@ export async function setupWorldRenderer(
 
   const cube = createModel(device, createCube("cube"));
   cube.translation = vec3.create(-1, 3, -4);
-  const cubePipeline = createPipeline(device, cube.layout, presentationFormat);
-  const cubeBuffers = createUniformBuffer(device, cubePipeline, {
-    worldMapUniforms: {
-      layout: 0,
-      getBuffer: () => worldMapUniforms.toBuffer(),
-    },
-    cubeMatrix: {
-      layout: 1,
-      getBuffer: () => cube.matrix(viewMatrix, projectionMatrix),
-    },
-  });
+  const cubePipeline = createCubePipeline(
+    device,
+    cube,
+    presentationFormat,
+    () => worldMapUniforms.toBuffer(),
+    viewMatrix,
+    projectionMatrix
+  );
 
   const plane = createModel(device, createPlane("plane"));
   plane.rotation = vec3.create(-0.2, 0, 0);
   plane.translation = vec3.create(-3, -2, 0);
-  const planePipeline = createPipeline(
+  const planePipeline = createPlanePipeline(
     device,
-    plane.layout,
-    presentationFormat
+    plane,
+    presentationFormat,
+    () => worldMapUniforms.toBuffer(),
+    viewMatrix,
+    projectionMatrix
   );
-  const planeBuffers = createUniformBuffer(device, planePipeline, {
-    worldMapUniforms: {
-      layout: 0,
-      getBuffer: () => worldMapUniforms.toBuffer(),
-    },
-    planeMatrix: {
-      layout: 1,
-      getBuffer: () => plane.matrix(viewMatrix, projectionMatrix),
-    },
-  });
+
 
   const renderer = createRenderer(device, options.width, options.height);
 
@@ -107,26 +98,26 @@ export async function setupWorldRenderer(
       worldMapUniforms.z = t;
       cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      for (const [_, v] of Object.entries(cubeBuffers)) {
+      for (const [_, v] of Object.entries(cubePipeline.buffers)) {
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
       }
 
-      for (const [_, v] of Object.entries(planeBuffers)) {
+      for (const [_, v] of Object.entries(planePipeline.buffers)) {
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
       }
 
       const pass = renderer.initFrame(context);
 
-      pass.setPipeline(cubePipeline);
+      pass.setPipeline(cubePipeline.pipeline);
       pass.setVertexBuffer(0, cube.buffer);
-      pass.setBindGroup(0, cubeBuffers.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, cubeBuffers.cubeMatrix.bindGroup);
+      pass.setBindGroup(0, cubePipeline.buffers.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, cubePipeline.buffers.cubeMatrix.bindGroup);
       pass.draw(cube.geometry.vertexCount);
 
-      pass.setPipeline(planePipeline);
+      pass.setPipeline(planePipeline.pipeline);
       pass.setVertexBuffer(0, plane.buffer);
-      pass.setBindGroup(0, planeBuffers.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, planeBuffers.planeMatrix.bindGroup);
+      pass.setBindGroup(0, planePipeline.buffers.worldMapUniforms.bindGroup);
+      pass.setBindGroup(1, planePipeline.buffers.planeMatrix.bindGroup);
       pass.draw(plane.geometry.vertexCount);
 
       renderer.end();
@@ -134,6 +125,102 @@ export async function setupWorldRenderer(
       return device.queue.onSubmittedWorkDone();
     },
   };
+}
+
+function createCubePipeline(
+  device: GPUDevice,
+  model: Model,
+  presentationFormat: string,
+  getWorldMapUniforms: () => Float32Array,
+  viewMatrix: Float32Array,
+  projectionMatrix: Float32Array
+) {
+  const pipeline = device.createRenderPipeline({
+    label: "blah pipeline",
+    layout: "auto",
+    vertex: {
+      module: device.createShaderModule({
+        label: "blah vertex",
+        code: vertexWgsl,
+      }),
+      buffers: [model.layout],
+    },
+    fragment: {
+      module: device.createShaderModule({
+        label: "our hardcoded red color shader",
+        code: fragmentWgsl,
+      }),
+      targets: [{ format: presentationFormat } as GPUColorTargetState],
+    },
+    primitive: {
+      topology: "triangle-list",
+      cullMode: "back",
+    },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: "less",
+      format: "depth24plus",
+    },
+  });
+  const cubeBuffers = createUniformBuffer(device, pipeline, {
+    worldMapUniforms: {
+      layout: 0,
+      getBuffer: getWorldMapUniforms,
+    },
+    cubeMatrix: {
+      layout: 1,
+      getBuffer: () => model.matrix(viewMatrix, projectionMatrix),
+    },
+  });
+  return { buffers: cubeBuffers, pipeline };
+}
+
+function createPlanePipeline(
+  device: GPUDevice,
+  model: Model,
+  presentationFormat: string,
+  getWorldMapUniforms: () => Float32Array,
+  viewMatrix: Float32Array,
+  projectionMatrix: Float32Array
+) {
+  const pipeline = device.createRenderPipeline({
+    label: "blah pipeline",
+    layout: "auto",
+    vertex: {
+      module: device.createShaderModule({
+        label: "blah vertex",
+        code: vertexWgsl,
+      }),
+      buffers: [model.layout],
+    },
+    fragment: {
+      module: device.createShaderModule({
+        label: "our hardcoded red color shader",
+        code: fragmentWgsl,
+      }),
+      targets: [{ format: presentationFormat } as GPUColorTargetState],
+    },
+    primitive: {
+      topology: "triangle-list",
+      cullMode: "back",
+    },
+    depthStencil: {
+      depthWriteEnabled: true,
+      depthCompare: "less",
+      format: "depth24plus",
+    },
+  });
+  const cubeBuffers = createUniformBuffer(device, pipeline, {
+    worldMapUniforms: {
+      layout: 0,
+      getBuffer: getWorldMapUniforms,
+    },
+    planeMatrix: {
+      layout: 1,
+      getBuffer: () => model.matrix(viewMatrix, projectionMatrix),
+    },
+  });
+  return { buffers: cubeBuffers, pipeline };
 }
 
 function createRenderer(device: GPUDevice, width: number, height: number) {
@@ -178,6 +265,7 @@ function createRenderer(device: GPUDevice, width: number, height: number) {
   };
 }
 
+type Model = ReturnType<typeof createModel>;
 function createModel(
   device: GPUDevice,
   geometry: {
@@ -289,40 +377,6 @@ function getSizeFor(buffers: Float32Array[]) {
     (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
     0
   );
-}
-
-function createPipeline(
-  device: GPUDevice,
-  layout: GPUVertexBufferLayout,
-  presentationFormat: string
-) {
-  return device.createRenderPipeline({
-    label: "blah pipeline",
-    layout: "auto",
-    vertex: {
-      module: device.createShaderModule({
-        label: "blah vertex",
-        code: vertexWgsl,
-      }),
-      buffers: [layout],
-    },
-    fragment: {
-      module: device.createShaderModule({
-        label: "our hardcoded red color shader",
-        code: fragmentWgsl,
-      }),
-      targets: [{ format: presentationFormat } as GPUColorTargetState],
-    },
-    primitive: {
-      topology: "triangle-list",
-      cullMode: "back",
-    },
-    depthStencil: {
-      depthWriteEnabled: true,
-      depthCompare: "less",
-      format: "depth24plus",
-    },
-  });
 }
 
 type BufferInfo = {

@@ -70,7 +70,6 @@ export async function setupWorldRenderer(
   const pipeline = createPipeline(device, commonLayout, presentationFormat);
 
   const uniformBufferInfo = {
-    device,
     uniformBuffer: device.createBuffer({
       size: 1024 * 4,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -82,16 +81,19 @@ export async function setupWorldRenderer(
     uniformBuffer: uniformBufferInfo.uniformBuffer,
     groups: {
       worldMapUniforms: createBuffer(
+        device,
         uniformBufferInfo,
         pipeline.getBindGroupLayout(0),
         () => worldMapUniforms.toBuffer()
       ),
       cubeMatrix: createBuffer(
+        device,
         uniformBufferInfo,
         pipeline.getBindGroupLayout(1),
         () => cube.matrix(viewMatrix, projectionMatrix)
       ),
       planeMatrix: createBuffer(
+        device,
         uniformBufferInfo,
         pipeline.getBindGroupLayout(1),
         () => plane.matrix(viewMatrix, projectionMatrix)
@@ -338,6 +340,7 @@ function applyMatrix(
 }
 
 function createBuffer(
+  device: GPUDevice,
   uniformBufferInfo: { uniformBuffer: GPUBuffer; offset: number },
   layout: GPUBindGroupLayout,
   getBuffer: () => Float32Array
@@ -350,7 +353,7 @@ function createBuffer(
   const size = getBuffer().byteLength + 100;
   uniformBufferInfo.offset = offset + Math.ceil(size / 256) * 256;
   console.log(offset, size);
-  const bindGroup = uniformBufferInfo.device.createBindGroup({
+  const bindGroup = device.createBindGroup({
     layout,
     entries: [
       {

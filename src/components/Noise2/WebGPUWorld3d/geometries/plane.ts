@@ -6,8 +6,8 @@ export function createPlaneGeometry(label: string): Geometry & {
   let data = [];
   let width = 10.0;
   let height = 10.0;
-  let gridWidth = 50;
-  let gridHeight = 50;
+  let gridWidth = 100;
+  let gridHeight = 100;
   let ax = -0.5;
   let bx = 0.5;
   let ay = -0.5;

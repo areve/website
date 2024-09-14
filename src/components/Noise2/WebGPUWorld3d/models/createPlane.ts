@@ -13,8 +13,30 @@ export function createPlane(
 ) {
   const geometry = createPlaneGeometry("plane");
   const modelBuffer = createModelBuffer(device, geometry);
-  const layout = createLayout(geometry);
-  
+  const layout: GPUVertexBufferLayout = {
+    arrayStride: geometry.vertexSize,
+    attributes: [
+      {
+        // position
+        shaderLocation: 0,
+        offset: geometry.positionOffset,
+        format: "float32x4",
+      },
+      {
+        // uv
+        shaderLocation: 1,
+        offset: geometry.uvOffset,
+        format: "float32x2",
+      },
+      {
+        // faceCoord
+        shaderLocation: 2,
+        offset: geometry.faceCoord,
+        format: "float32x2",
+      },
+    ],
+  };
+
   const transform = {
     translation: vec3.create(-3, -2, 0),
     rotation: vec3.create(-0.2, 0, 0),

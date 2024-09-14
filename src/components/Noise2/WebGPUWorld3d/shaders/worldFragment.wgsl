@@ -63,21 +63,6 @@ fn vertexContribution(
     return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
 }
 
-@vertex fn vs(
-    @builtin(vertex_index) vertexIndex: u32
-) -> @builtin(position) vec4f {
-    let pos = array(
-    vec2f(-1.0, -1.0),
-    vec2f(1.0, 1.0),
-    vec2f(-1.0, 1.0),
-    vec2f(-1.0, -1.0),
-    vec2f(1.0, 1.0),
-    vec2f(1.0, -1.0)
-);
-
-    return vec4f(pos[vertexIndex], 0.0, 1.0);
-}
-
 fn clamp(value: f32, low: f32, high: f32) -> f32 {
     return min(max(value, low), high);
 }
@@ -139,19 +124,14 @@ fn temperatureDesertCurve(t: f32) -> f32 {
     return piecewiseCurve(t, 0.7, 8.0);
 }
 
-          @fragment
+@fragment
 fn main(
     @location(0) fragUV: vec2f,
-    @location(1) fragPosition: vec4f
+    @location(1) fragPosition: vec4f,
+    @location(2) face: vec2f,
 ) -> @location(0) vec4f {
-            // return fragPosition;
-          //   return vec4(fragUV.xy, 0.0, 0.0);
-          // }
+    let coord = vec4(fragUV.x * 100 - face.x * 100, fragUV.y * 100 - face.y * 100, 0.0, 0.0);
 
-    let coord = vec4(fragUV.xy * 100, 0.0, 0.0);
-          // @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-
-            // calculate point
     let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
     let y = coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
     let z = uniforms.z;

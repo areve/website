@@ -1,8 +1,10 @@
 import { Geometry } from "../lib/webgpu";
 
-export function createPlaneGeometry(label: string): Geometry {
+export function createPlaneGeometry(label: string): Geometry & {
+  faceCoord: number;
+} {
   let data = [];
-  let Y = 9;
+  let Y = 4;
   let X = 4;
 
   // prettier-ignore
@@ -12,13 +14,13 @@ export function createPlaneGeometry(label: string): Geometry {
       let a = -1 / v / 2;
       let b = 1 / v / 2;
 
-      data.push([a + x / v, a + y / v, 0, 1,   1, 0, 1, 1,    1, 1]);
-      data.push([b + x / v, a + y / v, 0, 1,   1, 0, 1, 1,    0, 1]);
-      data.push([b + x / v, b + y / v, 0, 1,   1, 0, 1, 1,    0, 0]);
+      data.push([a + x / v, a + y / v, 0, 1,    1, 1,   x, y]);
+      data.push([b + x / v, a + y / v, 0, 1,    0, 1,   x, y]);
+      data.push([b + x / v, b + y / v, 0, 1,    0, 0,   x, y]);
 
-      data.push([b + x / v, b + y / v, 0, 1,   1, 0, 1, 1,    0, 0]);
-      data.push([a + x / v, b + y / v, 0, 1,   1, 0, 1, 1,    1, 0]);
-      data.push([a + x / v, a + y / v, 0, 1,   1, 0, 1, 1,    1, 1]);
+      data.push([b + x / v, b + y / v, 0, 1,    0, 0,   x, y]);
+      data.push([a + x / v, b + y / v, 0, 1,    1, 0,   x, y]);
+      data.push([a + x / v, a + y / v, 0, 1,    1, 1,   x, y]);
     }
   }
 
@@ -26,9 +28,10 @@ export function createPlaneGeometry(label: string): Geometry {
   return {
     vertexArray,
     vertexCount: X * Y * 6,
-    vertexSize: 4 * 10, // Byte size of one cube vertex.
+    vertexSize: 4 * 8, // Byte size of one cube vertex.
     positionOffset: 0,
-    uvOffset: 4 * 8,
+    uvOffset: 4 * 4,
+    faceCoord: 6 * 4,
     label,
   };
 }

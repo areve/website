@@ -58,29 +58,21 @@ export async function setupWorldRenderer(
     },
   };
 
-  const cube = createModel(device, createCube("cube"));
-  cube.translation = vec3.create(-1, 3, -4);
   const cubePipeline = createCubePipeline(
     device,
-    cube,
     presentationFormat,
     () => worldMapUniforms.toBuffer(),
     viewMatrix,
     projectionMatrix
   );
 
-  const plane = createModel(device, createPlane("plane"));
-  plane.rotation = vec3.create(-0.2, 0, 0);
-  plane.translation = vec3.create(-3, -2, 0);
   const planePipeline = createPlanePipeline(
     device,
-    plane,
     presentationFormat,
     () => worldMapUniforms.toBuffer(),
     viewMatrix,
     projectionMatrix
   );
-
 
   const renderer = createRenderer(device, options.width, options.height);
 
@@ -96,7 +88,7 @@ export async function setupWorldRenderer(
       Object.assign(worldMapUniforms, data);
       const t = time * 0.001;
       worldMapUniforms.z = t;
-      cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
+      cubePipeline.model.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
       for (const [_, v] of Object.entries(cubePipeline.buffers)) {
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
@@ -109,16 +101,16 @@ export async function setupWorldRenderer(
       const pass = renderer.initFrame(context);
 
       pass.setPipeline(cubePipeline.pipeline);
-      pass.setVertexBuffer(0, cube.buffer);
+      pass.setVertexBuffer(0, cubePipeline.model.buffer);
       pass.setBindGroup(0, cubePipeline.buffers.worldMapUniforms.bindGroup);
       pass.setBindGroup(1, cubePipeline.buffers.cubeMatrix.bindGroup);
-      pass.draw(cube.geometry.vertexCount);
+      pass.draw(cubePipeline.model.geometry.vertexCount);
 
       pass.setPipeline(planePipeline.pipeline);
-      pass.setVertexBuffer(0, plane.buffer);
+      pass.setVertexBuffer(0, planePipeline.model.buffer);
       pass.setBindGroup(0, planePipeline.buffers.worldMapUniforms.bindGroup);
       pass.setBindGroup(1, planePipeline.buffers.planeMatrix.bindGroup);
-      pass.draw(plane.geometry.vertexCount);
+      pass.draw(planePipeline.model.geometry.vertexCount);
 
       renderer.end();
 
@@ -129,12 +121,14 @@ export async function setupWorldRenderer(
 
 function createCubePipeline(
   device: GPUDevice,
-  model: Model,
   presentationFormat: string,
   getWorldMapUniforms: () => Float32Array,
   viewMatrix: Float32Array,
   projectionMatrix: Float32Array
 ) {
+  const cube = createModel(device, createCube("cube"));
+  cube.translation = vec3.create(-1, 3, -4);
+
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
     layout: "auto",
@@ -143,7 +137,7 @@ function createCubePipeline(
         label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [model.layout],
+      buffers: [cube.layout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -162,27 +156,30 @@ function createCubePipeline(
       format: "depth24plus",
     },
   });
-  const cubeBuffers = createUniformBuffer(device, pipeline, {
+  const buffers = createUniformBuffer(device, pipeline, {
     worldMapUniforms: {
       layout: 0,
       getBuffer: getWorldMapUniforms,
     },
     cubeMatrix: {
       layout: 1,
-      getBuffer: () => model.matrix(viewMatrix, projectionMatrix),
+      getBuffer: () => cube.matrix(viewMatrix, projectionMatrix),
     },
   });
-  return { buffers: cubeBuffers, pipeline };
+  return { buffers, pipeline, model: cube };
 }
 
 function createPlanePipeline(
   device: GPUDevice,
-  model: Model,
   presentationFormat: string,
   getWorldMapUniforms: () => Float32Array,
   viewMatrix: Float32Array,
   projectionMatrix: Float32Array
 ) {
+  const plane = createModel(device, createPlane("plane"));
+  plane.rotation = vec3.create(-0.2, 0, 0);
+  plane.translation = vec3.create(-3, -2, 0);
+
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
     layout: "auto",
@@ -191,7 +188,7 @@ function createPlanePipeline(
         label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [model.layout],
+      buffers: [plane.layout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -210,17 +207,17 @@ function createPlanePipeline(
       format: "depth24plus",
     },
   });
-  const cubeBuffers = createUniformBuffer(device, pipeline, {
+  const buffers = createUniformBuffer(device, pipeline, {
     worldMapUniforms: {
       layout: 0,
       getBuffer: getWorldMapUniforms,
     },
     planeMatrix: {
       layout: 1,
-      getBuffer: () => model.matrix(viewMatrix, projectionMatrix),
+      getBuffer: () => plane.matrix(viewMatrix, projectionMatrix),
     },
   });
-  return { buffers: cubeBuffers, pipeline };
+  return { buffers, pipeline, model: plane };
 }
 
 function createRenderer(device: GPUDevice, width: number, height: number) {

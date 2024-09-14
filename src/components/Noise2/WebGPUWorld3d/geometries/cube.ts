@@ -1,3 +1,5 @@
+import { Geometry } from "../lib/webgpu";
+
 // prettier-ignore
 const cubeVertexArray = new Float32Array([
   // float4 position, float4 color, float2 uv,
@@ -46,7 +48,7 @@ const cubeVertexArray = new Float32Array([
 
 const cubeColorOffset = 4 * 4; // Byte offset of cube vertex color attribute.
 
-export function createCubeGeometry(label: string) {
+export function createCubeGeometry(label: string): Geometry {
   return {
     vertexArray: cubeVertexArray,
     vertexCount: 36,

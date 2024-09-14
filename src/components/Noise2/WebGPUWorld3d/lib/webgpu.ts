@@ -2,6 +2,15 @@ import { vec3 } from "wgpu-matrix";
 import { createModelBuffer } from "./buffer";
 import { applyCamera, Camera } from "./camera";
 
+export interface Geometry {
+  vertexArray: Float32Array;
+  vertexCount: number;
+  vertexSize: number; // Byte size of one cube vertex.
+  positionOffset: number;
+  uvOffset: number;
+  label: string;
+}
+
 export async function getDeviceContext(
   canvas: HTMLCanvasElement,
   width: number,
@@ -70,19 +79,7 @@ export function createRenderer(
   };
 }
 
-export function createModel(
-  device: GPUDevice,
-  geometry: {
-    vertexArray: Float32Array;
-    label: string;
-    vertexSize: number;
-    positionOffset: number;
-    uvOffset: number;
-    vertexCount: number;
-  }
-) {
-  const buffer = createModelBuffer(device, geometry);
-
+export function createLayout(geometry: Geometry) {
   const layout: GPUVertexBufferLayout = {
     arrayStride: geometry.vertexSize,
     attributes: [
@@ -101,14 +98,5 @@ export function createModel(
     ],
   };
 
-  return {
-    buffer,
-    layout,
-    translation: vec3.create(0, 0, 0),
-    rotation: vec3.create(0, 0, 0),
-    geometry,
-    matrix(camera: Camera) {
-      return applyCamera(this.translation, this.rotation, camera);
-    },
-  };
+  return layout;
 }

@@ -1,4 +1,6 @@
-export function createPlaneGeometry(label: string) {
+import { Geometry } from "../lib/webgpu";
+
+export function createPlaneGeometry(label: string): Geometry {
   let data = [];
   let Y = 9;
   let X = 4;

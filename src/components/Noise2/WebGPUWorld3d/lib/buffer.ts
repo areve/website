@@ -1,19 +1,11 @@
+import { Geometry } from "./webgpu";
+
 export type BufferInfo = {
   layout: number;
   getBuffer: () => Float32Array;
 };
 
-export function createModelBuffer(
-  device: GPUDevice,
-  geometry: {
-    vertexArray: Float32Array;
-    label: string;
-    vertexSize: number;
-    positionOffset: number;
-    uvOffset: number;
-    vertexCount: number;
-  }
-) {
+export function createModelBuffer(device: GPUDevice, geometry: Geometry) {
   const buffer = device.createBuffer({
     label: geometry.label,
     size: geometry.vertexArray.byteLength,

@@ -4,6 +4,7 @@ import vertexWgsl from "../shaders/simpleVertex.wgsl?raw";
 import fragmentWgsl from "../shaders/simpleFragment.wgsl?raw";
 import { createModelBuffer, createUniformBuffer } from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
+import { createLayout } from "../lib/webgpu";
 
 export function createCube(
   device: GPUDevice,
@@ -11,26 +12,8 @@ export function createCube(
   getCamera: () => Camera
 ) {
   const geometry = createCubeGeometry("cube");
-
   const modelBuffer = createModelBuffer(device, geometry);
-
-  const layout: GPUVertexBufferLayout = {
-    arrayStride: geometry.vertexSize,
-    attributes: [
-      {
-        // position
-        shaderLocation: 0,
-        offset: geometry.positionOffset,
-        format: "float32x4",
-      },
-      {
-        // uv
-        shaderLocation: 1,
-        offset: geometry.uvOffset,
-        format: "float32x2",
-      },
-    ],
-  };
+  const layout = createLayout(geometry);
 
   const transform = {
     translation: vec3.create(-1, 3, -4),

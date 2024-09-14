@@ -3,34 +3,33 @@ import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
 import vertexWgsl from "../shaders/worldVertex.wgsl?raw";
 import fragmentWgsl from "../shaders/worldFragment.wgsl?raw";
-import { createUniformBuffer } from "../lib/buffer";
-import { createModel } from "../lib/webgpu";
+import { createModelBuffer, createUniformBuffer } from "../lib/buffer";
+import { createLayout } from "../lib/webgpu";
 
 export function createPlane(
   device: GPUDevice,
   getWorldMapUniforms: () => Float32Array,
   getCamera: () => Camera
 ) {
-  const model = createModel(device, createPlaneGeometry("plane"));
-
+  const geometry = createPlaneGeometry("plane");
+  const modelBuffer = createModelBuffer(device, geometry);
+  const layout = createLayout(geometry);
+  
   const transform = {
     translation: vec3.create(-3, -2, 0),
     rotation: vec3.create(-0.2, 0, 0),
   };
 
   const pipeline = device.createRenderPipeline({
-    label: "blah pipeline",
     layout: "auto",
     vertex: {
       module: device.createShaderModule({
-        label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [model.layout],
+      buffers: [layout],
     },
     fragment: {
       module: device.createShaderModule({
-        label: "our hardcoded red color shader",
         code: fragmentWgsl,
       }),
       targets: [
@@ -69,10 +68,11 @@ export function createPlane(
 
   function render(renderPass: GPURenderPassEncoder) {
     renderPass.setPipeline(pipeline);
-    renderPass.setVertexBuffer(0, model.buffer);
+    renderPass.setVertexBuffer(0, modelBuffer);
     renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
     renderPass.setBindGroup(1, buffers.planeMatrix.bindGroup);
-    renderPass.draw(model.geometry.vertexCount);
+    renderPass.draw(geometry.vertexCount);
   }
-  return { transform, model, pipeline, buffers, render, updateBuffers };
+
+  return { transform, pipeline, buffers, render, updateBuffers };
 }

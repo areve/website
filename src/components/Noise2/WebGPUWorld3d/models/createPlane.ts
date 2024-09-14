@@ -11,7 +11,7 @@ export function createPlane(
   getWorldMapUniforms: () => Float32Array,
   getCamera: () => Camera
 ) {
-  const geometry = createPlaneGeometry("plane");
+  const geometry = createPlaneGeometry("plane", 10, 10, 100, 100);
   const modelBuffer = createModelBuffer(device, geometry);
   const layout: GPUVertexBufferLayout = {
     arrayStride: geometry.vertexSize,

@@ -1,42 +1,55 @@
 import { Geometry } from "../lib/webgpu";
 
-export function createPlaneGeometry(label: string): Geometry & {
-  faceCoord: number;
-} {
-  let data = [];
-  let width = 10.0;
-  let height = 10.0;
-  let gridWidth = 100;
-  let gridHeight = 100;
-  let ax = -0.5;
-  let bx = 0.5;
-  let ay = -0.5;
-  let by = 0.5;
-  let xStep = width / gridWidth;
-  let yStep = height / gridHeight;
-  // prettier-ignore
-  for (var y = 0; y < gridHeight; y++) {
-    for (var x = 0; x < gridWidth; x++) {
-      
-      
-      data.push([(ax + x) * xStep, (ay + y) * yStep, 0, 1,    0*xStep, 0*yStep,   x*xStep, y*yStep]);
-      data.push([(bx + x) * xStep, (ay + y) * yStep, 0, 1,    1*xStep, 0*yStep,   x*xStep, y*yStep]);
-      data.push([(bx + x) * xStep, (by + y) * yStep, 0, 1,    1*xStep, 1*yStep,   x*xStep, y*yStep]);
+export function createPlaneGeometry(
+  label: string,
+  width = 1.0,
+  height = 1.0,
+  widthSegments = 4,
+  heightSegments = 4
+): Geometry & { faceCoord: number } {
+  const xStep = width / widthSegments;
+  const yStep = height / heightSegments;
 
-      data.push([(bx + x) * xStep, (by + y) * yStep, 0, 1,    1*xStep, 1*yStep,   x*xStep, y*yStep]);
-      data.push([(ax + x) * xStep, (by + y) * yStep, 0, 1,    0*xStep, 1*yStep,   x*xStep, y*yStep]);
-      data.push([(ax + x) * xStep, (ay + y) * yStep, 0, 1,    0*xStep, 0*yStep,   x*xStep, y*yStep]);
+  const uv00 = [0, 0];
+  const uv10 = [xStep, 0];
+  const uv01 = [0, yStep];
+  const uv11 = [xStep, yStep];
+
+  let i = 0;
+  const vertices: number[][][] = [];
+  for (let y = 0; y < heightSegments; y++) {
+    const yPos1 = y * yStep;
+    const yPos2 = (1 + y) * yStep;
+    const faceY = y * yStep;
+
+    for (let x = 0; x < widthSegments; x++) {
+      const xPos1 = x * xStep;
+      const xPos2 = (1 + x) * xStep;
+      const face = [x * xStep, faceY];
+
+      vertices.push([
+        [xPos1, yPos1, 0, 1, ...uv00, ...face],
+        [xPos2, yPos1, 0, 1, ...uv10, ...face],
+        [xPos2, yPos2, 0, 1, ...uv11, ...face],
+      ]);
+
+      vertices.push([
+        [xPos2, yPos2, 0, 1, ...uv11, ...face],
+        [xPos1, yPos2, 0, 1, ...uv01, ...face],
+        [xPos1, yPos1, 0, 1, ...uv00, ...face],
+      ]);
     }
   }
 
-  const vertexArray = new Float32Array(data.flat());
+  const componentsPerVertex = 8;
+  const float32size = 4;
   return {
-    vertexArray,
-    vertexCount: gridWidth * gridHeight * 6,
-    vertexSize: 4 * 8, // Byte size of one cube vertex.
+    vertexArray: new Float32Array(vertices.flat().flat()),
+    vertexCount: widthSegments * heightSegments * 6,
+    vertexSize: float32size * componentsPerVertex,
     positionOffset: 0,
-    uvOffset: 4 * 4,
-    faceCoord: 6 * 4,
+    uvOffset: float32size * 4,
+    faceCoord: float32size * 6,
     label,
   };
 }

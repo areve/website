@@ -22,14 +22,16 @@
       <div>WebGPUOpenSimplex</div>
       <WebGPUOpenSimplex />
     </p>
-    <p>
-      <div>WebGPUWorld</div>
-      <WebGPUWorld />
-    </p> -->
+    -->
     <p>
       <div>WebGPUWorld3d</div>
       <WebGPUWorld3d />
     </p>
+    <p>
+      <div>WebGPUWorld</div>
+      <WebGPUWorld />
+    </p> 
+
   </article>
 </template>
 

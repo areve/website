@@ -130,7 +130,8 @@ fn main(
     @location(1) fragPosition: vec4f,
     @location(2) face: vec2f,
 ) -> @location(0) vec4f {
-    let coord = vec4(fragUV.x * 100 - face.x * 100, fragUV.y * 100 - face.y * 100, 0.0, 0.0);
+    let scale = 125.0;
+    let coord = vec4(fragUV.x * scale + face.x * scale, fragUV.y * scale + face.y * scale, 0.0, 0.0);
 
     let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
     let y = coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;

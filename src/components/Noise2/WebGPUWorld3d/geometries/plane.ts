@@ -14,13 +14,13 @@ export function createPlaneGeometry(label: string): Geometry & {
       let a = -1 / v / 2;
       let b = 1 / v / 2;
 
-      data.push([a + x / v, a + y / v, 0, 1,    1, 1,   x, y]);
-      data.push([b + x / v, a + y / v, 0, 1,    0, 1,   x, y]);
-      data.push([b + x / v, b + y / v, 0, 1,    0, 0,   x, y]);
+      data.push([a + x / v, a + y / v, 0, 1,    0, 0,   x, y]);
+      data.push([b + x / v, a + y / v, 0, 1,    1, 0,   x, y]);
+      data.push([b + x / v, b + y / v, 0, 1,    1, 1,   x, y]);
 
-      data.push([b + x / v, b + y / v, 0, 1,    0, 0,   x, y]);
-      data.push([a + x / v, b + y / v, 0, 1,    1, 0,   x, y]);
-      data.push([a + x / v, a + y / v, 0, 1,    1, 1,   x, y]);
+      data.push([b + x / v, b + y / v, 0, 1,    1, 1,   x, y]);
+      data.push([a + x / v, b + y / v, 0, 1,    0, 1,   x, y]);
+      data.push([a + x / v, a + y / v, 0, 1,    0, 0,   x, y]);
     }
   }
 

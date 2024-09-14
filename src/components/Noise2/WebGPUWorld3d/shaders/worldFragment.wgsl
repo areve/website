@@ -157,17 +157,19 @@ fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
     return height;
 }
 
+const seaLevel = 0.6;
+
 @fragment
 fn fragMain(
     @location(0) fragUV: vec2f,
     @location(1) fragPosition: vec4f,
     @location(2) face: vec2f,
 ) -> @location(0) vec4f {
-    let scale = 125.0;
+    let scale = 50.0;
     let coord = vec4(fragUV.x * scale + face.x * scale, fragUV.y * scale + face.y * scale, 0.0, 0.0);
 
     let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
-    let y = coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
+    let y = coord.y / uniforms.scale * uniforms.zoom - uniforms.y / uniforms.scale;
     let z = uniforms.z;
 
     let height = worldPointHeight(x, y, z);
@@ -179,7 +181,6 @@ fn fragMain(
     let temperature = 0.7 * temperature1 + 0.3 * temperature2;
     let moisture = 0.7 * moisture1 + 0.3 * moisture2;
 
-    let seaLevel = 0.6;
     let isSea = height < seaLevel;
 
     let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
@@ -229,12 +230,18 @@ fn vertexMain(
     @location(2) face: vec2f,
 ) -> VertexOutput {
     var output: VertexOutput;
-    let scale = 125.0;
+    let scale = 50.0;
     let coord = vec4( (face.x + uv.x)  * scale, (face.y + uv.y) * scale, 0.0, 0.0);
 
-    let height = worldPointHeight(coord.x, coord.y, 0.0);
+    let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
+    let y = coord.y / uniforms.scale * uniforms.zoom - uniforms.y / uniforms.scale;
+    let z = uniforms.z;
 
-    output.position = uniforms2.transform * vec4f(position.xy, 2.5 + height * -2.0, 1.0);
+    var height = worldPointHeight(x, y, z);
+    if (height < seaLevel) {
+        height = seaLevel;
+    }
+    output.position = uniforms2.transform * vec4f(position.xy, -2.5 + height * 3.0, 1.0);
     output.uv = uv;
     // TODO fragPosition is not being used, probably should be instead of face 
     output.fragPosition = (position + vec4(1.0, 1.0, 1.0, 1.0));

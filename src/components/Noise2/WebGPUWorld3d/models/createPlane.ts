@@ -38,7 +38,7 @@ export function createPlane(
   };
 
   const transform = {
-    translation: vec3.create(-3, -2, 0),
+    translation: vec3.create(-5, -2, 0),
     rotation: vec3.create(-0.2, 0, 0),
   };
 

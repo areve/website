@@ -1,6 +1,5 @@
 import { vec3 } from "wgpu-matrix";
-import { getDeviceContext } from "./webgpu";
-import { createRenderer } from "./createRenderer";
+import { createRenderer, getDeviceContext } from "./webgpu";
 import { createCube } from "../models/createCube";
 import { createPlane } from "../models/createPlane";
 import { createCamera } from "./camera";

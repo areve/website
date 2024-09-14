@@ -27,7 +27,6 @@ export async function setupWorldRenderer(
     format: navigator.gpu.getPreferredCanvasFormat(),
   });
 
-  
   const worldMapUniforms = {
     width: options.width,
     height: options.height,
@@ -54,13 +53,13 @@ export async function setupWorldRenderer(
   const cube = createCube(
     device,
     () => worldMapUniforms.toBuffer(),
-    camera
+    () => camera
   );
 
   const plane = createPlane(
     device,
     () => worldMapUniforms.toBuffer(),
-    camera
+    () => camera
   );
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -87,20 +86,9 @@ export async function setupWorldRenderer(
         device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
       }
 
-      const pass = renderer.initFrame(context);
-
-      pass.setPipeline(cube.pipeline);
-      pass.setVertexBuffer(0, cube.model.buffer);
-      pass.setBindGroup(0, cube.buffers.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, cube.buffers.cubeMatrix.bindGroup);
-      pass.draw(cube.model.geometry.vertexCount);
-
-      pass.setPipeline(plane.pipeline);
-      pass.setVertexBuffer(0, plane.model.buffer);
-      pass.setBindGroup(0, plane.buffers.worldMapUniforms.bindGroup);
-      pass.setBindGroup(1, plane.buffers.planeMatrix.bindGroup);
-      pass.draw(plane.model.geometry.vertexCount);
-
+      const renderPass = renderer.initFrame(context);
+      cube.render(renderPass);
+      plane.render(renderPass);
       renderer.end();
 
       return device.queue.onSubmittedWorkDone();
@@ -109,9 +97,9 @@ export async function setupWorldRenderer(
 }
 
 type Camera = {
-  viewMatrix: Float32Array,
-  projectionMatrix: Float32Array
-}
+  viewMatrix: Float32Array;
+  projectionMatrix: Float32Array;
+};
 
 function createCamera(width: number, height: number): Camera {
   const projectionMatrix = mat4.perspective(
@@ -123,20 +111,18 @@ function createCamera(width: number, height: number): Camera {
   const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
   const camera = {
     viewMatrix,
-    projectionMatrix
+    projectionMatrix,
   };
   return { viewMatrix, projectionMatrix };
 }
 
-
-
 function createCube(
   device: GPUDevice,
   getWorldMapUniforms: () => Float32Array,
-  camera: Camera  
+  getCamera: () => Camera
 ) {
-  const cube = createModel(device, createCubeGeometry("cube"));
-  cube.translation = vec3.create(-1, 3, -4);
+  const model = createModel(device, createCubeGeometry("cube"));
+  model.translation = vec3.create(-1, 3, -4);
 
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -146,7 +132,7 @@ function createCube(
         label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [cube.layout],
+      buffers: [model.layout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -176,20 +162,31 @@ function createCube(
     },
     cubeMatrix: {
       layout: 1,
-      getBuffer: () => cube.matrix(camera.viewMatrix, camera.projectionMatrix),
+      getBuffer: () => {
+        const camera = getCamera();
+        return model.matrix(camera.viewMatrix, camera.projectionMatrix);
+      },
     },
   });
-  return { buffers, pipeline, model: cube };
+
+  function render(renderPass: GPURenderPassEncoder) {
+    renderPass.setPipeline(pipeline);
+    renderPass.setVertexBuffer(0, model.buffer);
+    renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
+    renderPass.setBindGroup(1, buffers.cubeMatrix.bindGroup);
+    renderPass.draw(model.geometry.vertexCount);
+  }
+  return { buffers, pipeline, model, render };
 }
 
 function createPlane(
   device: GPUDevice,
   getWorldMapUniforms: () => Float32Array,
-  camera: Camera
+  getCamera: () => Camera
 ) {
-  const plane = createModel(device, createPlaneGeometry("plane"));
-  plane.rotation = vec3.create(-0.2, 0, 0);
-  plane.translation = vec3.create(-3, -2, 0);
+  const model = createModel(device, createPlaneGeometry("plane"));
+  model.rotation = vec3.create(-0.2, 0, 0);
+  model.translation = vec3.create(-3, -2, 0);
 
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -199,7 +196,7 @@ function createPlane(
         label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [plane.layout],
+      buffers: [model.layout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -229,10 +226,21 @@ function createPlane(
     },
     planeMatrix: {
       layout: 1,
-      getBuffer: () => plane.matrix(camera.viewMatrix, camera.projectionMatrix),
+      getBuffer: () => {
+        const camera = getCamera();
+        return model.matrix(camera.viewMatrix, camera.projectionMatrix);
+      },
     },
   });
-  return { buffers, pipeline, model: plane };
+
+  function render(renderPass: GPURenderPassEncoder) {
+    renderPass.setPipeline(pipeline);
+    renderPass.setVertexBuffer(0, model.buffer);
+    renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
+    renderPass.setBindGroup(1, buffers.planeMatrix.bindGroup);
+    renderPass.draw(model.geometry.vertexCount);
+  }
+  return { buffers, pipeline, model, render };
 }
 
 function createRenderer(device: GPUDevice, width: number, height: number) {

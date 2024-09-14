@@ -5,8 +5,6 @@ import fragmentWgsl from "./fragment.wgsl?raw";
 import { createPlaneGeometry } from "../geometry/plane";
 import { Camera, createUniformBuffer, getDeviceContext } from "./webgpu";
 
-
-
 export async function setupWorldRenderer(
   canvas: HTMLCanvasElement,
   options: {
@@ -74,7 +72,7 @@ export async function setupWorldRenderer(
       if (data?.x !== undefined) worldMapUniforms.x = data.x;
       if (data?.y !== undefined) worldMapUniforms.y = data.y;
       worldMapUniforms.z = t;
-      cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
+      cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
       cube.updateBuffers();
       plane.updateBuffers();
@@ -130,8 +128,10 @@ function createCube(
     ],
   };
 
-  const translation = vec3.create(-1, 3, -4);
-  const rotation = vec3.create(0, 0, 0);
+  const transform = {
+    translation: vec3.create(-1, 3, -4),
+    rotation: vec3.create(0, 0, 0),
+  };
 
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -165,8 +165,6 @@ function createCube(
     },
   });
 
-  const result = { translation, rotation, pipeline, render, updateBuffers };
-
   const buffers = createUniformBuffer(device, pipeline, {
     worldMapUniforms: {
       layout: 0,
@@ -175,7 +173,7 @@ function createCube(
     cubeMatrix: {
       layout: 1,
       getBuffer: () =>
-        applyCamera(result.translation, result.rotation, getCamera()),
+        applyCamera(transform.translation, transform.rotation, getCamera()),
     },
   });
 
@@ -193,9 +191,7 @@ function createCube(
     renderPass.draw(geometry.vertexCount);
   }
 
-  result.buffers = buffers;
-  
-  return result;
+  return { transform, pipeline, render, updateBuffers };
 }
 
 function createPlane(
@@ -204,8 +200,11 @@ function createPlane(
   getCamera: () => Camera
 ) {
   const model = createModel(device, createPlaneGeometry("plane"));
-  model.rotation = vec3.create(-0.2, 0, 0);
-  model.translation = vec3.create(-3, -2, 0);
+
+  const transform = {
+    translation: vec3.create(-3, -2, 0),
+    rotation: vec3.create(-0.2, 0, 0),
+  };
 
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -245,7 +244,8 @@ function createPlane(
     },
     planeMatrix: {
       layout: 1,
-      getBuffer: () => model.matrix(getCamera()),
+      getBuffer: () =>
+        applyCamera(transform.translation, transform.rotation, getCamera()),
     },
   });
 
@@ -262,7 +262,7 @@ function createPlane(
     renderPass.setBindGroup(1, buffers.planeMatrix.bindGroup);
     renderPass.draw(model.geometry.vertexCount);
   }
-  return { model, pipeline, buffers, render, updateBuffers };
+  return { transform, model, pipeline, buffers, render, updateBuffers };
 }
 
 function createModel(

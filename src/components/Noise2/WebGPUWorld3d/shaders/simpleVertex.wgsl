@@ -5,7 +5,7 @@ struct VertexOutput {
 }
 
 struct Uniforms {
-  modelViewProjectionMatrix: mat4x4f
+  transform: mat4x4f
 };
 
 @group(1) @binding(0) 
@@ -13,13 +13,12 @@ var<uniform> uniforms: Uniforms;
 
 @vertex
 fn main(
-    @location(0) position: vec4f,
-    @location(1) uv: vec2f
+  @location(0) position: vec4f,
+  @location(1) uv: vec2f
 ) -> VertexOutput {
-    var output: VertexOutput;
-    //output.Position = position;
-    output.Position = uniforms.modelViewProjectionMatrix * position;
-    output.fragUV = uv;
-    output.fragPosition = 0.5 * (position + vec4(1.0, 1.0, 1.0, 1.0));
-    return output;
+  var output: VertexOutput;
+  output.Position = uniforms.transform * position;
+  output.fragUV = uv;
+  output.fragPosition = 0.5 * (position + vec4(1.0, 1.0, 1.0, 1.0));
+  return output;
 }

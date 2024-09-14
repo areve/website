@@ -4,6 +4,16 @@ import vertexWgsl from "./vertex.wgsl?raw";
 import fragmentWgsl from "./fragment.wgsl?raw";
 import { createPlaneGeometry } from "./plane";
 
+type BufferInfo = {
+  layout: number;
+  getBuffer: () => Float32Array;
+};
+
+type Camera = {
+  viewMatrix: Float32Array;
+  projectionMatrix: Float32Array;
+};
+
 export async function setupWorldRenderer(
   canvas: HTMLCanvasElement,
   options: {
@@ -13,19 +23,11 @@ export async function setupWorldRenderer(
     scale?: number;
   }
 ) {
-  const camera = createCamera(options.width, options.height);
-  const adapter = await navigator.gpu?.requestAdapter();
-  const device = await adapter?.requestDevice()!;
-  if (!device) return fail("need a browser that supports WebGPU");
-
-  canvas.width = options.width;
-  canvas.height = options.height;
-
-  const context = canvas.getContext("webgpu")!;
-  context.configure({
-    device,
-    format: navigator.gpu.getPreferredCanvasFormat(),
-  });
+  const { device, context } = await getDeviceContext(
+    canvas,
+    options.width,
+    options.height
+  );
 
   const worldMapUniforms = {
     width: options.width,
@@ -50,6 +52,8 @@ export async function setupWorldRenderer(
     },
   };
 
+  const camera = createCamera(options.width, options.height);
+
   const cube = createCube(
     device,
     () => worldMapUniforms.toBuffer(),
@@ -73,33 +77,43 @@ export async function setupWorldRenderer(
         y?: number;
       }
     ) {
-      Object.assign(worldMapUniforms, data);
       const t = time * 0.001;
+      if (data?.x !== undefined) worldMapUniforms.x = data.x;
+      if (data?.y !== undefined) worldMapUniforms.y = data.y;
       worldMapUniforms.z = t;
-      cube.model.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
+      cube.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      for (const [_, v] of Object.entries(cube.buffers)) {
-        device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
-      }
+      cube.updateBuffers();
+      plane.updateBuffers();
 
-      for (const [_, v] of Object.entries(plane.buffers)) {
-        device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
-      }
-
-      const renderPass = renderer.initFrame(context);
+      const renderPass = renderer.start(context);
       cube.render(renderPass);
       plane.render(renderPass);
-      renderer.end();
-
-      return device.queue.onSubmittedWorkDone();
+      return renderer.end();
     },
   };
 }
 
-type Camera = {
-  viewMatrix: Float32Array;
-  projectionMatrix: Float32Array;
-};
+async function getDeviceContext(
+  canvas: HTMLCanvasElement,
+  width: number,
+  height: number
+) {
+  canvas.width = width;
+  canvas.height = height;
+
+  const adapter = await navigator.gpu?.requestAdapter();
+  const device = await adapter?.requestDevice()!;
+  if (!device) return fail("need a browser that supports WebGPU");
+
+  const context = canvas.getContext("webgpu")!;
+  context.configure({
+    device,
+    format: navigator.gpu.getPreferredCanvasFormat(),
+  });
+
+  return { device, context };
+}
 
 function createCamera(width: number, height: number): Camera {
   const projectionMatrix = mat4.perspective(
@@ -121,8 +135,31 @@ function createCube(
   getWorldMapUniforms: () => Float32Array,
   getCamera: () => Camera
 ) {
-  const model = createModel(device, createCubeGeometry("cube"));
-  model.translation = vec3.create(-1, 3, -4);
+  const geometry = createCubeGeometry("cube");
+  // const model = createModel(device, geometry);
+
+  const modelBuffer = createModelBuffer(device, geometry);
+
+  const layout: GPUVertexBufferLayout = {
+    arrayStride: geometry.vertexSize,
+    attributes: [
+      {
+        // position
+        shaderLocation: 0,
+        offset: geometry.positionOffset,
+        format: "float32x4",
+      },
+      {
+        // uv
+        shaderLocation: 1,
+        offset: geometry.uvOffset,
+        format: "float32x2",
+      },
+    ],
+  };
+
+  const translation = vec3.create(-1, 3, -4);
+  const rotation = vec3.create(0, 0, 0);
 
   const pipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -132,7 +169,7 @@ function createCube(
         label: "blah vertex",
         code: vertexWgsl,
       }),
-      buffers: [model.layout],
+      buffers: [layout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -155,6 +192,9 @@ function createCube(
       format: "depth24plus",
     },
   });
+
+  const result = { translation, rotation, pipeline, render, updateBuffers };
+
   const buffers = createUniformBuffer(device, pipeline, {
     worldMapUniforms: {
       layout: 0,
@@ -162,21 +202,28 @@ function createCube(
     },
     cubeMatrix: {
       layout: 1,
-      getBuffer: () => {
-        const camera = getCamera();
-        return model.matrix(camera.viewMatrix, camera.projectionMatrix);
-      },
+      getBuffer: () =>
+        applyCamera(result.translation, result.rotation, getCamera()),
     },
   });
 
+  function updateBuffers() {
+    for (const [_, v] of Object.entries(buffers)) {
+      device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
+    }
+  }
+
   function render(renderPass: GPURenderPassEncoder) {
     renderPass.setPipeline(pipeline);
-    renderPass.setVertexBuffer(0, model.buffer);
+    renderPass.setVertexBuffer(0, modelBuffer);
     renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
     renderPass.setBindGroup(1, buffers.cubeMatrix.bindGroup);
-    renderPass.draw(model.geometry.vertexCount);
+    renderPass.draw(geometry.vertexCount);
   }
-  return { buffers, pipeline, model, render };
+
+  result.buffers = buffers;
+  
+  return result;
 }
 
 function createPlane(
@@ -226,12 +273,15 @@ function createPlane(
     },
     planeMatrix: {
       layout: 1,
-      getBuffer: () => {
-        const camera = getCamera();
-        return model.matrix(camera.viewMatrix, camera.projectionMatrix);
-      },
+      getBuffer: () => model.matrix(getCamera()),
     },
   });
+
+  function updateBuffers() {
+    for (const [_, v] of Object.entries(buffers)) {
+      device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
+    }
+  }
 
   function render(renderPass: GPURenderPassEncoder) {
     renderPass.setPipeline(pipeline);
@@ -240,53 +290,66 @@ function createPlane(
     renderPass.setBindGroup(1, buffers.planeMatrix.bindGroup);
     renderPass.draw(model.geometry.vertexCount);
   }
-  return { buffers, pipeline, model, render };
+  return { model, pipeline, buffers, render, updateBuffers };
 }
 
-function createRenderer(device: GPUDevice, width: number, height: number) {
-  const depthTexture = device.createTexture({
-    size: [width, height],
-    format: "depth24plus",
-    usage: GPUTextureUsage.RENDER_ATTACHMENT,
-  });
-
-  const colorAttachment: GPURenderPassColorAttachment = {
-    view: undefined! as GPUTextureView,
-    clearValue: [0.0, 0.0, 0.0, 1],
-    loadOp: "clear",
-    storeOp: "store",
-  };
-
-  const renderPassDescriptor: GPURenderPassDescriptor = {
-    label: "our basic canvas renderPass",
-    colorAttachments: [colorAttachment],
-    depthStencilAttachment: {
-      view: depthTexture.createView(),
-
-      depthClearValue: 1.0,
-      depthLoadOp: "clear",
-      depthStoreOp: "store",
-    },
-  };
-  return {
-    descriptor: renderPassDescriptor,
-    encoder: null as GPUCommandEncoder | null,
-    pass: null as GPURenderPassEncoder | null,
-    initFrame(context: GPUCanvasContext) {
-      colorAttachment.view = context.getCurrentTexture().createView();
-      this.encoder = device.createCommandEncoder({ label: "our encoder" });
-      this.pass = this.encoder.beginRenderPass(renderPassDescriptor);
-      return this.pass;
-    },
-    end() {
-      if (this.pass) this.pass.end();
-      if (this.encoder) device.queue.submit([this.encoder.finish()]);
-    },
-  };
-}
-
-type Model = ReturnType<typeof createModel>;
 function createModel(
+  device: GPUDevice,
+  geometry: {
+    vertexArray: Float32Array;
+    label: string;
+    vertexSize: number;
+    positionOffset: number;
+    uvOffset: number;
+    vertexCount: number;
+  }
+) {
+  const buffer = createModelBuffer(device, geometry);
+
+  const layout: GPUVertexBufferLayout = {
+    arrayStride: geometry.vertexSize,
+    attributes: [
+      {
+        // position
+        shaderLocation: 0,
+        offset: geometry.positionOffset,
+        format: "float32x4",
+      },
+      {
+        // uv
+        shaderLocation: 1,
+        offset: geometry.uvOffset,
+        format: "float32x2",
+      },
+    ],
+  };
+
+  return {
+    buffer,
+    layout,
+    translation: vec3.create(0, 0, 0),
+    rotation: vec3.create(0, 0, 0),
+    geometry,
+    matrix(camera: Camera) {
+      return applyCamera(this.translation, this.rotation, camera);
+    },
+  };
+}
+
+function applyCamera(
+  translation: Float32Array, // vec3
+  rotation: Float32Array, // vec3
+  camera: Camera
+) {
+  const result = mat4.create();
+  mat4.translation(translation, result);
+  mat4.rotate(result, rotation, 1, result);
+  mat4.multiply(camera.viewMatrix, result, result);
+  mat4.multiply(camera.projectionMatrix, result, result);
+  return result;
+}
+
+function createModelBuffer(
   device: GPUDevice,
   geometry: {
     vertexArray: Float32Array;
@@ -306,103 +369,8 @@ function createModel(
 
   new Float32Array(buffer.getMappedRange()).set(geometry.vertexArray);
   buffer.unmap();
-
-  const layout: GPUVertexBufferLayout = {
-    arrayStride: geometry.vertexSize,
-    attributes: [
-      {
-        // position
-        shaderLocation: 0,
-        offset: geometry.positionOffset,
-        format: "float32x4",
-      },
-      {
-        // uv
-        shaderLocation: 1,
-        offset: geometry.uvOffset,
-        format: "float32x2",
-      },
-    ],
-  };
-  return {
-    buffer,
-    layout,
-    translation: vec3.create(0, 0, 0),
-    rotation: vec3.create(0, 0, 0),
-    geometry,
-    matrix(viewMatrix: Float32Array, projectionMatrix: Float32Array) {
-      return applyMatrix(
-        this.translation,
-        this.rotation,
-        viewMatrix,
-        projectionMatrix
-      );
-    },
-  };
+  return buffer;
 }
-
-function applyMatrix(
-  translation: Float32Array, // vec3
-  rotation: Float32Array, // vec3
-  viewMatrix: Float32Array, // matrix44
-  projectionMatrix: Float32Array // matrix44
-) {
-  const result = mat4.create();
-  mat4.translation(translation, result);
-  mat4.rotate(result, rotation, 1, result);
-  mat4.multiply(viewMatrix, result, result);
-  mat4.multiply(projectionMatrix, result, result);
-  return result;
-}
-
-function createBuffer(
-  device: GPUDevice,
-  uniformBufferInfo: { uniformBuffer: GPUBuffer; offset: number },
-  layout: GPUBindGroupLayout,
-  getBuffer: () => Float32Array
-): {
-  bindGroup: GPUBindGroup;
-  getBuffer: () => Float32Array;
-  buffer: GPUBuffer;
-  offset: number;
-} {
-  const offset = uniformBufferInfo.offset;
-  const size = getBuffer().byteLength;
-  uniformBufferInfo.offset = offset + Math.ceil(size / 256) * 256;
-  console.log(offset, size);
-  const bindGroup = device.createBindGroup({
-    layout,
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBufferInfo.uniformBuffer,
-          offset,
-          size,
-        },
-      },
-    ],
-  });
-
-  return {
-    bindGroup,
-    getBuffer,
-    buffer: uniformBufferInfo.uniformBuffer,
-    offset,
-  };
-}
-
-function getSizeFor(buffers: Float32Array[]) {
-  return buffers.reduce(
-    (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
-    0
-  );
-}
-
-type BufferInfo = {
-  layout: number;
-  getBuffer: () => Float32Array;
-};
 
 function createUniformBuffer<T extends Record<string, BufferInfo>>(
   device: GPUDevice,
@@ -453,4 +421,91 @@ function createUniformBuffer<T extends Record<string, BufferInfo>>(
   }
 
   return result;
+
+  function getSizeFor(buffers: Float32Array[]) {
+    return buffers.reduce(
+      (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
+      0
+    );
+  }
+
+  function createBuffer(
+    device: GPUDevice,
+    uniformBufferInfo: { uniformBuffer: GPUBuffer; offset: number },
+    layout: GPUBindGroupLayout,
+    getBuffer: () => Float32Array
+  ): {
+    bindGroup: GPUBindGroup;
+    getBuffer: () => Float32Array;
+    buffer: GPUBuffer;
+    offset: number;
+  } {
+    const offset = uniformBufferInfo.offset;
+    const size = getBuffer().byteLength;
+    uniformBufferInfo.offset = offset + Math.ceil(size / 256) * 256;
+    console.log(offset, size);
+    const bindGroup = device.createBindGroup({
+      layout,
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: uniformBufferInfo.uniformBuffer,
+            offset,
+            size,
+          },
+        },
+      ],
+    });
+
+    return {
+      bindGroup,
+      getBuffer,
+      buffer: uniformBufferInfo.uniformBuffer,
+      offset,
+    };
+  }
+}
+
+function createRenderer(device: GPUDevice, width: number, height: number) {
+  const depthTexture = device.createTexture({
+    size: [width, height],
+    format: "depth24plus",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+
+  const colorAttachment: GPURenderPassColorAttachment = {
+    view: undefined! as GPUTextureView,
+    clearValue: [0.0, 0.0, 0.0, 1],
+    loadOp: "clear",
+    storeOp: "store",
+  };
+
+  const renderPassDescriptor: GPURenderPassDescriptor = {
+    label: "our basic canvas renderPass",
+    colorAttachments: [colorAttachment],
+    depthStencilAttachment: {
+      view: depthTexture.createView(),
+
+      depthClearValue: 1.0,
+      depthLoadOp: "clear",
+      depthStoreOp: "store",
+    },
+  };
+  return {
+    descriptor: renderPassDescriptor,
+    encoder: null as GPUCommandEncoder | null,
+    pass: null as GPURenderPassEncoder | null,
+    start(context: GPUCanvasContext) {
+      colorAttachment.view = context.getCurrentTexture().createView();
+      this.encoder = device.createCommandEncoder({ label: "our encoder" });
+      this.pass = this.encoder.beginRenderPass(renderPassDescriptor);
+      return this.pass;
+    },
+    end() {
+      if (this.pass) this.pass.end();
+      if (this.encoder) device.queue.submit([this.encoder.finish()]);
+      return device.queue.onSubmittedWorkDone();
+    },
+  };
 }

@@ -15,28 +15,26 @@ export function createPlaneGeometry(
   const uv01 = [0, yStep];
   const uv11 = [xStep, yStep];
 
-  let i = 0;
   const vertices: number[][][] = [];
   for (let y = 0; y < heightSegments; y++) {
-    const yPos1 = y * yStep;
-    const yPos2 = (1 + y) * yStep;
-    const faceY = y * yStep;
+    const y1 = y * yStep;
+    const y2 = (1 + y) * yStep;
 
     for (let x = 0; x < widthSegments; x++) {
-      const xPos1 = x * xStep;
-      const xPos2 = (1 + x) * xStep;
-      const face = [x * xStep, faceY];
+      const x1 = x * xStep;
+      const x2 = (1 + x) * xStep;
+      const face = [x1, y1];
 
       vertices.push([
-        [xPos1, yPos1, 0, 1, ...uv00, ...face],
-        [xPos2, yPos1, 0, 1, ...uv10, ...face],
-        [xPos2, yPos2, 0, 1, ...uv11, ...face],
+        [x1, y1, 0, 1, ...uv00, ...face],
+        [x2, y1, 0, 1, ...uv10, ...face],
+        [x2, y2, 0, 1, ...uv11, ...face],
       ]);
 
       vertices.push([
-        [xPos2, yPos2, 0, 1, ...uv11, ...face],
-        [xPos1, yPos2, 0, 1, ...uv01, ...face],
-        [xPos1, yPos1, 0, 1, ...uv00, ...face],
+        [x2, y2, 0, 1, ...uv11, ...face],
+        [x1, y2, 0, 1, ...uv01, ...face],
+        [x1, y1, 0, 1, ...uv00, ...face],
       ]);
     }
   }

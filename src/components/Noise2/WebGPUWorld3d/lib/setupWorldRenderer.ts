@@ -84,42 +84,16 @@ export async function setupWorldRenderer(
     commonLayout,
     presentationFormat
   );
-  // const planeBuffers = createUniformBuffer(device, planePipeline, {
-  //   worldMapUniforms: {
-  //     layout: 0,
-  //     getBuffer: () => worldMapUniforms.toBuffer(),
-  //   },
-  //   cubeMatrix: {
-  //     layout: 1,
-  //     getBuffer: () => plane.matrix(viewMatrix, projectionMatrix),
-  //   },
-  // });
-
-  const uniformBufferInfo2 = {
-    uniformBuffer: device.createBuffer({
-      size: getSizeFor([
-        worldMapUniforms.toBuffer(),
-        plane.matrix(viewMatrix, projectionMatrix),
-      ]),
-      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-    }),
-    offset: 0,
-  };
-
-  const planeBuffers = {
-    worldMapUniforms: createBuffer(
-      device,
-      uniformBufferInfo2,
-      planePipeline.getBindGroupLayout(0),
-      () => worldMapUniforms.toBuffer()
-    ),
-    planeMatrix: createBuffer(
-      device,
-      uniformBufferInfo2,
-      planePipeline.getBindGroupLayout(1),
-      () => plane.matrix(viewMatrix, projectionMatrix)
-    ),
-  };
+  const planeBuffers = createUniformBuffer(device, planePipeline, {
+    worldMapUniforms: {
+      layout: 0,
+      getBuffer: () => worldMapUniforms.toBuffer(),
+    },
+    planeMatrix: {
+      layout: 1,
+      getBuffer: () => plane.matrix(viewMatrix, projectionMatrix),
+    },
+  });
 
   const renderer = createRenderer(device, options.width, options.height);
 

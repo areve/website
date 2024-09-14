@@ -1,7 +1,7 @@
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
-import vertexWgsl from "../shaders/worldVertex.wgsl?raw";
-import fragmentWgsl from "../shaders/worldFragment.wgsl?raw";
+import vertexWgsl from "../shaders/simpleVertex.wgsl?raw";
+import fragmentWgsl from "../shaders/simpleFragment.wgsl?raw";
 import { createModelBuffer, createUniformBuffer } from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
 

@@ -11,7 +11,7 @@ export function createCube(
   getCamera: () => Camera
 ) {
   const geometry = createCubeGeometry("cube");
-  
+
   const modelBuffer = createModelBuffer(device, geometry);
 
   const layout: GPUVertexBufferLayout = {

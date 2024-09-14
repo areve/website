@@ -26,7 +26,6 @@ export function createModelBuffer(
   return buffer;
 }
 
-
 export function createUniformBuffer<T extends Record<string, BufferInfo>>(
   device: GPUDevice,
   pipeline: GPURenderPipeline,
@@ -98,7 +97,6 @@ export function createUniformBuffer<T extends Record<string, BufferInfo>>(
     const offset = uniformBufferInfo.offset;
     const size = getBuffer().byteLength;
     uniformBufferInfo.offset = offset + Math.ceil(size / 256) * 256;
-    console.log(offset, size);
     const bindGroup = device.createBindGroup({
       layout,
       entries: [

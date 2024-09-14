@@ -29,10 +29,9 @@ export async function setupWorldRenderer(
   canvas.height = options.height;
 
   const context = canvas.getContext("webgpu")!;
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
   context.configure({
     device,
-    format: presentationFormat,
+    format: navigator.gpu.getPreferredCanvasFormat(),
   });
 
   const worldMapUniforms = {
@@ -60,7 +59,6 @@ export async function setupWorldRenderer(
 
   const cube = createCube(
     device,
-    presentationFormat,
     () => worldMapUniforms.toBuffer(),
     viewMatrix,
     projectionMatrix
@@ -68,7 +66,6 @@ export async function setupWorldRenderer(
 
   const plane = createPlane(
     device,
-    presentationFormat,
     () => worldMapUniforms.toBuffer(),
     viewMatrix,
     projectionMatrix
@@ -121,7 +118,6 @@ export async function setupWorldRenderer(
 
 function createCube(
   device: GPUDevice,
-  presentationFormat: string,
   getWorldMapUniforms: () => Float32Array,
   viewMatrix: Float32Array,
   projectionMatrix: Float32Array
@@ -144,7 +140,11 @@ function createCube(
         label: "our hardcoded red color shader",
         code: fragmentWgsl,
       }),
-      targets: [{ format: presentationFormat } as GPUColorTargetState],
+      targets: [
+        {
+          format: navigator.gpu.getPreferredCanvasFormat(),
+        } as GPUColorTargetState,
+      ],
     },
     primitive: {
       topology: "triangle-list",
@@ -171,7 +171,6 @@ function createCube(
 
 function createPlane(
   device: GPUDevice,
-  presentationFormat: string,
   getWorldMapUniforms: () => Float32Array,
   viewMatrix: Float32Array,
   projectionMatrix: Float32Array
@@ -195,7 +194,11 @@ function createPlane(
         label: "our hardcoded red color shader",
         code: fragmentWgsl,
       }),
-      targets: [{ format: presentationFormat } as GPUColorTargetState],
+      targets: [
+        {
+          format: navigator.gpu.getPreferredCanvasFormat(),
+        } as GPUColorTargetState,
+      ],
     },
     primitive: {
       topology: "triangle-list",

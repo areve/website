@@ -13,14 +13,7 @@ export async function setupWorldRenderer(
     scale?: number;
   }
 ) {
-  const projectionMatrix = mat4.perspective(
-    (2 * Math.PI) / 8,
-    options.width / options.height,
-    1,
-    100.0
-  );
-  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
-
+  const camera = createCamera(options.width, options.height);
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
   if (!device) return fail("need a browser that supports WebGPU");
@@ -34,6 +27,7 @@ export async function setupWorldRenderer(
     format: navigator.gpu.getPreferredCanvasFormat(),
   });
 
+  
   const worldMapUniforms = {
     width: options.width,
     height: options.height,
@@ -60,15 +54,13 @@ export async function setupWorldRenderer(
   const cube = createCube(
     device,
     () => worldMapUniforms.toBuffer(),
-    viewMatrix,
-    projectionMatrix
+    camera
   );
 
   const plane = createPlane(
     device,
     () => worldMapUniforms.toBuffer(),
-    viewMatrix,
-    projectionMatrix
+    camera
   );
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -116,11 +108,32 @@ export async function setupWorldRenderer(
   };
 }
 
+type Camera = {
+  viewMatrix: Float32Array,
+  projectionMatrix: Float32Array
+}
+
+function createCamera(width: number, height: number): Camera {
+  const projectionMatrix = mat4.perspective(
+    (2 * Math.PI) / 8,
+    width / height,
+    1,
+    100.0
+  );
+  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
+  const camera = {
+    viewMatrix,
+    projectionMatrix
+  };
+  return { viewMatrix, projectionMatrix };
+}
+
+
+
 function createCube(
   device: GPUDevice,
   getWorldMapUniforms: () => Float32Array,
-  viewMatrix: Float32Array,
-  projectionMatrix: Float32Array
+  camera: Camera  
 ) {
   const cube = createModel(device, createCubeGeometry("cube"));
   cube.translation = vec3.create(-1, 3, -4);
@@ -163,7 +176,7 @@ function createCube(
     },
     cubeMatrix: {
       layout: 1,
-      getBuffer: () => cube.matrix(viewMatrix, projectionMatrix),
+      getBuffer: () => cube.matrix(camera.viewMatrix, camera.projectionMatrix),
     },
   });
   return { buffers, pipeline, model: cube };
@@ -172,8 +185,7 @@ function createCube(
 function createPlane(
   device: GPUDevice,
   getWorldMapUniforms: () => Float32Array,
-  viewMatrix: Float32Array,
-  projectionMatrix: Float32Array
+  camera: Camera
 ) {
   const plane = createModel(device, createPlaneGeometry("plane"));
   plane.rotation = vec3.create(-0.2, 0, 0);
@@ -217,7 +229,7 @@ function createPlane(
     },
     planeMatrix: {
       layout: 1,
-      getBuffer: () => plane.matrix(viewMatrix, projectionMatrix),
+      getBuffer: () => plane.matrix(camera.viewMatrix, camera.projectionMatrix),
     },
   });
   return { buffers, pipeline, model: plane };

@@ -1,8 +1,8 @@
 import { vec3 } from "wgpu-matrix";
 import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
-import vertexWgsl from "../shaders/vertex.wgsl?raw";
-import fragmentWgsl from "../shaders/fragment.wgsl?raw";
+import vertexWgsl from "../shaders/worldVertex.wgsl?raw";
+import fragmentWgsl from "../shaders/worldFragment.wgsl?raw";
 import { createUniformBuffer } from "../lib/buffer";
 import { createModel } from "../lib/webgpu";
 

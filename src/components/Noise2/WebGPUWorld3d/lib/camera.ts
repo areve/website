@@ -12,7 +12,15 @@ export function createCamera(width: number, height: number): Camera {
     1,
     100.0
   );
-  const viewMatrix = mat4.translation(vec3.fromValues(0, 0, -8));
+
+  const translation = vec3.fromValues(0, 0, -12);
+  const rotation = vec3.fromValues(-Math.PI / 4, 0, 0);
+  
+  let viewMatrix = mat4.create();
+  mat4.translation(translation, viewMatrix);
+  mat4.rotateX(viewMatrix, rotation[0], viewMatrix);
+  mat4.rotateY(viewMatrix, rotation[1], viewMatrix);
+  mat4.rotateZ(viewMatrix, rotation[2], viewMatrix);
   return { viewMatrix, projectionMatrix };
 }
 
@@ -23,7 +31,9 @@ export function applyCamera(
 ) {
   const result = mat4.create();
   mat4.translation(translation, result);
-  mat4.rotate(result, rotation, 1, result);
+  mat4.rotateX(result, rotation[0], result);
+  mat4.rotateY(result, rotation[1], result);
+  mat4.rotateZ(result, rotation[2], result);
   mat4.multiply(camera.viewMatrix, result, result);
   mat4.multiply(camera.projectionMatrix, result, result);
   return result;

@@ -16,7 +16,7 @@ export function createCube(
   const layout = createLayout(geometry);
 
   const transform = {
-    translation: vec3.create(-1, 3, -4),
+    translation: vec3.create(0, 0, 4),
     rotation: vec3.create(0, 0, 0),
   };
 

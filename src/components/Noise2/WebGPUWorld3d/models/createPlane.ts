@@ -37,8 +37,8 @@ export function createPlane(
   };
 
   const transform = {
-    translation: vec3.create(-5, -2, 0),
-    rotation: vec3.create(-0.2, 0, 0),
+    translation: vec3.create(-5, -5, 0),
+    rotation: vec3.create(0, 0, 0),
   };
 
   const pipeline = device.createRenderPipeline({
@@ -69,6 +69,7 @@ export function createPlane(
       format: "depth24plus",
     },
   });
+
   const buffers = createUniformBuffer(device, pipeline, {
     worldMapUniforms: {
       layout: 0,
@@ -93,7 +94,6 @@ export function createPlane(
     renderPass.setIndexBuffer(indexBuffer, 'uint32'); // Or 'uint16' if using smaller indices
     renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
     renderPass.setBindGroup(1, buffers.planeMatrix.bindGroup);
-    // renderPass.draw(geometry.vertexCount);
     renderPass.drawIndexed(geometry.vertexCount, 1, 0, 0, 0);
 
   }

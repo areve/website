@@ -260,7 +260,7 @@ fn vertexMain(
     if (isSea) {
         height = seaLevel;
     }
-    output.position = uniforms2.transform * vec4f(position.xy, -2.5 + height * 3.0, 1.0);
+    output.position = uniforms2.transform * vec4f(position.xy, -2.5 + height / uniforms.zoom * 3.0, 1.0);
     output.uv = uv;
     output.face = face;
     let m = moisture;

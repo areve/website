@@ -68,8 +68,7 @@ export async function setupWorldRenderer(
       }
     ) {
       const t = time * 0.001;
-      if (data?.x !== undefined) worldMapUniforms.x = data.x;
-      if (data?.y !== undefined) worldMapUniforms.y = data.y;
+      if (data) Object.assign(worldMapUniforms, data);
       worldMapUniforms.z = t;
       cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 

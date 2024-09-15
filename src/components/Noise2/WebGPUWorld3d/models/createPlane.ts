@@ -1,10 +1,8 @@
 import { vec3 } from "wgpu-matrix";
 import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
-// import vertexWgsl from "../shaders/worldVertex.wgsl?raw";
 import fragmentWgsl from "../shaders/worldFragment.wgsl?raw";
 import { createVertexBuffer, createUniformBuffer, createIndexBuffer } from "../lib/buffer";
-import { createLayout } from "../lib/webgpu";
 
 export function createPlane(
   device: GPUDevice,

@@ -13,7 +13,7 @@ struct Uniforms {
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) uv: vec2f,
-  @location(1) fragPosition: vec4f,
+  @location(1) color: vec4f,
   @location(2) face: vec2f,
 }
 
@@ -147,80 +147,91 @@ fn temperatureDesertCurve(t: f32) -> f32 {
 
 
 fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
-    
     let height1 = openSimplex3d(uniforms.seed * 112345, x / 129, y / 129, z / 129);
     let height2 = openSimplex3d(uniforms.seed * 212345, x / 47, y / 47, z / 47);
     let height3 = openSimplex3d(uniforms.seed * 312345, x / 7, y / 7, z / 7);
     let height4 = openSimplex3d(uniforms.seed * 412345, x / 1, y / 1, z / 1);
-    let height = 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
-    
-    return height;
+    return 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
+}
+
+fn worldPointTemperature(x: f32, y:f32, z:f32) -> f32 {
+    let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
+    let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
+    return 0.7 * temperature1 + 0.3 * temperature2;
+}
+
+fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
+    let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
+    let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
+    return 0.7 * moisture1 + 0.3 * moisture2;
 }
 
 const seaLevel = 0.6;
 
 @fragment
 fn fragMain(
-    @location(0) fragUV: vec2f,
-    @location(1) fragPosition: vec4f,
+    @location(0) uv: vec2f,
+    @location(1) color: vec4f,
     @location(2) face: vec2f,
 ) -> @location(0) vec4f {
-    let scale = 50.0;
-    let coord = vec4(fragUV.x * scale + face.x * scale, fragUV.y * scale + face.y * scale, 0.0, 0.0);
 
-    let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
-    let y = coord.y / uniforms.scale * uniforms.zoom - uniforms.y / uniforms.scale;
-    let z = uniforms.z;
+    return vec4f(color.xyz, 1.0);
+    // let scale = 50.0;
+    // let coord = vec4(fragUV.x * scale + face.x * scale, fragUV.y * scale + face.y * scale, 0.0, 0.0);
 
-    let height = worldPointHeight(x, y, z);
+    // let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
+    // let y = coord.y / uniforms.scale * uniforms.zoom - uniforms.y / uniforms.scale;
+    // let z = uniforms.z;
+
+    // let height = worldPointHeight(x, y, z);
     
-    let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
-    let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
-    let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
-    let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
-    let temperature = 0.7 * temperature1 + 0.3 * temperature2;
-    let moisture = 0.7 * moisture1 + 0.3 * moisture2;
+    // let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
+    // let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
+    // let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
+    // let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
+    // let temperature = 0.7 * temperature1 + 0.3 * temperature2;
+    // let moisture = 0.7 * moisture1 + 0.3 * moisture2;
 
-    let isSea = height < seaLevel;
+    // let isSea = height < seaLevel;
 
-    let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
-    let seaDepth = c(1 - height / seaLevel);
-    let iciness = c(heightIcinessCurve(height) + temperatureIcinessCurve(temperature));
-    let desert = c(moistureDesertCurve(moisture) + temperatureDesertCurve(temperature));
+    // let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
+    // let seaDepth = c(1 - height / seaLevel);
+    // let iciness = c(heightIcinessCurve(height) + temperatureIcinessCurve(temperature));
+    // let desert = c(moistureDesertCurve(moisture) + temperatureDesertCurve(temperature));
 
-            // convert point to color
-    let sh = heightAboveSeaLevel;
-    let sd = seaDepth;
-    let m = moisture;
-    let t = temperature;
-    let i = iciness;
-    let d = desert;
+    //         // convert point to color
+    // let sh = heightAboveSeaLevel;
+    // let sd = seaDepth;
+    // let m = moisture;
+    // let t = temperature;
+    // let i = iciness;
+    // let d = desert;
 
-    if isSea {
-        let seaHsv = vec3f(
-            229.0 / 360.0,
-            0.47 + sd * 0.242 - 0.1 + t * 0.2,
-            0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
-        );
+    // if isSea {
+    //     let seaHsv = vec3f(
+    //         229.0 / 360.0,
+    //         0.47 + sd * 0.242 - 0.1 + t * 0.2,
+    //         0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
+    //     );
 
-        return vec4<f32>(hsv2rgb(vec3f(
-            seaHsv[0],
-            c(seaHsv[1] - 0.2 * i),
-            c(seaHsv[2] + 0.2 * i)
-        )), 1.0);
-    } else {
-        let landHsv = vec3f(
-            77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
-            0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-            0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
-        );
+    //     return vec4<f32>(hsv2rgb(vec3f(
+    //         seaHsv[0],
+    //         c(seaHsv[1] - 0.2 * i),
+    //         c(seaHsv[2] + 0.2 * i)
+    //     )), 1.0);
+    // } else {
+    //     let landHsv = vec3f(
+    //         77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
+    //         0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
+    //         0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
+    //     );
 
-        return vec4<f32>(hsv2rgb(vec3f(
-            landHsv[0] - d * 0.1,
-            c(landHsv[1] - 0.3 * i + d * 0.1),
-            c(landHsv[2] + 0.6 * i + d * 0.45),
-        )), 1.0);
-    }
+    //     return vec4<f32>(hsv2rgb(vec3f(
+    //         landHsv[0] - d * 0.1,
+    //         c(landHsv[1] - 0.3 * i + d * 0.1),
+    //         c(landHsv[2] + 0.6 * i + d * 0.45),
+    //     )), 1.0);
+    // }
 }
 
 @vertex
@@ -238,13 +249,56 @@ fn vertexMain(
     let z = uniforms.z;
 
     var height = worldPointHeight(x, y, z);
-    if (height < seaLevel) {
+    var temperature = worldPointTemperature(x, y, z);
+    var moisture = worldPointMoisture(x, y, z);
+
+    let iciness = c(heightIcinessCurve(height) + temperatureIcinessCurve(temperature));
+    let desert = c(moistureDesertCurve(moisture) + temperatureDesertCurve(temperature));
+
+
+    let isSea = height < seaLevel;
+    if (isSea) {
         height = seaLevel;
     }
     output.position = uniforms2.transform * vec4f(position.xy, -2.5 + height * 3.0, 1.0);
     output.uv = uv;
-    // TODO fragPosition is not being used, probably should be instead of face 
-    output.fragPosition = (position + vec4(1.0, 1.0, 1.0, 1.0));
     output.face = face;
+    let m = moisture;
+    let t = temperature;
+    let i = iciness;
+    let d = desert;
+
+    if(isSea) {
+        let seaDepth = c(1 - height / seaLevel);
+        let sd = seaDepth;
+        let seaHsv = vec3f(
+            229.0 / 360.0,
+            0.47 + sd * 0.242 - 0.1 + t * 0.2,
+            0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
+        );
+        output.color = vec4<f32>(hsv2rgb(vec3f(
+            seaHsv[0],
+            c(seaHsv[1] - 0.2 * i),
+            c(seaHsv[2] + 0.2 * i)
+        )), 1.0);
+    } else {
+        let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
+        let sh = heightAboveSeaLevel;
+    
+        let landHsv = vec3f(
+            77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
+            0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
+            0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
+        );
+
+        output.color = vec4<f32>(hsv2rgb(vec3f(
+            landHsv[0] - d * 0.1,
+            c(landHsv[1] - 0.3 * i + d * 0.1),
+            c(landHsv[2] + 0.6 * i + d * 0.45),
+        )), 1.0);
+        
+    }
+
+    
     return output;
 }

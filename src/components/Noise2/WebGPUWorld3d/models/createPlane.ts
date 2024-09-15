@@ -3,7 +3,7 @@ import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
 // import vertexWgsl from "../shaders/worldVertex.wgsl?raw";
 import fragmentWgsl from "../shaders/worldFragment.wgsl?raw";
-import { createModelBuffer, createUniformBuffer } from "../lib/buffer";
+import { createVertexBuffer, createUniformBuffer, createIndexBuffer } from "../lib/buffer";
 import { createLayout } from "../lib/webgpu";
 
 export function createPlane(
@@ -11,8 +11,9 @@ export function createPlane(
   getWorldMapUniforms: () => Float32Array,
   getCamera: () => Camera
 ) {
-  const geometry = createPlaneGeometry("plane", 10, 10, 100, 100);
-  const modelBuffer = createModelBuffer(device, geometry);
+  const geometry = createPlaneGeometry("plane", 10, 10, 500, 500);
+  const vertexBuffer = createVertexBuffer(device, geometry);
+  const indexBuffer = createIndexBuffer(device, geometry);
   const layout: GPUVertexBufferLayout = {
     arrayStride: geometry.vertexSize,
     attributes: [
@@ -90,10 +91,13 @@ export function createPlane(
 
   function render(renderPass: GPURenderPassEncoder) {
     renderPass.setPipeline(pipeline);
-    renderPass.setVertexBuffer(0, modelBuffer);
+    renderPass.setVertexBuffer(0, vertexBuffer);
+    renderPass.setIndexBuffer(indexBuffer, 'uint32'); // Or 'uint16' if using smaller indices
     renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
     renderPass.setBindGroup(1, buffers.planeMatrix.bindGroup);
-    renderPass.draw(geometry.vertexCount);
+    // renderPass.draw(geometry.vertexCount);
+    renderPass.drawIndexed(geometry.vertexCount, 1, 0, 0, 0);
+
   }
 
   return { transform, pipeline, buffers, render, updateBuffers };

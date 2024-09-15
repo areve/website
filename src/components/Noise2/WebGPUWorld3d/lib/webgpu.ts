@@ -1,9 +1,10 @@
 import { vec3 } from "wgpu-matrix";
-import { createModelBuffer } from "./buffer";
+import { createVertexBuffer } from "./buffer";
 import { applyCamera, Camera } from "./camera";
 
 export interface Geometry {
   vertexArray: Float32Array;
+  indexArray: Uint32Array;
   vertexCount: number;
   vertexSize: number; // Byte size of one cube vertex.
   positionOffset: number;

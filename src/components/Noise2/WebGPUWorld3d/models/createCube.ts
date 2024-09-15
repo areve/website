@@ -2,7 +2,7 @@ import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
 import vertexWgsl from "../shaders/simpleVertex.wgsl?raw";
 import fragmentWgsl from "../shaders/simpleFragment.wgsl?raw";
-import { createModelBuffer, createUniformBuffer } from "../lib/buffer";
+import { createVertexBuffer, createUniformBuffer } from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
 import { createLayout } from "../lib/webgpu";
 
@@ -12,7 +12,7 @@ export function createCube(
   getCamera: () => Camera
 ) {
   const geometry = createCubeGeometry("cube");
-  const modelBuffer = createModelBuffer(device, geometry);
+  const modelBuffer = createVertexBuffer(device, geometry);
   const layout = createLayout(geometry);
 
   const transform = {

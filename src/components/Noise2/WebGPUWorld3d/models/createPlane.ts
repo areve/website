@@ -31,7 +31,7 @@ export function createPlane(
       {
         // faceCoord
         shaderLocation: 2,
-        offset: geometry.faceCoord,
+        offset: geometry.faceCoordOffset,
         format: "float32x2",
       },
     ],

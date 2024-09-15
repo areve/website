@@ -6,7 +6,7 @@ export function createPlaneGeometry(
   height = 1.0,
   widthSegments = 4,
   heightSegments = 4
-): Geometry & { faceCoord: number } {
+): Geometry & { faceCoordOffset: number } {
   const xStep = width / widthSegments;
   const yStep = height / heightSegments;
 
@@ -47,7 +47,7 @@ export function createPlaneGeometry(
     vertexSize: float32size * componentsPerVertex,
     positionOffset: 0,
     uvOffset: float32size * 4,
-    faceCoord: float32size * 6,
+    faceCoordOffset: float32size * 6,
     label,
   };
 }

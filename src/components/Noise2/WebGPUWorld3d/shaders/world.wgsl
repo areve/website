@@ -9,18 +9,17 @@ struct Uniforms {
     zoom: f32
 };
 
-
 struct VertexOutput {
   @builtin(position) position: vec4f,
   @location(0) uv: vec2f,
   @location(1) color: vec4f,
   @location(2) face: vec2f,
+  @location(3) normal: vec3f,
 }
 
 struct Uniforms2 {
   transform: mat4x4f
 };
-
 
 @group(0) @binding(0)
 var<uniform> uniforms: Uniforms;
@@ -168,16 +167,6 @@ fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
 
 const seaLevel = 0.6;
 
-@fragment
-fn fragMain(
-    @location(0) uv: vec2f,
-    @location(1) color: vec4f,
-    @location(2) face: vec2f,
-) -> @location(0) vec4f {
-
-    return vec4f(color.xyz, 1.0);
-}
-
 @vertex
 fn vertexMain(
     @location(0) position: vec4f,
@@ -191,8 +180,27 @@ fn vertexMain(
     let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
     let y = uniforms.height - coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
     let z = uniforms.z;
-
     var height = worldPointHeight(x, y, z);
+
+    var offset = 0.1;
+    var pos = vec4(x, y, height, 0.0);
+    let hA = worldPointHeight(x + 10.0, y, z);
+    let hB = worldPointHeight(x, y + 10.0, z);
+    var neighbourA = vec4(x + 0.1, y, hA, 0.0);
+    var neighbourB = vec4(x, y + 0.1, hB, 0.0);
+
+    var toA = normalize(neighbourA.xyz - pos.xyz);
+    var toB = normalize(neighbourB.xyz - pos.xyz);
+    // output.normal = vec3f(0.0, 0.0, 0.5); //cross(toA, toB);
+    // output.normal = vec3(toA.xy, 0.0);// normalize(cross(toA, toB));
+    // output.normal = vec3(hA, hB, 0.0);//normalize(cross(toA, toB));
+    // const toB = neighbour2.sub(coord).normalize();
+    // vNormal.assign(cross(toA, toB));
+    output.normal = normalize(cross(toA, toB));
+    // output.normal = toB;//vec3(toA.x, toA.y, 0.0);
+
+
+
     var temperature = worldPointTemperature(x, y, z);
     var moisture = worldPointMoisture(x, y, z);
 
@@ -220,6 +228,7 @@ fn vertexMain(
             0.47 + sd * 0.242 - 0.1 + t * 0.2,
             0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
         );
+        output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
         output.color = vec4<f32>(hsv2rgb(vec3f(
             seaHsv[0],
             c(seaHsv[1] - 0.2 * i),
@@ -243,6 +252,30 @@ fn vertexMain(
         
     }
 
-    
     return output;
+}
+
+
+@fragment
+fn fragMain(
+    @location(0) uv: vec2f,
+    @location(1) color: vec4f,
+    @location(2) face: vec2f,
+    @location(3) normal: vec3f,
+) -> @location(0) vec4f {
+    // Define a light direction 
+    let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); // z is top (at the moment, I think I will change this soon)
+
+    // Compute the dot product between the normal and the light direction
+    let lightIntensity: f32 = dot((normal), lightDir);
+
+    // Clamp the light intensity to the range [0, 1] to avoid negative values
+    let intensity: f32 = max(lightIntensity, 0.0);
+
+    // Use the intensity to modulate the color
+    // return vec4f(intensity, intensity, intensity, 1.0);
+    // return vec4f(normal, 1.0);
+    return vec4f((color.rgb * intensity * 2 + color.rgb) / 3.0, 1.0);
+    // return vec4f(color.rgb, 1.0);
+
 }

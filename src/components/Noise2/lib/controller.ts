@@ -38,10 +38,8 @@ export const makeController = function () {
       origin: { x: 0, y: 0 },
     },
     dragging: {
-      startX: 0,
-      startY: 0,
-      currentX: 0,
-      currentY: 0,
+      start: { x: 0, y: 0 },
+      current: { x: 0, y: 0 },
       isDragging: false,
     },
     pinching: {
@@ -120,16 +118,17 @@ export const makeController = function () {
       controller.value.zoom *= zoomChange;
 
       if (states.dragging.isDragging) {
-        const deltaX =
-          (states.dragging.startX - states.dragging.currentX) *
-          controller.value.zoom;
-        const deltaY =
-          (states.dragging.startY - states.dragging.currentY) *
-          controller.value.zoom;
-        controller.value.x += deltaX;
-        controller.value.y += deltaY;
-        states.dragging.startX = states.dragging.currentX;
-        states.dragging.startY = states.dragging.currentY;
+        const delta = {
+          x:
+            (states.dragging.start.x - states.dragging.current.x) *
+            controller.value.zoom,
+          y:
+            (states.dragging.start.y - states.dragging.current.y) *
+            controller.value.zoom,
+        };
+        controller.value.x += delta.x;
+        controller.value.y += delta.y;
+        states.dragging.start = states.dragging.current;
       }
 
       if (states.pinching.isPinching) {
@@ -183,8 +182,7 @@ export const makeController = function () {
 
   function onMouseDown(event: MouseEvent) {
     const scale = getScale();
-    states.dragging.currentX = states.dragging.startX = event.clientX * scale;
-    states.dragging.currentY = states.dragging.startY = event.clientY * scale;
+    states.dragging.start = states.dragging.current = getClientCoord(event);
     states.dragging.isDragging = true;
     event.preventDefault();
   }
@@ -211,9 +209,7 @@ export const makeController = function () {
   function onMouseMove(event: MouseEvent) {
     states.pointer.origin = getClientCoord(event);
     if (states.dragging.isDragging) {
-      const scale = getScale();
-      states.dragging.currentX = event.clientX * scale;
-      states.dragging.currentY = event.clientY * scale;
+      states.dragging.current = getClientCoord(event);
       event.preventDefault();
     }
   }
@@ -229,7 +225,7 @@ export const makeController = function () {
   function onMouseOut() {
     states.isPointerOver = false;
   }
-  
+
   function onWheel(event: WheelEvent) {
     states.pointer.origin = getClientCoord(event);
     const maxSpeed = options.zoom.maxSpeed;
@@ -242,8 +238,7 @@ export const makeController = function () {
   function onTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
       const [touch1] = event.touches as unknown as [Touch];
-      states.dragging.currentX = states.dragging.startX = touch1.clientX;
-      states.dragging.currentY = states.dragging.startY = touch1.clientY;
+      states.dragging.start = states.dragging.current = getClientCoord(touch1);
       states.dragging.isDragging = true;
       event.preventDefault();
     } else if (event.touches.length === 2) {
@@ -257,8 +252,7 @@ export const makeController = function () {
   function onTouchMove(event: TouchEvent) {
     if (event.touches.length === 1 && states.dragging.isDragging) {
       const [touch1] = event.touches as unknown as [Touch];
-      states.dragging.currentX = touch1.clientX;
-      states.dragging.currentY = touch1.clientY;
+      states.dragging.current = getClientCoord(touch1);
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
@@ -279,8 +273,7 @@ export const makeController = function () {
       event.preventDefault();
     } else if (event.touches.length === 1) {
       const [touch1] = event.touches as unknown as [Touch];
-      states.dragging.currentX = states.dragging.startX = touch1.clientX;
-      states.dragging.currentY = states.dragging.startY = touch1.clientY;
+      states.dragging.start = states.dragging.current = getClientCoord(touch1);
       states.dragging.isDragging = true;
       states.pinching.isPinching = false;
       event.preventDefault();

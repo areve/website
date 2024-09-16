@@ -10,8 +10,8 @@ export const makeController = function () {
       maxSpeed: 300,
     },
     moveY: {
-      increaseKeys: ["w"],
-      decreaseKeys: ["s"],
+      increaseKeys: ["s"],
+      decreaseKeys: ["w"],
       accel: 2000,
       decel: 2000,
       maxSpeed: 300,
@@ -94,19 +94,20 @@ export const makeController = function () {
         states.keyboard.buttons.moveX,
         diffTime
       );
+      controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
+
       states.keyboard.buttons.moveY.speed = updateSpeed(
         options.moveY,
         states.keyboard.buttons.moveY,
         diffTime
       );
+      controller.value.y += states.keyboard.buttons.moveY.speed * diffTime;
+
       states.keyboard.buttons.zoom.speed = updateSpeed(
         options.zoom,
         states.keyboard.buttons.zoom,
         diffTime
       );
-
-      controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
-      controller.value.y -= states.keyboard.buttons.moveY.speed * diffTime;
 
       const zoomChange = 1 - states.keyboard.buttons.zoom.speed * diffTime;
       controller.value.x +=
@@ -153,12 +154,6 @@ export const makeController = function () {
   });
   return controller;
 
-  function getScale() {
-    return bindElement.nodeName === "CANVAS"
-      ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
-      : 1;
-  }
-
   function onKeyDown(event: KeyboardEvent) {
     if (states.isPointerOver) {
       updateButtonState(event.key, true);
@@ -181,14 +176,17 @@ export const makeController = function () {
   }
 
   function onMouseDown(event: MouseEvent) {
-    const scale = getScale();
     states.dragging.start = states.dragging.current = getClientCoord(event);
     states.dragging.isDragging = true;
     event.preventDefault();
   }
 
   function getClientCoord(event: MouseEvent | Touch, touch2?: Touch) {
-    const scale = getScale();
+    const scale =
+      bindElement.nodeName === "CANVAS"
+        ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
+        : 1;
+
     const canvasRect = bindElement.getBoundingClientRect();
     const x =
       ((touch2?.clientX

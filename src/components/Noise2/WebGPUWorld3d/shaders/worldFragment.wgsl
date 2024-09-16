@@ -189,7 +189,7 @@ fn vertexMain(
     let coord = vec4( (face.x + uv.x) * scale, (face.y + uv.y) * scale, 0.0, 0.0);
 
     let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
-    let y = coord.y / uniforms.scale * uniforms.zoom - uniforms.y / uniforms.scale;
+    let y = uniforms.height - coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
     let z = uniforms.z;
 
     var height = worldPointHeight(x, y, z);

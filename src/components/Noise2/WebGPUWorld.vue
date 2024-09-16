@@ -247,7 +247,7 @@ async function setupWorldRenderer(
 
         // calculate point
         let x = coord.x / data.scale * data.zoom + data.x / data.scale;
-        let y = data.height - coord.y / data.scale * data.zoom - data.y / data.scale;
+        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
         let z = data.z;
 
         let height1 = openSimplex3d(data.seed * 112345, x / 129, y / 129, z / 129);

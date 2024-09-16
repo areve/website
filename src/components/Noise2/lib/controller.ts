@@ -26,23 +26,23 @@ export const makeController = function () {
   };
 
   const states = {
+    isPointerOver: false,
     keyboard: {
       buttons: {
         moveX: { increasing: false, decreasing: false, speed: 0 },
         moveY: { increasing: false, decreasing: false, speed: 0 },
         zoom: { increasing: false, decreasing: false, speed: 0 },
       },
-      mouseover: false,
     },
     pointer: {
       origin: { x: 0, y: 0 },
     },
-    panning: {
+    dragging: {
       startX: 0,
       startY: 0,
       currentX: 0,
       currentY: 0,
-      dragging: false,
+      isDragging: false,
     },
     pinching: {
       origin: { x: 0, y: 0 },
@@ -50,7 +50,7 @@ export const makeController = function () {
       startDistance: 0,
       pinchRatio: 1,
       currentPinchDistance: 0,
-      zooming: false,
+      isPinching: false,
     },
   };
 
@@ -119,20 +119,20 @@ export const makeController = function () {
         (controller.value.zoom - controller.value.zoom * zoomChange);
       controller.value.zoom *= zoomChange;
 
-      if (states.panning.dragging) {
+      if (states.dragging.isDragging) {
         const deltaX =
-          (states.panning.startX - states.panning.currentX) *
+          (states.dragging.startX - states.dragging.currentX) *
           controller.value.zoom;
         const deltaY =
-          (states.panning.startY - states.panning.currentY) *
+          (states.dragging.startY - states.dragging.currentY) *
           controller.value.zoom;
         controller.value.x += deltaX;
         controller.value.y += deltaY;
-        states.panning.startX = states.panning.currentX;
-        states.panning.startY = states.panning.currentY;
+        states.dragging.startX = states.dragging.currentX;
+        states.dragging.startY = states.dragging.currentY;
       }
 
-      if (states.pinching.zooming) {
+      if (states.pinching.isPinching) {
         const zoomChange = states.pinching.pinchRatio;
         controller.value.x +=
           states.pinching.origin.x *
@@ -161,7 +161,7 @@ export const makeController = function () {
   }
 
   function onKeyDown(event: KeyboardEvent) {
-    if (states.keyboard.mouseover) {
+    if (states.isPointerOver) {
       updateButtonState(event.key, true);
     }
   }
@@ -183,9 +183,9 @@ export const makeController = function () {
 
   function onMouseDown(event: MouseEvent) {
     const scale = getScale();
-    states.panning.currentX = states.panning.startX = event.clientX * scale;
-    states.panning.currentY = states.panning.startY = event.clientY * scale;
-    states.panning.dragging = true;
+    states.dragging.currentX = states.dragging.startX = event.clientX * scale;
+    states.dragging.currentY = states.dragging.startY = event.clientY * scale;
+    states.dragging.isDragging = true;
     event.preventDefault();
   }
 
@@ -210,46 +210,55 @@ export const makeController = function () {
 
   function onMouseMove(event: MouseEvent) {
     states.pointer.origin = getClientCoord(event);
-    if (states.panning.dragging) {
+    if (states.dragging.isDragging) {
       const scale = getScale();
-      states.panning.currentX = event.clientX * scale;
-      states.panning.currentY = event.clientY * scale;
+      states.dragging.currentX = event.clientX * scale;
+      states.dragging.currentY = event.clientY * scale;
       event.preventDefault();
     }
   }
 
   function onMouseUp() {
-    states.panning.dragging = false;
+    states.dragging.isDragging = false;
   }
 
   function onMouseOver() {
-    states.keyboard.mouseover = true;
+    states.isPointerOver = true;
   }
 
   function onMouseOut() {
-    states.keyboard.mouseover = false;
+    states.isPointerOver = false;
+  }
+  
+  function onWheel(event: WheelEvent) {
+    states.pointer.origin = getClientCoord(event);
+    const maxSpeed = options.zoom.maxSpeed;
+    const zoomChange = event.deltaY * maxSpeed;
+    const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
+    states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
+    event.preventDefault();
   }
 
   function onTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
       const [touch1] = event.touches as unknown as [Touch];
-      states.panning.currentX = states.panning.startX = touch1.clientX;
-      states.panning.currentY = states.panning.startY = touch1.clientY;
-      states.panning.dragging = true;
+      states.dragging.currentX = states.dragging.startX = touch1.clientX;
+      states.dragging.currentY = states.dragging.startY = touch1.clientY;
+      states.dragging.isDragging = true;
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       states.pinching.initialDistance = getDistance(touch1, touch2);
-      states.panning.dragging = false;
+      states.dragging.isDragging = false;
       event.preventDefault();
     }
   }
 
   function onTouchMove(event: TouchEvent) {
-    if (event.touches.length === 1 && states.panning.dragging) {
+    if (event.touches.length === 1 && states.dragging.isDragging) {
       const [touch1] = event.touches as unknown as [Touch];
-      states.panning.currentX = touch1.clientX;
-      states.panning.currentY = touch1.clientY;
+      states.dragging.currentX = touch1.clientX;
+      states.dragging.currentY = touch1.clientY;
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
@@ -258,33 +267,24 @@ export const makeController = function () {
       states.pinching.currentPinchDistance = currentPinchDistance;
       const pinchRatio = states.pinching.initialDistance / currentPinchDistance;
       states.pinching.pinchRatio = pinchRatio;
-      states.pinching.zooming = true;
+      states.pinching.isPinching = true;
       event.preventDefault();
     }
   }
 
   function onTouchEnd(event: TouchEvent) {
     if (event.touches.length === 0) {
-      states.panning.dragging = false;
-      states.pinching.zooming = false;
+      states.dragging.isDragging = false;
+      states.pinching.isPinching = false;
       event.preventDefault();
     } else if (event.touches.length === 1) {
       const [touch1] = event.touches as unknown as [Touch];
-      states.panning.currentX = states.panning.startX = touch1.clientX;
-      states.panning.currentY = states.panning.startY = touch1.clientY;
-      states.panning.dragging = true;
-      states.pinching.zooming = false;
+      states.dragging.currentX = states.dragging.startX = touch1.clientX;
+      states.dragging.currentY = states.dragging.startY = touch1.clientY;
+      states.dragging.isDragging = true;
+      states.pinching.isPinching = false;
       event.preventDefault();
     }
-  }
-
-  function onWheel(event: WheelEvent) {
-    states.pointer.origin = getClientCoord(event);
-    const maxSpeed = options.zoom.maxSpeed;
-    const zoomChange = event.deltaY * maxSpeed;
-    const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
-    states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
-    event.preventDefault();
   }
 };
 

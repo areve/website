@@ -72,11 +72,11 @@ export async function setupWorldRenderer(
       worldMapUniforms.z = t;
       cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      cube.updateBuffers();
+      // cube.updateBuffers();
       plane.updateBuffers();
 
       const renderPass = renderer.start(context);
-      cube.render(renderPass);
+      // cube.render(renderPass);
       plane.render(renderPass);
       return renderer.end();
     },

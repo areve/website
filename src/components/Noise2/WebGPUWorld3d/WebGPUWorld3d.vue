@@ -13,7 +13,11 @@ import { setupWorldRenderer } from "./lib/setupWorldRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
-const controller = makeController("baseline");
+const controller = makeController({
+  zoom: {
+    origin: "baseline",
+  },
+});
 
 const width = 500;
 const height = 500;

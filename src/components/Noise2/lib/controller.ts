@@ -1,33 +1,34 @@
 import { ref } from "vue";
+import { DeepPartial, deepAssign } from "./deepAssign";
 
-export const makeController = function (
-  zoomOrigin: "pointer" | "baseline" = "pointer"
-) {
-  const options = {
-    moveX: {
-      increaseKeys: ["d"],
-      decreaseKeys: ["a"],
-      accel: 2000,
-      decel: 2000,
-      maxSpeed: 300,
-    },
-    moveY: {
-      increaseKeys: ["s"],
-      decreaseKeys: ["w"],
-      accel: 2000,
-      decel: 2000,
-      maxSpeed: 300,
-    },
-    zoom: {
-      increaseKeys: ["'"],
-      decreaseKeys: ["/"],
-      accel: 20,
-      decel: 20,
-      maxSpeed: 2,
-      origin: zoomOrigin,
-    },
-  };
+const defaultOptions = {
+  moveX: {
+    increaseKeys: ["d"],
+    decreaseKeys: ["a"],
+    accel: 2000,
+    decel: 2000,
+    maxSpeed: 300,
+  },
+  moveY: {
+    increaseKeys: ["s"],
+    decreaseKeys: ["w"],
+    accel: 2000,
+    decel: 2000,
+    maxSpeed: 300,
+  },
+  zoom: {
+    increaseKeys: ["'"],
+    decreaseKeys: ["/"],
+    accel: 20,
+    decel: 20,
+    maxSpeed: 2,
+    origin: "pointer" as "pointer" | "baseline",
+  },
+};
 
+type Options = typeof defaultOptions;
+export const makeController = function (options: DeepPartial<Options> = {}) {
+  const opt = deepAssign({} as Options, defaultOptions, options);
   const states = {
     isPointerOver: false,
     keyboard: {
@@ -92,21 +93,21 @@ export const makeController = function (
       const diffTime = now - prevTime;
 
       states.keyboard.buttons.moveX.speed = updateSpeed(
-        options.moveX,
+        opt.moveX,
         states.keyboard.buttons.moveX,
         diffTime
       );
       controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
 
       states.keyboard.buttons.moveY.speed = updateSpeed(
-        options.moveY,
+        opt.moveY,
         states.keyboard.buttons.moveY,
         diffTime
       );
       controller.value.y += states.keyboard.buttons.moveY.speed * diffTime;
 
       states.keyboard.buttons.zoom.speed = updateSpeed(
-        options.zoom,
+        opt.zoom,
         states.keyboard.buttons.zoom,
         diffTime
       );
@@ -148,9 +149,7 @@ export const makeController = function (
 
   function zoomBy(origin: { x: number; y: number }, zoomChange: number) {
     const o =
-      options.zoom.origin === "pointer"
-        ? origin
-        : { x: getBaselineCenter(), y: 0 };
+      opt.zoom.origin === "pointer" ? origin : { x: getBaselineCenter(), y: 0 };
     controller.value.x +=
       o.x * (controller.value.zoom - controller.value.zoom * zoomChange);
     controller.value.y +=
@@ -169,8 +168,8 @@ export const makeController = function (
   }
 
   function updateButtonState(key: string, pressed: boolean) {
-    for (const k in options) {
-      const { increaseKeys, decreaseKeys } = options[k as keyof typeof options];
+    for (const k in opt) {
+      const { increaseKeys, decreaseKeys } = opt[k as keyof typeof opt];
       const state =
         states.keyboard.buttons[k as keyof typeof states.keyboard.buttons];
       const lowerCaseKey = key.toLowerCase();
@@ -240,7 +239,7 @@ export const makeController = function (
 
   function onWheel(event: WheelEvent) {
     states.pointer.origin = getClientCoord(event);
-    const maxSpeed = options.zoom.maxSpeed;
+    const maxSpeed = opt.zoom.maxSpeed;
     const zoomChange = event.deltaY * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
     states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);

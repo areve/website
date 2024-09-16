@@ -191,7 +191,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         : 1;
 
     const canvasRect = bindElement.getBoundingClientRect();
-    return canvasRect.width / 2;
+    return canvasRect.width * scale / 2;
   }
 
   function getClientCoord(event: MouseEvent | Touch, touch2?: Touch) {

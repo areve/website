@@ -23,11 +23,11 @@
       <WebGPUOpenSimplex />
     </p>
     -->
+    <!--
     <p>
       <div>WebGPUWorld</div>
       <WebGPUWorld />
     </p> 
-    <!--
     -->
     <p>
       <div>WebGPUWorld3d</div>

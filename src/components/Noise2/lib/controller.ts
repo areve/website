@@ -1,6 +1,8 @@
 import { ref } from "vue";
 
-export const makeController = function () {
+export const makeController = function (
+  zoomOrigin: "pointer" | "baseline" = "pointer"
+) {
   const options = {
     moveX: {
       increaseKeys: ["d"],
@@ -22,6 +24,7 @@ export const makeController = function () {
       accel: 20,
       decel: 20,
       maxSpeed: 2,
+      origin: zoomOrigin,
     },
   };
 
@@ -46,7 +49,6 @@ export const makeController = function () {
       origin: { x: 0, y: 0 },
       initialDistance: 0,
       startDistance: 0,
-      pinchRatio: 1,
       currentPinchDistance: 0,
       isPinching: false,
     },
@@ -108,15 +110,10 @@ export const makeController = function () {
         states.keyboard.buttons.zoom,
         diffTime
       );
-
-      const zoomChange = 1 - states.keyboard.buttons.zoom.speed * diffTime;
-      controller.value.x +=
-        states.pointer.origin.x *
-        (controller.value.zoom - controller.value.zoom * zoomChange);
-      controller.value.y +=
-        states.pointer.origin.y *
-        (controller.value.zoom - controller.value.zoom * zoomChange);
-      controller.value.zoom *= zoomChange;
+      zoomBy(
+        states.pointer.origin,
+        1 - states.keyboard.buttons.zoom.speed * diffTime
+      );
 
       if (states.dragging.isDragging) {
         const delta = {
@@ -133,16 +130,11 @@ export const makeController = function () {
       }
 
       if (states.pinching.isPinching) {
-        const zoomChange = states.pinching.pinchRatio;
-        controller.value.x +=
-          states.pinching.origin.x *
-          (controller.value.zoom - controller.value.zoom * zoomChange);
-        controller.value.y +=
-          states.pinching.origin.y *
-          (controller.value.zoom - controller.value.zoom * zoomChange);
-        controller.value.zoom *= zoomChange;
+        const pinchRatio =
+          states.pinching.initialDistance /
+          states.pinching.currentPinchDistance;
+        zoomBy(states.pinching.origin, pinchRatio);
         states.pinching.initialDistance = states.pinching.currentPinchDistance;
-        states.pinching.pinchRatio = 1;
       }
 
       prevTime = now;
@@ -153,6 +145,18 @@ export const makeController = function () {
     zoom: 1,
   });
   return controller;
+
+  function zoomBy(origin: { x: number; y: number }, zoomChange: number) {
+    const o =
+      options.zoom.origin === "pointer"
+        ? origin
+        : { x: getBaselineCenter(), y: 0 };
+    controller.value.x +=
+      o.x * (controller.value.zoom - controller.value.zoom * zoomChange);
+    controller.value.y +=
+      o.y * (controller.value.zoom - controller.value.zoom * zoomChange);
+    controller.value.zoom *= zoomChange;
+  }
 
   function onKeyDown(event: KeyboardEvent) {
     if (states.isPointerOver) {
@@ -179,6 +183,16 @@ export const makeController = function () {
     states.dragging.start = states.dragging.current = getClientCoord(event);
     states.dragging.isDragging = true;
     event.preventDefault();
+  }
+
+  function getBaselineCenter() {
+    const scale =
+      bindElement.nodeName === "CANVAS"
+        ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
+        : 1;
+
+    const canvasRect = bindElement.getBoundingClientRect();
+    return canvasRect.width / 2;
   }
 
   function getClientCoord(event: MouseEvent | Touch, touch2?: Touch) {
@@ -255,10 +269,7 @@ export const makeController = function () {
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       states.pinching.origin = getClientCoord(touch1, touch2);
-      const currentPinchDistance = getDistance(touch1, touch2);
-      states.pinching.currentPinchDistance = currentPinchDistance;
-      const pinchRatio = states.pinching.initialDistance / currentPinchDistance;
-      states.pinching.pinchRatio = pinchRatio;
+      states.pinching.currentPinchDistance = getDistance(touch1, touch2);
       states.pinching.isPinching = true;
       event.preventDefault();
     }

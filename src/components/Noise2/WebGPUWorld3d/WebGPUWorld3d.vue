@@ -13,7 +13,7 @@ import { setupWorldRenderer } from "./lib/setupWorldRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
-const controller = makeController();
+const controller = makeController("baseline");
 
 const width = 500;
 const height = 500;

@@ -34,9 +34,8 @@ export const makeController = function () {
       },
       mouseover: false,
     },
-    zooming: {
-      originX: 0,
-      originY: 0,
+    pointer: {
+      origin: { x: 0, y: 0 },
     },
     panning: {
       startX: 0,
@@ -46,6 +45,7 @@ export const makeController = function () {
       dragging: false,
     },
     pinching: {
+      origin: { x: 0, y: 0 },
       initialDistance: 0,
       startDistance: 0,
       pinchRatio: 1,
@@ -91,35 +91,33 @@ export const makeController = function () {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
 
-      if (states.keyboard.mouseover) {
-        states.keyboard.buttons.moveX.speed = updateSpeed(
-          options.moveX,
-          states.keyboard.buttons.moveX,
-          diffTime
-        );
-        states.keyboard.buttons.moveY.speed = updateSpeed(
-          options.moveY,
-          states.keyboard.buttons.moveY,
-          diffTime
-        );
-        states.keyboard.buttons.zoom.speed = updateSpeed(
-          options.zoom,
-          states.keyboard.buttons.zoom,
-          diffTime
-        );
+      states.keyboard.buttons.moveX.speed = updateSpeed(
+        options.moveX,
+        states.keyboard.buttons.moveX,
+        diffTime
+      );
+      states.keyboard.buttons.moveY.speed = updateSpeed(
+        options.moveY,
+        states.keyboard.buttons.moveY,
+        diffTime
+      );
+      states.keyboard.buttons.zoom.speed = updateSpeed(
+        options.zoom,
+        states.keyboard.buttons.zoom,
+        diffTime
+      );
 
-        controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
-        controller.value.y -= states.keyboard.buttons.moveY.speed * diffTime;
+      controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
+      controller.value.y -= states.keyboard.buttons.moveY.speed * diffTime;
 
-        const zoomChange = 1 - states.keyboard.buttons.zoom.speed * diffTime;
-        controller.value.x +=
-          states.zooming.originX *
-          (controller.value.zoom - controller.value.zoom * zoomChange);
-        controller.value.y +=
-          states.zooming.originY *
-          (controller.value.zoom - controller.value.zoom * zoomChange);
-        controller.value.zoom *= zoomChange;
-      }
+      const zoomChange = 1 - states.keyboard.buttons.zoom.speed * diffTime;
+      controller.value.x +=
+        states.pointer.origin.x *
+        (controller.value.zoom - controller.value.zoom * zoomChange);
+      controller.value.y +=
+        states.pointer.origin.y *
+        (controller.value.zoom - controller.value.zoom * zoomChange);
+      controller.value.zoom *= zoomChange;
 
       if (states.panning.dragging) {
         const deltaX =
@@ -137,10 +135,10 @@ export const makeController = function () {
       if (states.pinching.zooming) {
         const zoomChange = states.pinching.pinchRatio;
         controller.value.x +=
-          states.zooming.originX *
+          states.pinching.origin.x *
           (controller.value.zoom - controller.value.zoom * zoomChange);
         controller.value.y +=
-          states.zooming.originY *
+          states.pinching.origin.y *
           (controller.value.zoom - controller.value.zoom * zoomChange);
         controller.value.zoom *= zoomChange;
         states.pinching.initialDistance = states.pinching.currentPinchDistance;
@@ -163,7 +161,9 @@ export const makeController = function () {
   }
 
   function onKeyDown(event: KeyboardEvent) {
-    updateButtonState(event.key, true);
+    if (states.keyboard.mouseover) {
+      updateButtonState(event.key, true);
+    }
   }
 
   function onKeyUp(event: KeyboardEvent) {
@@ -189,21 +189,27 @@ export const makeController = function () {
     event.preventDefault();
   }
 
-  function updateZoomingOrigin(event: MouseEvent | Touch, touch2?: Touch) {
+  function getClientCoord(event: MouseEvent | Touch, touch2?: Touch) {
     const scale = getScale();
     const canvasRect = bindElement.getBoundingClientRect();
-    states.zooming.originX =
+    const x =
       ((touch2?.clientX
         ? (touch2?.clientX + event.clientX) / 2
-        : event.clientX) - canvasRect.left) * scale;
-    states.zooming.originY =
+        : event.clientX) -
+        canvasRect.left) *
+      scale;
+    const y =
       ((touch2?.clientY
         ? (touch2?.clientY + event.clientY) / 2
-        : event.clientY) - canvasRect.top) * scale;
+        : event.clientY) -
+        canvasRect.top) *
+      scale;
+
+    return { x, y };
   }
 
   function onMouseMove(event: MouseEvent) {
-    updateZoomingOrigin(event);
+    states.pointer.origin = getClientCoord(event);
     if (states.panning.dragging) {
       const scale = getScale();
       states.panning.currentX = event.clientX * scale;
@@ -247,7 +253,7 @@ export const makeController = function () {
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
-      updateZoomingOrigin(touch1, touch2);
+      states.pinching.origin = getClientCoord(touch1, touch2);
       const currentPinchDistance = getDistance(touch1, touch2);
       states.pinching.currentPinchDistance = currentPinchDistance;
       const pinchRatio = states.pinching.initialDistance / currentPinchDistance;
@@ -273,7 +279,7 @@ export const makeController = function () {
   }
 
   function onWheel(event: WheelEvent) {
-    updateZoomingOrigin(event);
+    states.pointer.origin = getClientCoord(event);
     const maxSpeed = options.zoom.maxSpeed;
     const zoomChange = event.deltaY * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;

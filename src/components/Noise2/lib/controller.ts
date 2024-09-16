@@ -184,22 +184,20 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     event.preventDefault();
   }
 
-  function getBaselineCenter() {
-    const scale =
-      bindElement.nodeName === "CANVAS"
-        ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
-        : 1;
+  function getScale(bindElement: HTMLElement) {
+    return bindElement.nodeName === "CANVAS"
+      ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
+      : 1;
+  }
 
+  function getBaselineCenter() {
+    const scale = getScale(bindElement);
     const canvasRect = bindElement.getBoundingClientRect();
-    return canvasRect.width * scale / 2;
+    return (canvasRect.width * scale) / 2;
   }
 
   function getClientCoord(event: MouseEvent | Touch, touch2?: Touch) {
-    const scale =
-      bindElement.nodeName === "CANVAS"
-        ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
-        : 1;
-
+    const scale = getScale(bindElement);
     const canvasRect = bindElement.getBoundingClientRect();
     const x =
       ((touch2?.clientX
@@ -288,6 +286,12 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     }
   }
 };
+
+function newFunction(bindElement: HTMLElement) {
+  return bindElement.nodeName === "CANVAS"
+    ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
+    : 1;
+}
 
 function updateSpeed(
   options: { accel: number; decel: number; maxSpeed: number },

@@ -1,7 +1,7 @@
 import { vec3 } from "wgpu-matrix";
 import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
-import fragmentWgsl from "../shaders/worldFragment.wgsl?raw";
+import worldWgsl from "../shaders/world.wgsl?raw";
 import { createVertexBuffer, createUniformBuffer, createIndexBuffer } from "../lib/buffer";
 
 export function createPlane(
@@ -45,13 +45,13 @@ export function createPlane(
     layout: "auto",
     vertex: {
       module: device.createShaderModule({
-        code: fragmentWgsl,
+        code: worldWgsl,
       }),
       buffers: [layout],
     },
     fragment: {
       module: device.createShaderModule({
-        code: fragmentWgsl,
+        code: worldWgsl,
       }),
       targets: [
         {

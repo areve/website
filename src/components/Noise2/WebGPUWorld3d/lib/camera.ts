@@ -13,8 +13,8 @@ export function createCamera(width: number, height: number): Camera {
     100.0
   );
 
-  const translation = vec3.fromValues(0, 0, -12);
-  const rotation = vec3.fromValues(-Math.PI / 4, 0, 0);
+  const translation = vec3.fromValues(0, 1, -9);
+  const rotation = vec3.fromValues(-Math.PI / 5, 0, 0);
   
   let viewMatrix = mat4.create();
   mat4.translation(translation, viewMatrix);

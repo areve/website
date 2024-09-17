@@ -18,8 +18,15 @@ import { createCamera } from "./lib/camera";
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
 const controller = makeController({
-  zoom: {
-    origin: "baseline",
+  acceleratorKeys: {
+    zoom: {
+      origin: "baseline",
+    },
+  },
+  basicKeys: {
+    pause: {
+      startPaused: true,
+    },
   },
 });
 
@@ -36,10 +43,13 @@ onMounted(async () => {
     seed,
   });
   await renderer.init();
+  await renderer.update(0, controller.value);
   const render = async (time: DOMHighResTimeStamp) => {
-    await renderer.update(time, controller.value);
-    controller.value.update();
-    stats.value.update();
+    if (!controller.value.paused) {
+      await renderer.update(time, controller.value);
+      controller.value.update();
+      stats.value.update();
+    }
     frameId = requestAnimationFrame(render);
   };
 

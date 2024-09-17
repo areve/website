@@ -13,7 +13,9 @@ import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
-const controller = makeController();
+const controller = makeController({
+  basicKeys: { pause: { startPaused: true } },
+});
 const width = 500;
 const height = 200;
 const seed = 12345;
@@ -27,10 +29,13 @@ onMounted(async () => {
     seed,
   });
   await renderer.init();
+  await renderer.update(0, controller.value);
   const render = async (time: DOMHighResTimeStamp) => {
-    await renderer.update(time, controller.value);
-    controller.value.update();
-    stats.value.update();
+    if (!controller.value.paused) {
+      await renderer.update(time, controller.value);
+      controller.value.update();
+      stats.value.update();
+    }
     frameId = requestAnimationFrame(render);
   };
 

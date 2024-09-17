@@ -2,27 +2,35 @@ import { ref } from "vue";
 import { DeepPartial, deepAssign } from "./deepAssign";
 
 const defaultOptions = {
-  moveX: {
-    increaseKeys: ["d"],
-    decreaseKeys: ["a"],
-    accel: 2000,
-    decel: 2000,
-    maxSpeed: 300,
+  acceleratorKeys: {
+    moveX: {
+      increaseKeys: ["d"],
+      decreaseKeys: ["a"],
+      accel: 2000,
+      decel: 2000,
+      maxSpeed: 300,
+    },
+    moveY: {
+      increaseKeys: ["s"],
+      decreaseKeys: ["w"],
+      accel: 2000,
+      decel: 2000,
+      maxSpeed: 300,
+    },
+    zoom: {
+      increaseKeys: ["'"],
+      decreaseKeys: ["/"],
+      accel: 20,
+      decel: 20,
+      maxSpeed: 2,
+      origin: "pointer" as "pointer" | "baseline",
+    },
   },
-  moveY: {
-    increaseKeys: ["s"],
-    decreaseKeys: ["w"],
-    accel: 2000,
-    decel: 2000,
-    maxSpeed: 300,
-  },
-  zoom: {
-    increaseKeys: ["'"],
-    decreaseKeys: ["/"],
-    accel: 20,
-    decel: 20,
-    maxSpeed: 2,
-    origin: "pointer" as "pointer" | "baseline",
+  basicKeys: {
+    pause: {
+      toggleKeys: [" ", "p"],
+      startPaused: false,
+    },
   },
 };
 
@@ -65,12 +73,14 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement = element;
       bindGlobalElement.addEventListener("keydown", onKeyDown);
       bindGlobalElement.addEventListener("keyup", onKeyUp);
+      bindGlobalElement.addEventListener("keypress", onKeyPress);
       bindElement.addEventListener("mousedown", onMouseDown);
       bindGlobalElement.addEventListener("mousemove", onMouseMove);
       bindGlobalElement.addEventListener("mouseup", onMouseUp);
       bindElement.addEventListener("mouseout", onMouseOut);
       bindElement.addEventListener("mouseover", onMouseOver);
       bindElement.addEventListener("wheel", onWheel);
+      bindElement.addEventListener("click", onClick);
       bindElement.addEventListener("touchstart", onTouchStart);
       bindElement.addEventListener("touchmove", onTouchMove);
       bindElement.addEventListener("touchend", onTouchEnd);
@@ -78,12 +88,14 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     unmount() {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
+      bindGlobalElement.removeEventListener("keypress", onKeyPress);
       bindElement.removeEventListener("mousedown", onMouseDown);
       bindGlobalElement.removeEventListener("mousemove", onMouseMove);
       bindGlobalElement.removeEventListener("mouseup", onMouseUp);
       bindElement.removeEventListener("mouseout", onMouseOut);
       bindElement.removeEventListener("mouseover", onMouseOver);
       bindElement.removeEventListener("wheel", onWheel);
+      bindElement.removeEventListener("click", onClick);
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindElement.removeEventListener("touchmove", onTouchMove);
       bindElement.removeEventListener("touchend", onTouchEnd);
@@ -93,21 +105,21 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       const diffTime = now - prevTime;
 
       states.keyboard.buttons.moveX.speed = updateSpeed(
-        opt.moveX,
+        opt.acceleratorKeys.moveX,
         states.keyboard.buttons.moveX,
         diffTime
       );
       controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
 
       states.keyboard.buttons.moveY.speed = updateSpeed(
-        opt.moveY,
+        opt.acceleratorKeys.moveY,
         states.keyboard.buttons.moveY,
         diffTime
       );
       controller.value.y += states.keyboard.buttons.moveY.speed * diffTime;
 
       states.keyboard.buttons.zoom.speed = updateSpeed(
-        opt.zoom,
+        opt.acceleratorKeys.zoom,
         states.keyboard.buttons.zoom,
         diffTime
       );
@@ -144,12 +156,15 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     y: 0,
     z: 0,
     zoom: 1,
+    paused: opt.basicKeys.pause.startPaused,
   });
   return controller;
 
   function zoomBy(origin: { x: number; y: number }, zoomChange: number) {
     const o =
-      opt.zoom.origin === "pointer" ? origin : { x: getBaselineCenter(), y: 0 };
+      opt.acceleratorKeys.zoom.origin === "pointer"
+        ? origin
+        : { x: getBaselineCenter(), y: 0 };
     controller.value.x +=
       o.x * (controller.value.zoom - controller.value.zoom * zoomChange);
     controller.value.y +=
@@ -159,17 +174,28 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
 
   function onKeyDown(event: KeyboardEvent) {
     if (states.isPointerOver) {
-      updateButtonState(event.key, true);
+      handleAcceleratorKeys(event.key, true);
     }
   }
 
   function onKeyUp(event: KeyboardEvent) {
-    updateButtonState(event.key, false);
+    handleAcceleratorKeys(event.key, false);
   }
 
-  function updateButtonState(key: string, pressed: boolean) {
-    for (const k in opt) {
-      const { increaseKeys, decreaseKeys } = opt[k as keyof typeof opt];
+  function onKeyPress(event: KeyboardEvent) {
+    if (states.isPointerOver) {
+      const lowerCaseKey = event.key.toLowerCase();
+      if (opt.basicKeys.pause.toggleKeys.includes(lowerCaseKey)) {
+        controller.value.paused = !controller.value.paused;
+        event.preventDefault();
+      }
+    }
+  }
+
+  function handleAcceleratorKeys(key: string, pressed: boolean) {
+    for (const k in opt.acceleratorKeys) {
+      const { increaseKeys, decreaseKeys } =
+        opt.acceleratorKeys[k as keyof typeof opt.acceleratorKeys];
       const state =
         states.keyboard.buttons[k as keyof typeof states.keyboard.buttons];
       const lowerCaseKey = key.toLowerCase();
@@ -237,10 +263,15 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
 
   function onWheel(event: WheelEvent) {
     states.pointer.origin = getClientCoord(event);
-    const maxSpeed = opt.zoom.maxSpeed;
+    const maxSpeed = opt.acceleratorKeys.zoom.maxSpeed;
     const zoomChange = event.deltaY * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
     states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
+    event.preventDefault();
+  }
+
+  function onClick(event: MouseEvent) {
+    controller.value.paused = !controller.value.paused;
     event.preventDefault();
   }
 
@@ -286,12 +317,6 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     }
   }
 };
-
-function newFunction(bindElement: HTMLElement) {
-  return bindElement.nodeName === "CANVAS"
-    ? (bindElement as HTMLCanvasElement).width / bindElement.offsetWidth
-    : 1;
-}
 
 function updateSpeed(
   options: { accel: number; decel: number; maxSpeed: number },

@@ -17,7 +17,7 @@ const controller = makeController({
   basicKeys: { pause: { startPaused: true } },
 });
 const width = 500;
-const height = 500;
+const height = 200;
 const seed = 12345;
 
 let frameId: number = 0;

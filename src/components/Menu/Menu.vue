@@ -85,12 +85,12 @@
           <li>
             <router-link to="/world2" @click="toggle()">World</router-link>
           </li>
-          <li>
+          <!-- <li>
             <router-link to="/world3d" @click="toggle()">World 3D</router-link>
-          </li>
-          <li>
+          </li> -->
+          <!-- <li>
             <router-link to="/webgl" @click="toggle()">WebGL</router-link>
-          </li>
+          </li> -->
           <li>
             <router-link to="/noise2" @click="toggle()">Noise2</router-link>
           </li>

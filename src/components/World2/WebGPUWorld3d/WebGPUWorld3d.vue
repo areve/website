@@ -26,7 +26,7 @@ const controller = makeController({
   },
   basicKeys: {
     pause: {
-      startPaused: true,
+      startPaused: false,
     },
   },
 });

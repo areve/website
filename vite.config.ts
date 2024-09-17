@@ -8,9 +8,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        entryFileNames: `a[name].[hash].v1.js`,
-        chunkFileNames: `a[name].[hash].v1.js`,
-        assetFileNames: `a[name].[hash].v1.[ext]`
+        // prefixing with any none _ character, because of a gh-pages issue I think
+        entryFileNames: `x[name].[hash].js`,
+        chunkFileNames: `x[name].[hash].js`,
+        assetFileNames: `x[name].[hash].[ext]`
       }
     }
   },

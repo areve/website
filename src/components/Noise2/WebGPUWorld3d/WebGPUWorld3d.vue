@@ -129,7 +129,6 @@ async function setupWorldRenderer(
     },
   };
 }
-
 </script>
 
 <style scoped></style>

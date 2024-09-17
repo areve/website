@@ -5,6 +5,15 @@ export default defineConfig({
   server: {
     port: 3000,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: `[name].[hash].v1.js`,
+        chunkFileNames: `[name].[hash].v1.js`,
+        assetFileNames: `[name].[hash].v1.[ext]`
+      }
+    }
+  },
   resolve: {
     alias: {
       "three/addons": "three/examples/jsm",

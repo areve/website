@@ -63,6 +63,9 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     },
   };
 
+  let lastTapTime = 0;
+  const doubleTapThreshold = 300; // Maximum delay (in ms) between taps for a double tap
+
   let bindElement: HTMLElement;
   let bindGlobalElement: Document;
   const start = performance.now() / 1000;
@@ -80,7 +83,6 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.addEventListener("mouseout", onMouseOut);
       bindElement.addEventListener("mouseover", onMouseOver);
       bindElement.addEventListener("wheel", onWheel);
-      bindElement.addEventListener("click", onClick);
       bindElement.addEventListener("touchstart", onTouchStart);
       bindElement.addEventListener("touchmove", onTouchMove);
       bindElement.addEventListener("touchend", onTouchEnd);
@@ -95,7 +97,6 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.removeEventListener("mouseout", onMouseOut);
       bindElement.removeEventListener("mouseover", onMouseOver);
       bindElement.removeEventListener("wheel", onWheel);
-      bindElement.removeEventListener("click", onClick);
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindElement.removeEventListener("touchmove", onTouchMove);
       bindElement.removeEventListener("touchend", onTouchEnd);
@@ -205,6 +206,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   }
 
   function onMouseDown(event: MouseEvent) {
+    handleDoubleTap(event);
     states.dragging.start = states.dragging.current = getClientCoord(event);
     states.dragging.isDragging = true;
     event.preventDefault();
@@ -270,13 +272,19 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     event.preventDefault();
   }
 
-  function onClick(event: MouseEvent) {
-    controller.value.paused = !controller.value.paused;
-    event.preventDefault();
+  function handleDoubleTap(event: TouchEvent | MouseEvent) {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+    if (tapLength < doubleTapThreshold && tapLength > 0) {
+      controller.value.paused = !controller.value.paused; // TODO move action elsewhere
+      event.preventDefault();
+    }
+    lastTapTime = currentTime;
   }
 
   function onTouchStart(event: TouchEvent) {
     if (event.touches.length === 1) {
+      handleDoubleTap(event);
       const [touch1] = event.touches as unknown as [Touch];
       states.dragging.start = states.dragging.current = getClientCoord(touch1);
       states.dragging.isDragging = true;

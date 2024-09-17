@@ -205,7 +205,7 @@ fn vertexMain(
         output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
     }
     
-    output.position = uniforms2.transform * vec4f(position.xy, (height - seaLevel) * 2, 1.0);
+    output.position = uniforms2.transform * vec4f(position.xy, (height - seaLevel) / uniforms.zoom * 5, 1.0);
     output.uv = uv;
     output.face = face;
     let m = moisture;

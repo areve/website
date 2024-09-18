@@ -133,7 +133,7 @@ export function createPlane(
   
       for (var i: u32 = 0; i < octaves; i = i + 1) {
           var weight = pow(2.0, f32(i));  // Double the weight for each octave
-          height = height + openSimplex3d(uniforms.seed * 112345 * f32(i), x / size, y / size, z / size) * weight;
+          height = height + openSimplex3d(uniforms.seed * 9846365833 * f32(i), x / size, y / size, z / size) * weight;
           totalWeight = totalWeight + weight;  // Accumulate the total weight
           size = size * 2.0;  // Increase the size
       }

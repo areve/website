@@ -146,7 +146,7 @@ export function createPlane(
   
 
     fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
-        return fractalHeight(x, y, z, 12);
+        return fractalHeight(x, y, z, 8);
     }
 
     @vertex
@@ -181,7 +181,7 @@ export function createPlane(
         let isSea = height < seaLevel;
         if (isSea) {
           height = seaLevel;
-          output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
+          output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4.0));
           output.color = vec4<f32>(height, height, 1.0, 1.0);
         } else {
           var hh = abs(fract(height * 20) * 2.0 - 1.0);

@@ -126,93 +126,28 @@ export function createPlane(
         return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
     }
 
-    fn clamp(value: f32, low: f32, high: f32) -> f32 {
-        return min(max(value, low), high);
-    }
-
-    fn c(v: f32) -> f32 {
-        return clamp(v, 0, 1);
-    }
-
-    fn hsv2rgb(hsv: vec3f) -> vec3f {
-        let h = hsv.x;
-        let s = hsv.y;
-        let v = hsv.z;
-        let hue = (((h * 360) % 360) + 360) % 360;
-        let sector = floor(hue / 60);
-        let sectorFloat = hue / 60 - sector;
-        let x = v * (1 - s);
-        let y = v * (1 - s * sectorFloat);
-        let z = v * (1 - s * (1 - sectorFloat));
-        let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
-
-        return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
-    }
-
-    fn piecewiseCurve(t: f32, p: f32, s: f32) -> f32 {
-        var c: f32;
-        if s == 3.0 {
-            c = 1e10;
-        } else {
-            c = (1.0 - s) / (s - 3.0);
-        }
-
-        if t < p {
-            let n = t * (1.0 + c);
-            let d = t + p * c;
-            let r = n / d;
-            return t * r * r;
-        } else {
-            let v = 1.0 - t;
-            let n = v * (1.0 + c);
-            let d = v + (1.0 - p) * c;
-            let r = n / d;
-            return 1.0 - v * r * r;
-        }
-    }
-
-    fn heightIcinessCurve(t: f32) -> f32 {
-        return piecewiseCurve(t, 0.8, 15.0);
-    }
-              
-    fn temperatureIcinessCurve(t: f32) -> f32 {
-        return 1 - piecewiseCurve(t, 0.3, 6.0);
-    }
-
-    fn moistureDesertCurve(t: f32) -> f32 {
-        return 1 - piecewiseCurve(t, 0.3, 10.0);
-    }
-              
-    fn temperatureDesertCurve(t: f32) -> f32 {
-        return piecewiseCurve(t, 0.7, 8.0);
-    }
-
-    // struct WorldPointOutput {
-    //   height: f32,
-    // }
-
+    fn fractalHeight(x: f32, y: f32, z: f32, octaves: u32) -> f32 {
+      var height: f32 = 0.0;
+      var size = 1.0;
+      var totalWeight: f32 = 0.0;
+  
+      for (var i: u32 = 0; i < octaves; i = i + 1) {
+          var weight = pow(2.0, f32(i));  // Double the weight for each octave
+          height = height + openSimplex3d(uniforms.seed * 112345 * f32(i), x / size, y / size, z / size) * weight;
+          totalWeight = totalWeight + weight;  // Accumulate the total weight
+          size = size * 2.0;  // Increase the size
+      }
+  
+      // Normalize the height to ensure it's within 0 to 1
+      height = height / totalWeight;
+  
+      return height;
+  }
+  
 
     fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
-        let height1 = openSimplex3d(uniforms.seed * 112345, x / 129, y / 129, z / 129);
-        let height2 = openSimplex3d(uniforms.seed * 212345, x / 47, y / 47, z / 47);
-        let height3 = openSimplex3d(uniforms.seed * 312345, x / 7, y / 7, z / 7);
-        let height4 = openSimplex3d(uniforms.seed * 412345, x / 1, y / 1, z / 1);
-        return 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
+        return fractalHeight(x, y, z, 12);
     }
-
-    fn worldPointTemperature(x: f32, y:f32, z:f32) -> f32 {
-        let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
-        let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
-        return 0.7 * temperature1 + 0.3 * temperature2;
-    }
-
-    fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
-        let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
-        let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
-        return 0.7 * moisture1 + 0.3 * moisture2;
-    }
-
-    const seaLevel = 0.6;
 
     @vertex
     fn vertexMain(
@@ -233,64 +168,30 @@ export function createPlane(
         var pos = vec4(x, y, height, 0.0);
         let hA = worldPointHeight(x + 20.0, y, z);
         let hB = worldPointHeight(x, y + 20.0, z);
-        var neighbourA = vec4(x + 0.1, y, hA, 0.0);
-        var neighbourB = vec4(x, y + 0.1, hB, 0.0);
-        var toA = normalize(neighbourA.xyz - pos.xyz);
-        var toB = normalize(neighbourB.xyz - pos.xyz);
+        var neighborA = vec4(x + 0.1, y, hA, 0.0);
+        var neighborB = vec4(x, y + 0.1, hB, 0.0);
+        var toA = normalize(neighborA.xyz - pos.xyz);
+        var toB = normalize(neighborB.xyz - pos.xyz);
         output.normal = normalize(cross(toA, toB));
-
-        var temperature = worldPointTemperature(x, y, z);
-        var moisture = worldPointMoisture(x, y, z);
-
-        let iciness = c(heightIcinessCurve(height) + temperatureIcinessCurve(temperature));
-        let desert = c(moistureDesertCurve(moisture) + temperatureDesertCurve(temperature));
-
+        output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z / 4.0));
+        // output.normal = vec3(0.0, 1.0, 0.0);
+        
+        const seaLevel = 0.5;
 
         let isSea = height < seaLevel;
         if (isSea) {
-            height = seaLevel;
-            output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
+          height = seaLevel;
+          output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
+          output.color = vec4<f32>(height, height, 1.0, 1.0);
+        } else {
+          var hh = abs(fract(height * 20) * 2.0 - 1.0);
+          output.color = vec4<f32>(hh, 1 - height / 2.0 , 0.0, 1.0);
         }
-        
-        output.position = uniforms2.transform * vec4f(position.xy, (height - seaLevel) / uniforms.zoom * 5, 1.0);
+
+        output.position = uniforms2.transform * vec4f(position.xy, (height) / uniforms.zoom * 0.04, 1.0);
         output.uv = uv;
         output.face = face;
-        let m = moisture;
-        let t = temperature;
-        let i = iciness;
-        let d = desert;
-
-        if(isSea) {
-            let seaDepth = c(1 - height / seaLevel);
-            let sd = seaDepth;
-            let seaHsv = vec3f(
-                229.0 / 360.0,
-                0.47 + sd * 0.242 - 0.1 + t * 0.2,
-                0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
-            );
-            output.color = vec4<f32>(hsv2rgb(vec3f(
-                seaHsv[0],
-                c(seaHsv[1] - 0.2 * i),
-                c(seaHsv[2] + 0.2 * i)
-            )), 1.0);
-        } else {
-            let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
-            let sh = heightAboveSeaLevel;
-        
-            let landHsv = vec3f(
-                77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
-                0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-                0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
-            );
-
-            output.color = vec4<f32>(hsv2rgb(vec3f(
-                landHsv[0] - d * 0.1,
-                c(landHsv[1] - 0.3 * i + d * 0.1),
-                c(landHsv[2] + 0.6 * i + d * 0.45),
-            )), 1.0);
-            
-        }
-
+       
         return output;
     }
 

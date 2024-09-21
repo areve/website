@@ -3,6 +3,7 @@
     "bitcast",
     "catmull",
     "decel",
+    "fract",
     "glsl",
     "highp",
     "ifft",

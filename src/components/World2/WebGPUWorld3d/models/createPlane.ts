@@ -1,11 +1,7 @@
 import { vec3 } from "wgpu-matrix";
 import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
-import {
-  createVertexBuffer,
-  createUniformBuffer,
-  createIndexBuffer,
-} from "../lib/buffer";
+import { createVertexBuffer, createIndexBuffer } from "../lib/buffer";
 
 export function createPlane(
   device: GPUDevice,
@@ -15,7 +11,7 @@ export function createPlane(
   const geometry = createPlaneGeometry("plane", 10, 10, 500, 500);
   const vertexBuffer = createVertexBuffer(device, geometry);
   const indexBuffer = createIndexBuffer(device, geometry);
-  const layout: GPUVertexBufferLayout = {
+  const vertexBufferLayout: GPUVertexBufferLayout = {
     arrayStride: geometry.vertexSize,
     attributes: [
       {
@@ -43,35 +39,6 @@ export function createPlane(
     translation: vec3.create(-5, -5, 0),
     rotation: vec3.create(0, 0, 0),
   };
-
-  const computeWgsl = /* wgsl */ `
-  @group(0) @binding(0) 
-  var<storage, read_write> textureData: array<u32>; 
-
-  const IMAGE_WIDTH = 1024;
-  const IMAGE_HEIGHT = 1024;
-  @compute @workgroup_size(16, 16)
-  fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
-      let x = f32(global_id.x) / f32(IMAGE_WIDTH);
-      let y = f32(global_id.y) / f32(IMAGE_HEIGHT);
-
-      // Scale to Mandelbrot set range
-      let c = vec2<f32>(x * 3.5 - 2.5, y * 2.0 - 1.0);
-
-      var z = vec2<f32>(0.0, 0.0);
-      var iter = 0u;
-      let maxIter = 255u;
-
-      // Mandelbrot iteration loop
-      while (iter < maxIter && dot(z, z) < 4.0) {
-          z = vec2<f32>(z.x * z.x - z.y * z.y + c.x, 2.0 * z.x * z.y + c.y);
-          iter = iter + 1u;
-      }
-
-      let index = global_id.y * IMAGE_WIDTH + global_id.x;
-      textureData[index] = 255;
-  }
-  `;
 
   const worldWgsl = /* wgsl */ `
     struct Uniforms {
@@ -104,8 +71,11 @@ export function createPlane(
     var<uniform> uniforms2: Uniforms2;
 
     @group(2) @binding(0) 
-    var<storage, read_write> textureData: array<u32>; 
+    var<storage, read_write> textureData: array<f32>; 
 
+
+    const IMAGE_WIDTH = 1024;
+    const IMAGE_HEIGHT = 1024;
 
     @vertex
     fn vertexMain(
@@ -123,7 +93,8 @@ export function createPlane(
         var output: VertexOutput;
         output.position = uniforms2.transform * position;
         output.uv = uv;
-        output.color = vec4f(fract(coord.xy), 0.5, 1.0);
+
+        output.color = vec4f(1.0, 1.0, 0.0, 1.0);
         return output;
     }
 
@@ -135,30 +106,11 @@ export function createPlane(
         @location(3) normal: vec3f,
     ) -> @location(0) vec4f {
         let dummy = uniforms.seed;
-        let foo = textureData[u32(color.r * 10)];
-        return vec4f(color.rg, f32(foo) / 255.0, 0.0);
+        let index = i32(uv.y * 16.0 + uv.x);
+        let foo = textureData[index];
+        return vec4f(foo, 0.5, color.b, 0.0);
     }
   `;
-
-  const computePipeline = device.createComputePipeline({
-    layout: "auto",
-    compute: {
-      module: device.createShaderModule({
-        code: computeWgsl,
-      }),
-      entryPoint: "computeMain",
-    },
-  });
-
-  const computeTextureBuffer = device.createBindGroupLayout({
-    entries: [
-      {
-        binding: 2, // This corresponds to the `textureData` buffer in the compute shader
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: "storage" }, // Indicates a storage buffer
-      },
-    ],
-  });
 
   const renderPipeline = device.createRenderPipeline({
     layout: "auto",
@@ -166,7 +118,7 @@ export function createPlane(
       module: device.createShaderModule({
         code: worldWgsl,
       }),
-      buffers: [layout],
+      buffers: [vertexBufferLayout],
     },
     fragment: {
       module: device.createShaderModule({
@@ -187,18 +139,6 @@ export function createPlane(
       depthCompare: "less",
       format: "depth24plus",
     },
-  });
-
-  const width = 1024;
-  const height = 1024;
-
-  // Create the storage buffer for the fractal data
-  const storageBuffer = device.createBuffer({
-    size: width * height * 4, // One u32 per pixel
-    usage:
-      GPUBufferUsage.STORAGE |
-      GPUBufferUsage.COPY_SRC |
-      GPUBufferUsage.COPY_DST,
   });
 
   const uniformBuffer = device.createBuffer({
@@ -239,129 +179,87 @@ export function createPlane(
     ],
   });
 
-  const computeForRenderBindGroup = device.createBindGroup({
-    layout: renderPipeline.getBindGroupLayout(2),
+
+  const computeWgsl = /* wgsl */ `
+    @group(0) @binding(0) 
+    var<storage, read_write> textureData: array<f32>; 
+
+    const IMAGE_WIDTH = 1024;
+    const IMAGE_HEIGHT = 1024;
+    @compute @workgroup_size(16, 16)
+    fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
+        let x = f32(global_id.x) / 16.0;
+        let y = f32(global_id.y) / 16.0;
+
+        let index = global_id.y * 16 + global_id.x;
+        textureData[index] = f32((global_id.y + global_id.x) % 2);
+    }
+  `;
+
+  const computePipeline = device.createComputePipeline({
+    layout: "auto",
+    compute: {
+      module: device.createShaderModule({
+        code: computeWgsl,
+      }),
+      entryPoint: "computeMain",
+    },
+  });
+
+  const computeTextureBuffer = device.createBindGroupLayout({
     entries: [
       {
-        binding: 0, 
-        resource: { 
-          offset: 4096,
-          buffer: storageBuffer 
-        }, 
+        binding: 2, 
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: "storage" }, 
       },
     ],
   });
-  // const buffers = createUniformBuffer(device, renderPipeline, {
-  //   worldMapUniforms: {
-  //     layout: 0,
-  //     getBuffer: getWorldMapUniforms,
-  //   },
-  //   planeMatrix: {
-  //     layout: 1,
-  //     getBuffer: () =>
-  //       applyCamera(transform.translation, transform.rotation, getCamera()),
-  //   }
-  // });
 
-  // const buffers: Float32Array[] = [];
-  // for (const key in bufferInfo) {
-  //   if (bufferInfo.hasOwnProperty(key)) {
-  //     const b = bufferInfo[key] as {
-  //       layout: number;
-  //       getBuffer: () => Float32Array;
-  //     };
-  //     buffers.push(b.getBuffer());
-  //   }
-  // }
-
-  // const uniformBuffer = {
-  //   uniformBuffer: device.createBuffer({
-  //     size: getSizeFor(buffers),
-  //     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  //   }),
-  //   offset: 0,
-  // };
-
-  // const result = {} as {
-  //   [K in keyof T]: {
-  //     bindGroup: GPUBindGroup;
-  //     getBuffer: () => Float32Array;
-  //     buffer: GPUBuffer;
-  //     offset: number;
-  //   };
-  // };
-
-  // for (const key in bufferInfo) {
-  //   if (bufferInfo.hasOwnProperty(key)) {
-  //     const b = bufferInfo[key] as {
-  //       layout: number;
-  //       getBuffer: () => Float32Array;
-  //     };
-  //     result[key] = createBuffer(
-  //       device,
-  //       uniformBuffer,
-  //       pipeline.getBindGroupLayout(b.layout), // TODO pipeline1?
-  //       b.getBuffer
-  //     );
-  //   }
-  // }
-
-  // // console.log(computePipeline.getBindGroupLayout(0))
+  const textureStorageBuffer = device.createBuffer({
+    size: 1024 * 1024 * 4, 
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.COPY_SRC |
+      GPUBufferUsage.COPY_DST,
+  });
+  
   const computeBindGroup = device.createBindGroup({
     layout: computePipeline.getBindGroupLayout(0),
     entries: [
       {
-        binding: 0, // Corresponds to the buffer binding in the compute shader
-        resource: { buffer: storageBuffer }, // The buffer to store fractal data
+        binding: 0, 
+        resource: { buffer: textureStorageBuffer }, 
       },
     ],
   });
 
-  // const bindGroup = device.createBindGroup({
-  //   layout: renderPipeline.getBindGroupLayout(0),
-  //   entries: [
-  //     {
-  //       binding: 0,
-  //       resource: {
-  //         buffer: storageBuffer,
-  //       },
-  //     },
-  //   ],
-  // });
+  const computeForRenderBindGroup = device.createBindGroup({
+    layout: renderPipeline.getBindGroupLayout(2),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          offset: 4096,
+          buffer: textureStorageBuffer,
+        },
+      },
+    ],
+  });
 
   function updateBuffers() {
-    // for (const [_, v] of Object.entries(buffers)) {
-    // device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
-    // }
     device.queue.writeBuffer(uniformBuffer, 0, getWorldMapUniforms());
     device.queue.writeBuffer(
       uniformBuffer,
       1024,
       applyCamera(transform.translation, transform.rotation, getCamera())
     );
-    // computeBindGroup
   }
 
   function compute(computePass: GPUComputePassEncoder) {
     computePass.setPipeline(computePipeline);
     computePass.setBindGroup(0, computeBindGroup);
-    // renderPass.setBindGroup(2, buffers.planeMatrix.bindGroup);
-    // renderPass.dispatchWorkgroups(Math.ceil(width / 16), Math.ceil(height / 16));
-    //  // Set up the compute pass
-    //  const computePassEncoder = commandEncoder.beginComputePass();
-    //  computePassEncoder.setPipeline(computePipeline);
-    // computePass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
-    // computePass.setBindGroup(1, buffers.planeMatrix.bindGroup);
-    const width = 1024;
-    const height = 1024;
-    computePass.dispatchWorkgroups(
-      Math.ceil(width / 16),
-      Math.ceil(height / 16)
-    );
-    // computePass.end();
-    // console.log('compute')
-    //  computePassEncoder.end();
-    // device.queue.submit([commandEncoder.finish()]);
+    computePass.dispatchWorkgroups(16, 16);
   }
 
   function render(renderPass: GPURenderPassEncoder) {

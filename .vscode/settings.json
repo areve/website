@@ -12,6 +12,7 @@
     "perlin",
     "Raphson",
     "smootherstep",
+    "unmap",
     "unskew",
     "voronoi",
     "webgpu",

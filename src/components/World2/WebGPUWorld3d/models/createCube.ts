@@ -2,7 +2,7 @@ import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
 import vertexWgsl from "../shaders/simpleVertex.wgsl?raw";
 import fragmentWgsl from "../shaders/simpleFragment.wgsl?raw";
-import { createVertexBuffer, createUniformBuffer } from "../lib/buffer";
+import { createVertexBuffer } from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
 import { createLayout } from "../lib/webgpu";
 
@@ -20,7 +20,7 @@ export function createCube(
     rotation: vec3.create(0, 0, 0),
   };
 
-  const pipeline = device.createRenderPipeline({
+  const renderPipeline = device.createRenderPipeline({
     label: "blah pipeline",
     layout: "auto",
     vertex: {
@@ -52,31 +52,61 @@ export function createCube(
     },
   });
 
-  const buffers = createUniformBuffer(device, pipeline, {
-    worldMapUniforms: {
-      layout: 0,
-      getBuffer: getWorldMapUniforms,
-    },
-    cubeMatrix: {
-      layout: 1,
-      getBuffer: () =>
-        applyCamera(transform.translation, transform.rotation, getCamera()),
-    },
+  const uniformBuffer = device.createBuffer({
+    // size: getSizeFor(buffers),
+    size: 1024 * 48, // TODO auto calc size
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+  const worldMapBindGroup = device.createBindGroup({
+    layout: renderPipeline.getBindGroupLayout(0),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 0,
+          size: getWorldMapUniforms().byteLength,
+        },
+      },
+    ],
+  });
+
+  const cubeMatrixBindGroup = device.createBindGroup({
+    layout: renderPipeline.getBindGroupLayout(1),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 1024, // TODO auto calc
+          size: applyCamera(
+            transform.translation,
+            transform.rotation,
+            getCamera()
+          ).byteLength,
+        },
+      },
+    ],
+  });
+
+
   function updateBuffers() {
-    for (const [_, v] of Object.entries(buffers)) {
-      device.queue.writeBuffer(v.buffer, v.offset, v.getBuffer());
-    }
+    device.queue.writeBuffer(uniformBuffer, 0, getWorldMapUniforms());
+    device.queue.writeBuffer(
+      uniformBuffer,
+      1024,
+      applyCamera(transform.translation, transform.rotation, getCamera())
+    );
   }
 
   function render(renderPass: GPURenderPassEncoder) {
-    renderPass.setPipeline(pipeline);
+    renderPass.setPipeline(renderPipeline);
     renderPass.setVertexBuffer(0, modelBuffer);
-    renderPass.setBindGroup(0, buffers.worldMapUniforms.bindGroup);
-    renderPass.setBindGroup(1, buffers.cubeMatrix.bindGroup);
+    renderPass.setBindGroup(0, worldMapBindGroup);
+    renderPass.setBindGroup(1, cubeMatrixBindGroup);
     renderPass.draw(geometry.vertexCount);
   }
 
-  return { transform, pipeline, render, updateBuffers };
+  return { transform, pipeline: renderPipeline, render, updateBuffers };
 }

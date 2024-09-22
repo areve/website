@@ -117,6 +117,7 @@ async function setupWorldRenderer(
   );
 
   const renderer = createRenderer(device, options.width, options.height);
+  await plane.compute(device);
 
   return {
     async init() {},
@@ -135,7 +136,7 @@ async function setupWorldRenderer(
       cube.updateBuffers();
       plane.updateBuffers();
 
-      await plane.compute(device);
+      if (Math.floor(Math.random() * 60) === 0) await plane.compute(device); // TODO a sloppy way update only sometimes
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

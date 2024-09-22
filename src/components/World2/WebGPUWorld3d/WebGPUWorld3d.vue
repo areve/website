@@ -36,6 +36,7 @@ const height = 500;
 const seed = 12345;
 
 let frameId: number = 0;
+let cancelled = false;
 onMounted(async () => {
   controller.value.mount(canvas.value);
   const renderer = await setupWorldRenderer(canvas.value, {
@@ -51,14 +52,15 @@ onMounted(async () => {
       controller.value.update();
       stats.value.update();
     }
-    frameId = requestAnimationFrame(render);
+    if (!cancelled) frameId = requestAnimationFrame(render);
   };
 
-  frameId = requestAnimationFrame(render);
+  if (!cancelled) frameId = requestAnimationFrame(render);
 });
 
 onUnmounted(() => {
   cancelAnimationFrame(frameId);
+  cancelled = true;
   controller.value.unmount();
 });
 
@@ -134,7 +136,7 @@ async function setupWorldRenderer(
       plane.updateBuffers();
 
       await plane.compute(device);
-      
+
       renderer.setup(context);
       const encoder = device.createCommandEncoder();
       const renderPass = renderer.getRenderPass(encoder);

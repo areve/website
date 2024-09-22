@@ -71,11 +71,7 @@ export function createPlane(
     var<uniform> uniforms2: Uniforms2;
 
     @group(2) @binding(0) 
-    var<storage, read_write> textureData: array<f32>; 
-
-
-    const IMAGE_WIDTH = 1024;
-    const IMAGE_HEIGHT = 1024;
+    var<storage, read_write> textureData: array<vec4f>; 
 
     @vertex
     fn vertexMain(
@@ -106,9 +102,9 @@ export function createPlane(
         @location(3) normal: vec3f,
     ) -> @location(0) vec4f {
         let dummy = uniforms.seed;
-        let index = i32(uv.y * 16.0 + uv.x);
+        let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
         let foo = textureData[index];
-        return vec4f(foo, 0.5, color.b, 0.0);
+        return vec4f(foo.x, foo.y, foo.z, 1.0);
     }
   `;
 
@@ -179,27 +175,32 @@ export function createPlane(
     ],
   });
 
-  const computeWgsl = /* wgsl */ `
-    @group(0) @binding(0) 
-    var<storage, read_write> textureData: array<f32>; 
-
-    const IMAGE_WIDTH = 1024;
-    const IMAGE_HEIGHT = 1024;
-    @compute @workgroup_size(16, 16)
-    fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
-        let x = f32(global_id.x) / 16.0;
-        let y = f32(global_id.y) / 16.0;
-
-        let index = global_id.y * 16 + global_id.x;
-        textureData[index] = f32((global_id.y + global_id.x) % 2);
-    }
-  `;
-
   const computePipeline = device.createComputePipeline({
     layout: "auto",
     compute: {
       module: device.createShaderModule({
-        code: computeWgsl,
+        code: /* wgsl */ `
+          @group(0) @binding(0) 
+          var<storage, read_write> textureData: array<vec4f>; 
+      
+          @compute @workgroup_size(16, 16)
+          fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
+              let x = global_id.x;
+              let y = global_id.y;
+              let index = y * 500u + x;
+              if (x < 500u && y < 500u) {
+                let index = y * 500u + x;
+        
+                textureData[index] = vec4f(
+                  f32(x) / 500.0,
+                  f32(y) / 500.0,
+                  0.5,
+                  1.0
+                );
+  
+              }
+          }
+        `,
       }),
       entryPoint: "computeMain",
     },
@@ -216,7 +217,7 @@ export function createPlane(
   });
 
   const textureStorageBuffer = device.createBuffer({
-    size: 1024 * 1024 * 4,
+    size: 1000 * 1000 * 4,
     usage:
       GPUBufferUsage.STORAGE |
       GPUBufferUsage.COPY_SRC |
@@ -244,7 +245,7 @@ export function createPlane(
       {
         binding: 0,
         resource: {
-          offset: 4096,
+          offset: 0,
           buffer: textureStorageBuffer,
         },
       },
@@ -262,11 +263,15 @@ export function createPlane(
 
   async function compute(device: GPUDevice) {
     const encoder = device.createCommandEncoder({ label: "our encoder" });
-    const computePass = encoder.beginComputePass( );
+    const computePass = encoder.beginComputePass();
 
     computePass.setPipeline(computePipeline);
     computePass.setBindGroup(0, computeBindGroup);
-    computePass.dispatchWorkgroups(16, 16);
+    const workgroupSize = { x: 16, y: 16 };
+    computePass.dispatchWorkgroups(
+      Math.ceil(500 / workgroupSize.x),
+      Math.ceil(500 / workgroupSize.y)
+    );
     computePass.end();
 
     encoder.copyBufferToBuffer(
@@ -282,7 +287,12 @@ export function createPlane(
     await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
     const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
-    console.log("bufferView", bufferView.slice(0, 16).toString());
+    console.log(
+      "bufferView",
+      bufferView.slice(0, 16).toString(),
+      "#",
+      bufferView.slice(4 * 496, 4 * 496 + 16).toString()
+    );
     textureReadBackBuffer.unmap();
   }
 

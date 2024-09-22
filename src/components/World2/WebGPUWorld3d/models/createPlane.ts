@@ -88,14 +88,6 @@ export function createPlane(
       @location(1) uv: vec2f,
       @location(2) face: vec2f,
     ) -> VertexOutput {
-      var dummy = uniforms.scale;
-      var dummy2 = uniforms2.transform;
-      let coord = vec3f(
-        uv.x * 16 + uniforms.x / 16,
-        uv.y * 16 - uniforms.y / 16,
-        0.0
-      );
-
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
       let diffDist = 0.1;
@@ -153,7 +145,6 @@ export function createPlane(
       @location(2) face: vec2f,
       @location(3) normal: vec3f,
     ) -> @location(0) vec4f {
-      let dummy = uniforms.seed;
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
 
@@ -420,29 +411,22 @@ export function createPlane(
 
           @compute @workgroup_size(16, 16)
           fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
-            let x = global_id.x;// + u32(uniforms.x / 100.0);
+            let x = global_id.x;
             let y = global_id.y;
             let index = y * 500u + x ;
             if (x < 500u && y < 500u) {
               let index = y * 500u + x;
-              // let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
-              // let y = uniforms.height - coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
-              // let z = uniforms.z;
-
               
               let wx = f32(x) * uniforms.zoom + uniforms.x;
               let wy =  uniforms.height - f32(y) * uniforms.zoom + uniforms.y;
               var worldPoint: WorldPoint;
               worldPoint.height = worldPointHeight(f32(wx), f32(wy), 0.0);
-              // worldPoint.height = uniforms.x;
               worldPoint.temperature = worldPointTemperature(f32(wx), f32(wy), 0.0);
               worldPoint.moisture = worldPointMoisture(f32(wx), f32(wy), 0.0);
-
               worldPoint.iciness = c(heightIcinessCurve(worldPoint.height) + temperatureIcinessCurve(worldPoint.temperature));
               worldPoint.desert = c(moistureDesertCurve(worldPoint.moisture) + temperatureDesertCurve(worldPoint.temperature));
               worldPoint.seaLevel = 0.6;
 
-              var dummy = uniforms;
               textureData[index] = worldPoint;
             }
           }

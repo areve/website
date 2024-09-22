@@ -237,6 +237,26 @@ export function createPlane(
               return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
           }
 
+          fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
+            let height1 = openSimplex3d(12345 * 112345, x / 129, y / 129, z / 129);
+            let height2 = openSimplex3d(12345 * 212345, x / 47, y / 47, z / 47);
+            let height3 = openSimplex3d(12345 * 312345, x / 7, y / 7, z / 7);
+            let height4 = openSimplex3d(12345 * 412345, x / 1, y / 1, z / 1);
+            return 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
+          }
+
+          fn worldPointTemperature(x: f32, y:f32, z:f32) -> f32 {
+            let temperature1 = openSimplex3d(12345 * 512345, x / 71, y / 71, z / 71);
+            let temperature2 = openSimplex3d(12345 * 612345, x / 15, y / 15, z / 15);
+            return 0.7 * temperature1 + 0.3 * temperature2;
+          }
+      
+          fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
+            let moisture1 = openSimplex3d(12345 * 712345, x / 67, y / 67, z / 67);
+            let moisture2 = openSimplex3d(12345 * 812345, x / 13, y / 13, z / 13);
+            return 0.7 * moisture1 + 0.3 * moisture2;
+          }
+
           @compute @workgroup_size(16, 16)
           fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
               let x = global_id.x;
@@ -245,11 +265,13 @@ export function createPlane(
               if (x < 500u && y < 500u) {
                 let index = y * 500u + x;
                 
-                let n = openSimplex3d(12345.0, f32(x) / 64.0, f32(y) / 64.0, 0.0);
+                let n = worldPointHeight(f32(x), f32(y), 0.0);
+                let m = worldPointTemperature(f32(x), f32(y), 0.0);
+                let o = worldPointMoisture(f32(x), f32(y), 0.0);
                 textureData[index] = vec4f(
                   n,
-                  n,//f32(y) / 500.0,
-                  n, //0.5,
+                  m,//f32(y) / 500.0,
+                  o, //0.5,
                   1.0
                 );
   

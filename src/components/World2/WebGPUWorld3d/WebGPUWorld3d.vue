@@ -133,17 +133,16 @@ async function setupWorldRenderer(
       cube.updateBuffers();
       plane.updateBuffers();
 
-    
+      await plane.compute(device);
+      
       renderer.setup(context);
-      plane.compute(device);
-
-      const encoder2 = device.createCommandEncoder({ label: "our encoder" });
-      const renderPass = renderer.getRenderPass(encoder2);
+      const encoder = device.createCommandEncoder();
+      const renderPass = renderer.getRenderPass(encoder);
       cube.render(renderPass);
       plane.render(renderPass);
       renderPass.end();
 
-      return renderer.end(encoder2);
+      return renderer.end(encoder);
     },
   };
 }

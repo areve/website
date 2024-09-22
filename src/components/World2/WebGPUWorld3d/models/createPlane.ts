@@ -99,8 +99,8 @@ export function createPlane(
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
       let diffDist = 0.1;
-      let worldPointA = textureData[index + u32(200 * diffDist / uniforms.zoom)]; // TODO could be out of range
-      let worldPointB = textureData[index + u32(200 * 500 * diffDist / uniforms.zoom)]; // TODO could be out of range
+      let worldPointA = textureData[index + u32(200 * diffDist / uniforms.zoom)]; // TODO could be out of range and cause world wrap?
+      let worldPointB = textureData[index + u32(200 * 500 * diffDist / uniforms.zoom)]; // TODO could be out of range and cause crash?
 
       var offset = 0.1;
       var toA = normalize(vec3(diffDist, 0.0, worldPointA.height - worldPoint.height));

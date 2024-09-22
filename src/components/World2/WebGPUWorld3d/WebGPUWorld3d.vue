@@ -117,7 +117,13 @@ async function setupWorldRenderer(
   );
 
   const renderer = createRenderer(device, options.width, options.height);
-  await plane.compute(device);
+
+  // Init code, kind of optional
+  // {
+  //   cube.updateBuffers();
+  //   plane.updateBuffers();
+  //   await plane.compute(device);
+  // }
 
   return {
     async init() {},
@@ -135,7 +141,7 @@ async function setupWorldRenderer(
 
       cube.updateBuffers();
       plane.updateBuffers();
-      
+
       await plane.compute(device); // TODO only needed if uniforms changed, perhaps it can make that decision itself
 
       renderer.setup(context);
@@ -145,6 +151,7 @@ async function setupWorldRenderer(
       plane.render(renderPass);
       renderPass.end();
 
+      // waiting for paint to complete before requesting another slows the framerate but seems far less wasteful
       return renderer.end(encoder);
     },
   };

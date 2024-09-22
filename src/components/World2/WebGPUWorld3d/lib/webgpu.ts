@@ -59,49 +59,16 @@ export function createRenderer(
     },
   };
 
-  const computePassDescriptor: GPUComputePassDescriptor = {
-    label: "computePassDescriptor",
-  };
-
   return {
-    
-    // encoder: null as GPUCommandEncoder | null,
-    renderPass: null as GPURenderPassEncoder | null,
-    computePass: null as GPUComputePassEncoder | null,
     setup(context: GPUCanvasContext) {
       colorAttachment.view = context.getCurrentTexture().createView();
     },
     getRenderPass(encoder: GPUCommandEncoder) {
-      this.renderPass = encoder.beginRenderPass(renderPassDescriptor);
-      return this.renderPass
+      return encoder.beginRenderPass(renderPassDescriptor);
     },
     end(encoder: GPUCommandEncoder) {
-      // if (this.renderPass) this.renderPass.end();
-      // if (this.computePass) this.computePass.end();
       device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();
     },
   };
-}
-
-export function createLayout(geometry: Geometry) {
-  const layout: GPUVertexBufferLayout = {
-    arrayStride: geometry.vertexSize,
-    attributes: [
-      {
-        // position
-        shaderLocation: 0,
-        offset: geometry.positionOffset,
-        format: "float32x4",
-      },
-      {
-        // uv
-        shaderLocation: 1,
-        offset: geometry.uvOffset,
-        format: "float32x2",
-      },
-    ],
-  };
-
-  return layout;
 }

@@ -11,29 +11,6 @@ export function createPlane(
   const geometry = createPlaneGeometry("plane", 10, 10, 500, 500);
   const vertexBuffer = createVertexBuffer(device, geometry);
   const indexBuffer = createIndexBuffer(device, geometry);
-  const vertexBufferLayout: GPUVertexBufferLayout = {
-    arrayStride: geometry.vertexSize,
-    attributes: [
-      {
-        // position
-        shaderLocation: 0,
-        offset: geometry.positionOffset,
-        format: "float32x4",
-      },
-      {
-        // uv
-        shaderLocation: 1,
-        offset: geometry.uvOffset,
-        format: "float32x2",
-      },
-      {
-        // faceCoord
-        shaderLocation: 2,
-        offset: geometry.faceCoordOffset,
-        format: "float32x2",
-      },
-    ],
-  };
 
   const transform = {
     translation: vec3.create(-5, -5, 0),
@@ -200,7 +177,31 @@ export function createPlane(
       module: device.createShaderModule({
         code: worldWgsl,
       }),
-      buffers: [vertexBufferLayout],
+      buffers: [
+        {
+          arrayStride: geometry.vertexSize,
+          attributes: [
+            {
+              // position
+              shaderLocation: 0,
+              offset: geometry.positionOffset,
+              format: "float32x4",
+            },
+            {
+              // uv
+              shaderLocation: 1,
+              offset: geometry.uvOffset,
+              format: "float32x2",
+            },
+            {
+              // faceCoord
+              shaderLocation: 2,
+              offset: geometry.faceCoordOffset,
+              format: "float32x2",
+            },
+          ],
+        },
+      ],
     },
     fragment: {
       module: device.createShaderModule({
@@ -228,7 +229,6 @@ export function createPlane(
     size: 1024 * 48,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-
 
   const worldMapBindGroup = device.createBindGroup({
     layout: renderPipeline.getBindGroupLayout(0),
@@ -529,11 +529,13 @@ export function createPlane(
 
     device.queue.submit([encoder.finish()]);
 
-    const debug= false;
+    const debug = false;
     if (debug) {
       await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
-      const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
+      const bufferView = new Float32Array(
+        textureReadBackBuffer.getMappedRange()
+      );
       console.log(
         "bufferView",
         bufferView.slice(0, 16).toString(),

@@ -98,6 +98,23 @@ export function createPlane(
 
         let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
         let worldPoint = textureData[index];
+        let worldPointA = textureData[index + 20]; // TODO could be out of range
+        let worldPointB = textureData[index + 20 * 500]; // TODO could be out of range
+
+        var offset = 0.1;
+        // var pos = vec4(x, y, height, 0.0);
+        // let hA = worldPointHeight(x + 20.0, y, z);
+        // let hB = worldPointHeight(x, y + 20.0, z);
+        // var neighbourA = vec4(y , y, worldPointA, 0.0);
+        // var neighbourB = vec4(x, y + 0.1, hB, 0.0);
+        var toA = normalize(vec3(1.0, 0.0, worldPointA.height - worldPoint.height));
+        var toB = normalize(vec3(0.0, 1.0, worldPointA.height - worldPoint.height));
+        // var toB = normalize(neighbourB.xyz - pos.xyz);
+        
+        var output: VertexOutput;
+        output.normal = normalize(cross(toA, toB));
+
+
 
         var height = worldPoint.height; 
         let isSea = height < worldPoint.seaLevel;
@@ -106,7 +123,6 @@ export function createPlane(
           //output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
         }
 
-        var output: VertexOutput;
         output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, height, 0.0));
         output.uv = uv;
         output.color = vec4f(worldPoint.height, 1.0, 0.0, 1.0);
@@ -156,6 +172,13 @@ export function createPlane(
 
         let isSea = height < worldPoint.seaLevel;
 
+
+        let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 
+        let lightIntensity: f32 = dot(normal, lightDir);
+        let intensity: f32 = min(max(lightIntensity, 0.0), 1.0);
+        // return vec4f((color.rgb * intensity * 2 + color.rgb) / 3.0, 1.0);
+
+
         if(isSea) {
             let seaDepth = c(1 - height / seaLevel);
             let sd = seaDepth;
@@ -168,7 +191,7 @@ export function createPlane(
               seaHsv[0],
               c(seaHsv[1] - 0.2 * i),
               c(seaHsv[2] + 0.2 * i)
-            )), 1.0);
+            )) * intensity, 1.0);
         } else {
           let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
           let sh = heightAboveSeaLevel;
@@ -183,7 +206,7 @@ export function createPlane(
             landHsv[0] - d * 0.1,
             c(landHsv[1] - 0.3 * i + d * 0.1),
             c(landHsv[2] + 0.6 * i + d * 0.45),
-          )), 1.0);
+          )) * intensity, 1.0);
             
         }
         // return vec4f(color.x, worldPoint.temperature, worldPoint.moisture, 1.0);

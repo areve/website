@@ -84,49 +84,41 @@ export function createPlane(
 
     @vertex
     fn vertexMain(
-        @location(0) position: vec4f,
-        @location(1) uv: vec2f,
-        @location(2) face: vec2f,
+      @location(0) position: vec4f,
+      @location(1) uv: vec2f,
+      @location(2) face: vec2f,
     ) -> VertexOutput {
-        var dummy = uniforms.scale;
-        var dummy2 = uniforms2.transform;
-        let coord = vec3f(
-          uv.x * 16 + uniforms.x / 16,
-          uv.y * 16 - uniforms.y / 16,
-          0.0
-        );
+      var dummy = uniforms.scale;
+      var dummy2 = uniforms2.transform;
+      let coord = vec3f(
+        uv.x * 16 + uniforms.x / 16,
+        uv.y * 16 - uniforms.y / 16,
+        0.0
+      );
 
-        let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
-        let worldPoint = textureData[index];
-        let worldPointA = textureData[index + 20]; // TODO could be out of range
-        let worldPointB = textureData[index + 20 * 500]; // TODO could be out of range
+      let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
+      let worldPoint = textureData[index];
+      let worldPointA = textureData[index + 20]; // TODO could be out of range
+      let worldPointB = textureData[index + 20 * 500]; // TODO could be out of range
 
-        var offset = 0.1;
-        // var pos = vec4(x, y, height, 0.0);
-        // let hA = worldPointHeight(x + 20.0, y, z);
-        // let hB = worldPointHeight(x, y + 20.0, z);
-        // var neighbourA = vec4(y , y, worldPointA, 0.0);
-        // var neighbourB = vec4(x, y + 0.1, hB, 0.0);
-        var toA = normalize(vec3(1.0, 0.0, worldPointA.height - worldPoint.height));
-        var toB = normalize(vec3(0.0, 1.0, worldPointA.height - worldPoint.height));
-        // var toB = normalize(neighbourB.xyz - pos.xyz);
-        
-        var output: VertexOutput;
-        output.normal = normalize(cross(toA, toB));
+      var offset = 0.1;
+      var toA = normalize(vec3(1.0, 0.0, worldPointA.height - worldPoint.height));
+      var toB = normalize(vec3(0.0, 1.0, worldPointA.height - worldPoint.height));
+      
+      var output: VertexOutput;
+      output.normal = normalize(cross(toA, toB));
 
+      var height = worldPoint.height; 
+      let isSea = height < worldPoint.seaLevel;
+      if (isSea) {
+        height = worldPoint.seaLevel;
+        output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
+      }
 
-
-        var height = worldPoint.height; 
-        let isSea = height < worldPoint.seaLevel;
-        if (isSea) {
-          height = worldPoint.seaLevel;
-          //output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
-        }
-
-        output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, height, 0.0));
-        output.uv = uv;
-        output.color = vec4f(worldPoint.height, 1.0, 0.0, 1.0);
-        return output;
+      output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, height, 0.0));
+      output.uv = uv;
+      output.color = vec4f(worldPoint.height, 1.0, 0.0, 1.0);
+      return output;
     }
 
     fn clamp(value: f32, low: f32, high: f32) -> f32 {
@@ -154,62 +146,58 @@ export function createPlane(
 
     @fragment
     fn fragMain(
-        @location(0) uv: vec2f,
-        @location(1) color: vec4f,
-        @location(2) face: vec2f,
-        @location(3) normal: vec3f,
+      @location(0) uv: vec2f,
+      @location(1) color: vec4f,
+      @location(2) face: vec2f,
+      @location(3) normal: vec3f,
     ) -> @location(0) vec4f {
-        let dummy = uniforms.seed;
-        let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
-        let worldPoint = textureData[index];
+      let dummy = uniforms.seed;
+      let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
+      let worldPoint = textureData[index];
 
-        let m = worldPoint.moisture;
-        let t = worldPoint.temperature;
-        let i = worldPoint.iciness;
-        let d = worldPoint.desert;
-        let height = worldPoint.height;
-        let seaLevel = worldPoint.seaLevel;
+      let m = worldPoint.moisture;
+      let t = worldPoint.temperature;
+      let i = worldPoint.iciness;
+      let d = worldPoint.desert;
+      let height = worldPoint.height;
+      let seaLevel = worldPoint.seaLevel;
 
-        let isSea = height < worldPoint.seaLevel;
-
-
-        let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 
-        let lightIntensity: f32 = dot(normal, lightDir);
-        let intensity: f32 = min(max(lightIntensity, 0.0), 1.0);
-        // return vec4f((color.rgb * intensity * 2 + color.rgb) / 3.0, 1.0);
+      let isSea = height < worldPoint.seaLevel;
 
 
-        if(isSea) {
-            let seaDepth = c(1 - height / seaLevel);
-            let sd = seaDepth;
-            let seaHsv = vec3f(
-              229.0 / 360.0,
-              0.47 + sd * 0.242 - 0.1 + t * 0.2,
-              0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
-            );
-            return vec4<f32>(hsv2rgb(vec3f(
-              seaHsv[0],
-              c(seaHsv[1] - 0.2 * i),
-              c(seaHsv[2] + 0.2 * i)
-            )) * intensity, 1.0);
-        } else {
-          let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
-          let sh = heightAboveSeaLevel;
-      
-          let landHsv = vec3f(
-            77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
-            0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-            0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
-          );
+      let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 
+      let lightIntensity: f32 = dot(normal, lightDir);
+      let intensity: f32 = min(max(lightIntensity, 0.0), 1.0);
 
-          return vec4<f32>(hsv2rgb(vec3f(
-            landHsv[0] - d * 0.1,
-            c(landHsv[1] - 0.3 * i + d * 0.1),
-            c(landHsv[2] + 0.6 * i + d * 0.45),
-          )) * intensity, 1.0);
-            
-        }
-        // return vec4f(color.x, worldPoint.temperature, worldPoint.moisture, 1.0);
+      if(isSea) {
+        let seaDepth = c(1 - height / seaLevel);
+        let sd = seaDepth;
+        let seaHsv = vec3f(
+          229.0 / 360.0,
+          0.47 + sd * 0.242 - 0.1 + t * 0.2,
+          0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
+        );
+        return vec4<f32>(hsv2rgb(vec3f(
+          seaHsv[0],
+          c(seaHsv[1] - 0.2 * i),
+          c(seaHsv[2] + 0.2 * i)
+        )) * intensity, 1.0);
+      } else {
+        let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
+        let sh = heightAboveSeaLevel;
+    
+        let landHsv = vec3f(
+          77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
+          0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
+          0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
+        );
+
+        return vec4<f32>(hsv2rgb(vec3f(
+          landHsv[0] - d * 0.1,
+          c(landHsv[1] - 0.3 * i + d * 0.1),
+          c(landHsv[2] + 0.6 * i + d * 0.45),
+        )) * intensity, 1.0);            
+      }
     }
   `;
 
@@ -285,13 +273,6 @@ export function createPlane(
     compute: {
       module: device.createShaderModule({
         code: /* wgsl */ `
-          // let height = worldPointHeight(f32(x), f32(y), 0.0);
-          // let temperature = worldPointTemperature(f32(x), f32(y), 0.0);
-          // let moisture = worldPointMoisture(f32(x), f32(y), 0.0);
-
-          // let iciness = c(heightIcinessCurve(height) + temperatureIcinessCurve(temperature));
-          // let desert = c(moistureDesertCurve(moisture) + temperatureDesertCurve(temperature));
-
           struct WorldPoint {
             height: f32,
             temperature: f32,
@@ -515,32 +496,35 @@ export function createPlane(
     );
     computePass.end();
 
-    // encoder.copyBufferToBuffer(
-    //   textureStorageBuffer,
-    //   0,
-    //   textureReadBackBuffer,
-    //   0,
-    //   textureStorageBuffer.size
-    // );
+    encoder.copyBufferToBuffer(
+      textureStorageBuffer,
+      0,
+      textureReadBackBuffer,
+      0,
+      textureStorageBuffer.size
+    );
 
     device.queue.submit([encoder.finish()]);
 
-    // await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
+    const debug= false;
+    if (debug) {
+      await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
-    // const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
-    // // console.log(
-    // //   "bufferView",
-    // //   bufferView.slice(0, 16).toString(),
-    // //   "#",
-    // //   bufferView.slice(4 * 496, 4 * 496 + 16).toString()
-    // // );
-    // textureReadBackBuffer.unmap();
+      const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
+      console.log(
+        "bufferView",
+        bufferView.slice(0, 16).toString(),
+        "#",
+        bufferView.slice(4 * 496, 4 * 496 + 16).toString()
+      );
+      textureReadBackBuffer.unmap();
+    }
   }
 
   function render(renderPass: GPURenderPassEncoder) {
     renderPass.setPipeline(renderPipeline);
     renderPass.setVertexBuffer(0, vertexBuffer);
-    renderPass.setIndexBuffer(indexBuffer, "uint32"); // Or 'uint16' if using smaller indices
+    renderPass.setIndexBuffer(indexBuffer, "uint32");
     renderPass.setBindGroup(0, worldMapBindGroup);
     renderPass.setBindGroup(1, planeMatrixBindGroup);
     renderPass.setBindGroup(2, computeForRenderBindGroup);
@@ -550,7 +534,6 @@ export function createPlane(
   return {
     transform,
     pipeline: renderPipeline,
-    // buffers,
     render,
     compute,
     updateBuffers,

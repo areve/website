@@ -71,7 +71,7 @@ export function createPlane(
     var<uniform> uniforms2: Uniforms2;
 
     @group(2) @binding(0) 
-    var<storage, read_write> textureData: array<vec4f>; 
+    var<storage> textureData: array<vec4f>; 
 
     @vertex
     fn vertexMain(
@@ -86,11 +86,14 @@ export function createPlane(
           uv.y * 16 - uniforms.y / 16,
           0.0
         );
-        var output: VertexOutput;
-        output.position = uniforms2.transform * position;
-        output.uv = uv;
 
-        output.color = vec4f(1.0, 1.0, 0.0, 1.0);
+        let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
+        let foo = textureData[index];
+
+        var output: VertexOutput;
+        output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, foo.z, 0.0));
+        output.uv = uv;
+        output.color = vec4f(foo.x, 1.0, 0.0, 1.0);
         return output;
     }
 
@@ -104,7 +107,7 @@ export function createPlane(
         let dummy = uniforms.seed;
         let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
         let foo = textureData[index];
-        return vec4f(foo.x, foo.y, foo.z, 1.0);
+        return vec4f(color.x, foo.y, foo.z, 1.0);
     }
   `;
 
@@ -339,12 +342,12 @@ export function createPlane(
     await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
     const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
-    console.log(
-      "bufferView",
-      bufferView.slice(0, 16).toString(),
-      "#",
-      bufferView.slice(4 * 496, 4 * 496 + 16).toString()
-    );
+    // console.log(
+    //   "bufferView",
+    //   bufferView.slice(0, 16).toString(),
+    //   "#",
+    //   bufferView.slice(4 * 496, 4 * 496 + 16).toString()
+    // );
     textureReadBackBuffer.unmap();
   }
 

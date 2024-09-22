@@ -329,26 +329,26 @@ export function createPlane(
     );
     computePass.end();
 
-    encoder.copyBufferToBuffer(
-      textureStorageBuffer,
-      0,
-      textureReadBackBuffer,
-      0,
-      textureStorageBuffer.size
-    );
+    // encoder.copyBufferToBuffer(
+    //   textureStorageBuffer,
+    //   0,
+    //   textureReadBackBuffer,
+    //   0,
+    //   textureStorageBuffer.size
+    // );
 
     device.queue.submit([encoder.finish()]);
 
-    await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
+    // await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
-    const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
-    // console.log(
-    //   "bufferView",
-    //   bufferView.slice(0, 16).toString(),
-    //   "#",
-    //   bufferView.slice(4 * 496, 4 * 496 + 16).toString()
-    // );
-    textureReadBackBuffer.unmap();
+    // const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
+    // // console.log(
+    // //   "bufferView",
+    // //   bufferView.slice(0, 16).toString(),
+    // //   "#",
+    // //   bufferView.slice(4 * 496, 4 * 496 + 16).toString()
+    // // );
+    // textureReadBackBuffer.unmap();
   }
 
   function render(renderPass: GPURenderPassEncoder) {

@@ -133,11 +133,12 @@ async function setupWorldRenderer(
       cube.updateBuffers();
       plane.updateBuffers();
 
-      renderer.start(context);
+      const encoder1 = renderer.getCommandEncoder(context);
       
       const computePass = renderer.getComputePass();
-      plane.compute(computePass);
-      computePass.end();
+      plane.compute(computePass, encoder1);
+      // computePass.end();
+      const encoder = renderer.getCommandEncoder(context);
 
       const renderPass = renderer.getRenderPass();
       cube.render(renderPass);

@@ -17,6 +17,7 @@
     "voronoi",
     "webgpu",
     "wgsl",
+    "Workgroups",
     "Worley"
   ]
 }

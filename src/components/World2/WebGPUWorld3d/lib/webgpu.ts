@@ -58,17 +58,23 @@ export function createRenderer(
       depthStoreOp: "store",
     },
   };
+
+  const computePassDescriptor: GPUComputePassDescriptor = {
+    label: "computePassDescriptor",
+  };
+
   return {
-    descriptor: renderPassDescriptor,
+    
     encoder: null as GPUCommandEncoder | null,
     renderPass: null as GPURenderPassEncoder | null,
     computePass: null as GPUComputePassEncoder | null,
-    start(context: GPUCanvasContext) {
+    getCommandEncoder(context: GPUCanvasContext) {
       colorAttachment.view = context.getCurrentTexture().createView();
       this.encoder = device.createCommandEncoder({ label: "our encoder" });
+      return this.encoder;
     },
     getComputePass() {
-      this.computePass = this.encoder!.beginComputePass(renderPassDescriptor);
+      this.computePass = this.encoder!.beginComputePass(computePassDescriptor);
       return this.computePass
     },
     getRenderPass() {

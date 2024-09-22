@@ -179,7 +179,6 @@ export function createPlane(
     ],
   });
 
-
   const computeWgsl = /* wgsl */ `
     @group(0) @binding(0) 
     var<storage, read_write> textureData: array<f32>; 
@@ -209,27 +208,32 @@ export function createPlane(
   const computeTextureBuffer = device.createBindGroupLayout({
     entries: [
       {
-        binding: 2, 
+        binding: 2,
         visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: "storage" }, 
+        buffer: { type: "storage" },
       },
     ],
   });
 
   const textureStorageBuffer = device.createBuffer({
-    size: 1024 * 1024 * 4, 
+    size: 1024 * 1024 * 4,
     usage:
       GPUBufferUsage.STORAGE |
       GPUBufferUsage.COPY_SRC |
       GPUBufferUsage.COPY_DST,
   });
-  
+
+  const textureReadBackBuffer = device.createBuffer({
+    size: textureStorageBuffer.size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+
   const computeBindGroup = device.createBindGroup({
     layout: computePipeline.getBindGroupLayout(0),
     entries: [
       {
-        binding: 0, 
-        resource: { buffer: textureStorageBuffer }, 
+        binding: 0,
+        resource: { buffer: textureStorageBuffer },
       },
     ],
   });
@@ -256,10 +260,30 @@ export function createPlane(
     );
   }
 
-  function compute(computePass: GPUComputePassEncoder) {
+  async function compute(
+    computePass: GPUComputePassEncoder,
+    encoder: GPUCommandEncoder
+  ) {
     computePass.setPipeline(computePipeline);
     computePass.setBindGroup(0, computeBindGroup);
     computePass.dispatchWorkgroups(16, 16);
+    computePass.end();
+
+    encoder.copyBufferToBuffer(
+      textureStorageBuffer,
+      0,
+      textureReadBackBuffer,
+      0,
+      textureStorageBuffer.size
+    );
+
+    device.queue.submit([encoder.finish()]);
+
+    await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
+
+    const bufferView = new Float32Array(textureReadBackBuffer.getMappedRange());
+    console.log("bufferView", bufferView.slice(0, 16).toString());
+    textureReadBackBuffer.unmap();
   }
 
   function render(renderPass: GPURenderPassEncoder) {

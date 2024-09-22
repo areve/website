@@ -65,26 +65,20 @@ export function createRenderer(
 
   return {
     
-    encoder: null as GPUCommandEncoder | null,
+    // encoder: null as GPUCommandEncoder | null,
     renderPass: null as GPURenderPassEncoder | null,
     computePass: null as GPUComputePassEncoder | null,
-    getCommandEncoder(context: GPUCanvasContext) {
+    setup(context: GPUCanvasContext) {
       colorAttachment.view = context.getCurrentTexture().createView();
-      this.encoder = device.createCommandEncoder({ label: "our encoder" });
-      return this.encoder;
     },
-    getComputePass() {
-      this.computePass = this.encoder!.beginComputePass(computePassDescriptor);
-      return this.computePass
-    },
-    getRenderPass() {
-      this.renderPass = this.encoder!.beginRenderPass(renderPassDescriptor);
+    getRenderPass(encoder: GPUCommandEncoder) {
+      this.renderPass = encoder.beginRenderPass(renderPassDescriptor);
       return this.renderPass
     },
-    end() {
+    end(encoder: GPUCommandEncoder) {
       // if (this.renderPass) this.renderPass.end();
       // if (this.computePass) this.computePass.end();
-      if (this.encoder) device.queue.submit([this.encoder.finish()]);
+      device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();
     },
   };

@@ -260,10 +260,10 @@ export function createPlane(
     );
   }
 
-  async function compute(
-    computePass: GPUComputePassEncoder,
-    encoder: GPUCommandEncoder
-  ) {
+  async function compute(device: GPUDevice) {
+    const encoder = device.createCommandEncoder({ label: "our encoder" });
+    const computePass = encoder.beginComputePass( );
+
     computePass.setPipeline(computePipeline);
     computePass.setBindGroup(0, computeBindGroup);
     computePass.dispatchWorkgroups(16, 16);

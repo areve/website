@@ -98,12 +98,13 @@ export function createPlane(
 
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
-      let worldPointA = textureData[index + 20]; // TODO could be out of range
-      let worldPointB = textureData[index + 20 * 500]; // TODO could be out of range
+      let diffDist = 0.1;
+      let worldPointA = textureData[index + u32(200 * diffDist / uniforms.zoom)]; // TODO could be out of range
+      let worldPointB = textureData[index + u32(200 * 500 * diffDist / uniforms.zoom)]; // TODO could be out of range
 
       var offset = 0.1;
-      var toA = normalize(vec3(1.0, 0.0, worldPointA.height - worldPoint.height));
-      var toB = normalize(vec3(0.0, 1.0, worldPointA.height - worldPoint.height));
+      var toA = normalize(vec3(diffDist, 0.0, worldPointA.height - worldPoint.height));
+      var toB = normalize(vec3(0.0, diffDist, worldPointA.height - worldPoint.height));
       
       var output: VertexOutput;
       output.normal = normalize(cross(toA, toB));
@@ -115,7 +116,8 @@ export function createPlane(
         output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
       }
 
-      output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, height, 0.0));
+      ///(height - seaLevel) / uniforms.zoom * 5
+      output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, (height - worldPoint.seaLevel) / uniforms.zoom * 5, 0.0));
       output.uv = uv;
       output.color = vec4f(worldPoint.height, 1.0, 0.0, 1.0);
       return output;
@@ -236,6 +238,7 @@ export function createPlane(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
+
   const worldMapBindGroup = device.createBindGroup({
     layout: renderPipeline.getBindGroupLayout(0),
     entries: [
@@ -281,10 +284,23 @@ export function createPlane(
             desert: f32,
             seaLevel: f32
           };
-    
+          struct Uniforms {
+            width: f32,
+            height: f32,
+            seed: f32,
+            scale: f32,
+            x: f32,
+            y: f32,
+            z: f32,
+            zoom: f32
+          };
+      
           @group(0) @binding(0) 
           var<storage, read_write> textureData: array<WorldPoint>; 
       
+          @group(1) @binding(0)
+          var<uniform> uniforms: Uniforms;
+
           fn clamp(value: f32, low: f32, high: f32) -> f32 {
             return min(max(value, low), high);
           }
@@ -383,42 +399,50 @@ export function createPlane(
           }
 
           fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
-            let height1 = openSimplex3d(12345 * 112345, x / 129, y / 129, z / 129);
-            let height2 = openSimplex3d(12345 * 212345, x / 47, y / 47, z / 47);
-            let height3 = openSimplex3d(12345 * 312345, x / 7, y / 7, z / 7);
-            let height4 = openSimplex3d(12345 * 412345, x / 1, y / 1, z / 1);
+            let height1 = openSimplex3d(uniforms.seed * 112345, x / 129, y / 129, z / 129);
+            let height2 = openSimplex3d(uniforms.seed * 212345, x / 47, y / 47, z / 47);
+            let height3 = openSimplex3d(uniforms.seed * 312345, x / 7, y / 7, z / 7);
+            let height4 = openSimplex3d(uniforms.seed * 412345, x / 1, y / 1, z / 1);
             return 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
           }
 
           fn worldPointTemperature(x: f32, y:f32, z:f32) -> f32 {
-            let temperature1 = openSimplex3d(12345 * 512345, x / 71, y / 71, z / 71);
-            let temperature2 = openSimplex3d(12345 * 612345, x / 15, y / 15, z / 15);
+            let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
+            let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
             return 0.7 * temperature1 + 0.3 * temperature2;
           }
       
           fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
-            let moisture1 = openSimplex3d(12345 * 712345, x / 67, y / 67, z / 67);
-            let moisture2 = openSimplex3d(12345 * 812345, x / 13, y / 13, z / 13);
+            let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
+            let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
             return 0.7 * moisture1 + 0.3 * moisture2;
           }
 
           @compute @workgroup_size(16, 16)
           fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
-            let x = global_id.x;
+            let x = global_id.x;// + u32(uniforms.x / 100.0);
             let y = global_id.y;
-            let index = y * 500u + x;
+            let index = y * 500u + x ;
             if (x < 500u && y < 500u) {
               let index = y * 500u + x;
+              // let x = coord.x / uniforms.scale * uniforms.zoom + uniforms.x / uniforms.scale;
+              // let y = uniforms.height - coord.y / uniforms.scale * uniforms.zoom + uniforms.y / uniforms.scale;
+              // let z = uniforms.z;
+
               
+              let wx = f32(x) * uniforms.zoom + uniforms.x;
+              let wy =  uniforms.height - f32(y) * uniforms.zoom + uniforms.y;
               var worldPoint: WorldPoint;
-              worldPoint.height = worldPointHeight(f32(x), f32(y), 0.0);
-              worldPoint.temperature = worldPointTemperature(f32(x), f32(y), 0.0);
-              worldPoint.moisture = worldPointMoisture(f32(x), f32(y), 0.0);
+              worldPoint.height = worldPointHeight(f32(wx), f32(wy), 0.0);
+              // worldPoint.height = uniforms.x;
+              worldPoint.temperature = worldPointTemperature(f32(wx), f32(wy), 0.0);
+              worldPoint.moisture = worldPointMoisture(f32(wx), f32(wy), 0.0);
 
               worldPoint.iciness = c(heightIcinessCurve(worldPoint.height) + temperatureIcinessCurve(worldPoint.temperature));
               worldPoint.desert = c(moistureDesertCurve(worldPoint.moisture) + temperatureDesertCurve(worldPoint.temperature));
               worldPoint.seaLevel = 0.6;
 
+              var dummy = uniforms;
               textureData[index] = worldPoint;
             }
           }
@@ -426,6 +450,20 @@ export function createPlane(
       }),
       entryPoint: "computeMain",
     },
+  });
+
+  const computeWorldMapBindGroup = device.createBindGroup({
+    layout: computePipeline.getBindGroupLayout(1),
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: 0,
+          size: getWorldMapUniforms().byteLength,
+        },
+      },
+    ],
   });
 
   const computeTextureBuffer = device.createBindGroupLayout({
@@ -489,6 +527,7 @@ export function createPlane(
 
     computePass.setPipeline(computePipeline);
     computePass.setBindGroup(0, computeBindGroup);
+    computePass.setBindGroup(1, computeWorldMapBindGroup);
     const workgroupSize = { x: 16, y: 16 };
     computePass.dispatchWorkgroups(
       Math.ceil(500 / workgroupSize.x),

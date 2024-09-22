@@ -135,8 +135,8 @@ async function setupWorldRenderer(
 
       cube.updateBuffers();
       plane.updateBuffers();
-
-      if (Math.floor(Math.random() * 60) === 0) await plane.compute(device); // TODO a sloppy way update only sometimes
+      
+      await plane.compute(device); // TODO only needed if uniforms changed, perhaps it can make that decision itself
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

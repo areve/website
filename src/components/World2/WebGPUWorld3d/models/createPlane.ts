@@ -62,6 +62,8 @@ export function createPlane(
       iciness: f32,
       desert: f32,
       seaLevel: f32,
+      _pad1: f32,
+      _pad2: f32,
       color: vec4f
     };
 

@@ -42,6 +42,8 @@ export function createWorldTexture(
             iciness: f32,
             desert: f32,
             seaLevel: f32,
+            _pad1: f32, // because vec4f wants is aligned to 16byte
+            _pad2: f32, // because vec4f wants is aligned to 16byte
             color: vec4f
           };
           struct WorldMapUniforms {
@@ -288,7 +290,7 @@ export function createWorldTexture(
   });
 
   const textureStorageBuffer = device.createBuffer({
-    size: width * height * 12 * 4, // why 12 though!?
+    size: width * height * 12 * 4, // why 12 though, seems like 10 to me !?
     usage:
       GPUBufferUsage.STORAGE |
       GPUBufferUsage.COPY_SRC |
@@ -341,9 +343,9 @@ export function createWorldTexture(
       );
       console.log(
         "bufferView",
-        bufferView.slice(0, 16).toString(),
+        bufferView.slice(0, 24).toString(),
         "#",
-        bufferView.slice(4 * 496, 4 * 496 + 16).toString()
+        bufferView.slice(4 * 496, 4 * 496 + 24).toString()
       );
       textureReadBackBuffer.unmap();
     }

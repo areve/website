@@ -15,6 +15,7 @@ import { createRenderer, getDeviceContext } from "./lib/webgpu";
 import { createCube } from "./models/createCube";
 import { createPlane } from "./models/createPlane";
 import { createCamera } from "./lib/camera";
+import { createWorldCompute } from "./models/worldCompute";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
@@ -104,6 +105,14 @@ async function setupWorldRenderer(
 
   const camera = createCamera(options.width, options.height);
 
+  const textureStorageBuffer = device.createBuffer({
+    size: 1000 * 1000 * 6,
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.COPY_SRC |
+      GPUBufferUsage.COPY_DST,
+  });
+
   const cube = createCube(
     device,
     () => worldMapUniforms.toBuffer(),
@@ -113,7 +122,14 @@ async function setupWorldRenderer(
   const plane = createPlane(
     device,
     () => worldMapUniforms.toBuffer(),
-    () => camera
+    () => camera,
+    textureStorageBuffer
+  );
+
+  const worldCompute = createWorldCompute(
+    device,
+    () => worldMapUniforms.toBuffer(),
+    textureStorageBuffer
   );
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -141,8 +157,10 @@ async function setupWorldRenderer(
 
       cube.updateBuffers();
       plane.updateBuffers();
+      worldCompute.updateBuffers();
 
-      await plane.compute(device); // TODO only needed if uniforms changed, perhaps it can make that decision itself
+      await worldCompute.compute(device);
+      // await plane.compute(device); // TODO only needed if uniforms changed, perhaps it can make that decision itself
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

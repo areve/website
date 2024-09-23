@@ -1,7 +1,8 @@
-export function createWorldCompute(
+export function createWorldTexture(
   device: GPUDevice,
-  getWorldMapUniforms: () => Float32Array,
-  textureStorageBuffer: GPUBuffer
+  width: number,
+  height: number,
+  getWorldMapUniforms: () => Float32Array
 ) {
   const storageBindGroupLayout = device.createBindGroupLayout({
     entries: [
@@ -235,9 +236,9 @@ export function createWorldCompute(
           fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
             let x = global_id.x;
             let y = global_id.y;
-            let index = y * 500u + x ;
-            if (x < 500u && y < 500u) {
-              let index = y * 500u + x;
+            let index = y * ${width}u + x ;
+            if (x < ${width}u && y < ${height}u) {
+              let index = y * ${height}u + x;
               
               let wx = f32(x) * worldMapUniforms.zoom + worldMapUniforms.x;
               let wy =  worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;
@@ -280,6 +281,14 @@ export function createWorldCompute(
     ],
   });
 
+  const textureStorageBuffer = device.createBuffer({
+    size: width * height * 12 * 4, // why 12 though!?
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.COPY_SRC |
+      GPUBufferUsage.COPY_DST,
+  });
+
   const textureReadBackBuffer = device.createBuffer({
     size: textureStorageBuffer.size,
     usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
@@ -304,23 +313,21 @@ export function createWorldCompute(
     computePass.setBindGroup(1, computeWorldMapBindGroup);
     const workgroupSize = { x: 16, y: 16 };
     computePass.dispatchWorkgroups(
-      Math.ceil(500 / workgroupSize.x),
-      Math.ceil(500 / workgroupSize.y)
+      Math.ceil(width / workgroupSize.x),
+      Math.ceil(height / workgroupSize.y)
     );
     computePass.end();
 
-    encoder.copyBufferToBuffer(
-      textureStorageBuffer,
-      0,
-      textureReadBackBuffer,
-      0,
-      textureStorageBuffer.size
-    );
-
-    device.queue.submit([encoder.finish()]);
-
     const debug = false;
     if (debug) {
+      encoder.copyBufferToBuffer(
+        textureStorageBuffer,
+        0,
+        textureReadBackBuffer,
+        0,
+        textureStorageBuffer.size
+      );
+ 
       await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
       const bufferView = new Float32Array(
@@ -334,6 +341,8 @@ export function createWorldCompute(
       );
       textureReadBackBuffer.unmap();
     }
+    device.queue.submit([encoder.finish()]);
+
   }
 
   function updateBuffers() {
@@ -343,5 +352,8 @@ export function createWorldCompute(
   return {
     compute,
     updateBuffers,
+    buffer: textureStorageBuffer,
+    width,
+    height
   };
 }

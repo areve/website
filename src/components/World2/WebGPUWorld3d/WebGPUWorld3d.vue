@@ -15,7 +15,7 @@ import { createRenderer, getDeviceContext } from "./lib/webgpu";
 import { createCube } from "./models/createCube";
 import { createPlane } from "./models/createPlane";
 import { createCamera } from "./lib/camera";
-import { createWorldCompute } from "./models/worldCompute";
+import { createWorldTexture } from "./models/worldTexture";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
@@ -105,13 +105,9 @@ async function setupWorldRenderer(
 
   const camera = createCamera(options.width, options.height);
 
-  const textureStorageBuffer = device.createBuffer({
-    size: 500 * 500 * 12 * 4,
-    usage:
-      GPUBufferUsage.STORAGE |
-      GPUBufferUsage.COPY_SRC |
-      GPUBufferUsage.COPY_DST,
-  });
+  const worldTexture = createWorldTexture(device, width, height, () =>
+    worldMapUniforms.toBuffer()
+  );
 
   const cube = createCube(
     device,
@@ -123,13 +119,7 @@ async function setupWorldRenderer(
     device,
     () => worldMapUniforms.toBuffer(),
     () => camera,
-    textureStorageBuffer
-  );
-
-  const worldCompute = createWorldCompute(
-    device,
-    () => worldMapUniforms.toBuffer(),
-    textureStorageBuffer
+    worldTexture
   );
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -150,9 +140,9 @@ async function setupWorldRenderer(
 
       cube.updateBuffers();
       plane.updateBuffers();
-      worldCompute.updateBuffers();
+      worldTexture.updateBuffers();
 
-      await worldCompute.compute(device);
+      await worldTexture.compute(device);
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

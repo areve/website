@@ -7,7 +7,11 @@ export function createPlane(
   device: GPUDevice,
   getWorldMapUniforms: () => Float32Array,
   getCamera: () => Camera,
-  textureStorageBuffer: GPUBuffer
+  texture: {
+    buffer: GPUBuffer;
+    width: number;
+    height: number;
+  }
 ) {
   const geometry = createPlaneGeometry("plane", 10, 10, 500, 500);
   const vertexBuffer = createVertexBuffer(device, geometry);
@@ -65,11 +69,11 @@ export function createPlane(
       @location(0) position: vec4f,
       @location(1) uv: vec2f
     ) -> VertexOutput {
-      let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
+      let index = u32(uv.y * ${texture.height}) * ${texture.width} + u32(uv.x * ${texture.width});
       let worldPoint = textureData[index];
       let diffDist = 0.1;
       let worldPointA = textureData[index + u32(200 * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause world wrap?
-      let worldPointB = textureData[index + u32(200 * 500 * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause crash?
+      let worldPointB = textureData[index + u32(200 * ${texture.width} * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause crash?
 
       var offset = 0.1;
       var toA = normalize(vec3(diffDist, 0.0, worldPointA.height - worldPoint.height));
@@ -98,7 +102,7 @@ export function createPlane(
       @location(1) color: vec4f,
       @location(2) normal: vec3f,
     ) -> @location(0) vec4f {
-      let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
+      let index = u32(uv.y * ${texture.height}) * ${texture.width} + u32(uv.x * ${texture.width});
       let worldPoint = textureData[index];
 
       let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 
@@ -130,7 +134,7 @@ export function createPlane(
               shaderLocation: 1,
               offset: geometry.uvOffset,
               format: "float32x2",
-            }
+            },
           ],
         },
       ],
@@ -194,7 +198,6 @@ export function createPlane(
     ],
   });
 
-
   const computeForRenderBindGroup = device.createBindGroup({
     layout: renderPipeline.getBindGroupLayout(2),
     entries: [
@@ -202,7 +205,7 @@ export function createPlane(
         binding: 0,
         resource: {
           offset: 0,
-          buffer: textureStorageBuffer,
+          buffer: texture.buffer,
         },
       },
     ],

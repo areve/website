@@ -12,20 +12,20 @@ export function createWorldCompute(
       },
     ],
   });
+
   const uniformBindGroupLayout = device.createBindGroupLayout({
     entries: [
       {
-        binding: 0, // Matches the binding in your WGSL shader
-        visibility: GPUShaderStage.COMPUTE, // Buffer is used in compute shader
+        binding: 0,
+        visibility: GPUShaderStage.COMPUTE,
         buffer: {
-          type: "uniform", // It's a uniform buffer
+          type: "uniform",
         },
       },
     ],
   });
 
   const computePipeline = device.createComputePipeline({
-    // layout,
     layout: device.createPipelineLayout({
       bindGroupLayouts: [storageBindGroupLayout, uniformBindGroupLayout],
     }),

@@ -1,6 +1,6 @@
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
-import { createVertexBuffer } from "../lib/buffer";
+import { createVertexBuffer, getBufferOffsets } from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
 
 export function createCube(
@@ -15,6 +15,8 @@ export function createCube(
     translation: vec3.create(0, 0, 4),
     rotation: vec3.create(0, 0, 0),
   };
+  const getTransformMatrix = () =>
+    applyCamera(transform.translation, transform.rotation, getCamera());
 
   const renderPipeline = device.createRenderPipeline({
     label: "blah pipeline",
@@ -114,9 +116,12 @@ export function createCube(
     },
   });
 
+  const offsets = getBufferOffsets(getWorldMapUniforms, getTransformMatrix);
+  const [worldMapUniforms, cameraUniforms] = offsets;
+  const uniformBufferSize = cameraUniforms.end;
+
   const uniformBuffer = device.createBuffer({
-    // size: getSizeFor(buffers),
-    size: 1024 * 48, // TODO auto calc size
+    size: uniformBufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -127,8 +132,8 @@ export function createCube(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: 0,
-          size: getWorldMapUniforms().byteLength,
+          offset: worldMapUniforms.offset,
+          size: worldMapUniforms.size,
         },
       },
     ],
@@ -141,23 +146,23 @@ export function createCube(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: 1024, // TODO auto calc
-          size: applyCamera(
-            transform.translation,
-            transform.rotation,
-            getCamera()
-          ).byteLength,
+          offset: cameraUniforms.offset,
+          size: cameraUniforms.size,
         },
       },
     ],
   });
 
   function updateBuffers() {
-    device.queue.writeBuffer(uniformBuffer, 0, getWorldMapUniforms());
     device.queue.writeBuffer(
       uniformBuffer,
-      1024,
-      applyCamera(transform.translation, transform.rotation, getCamera())
+      worldMapUniforms.offset,
+      worldMapUniforms.getBuffer()
+    );
+    device.queue.writeBuffer(
+      uniformBuffer,
+      cameraUniforms.offset,
+      cameraUniforms.getBuffer()
     );
   }
 

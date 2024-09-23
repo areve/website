@@ -168,11 +168,9 @@ export function createPlane(
     },
   });
 
-  const [worldMapUniforms, cameraUniforms] = getBufferOffsets([
-    getWorldMapUniforms,
-    getTransformMatrix,
-  ]);
-  const uniformBufferSize = cameraUniforms.next;
+  const offsets = getBufferOffsets(getWorldMapUniforms, getTransformMatrix);
+  const [worldMapUniforms, cameraUniforms] = offsets;
+  const uniformBufferSize = cameraUniforms.end;
 
   const uniformBuffer = device.createBuffer({
     size: uniformBufferSize,

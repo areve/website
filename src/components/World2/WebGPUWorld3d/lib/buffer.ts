@@ -26,13 +26,13 @@ export function createIndexBuffer(device: GPUDevice, geometry: Geometry) {
   return buffer;
 }
 
-export function getBufferOffsets(getBuffers: (() => ArrayBufferLike)[]) {
+export function getBufferOffsets(...getBuffers: (() => ArrayBufferLike)[]) {
   let next = 0;
   return getBuffers.map((getBuffer) => {
     const size = getBuffer().byteLength;
     const reserved = Math.ceil(size / 256) * 256;
     const offset = next;
     next = offset + reserved;
-    return { offset, size, next, getBuffer };
+    return { offset, size, end: next, getBuffer };
   });
 }

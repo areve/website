@@ -1,3 +1,5 @@
+import { getBufferOffsets } from "../lib/buffer";
+
 export function createWorldTexture(
   device: GPUDevice,
   width: number,
@@ -262,9 +264,12 @@ export function createWorldTexture(
     },
   });
 
+  const offsets = getBufferOffsets(getWorldMapUniforms);
+  const [worldMapUniforms] = offsets;
+  const uniformBufferSize = worldMapUniforms.end;
+
   const uniformBuffer = device.createBuffer({
-    // size: getSizeFor(buffers),
-    size: 1024 * 48,
+    size: uniformBufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -275,8 +280,8 @@ export function createWorldTexture(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: 0,
-          size: getWorldMapUniforms().byteLength,
+          offset: worldMapUniforms.offset,
+          size: worldMapUniforms.size,
         },
       },
     ],
@@ -347,7 +352,7 @@ export function createWorldTexture(
   }
 
   function updateBuffers() {
-    device.queue.writeBuffer(uniformBuffer, 0, getWorldMapUniforms());
+    device.queue.writeBuffer(uniformBuffer, worldMapUniforms.offset, worldMapUniforms.getBuffer());
   }
 
   return {

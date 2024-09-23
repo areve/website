@@ -4,7 +4,7 @@ export function createWorldTexture(
   device: GPUDevice,
   width: number,
   height: number,
-  getWorldMapUniforms: () => Float32Array
+  getWorldMapUniforms: () => ArrayBufferLike
 ) {
   const storageBindGroupLayout = device.createBindGroupLayout({
     entries: [

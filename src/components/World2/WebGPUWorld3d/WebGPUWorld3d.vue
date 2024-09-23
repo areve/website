@@ -89,35 +89,34 @@ async function setupWorldRenderer(
     y: 0,
     z: 0,
     zoom: 1,
-    toBuffer() {
-      return new Float32Array([
-        this.width,
-        this.height,
-        this.seed,
-        this.scale,
-        this.x,
-        this.y,
-        this.z,
-        this.zoom,
-      ]);
-    },
   };
+
+  const worldMapUniformsToBuffer = () =>
+    new Float32Array([
+      worldMapUniforms.width,
+      worldMapUniforms.height,
+      worldMapUniforms.seed,
+      worldMapUniforms.scale,
+      worldMapUniforms.x,
+      worldMapUniforms.y,
+      worldMapUniforms.z,
+      worldMapUniforms.zoom,
+    ]);
 
   const camera = createCamera(options.width, options.height);
 
-  const worldTexture = createWorldTexture(device, width, height, () =>
-    worldMapUniforms.toBuffer()
+  const worldTexture = createWorldTexture(
+    device,
+    width,
+    height,
+    worldMapUniformsToBuffer
   );
 
-  const cube = createCube(
-    device,
-    () => worldMapUniforms.toBuffer(),
-    () => camera
-  );
+  const cube = createCube(device, worldMapUniformsToBuffer, () => camera);
 
   const plane = createPlane(
     device,
-    () => worldMapUniforms.toBuffer(),
+    worldMapUniformsToBuffer,
     () => camera,
     worldTexture
   );

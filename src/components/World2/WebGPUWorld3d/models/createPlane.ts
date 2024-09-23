@@ -34,8 +34,7 @@ export function createPlane(
       @builtin(position) position: vec4f,
       @location(0) uv: vec2f,
       @location(1) color: vec4f,
-      @location(2) face: vec2f,
-      @location(3) normal: vec3f,
+      @location(2) normal: vec3f,
     }
 
     struct Uniforms2 {
@@ -63,8 +62,7 @@ export function createPlane(
     @vertex
     fn vertexMain(
       @location(0) position: vec4f,
-      @location(1) uv: vec2f,
-      @location(2) face: vec2f,
+      @location(1) uv: vec2f
     ) -> VertexOutput {
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
@@ -120,8 +118,7 @@ export function createPlane(
     fn fragMain(
       @location(0) uv: vec2f,
       @location(1) color: vec4f,
-      @location(2) face: vec2f,
-      @location(3) normal: vec3f,
+      @location(2) normal: vec3f,
     ) -> @location(0) vec4f {
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
@@ -193,13 +190,7 @@ export function createPlane(
               shaderLocation: 1,
               offset: geometry.uvOffset,
               format: "float32x2",
-            },
-            {
-              // faceCoord
-              shaderLocation: 2,
-              offset: geometry.faceCoordOffset,
-              format: "float32x2",
-            },
+            }
           ],
         },
       ],

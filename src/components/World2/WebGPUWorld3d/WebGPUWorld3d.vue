@@ -134,13 +134,6 @@ async function setupWorldRenderer(
 
   const renderer = createRenderer(device, options.width, options.height);
 
-  // Init code, kind of optional
-  // {
-  //   cube.updateBuffers();
-  //   plane.updateBuffers();
-  //   await plane.compute(device);
-  // }
-
   return {
     async init() {},
     async update(
@@ -160,7 +153,6 @@ async function setupWorldRenderer(
       worldCompute.updateBuffers();
 
       await worldCompute.compute(device);
-      // await plane.compute(device); // TODO only needed if uniforms changed, perhaps it can make that decision itself
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

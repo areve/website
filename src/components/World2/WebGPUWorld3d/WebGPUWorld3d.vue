@@ -16,6 +16,7 @@ import { createCube } from "./models/createCube";
 import { createPlane } from "./models/createPlane";
 import { createCamera } from "./lib/camera";
 import { createWorldTexture } from "./models/worldTexture";
+import { createWorldData } from "./models/worldData";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
@@ -105,11 +106,17 @@ async function setupWorldRenderer(
 
   const camera = createCamera(options.width, options.height);
 
-  const worldTexture = createWorldTexture(
+  const worldData = createWorldData(
     device,
     width,
     height,
     getWorldMapUniformsBuffer
+  );
+
+  const worldTexture = createWorldTexture(
+    device,
+    worldData,
+    getWorldMapUniformsBuffer,
   );
 
   const cube = createCube(device, getWorldMapUniformsBuffer, () => camera);
@@ -139,8 +146,10 @@ async function setupWorldRenderer(
 
       cube.updateBuffers();
       plane.updateBuffers();
+      worldData.updateBuffers();
       worldTexture.updateBuffers();
 
+      await worldData.compute(device);
       await worldTexture.compute(device);
 
       renderer.setup(context);

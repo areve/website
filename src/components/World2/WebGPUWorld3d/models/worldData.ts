@@ -160,24 +160,25 @@ export function createWorldData(
             return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
           }
 
-          fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
-            let height1 = openSimplex3d(worldMapUniforms.seed * 112345, x / 129, y / 129, z / 129);
-            let height2 = openSimplex3d(worldMapUniforms.seed * 212345, x / 47, y / 47, z / 47);
-            let height3 = openSimplex3d(worldMapUniforms.seed * 312345, x / 7, y / 7, z / 7);
-            let height4 = openSimplex3d(worldMapUniforms.seed * 412345, x / 1, y / 1, z / 1);
-            return 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
-          }
-
-          fn worldPointTemperature(x: f32, y:f32, z:f32) -> f32 {
-            let temperature1 = openSimplex3d(worldMapUniforms.seed * 512345, x / 71, y / 71, z / 71);
-            let temperature2 = openSimplex3d(worldMapUniforms.seed * 612345, x / 15, y / 15, z / 15);
-            return 0.7 * temperature1 + 0.3 * temperature2;
-          }
+          fn fractalNoise(seed: f32, x: f32, y: f32, z: f32, numLayers: u32) -> f32 {
+            var total: f32 = 0.0;
+            var amplitude: f32 = 1.0;
+            var frequency: f32 = 1.0;
+            var maxAmplitude: f32 = 0.0;
+        
+            for (var i: u32 = 0; i < numLayers; i++) {
+              let noise = openSimplex3d(
+                seed * f32(i * 10000 + 12345),
+                x * (frequency), y * (frequency), z * (frequency));
       
-          fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
-            let moisture1 = openSimplex3d(worldMapUniforms.seed * 712345, x / 67, y / 67, z / 67);
-            let moisture2 = openSimplex3d(worldMapUniforms.seed * 812345, x / 13, y / 13, z / 13);
-            return 0.7 * moisture1 + 0.3 * moisture2;
+              total += noise * amplitude;
+              maxAmplitude += amplitude;
+      
+              amplitude *= 0.25;
+              frequency *= 4.0;
+            }
+        
+            return total / maxAmplitude;
           }
 
           @compute @workgroup_size(16, 16)
@@ -191,14 +192,16 @@ export function createWorldData(
               let wx = f32(x) * worldMapUniforms.zoom + worldMapUniforms.x;
               let wy =  worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;
               var worldPoint: WorldPoint;
-              worldPoint.height = worldPointHeight(f32(wx), f32(wy), 0.0);
-              worldPoint.temperature = worldPointTemperature(f32(wx), f32(wy), 0.0);
-              worldPoint.moisture = worldPointMoisture(f32(wx), f32(wy), 0.0);
+              worldPoint.height = fractalNoise(worldMapUniforms.seed, f32(wx) / 128, f32(wy) / 128, 0.0, 4); 
+              worldPoint.temperature = fractalNoise(worldMapUniforms.seed * 712345, f32(wx) / 256, f32(wy) / 256, 0.0, 2); 
+              worldPoint.moisture = fractalNoise(worldMapUniforms.seed * 812345, f32(wx) / 512, f32(wy) / 512, 0.0, 2); 
               worldPoint.iciness = c(heightIcinessCurve(worldPoint.height) + temperatureIcinessCurve(worldPoint.temperature));
               worldPoint.desert = c(moistureDesertCurve(worldPoint.moisture) + temperatureDesertCurve(worldPoint.temperature));
-              worldPoint.seaLevel = 0.6;
+              worldPoint.seaLevel = 0.55;
 
-              worldPoint.color = vec4f(0.0, 1.0, 0.0, 1.0);
+              // use other computation to come up with better color, this is just for debugging 
+              worldPoint.color = vec4f(
+                worldPoint.height, worldPoint.temperature, worldPoint.moisture, 1.0);
 
               textureData[index] = worldPoint;
             }

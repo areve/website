@@ -26,9 +26,13 @@ export function createIndexBuffer(device: GPUDevice, geometry: Geometry) {
   return buffer;
 }
 
-export function calculateBufferSizeFor(buffers: Float32Array[]) {
-  return buffers.reduce(
-    (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
-    0
-  );
+export function getBufferOffsets(buffers: Float32Array[]) {
+  let next = 0;
+  return buffers.map((buffer) => {
+    const size = buffer.byteLength;
+    const reserved = Math.ceil(size / 256) * 256;
+    const offset = next;
+    next = offset + reserved;
+    return { offset, size, next };
+  });
 }

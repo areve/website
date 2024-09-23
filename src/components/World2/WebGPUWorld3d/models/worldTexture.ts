@@ -250,6 +250,7 @@ export function createWorldTexture(
               worldPoint.desert = c(moistureDesertCurve(worldPoint.moisture) + temperatureDesertCurve(worldPoint.temperature));
               worldPoint.seaLevel = 0.6;
 
+              // TODO may be best to calculate a normal here too
               worldPoint.color = getWorldPointColor(worldPoint);
 
               textureData[index] = worldPoint;

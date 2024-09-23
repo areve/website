@@ -1,7 +1,11 @@
 import { vec3 } from "wgpu-matrix";
 import { createPlaneGeometry } from "../geometries/plane";
 import { applyCamera, Camera } from "../lib/camera";
-import { createVertexBuffer, createIndexBuffer } from "../lib/buffer";
+import {
+  createVertexBuffer,
+  createIndexBuffer,
+  getBufferOffsets,
+} from "../lib/buffer";
 
 export function createPlane(
   device: GPUDevice,
@@ -22,7 +26,13 @@ export function createPlane(
     rotation: vec3.create(0, 0, 0),
   };
 
+  const getTransformMatrix = () =>
+    applyCamera(transform.translation, transform.rotation, getCamera());
+
   const worldWgsl = /* wgsl */ `
+    const texWidth = ${texture.width};
+    const texHeight = ${texture.height};
+
     struct WorldMapUniforms {
       width: f32,
       height: f32,
@@ -69,15 +79,14 @@ export function createPlane(
       @location(0) position: vec4f,
       @location(1) uv: vec2f
     ) -> VertexOutput {
-      let index = u32(uv.y * ${texture.height}) * ${texture.width} + u32(uv.x * ${texture.width});
+      let index = u32(uv.y * texHeight - 1) * texWidth + u32(uv.x * texWidth - 1);
       let worldPoint = textureData[index];
-      let diffDist = 0.1;
-      let worldPointA = textureData[index + u32(200 * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause world wrap?
-      let worldPointB = textureData[index + u32(200 * ${texture.width} * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause crash?
+      let worldPointA = textureData[index + 1]; 
+      let worldPointB = textureData[index + texWidth]; 
 
-      var offset = 0.1;
-      var toA = normalize(vec3(diffDist, 0.0, worldPointA.height - worldPoint.height));
-      var toB = normalize(vec3(0.0, diffDist, worldPointA.height - worldPoint.height));
+      var diffDist = worldMapUniforms.zoom / 20.0;
+      var toA = normalize(vec3(diffDist, 0.0, (worldPointA.height - worldPoint.height)));
+      var toB = normalize(vec3(0.0, diffDist, (worldPointB.height - worldPoint.height)));
       
       var output: VertexOutput;
       output.normal = normalize(cross(toA, toB));
@@ -89,10 +98,9 @@ export function createPlane(
         output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
       }
 
-      ///(height - seaLevel) / worldMapUniforms.zoom * 5
       output.position = cameraUniforms.transform * (position + vec4f(0.0, 0.0, (height - worldPoint.seaLevel) / worldMapUniforms.zoom * 5, 0.0));
       output.uv = uv;
-      output.color = worldPoint.color;//vec4f(worldPoint.height, 1.0, 0.0, 1.0);
+      output.color = worldPoint.color;
       return output;
     }
 
@@ -102,7 +110,7 @@ export function createPlane(
       @location(1) color: vec4f,
       @location(2) normal: vec3f,
     ) -> @location(0) vec4f {
-      let index = u32(uv.y * ${texture.height}) * ${texture.width} + u32(uv.x * ${texture.width});
+      let index = u32(uv.y * texHeight) * texWidth + u32(uv.x * texWidth);
       let worldPoint = textureData[index];
 
       let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 
@@ -160,9 +168,13 @@ export function createPlane(
     },
   });
 
+  const [offset1, offset2] = getBufferOffsets([
+    getWorldMapUniforms(),
+    getTransformMatrix(),
+  ]);
+
   const uniformBuffer = device.createBuffer({
-    // size: getSizeFor(buffers),
-    size: 1024 * 48,
+    size: offset2.next,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -173,7 +185,7 @@ export function createPlane(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: 0,
+          offset: offset1.offset,
           size: getWorldMapUniforms().byteLength,
         },
       },
@@ -187,12 +199,8 @@ export function createPlane(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: 1024,
-          size: applyCamera(
-            transform.translation,
-            transform.rotation,
-            getCamera()
-          ).byteLength,
+          offset: offset2.offset,
+          size: getTransformMatrix().byteLength,
         },
       },
     ],
@@ -212,12 +220,8 @@ export function createPlane(
   });
 
   function updateBuffers() {
-    device.queue.writeBuffer(uniformBuffer, 0, getWorldMapUniforms());
-    device.queue.writeBuffer(
-      uniformBuffer,
-      1024,
-      applyCamera(transform.translation, transform.rotation, getCamera())
-    );
+    device.queue.writeBuffer(uniformBuffer, offset1.offset, getWorldMapUniforms());
+    device.queue.writeBuffer(uniformBuffer, offset2.offset, getTransformMatrix());
   }
 
   function render(renderPass: GPURenderPassEncoder) {
@@ -236,11 +240,4 @@ export function createPlane(
     render,
     updateBuffers,
   };
-}
-
-function getSizeFor(buffers: Float32Array[]) {
-  return buffers.reduce(
-    (acc, buffer) => acc + Math.ceil(buffer.byteLength / 256) * 256,
-    0
-  );
 }

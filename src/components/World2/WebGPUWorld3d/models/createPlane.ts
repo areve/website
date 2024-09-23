@@ -47,7 +47,8 @@ export function createPlane(
       moisture: f32,
       iciness: f32,
       desert: f32,
-      seaLevel: f32
+      seaLevel: f32,
+      color: vec4f
     };
 
     @group(0) @binding(0)
@@ -87,31 +88,8 @@ export function createPlane(
       ///(height - seaLevel) / uniforms.zoom * 5
       output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, (height - worldPoint.seaLevel) / uniforms.zoom * 5, 0.0));
       output.uv = uv;
-      output.color = vec4f(worldPoint.height, 1.0, 0.0, 1.0);
+      output.color = worldPoint.color;//vec4f(worldPoint.height, 1.0, 0.0, 1.0);
       return output;
-    }
-
-    fn clamp(value: f32, low: f32, high: f32) -> f32 {
-      return min(max(value, low), high);
-    }
-
-    fn c(v: f32) -> f32 {
-      return clamp(v, 0, 1);
-    }
-
-    fn hsv2rgb(hsv: vec3f) -> vec3f {
-      let h = hsv.x;
-      let s = hsv.y;
-      let v = hsv.z;
-      let hue = (((h * 360) % 360) + 360) % 360;
-      let sector = floor(hue / 60);
-      let sectorFloat = hue / 60 - sector;
-      let x = v * (1 - s);
-      let y = v * (1 - s * sectorFloat);
-      let z = v * (1 - s * (1 - sectorFloat));
-      let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
-
-      return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
     }
 
     @fragment
@@ -123,49 +101,11 @@ export function createPlane(
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
 
-      let m = worldPoint.moisture;
-      let t = worldPoint.temperature;
-      let i = worldPoint.iciness;
-      let d = worldPoint.desert;
-      let height = worldPoint.height;
-      let seaLevel = worldPoint.seaLevel;
-
-      let isSea = height < worldPoint.seaLevel;
-
-
       let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 
       let lightIntensity: f32 = dot(normal, lightDir);
       let intensity: f32 = min(max(lightIntensity, 0.0), 1.0);
 
-      if(isSea) {
-        let seaDepth = c(1 - height / seaLevel);
-        let sd = seaDepth;
-        let seaHsv = vec3f(
-          229.0 / 360.0,
-          0.47 + sd * 0.242 - 0.1 + t * 0.2,
-          0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
-        );
-        return vec4<f32>(hsv2rgb(vec3f(
-          seaHsv[0],
-          c(seaHsv[1] - 0.2 * i),
-          c(seaHsv[2] + 0.2 * i)
-        )) * intensity, 1.0);
-      } else {
-        let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
-        let sh = heightAboveSeaLevel;
-    
-        let landHsv = vec3f(
-          77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
-          0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
-          0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
-        );
-
-        return vec4<f32>(hsv2rgb(vec3f(
-          landHsv[0] - d * 0.1,
-          c(landHsv[1] - 0.3 * i + d * 0.1),
-          c(landHsv[2] + 0.6 * i + d * 0.45),
-        )) * intensity, 1.0);            
-      }
+      return vec4<f32>(worldPoint.color.rgb * intensity, 1.0);            
     }
   `;
 

@@ -38,7 +38,8 @@ export function createWorldCompute(
             moisture: f32,
             iciness: f32,
             desert: f32,
-            seaLevel: f32
+            seaLevel: f32,
+            color: vec4f
           };
           struct Uniforms {
             width: f32,
@@ -103,7 +104,7 @@ export function createWorldCompute(
             return piecewiseCurve(t, 0.7, 8.0);
           }
     
-          fn noise(seed: f32, coord: vec4<f32>) -> f32 {
+          fn noise(seed: f32, coord: vec4f) -> f32 {
             let n: u32 = bitcast<u32>(seed) + bitcast<u32>(coord.x * 374761393.0) + bitcast<u32>(coord.y * 668265263.0) + bitcast<u32>(coord.z * 1440662683.0) + bitcast<u32>(coord.w * 3865785317.0);
             let m: u32 = (n ^ (n >> 13)) * 1274126177;
             return f32(m) / f32(0xffffffff);
@@ -174,6 +175,62 @@ export function createWorldCompute(
             return 0.7 * moisture1 + 0.3 * moisture2;
           }
 
+          fn hsv2rgb(hsv: vec3f) -> vec3f {
+            let h = hsv.x;
+            let s = hsv.y;
+            let v = hsv.z;
+            let hue = (((h * 360) % 360) + 360) % 360;
+            let sector = floor(hue / 60);
+            let sectorFloat = hue / 60 - sector;
+            let x = v * (1 - s);
+            let y = v * (1 - s * sectorFloat);
+            let z = v * (1 - s * (1 - sectorFloat));
+            let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
+      
+            return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
+          }
+
+          fn getWorldPointColor(worldPoint: WorldPoint) -> vec4f {
+            let m = worldPoint.moisture;
+            let t = worldPoint.temperature;
+            let i = worldPoint.iciness;
+            let d = worldPoint.desert;
+            let height = worldPoint.height;
+            let seaLevel = worldPoint.seaLevel;
+      
+            let isSea = height < worldPoint.seaLevel;
+            
+            if(isSea) {
+              let seaDepth = c(1 - height / seaLevel);
+              let sd = seaDepth;
+              let seaHsv = vec3f(
+                229.0 / 360.0,
+                0.47 + sd * 0.242 - 0.1 + t * 0.2,
+                0.25 + (1 - sd) * 0.33 + 0.05 - m * 0.1
+              );
+              return vec4f(hsv2rgb(vec3f(
+                seaHsv[0],
+                c(seaHsv[1] - 0.2 * i),
+                c(seaHsv[2] + 0.2 * i)
+              )), 1.0);
+            } else {
+              let heightAboveSeaLevel = pow((height - seaLevel) / (1 - seaLevel), 0.5);
+              let sh = heightAboveSeaLevel;
+          
+              let landHsv = vec3f(
+                77.0 / 360.0 - sh * (32.0 / 360.0) - 16.0 / 360.0 + m * (50.0 / 360.0),
+                0.34 - sh * 0.13 + (1 - m) * 0.05 + 0.1 - (1 - t) * 0.2,
+                0.4 - sh * 0.24 - 0.25 + (1 - m) * 0.6 - (1 - t) * 0.1,
+              );
+      
+              return vec4f(hsv2rgb(vec3f(
+                landHsv[0] - d * 0.1,
+                c(landHsv[1] - 0.3 * i + d * 0.1),
+                c(landHsv[2] + 0.6 * i + d * 0.45),
+              )), 1.0);            
+            }
+          }
+
           @compute @workgroup_size(16, 16)
           fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
             let x = global_id.x;
@@ -191,6 +248,8 @@ export function createWorldCompute(
               worldPoint.iciness = c(heightIcinessCurve(worldPoint.height) + temperatureIcinessCurve(worldPoint.temperature));
               worldPoint.desert = c(moistureDesertCurve(worldPoint.moisture) + temperatureDesertCurve(worldPoint.temperature));
               worldPoint.seaLevel = 0.6;
+
+              worldPoint.color = getWorldPointColor(worldPoint);
 
               textureData[index] = worldPoint;
             }

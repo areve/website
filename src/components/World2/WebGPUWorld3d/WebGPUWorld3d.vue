@@ -106,7 +106,7 @@ async function setupWorldRenderer(
   const camera = createCamera(options.width, options.height);
 
   const textureStorageBuffer = device.createBuffer({
-    size: 1000 * 1000 * 6,
+    size: 500 * 500 * 12 * 4,
     usage:
       GPUBufferUsage.STORAGE |
       GPUBufferUsage.COPY_SRC |

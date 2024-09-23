@@ -41,7 +41,7 @@ export function createWorldCompute(
             seaLevel: f32,
             color: vec4f
           };
-          struct Uniforms {
+          struct WorldMapUniforms {
             width: f32,
             height: f32,
             seed: f32,
@@ -56,7 +56,7 @@ export function createWorldCompute(
           var<storage, read_write> textureData: array<WorldPoint>; 
       
           @group(1) @binding(0)
-          var<uniform> uniforms: Uniforms;
+          var<uniform> worldMapUniforms: WorldMapUniforms;
 
           fn clamp(value: f32, low: f32, high: f32) -> f32 {
             return min(max(value, low), high);
@@ -156,22 +156,22 @@ export function createWorldCompute(
           }
 
           fn worldPointHeight(x: f32, y:f32, z:f32) -> f32 {
-            let height1 = openSimplex3d(uniforms.seed * 112345, x / 129, y / 129, z / 129);
-            let height2 = openSimplex3d(uniforms.seed * 212345, x / 47, y / 47, z / 47);
-            let height3 = openSimplex3d(uniforms.seed * 312345, x / 7, y / 7, z / 7);
-            let height4 = openSimplex3d(uniforms.seed * 412345, x / 1, y / 1, z / 1);
+            let height1 = openSimplex3d(worldMapUniforms.seed * 112345, x / 129, y / 129, z / 129);
+            let height2 = openSimplex3d(worldMapUniforms.seed * 212345, x / 47, y / 47, z / 47);
+            let height3 = openSimplex3d(worldMapUniforms.seed * 312345, x / 7, y / 7, z / 7);
+            let height4 = openSimplex3d(worldMapUniforms.seed * 412345, x / 1, y / 1, z / 1);
             return 0.6 * height1 + 0.3 * height2 + 0.15 * height3 + 0.05 * height4;
           }
 
           fn worldPointTemperature(x: f32, y:f32, z:f32) -> f32 {
-            let temperature1 = openSimplex3d(uniforms.seed * 512345, x / 71, y / 71, z / 71);
-            let temperature2 = openSimplex3d(uniforms.seed * 612345, x / 15, y / 15, z / 15);
+            let temperature1 = openSimplex3d(worldMapUniforms.seed * 512345, x / 71, y / 71, z / 71);
+            let temperature2 = openSimplex3d(worldMapUniforms.seed * 612345, x / 15, y / 15, z / 15);
             return 0.7 * temperature1 + 0.3 * temperature2;
           }
       
           fn worldPointMoisture(x: f32, y:f32, z:f32) -> f32 {
-            let moisture1 = openSimplex3d(uniforms.seed * 712345, x / 67, y / 67, z / 67);
-            let moisture2 = openSimplex3d(uniforms.seed * 812345, x / 13, y / 13, z / 13);
+            let moisture1 = openSimplex3d(worldMapUniforms.seed * 712345, x / 67, y / 67, z / 67);
+            let moisture2 = openSimplex3d(worldMapUniforms.seed * 812345, x / 13, y / 13, z / 13);
             return 0.7 * moisture1 + 0.3 * moisture2;
           }
 
@@ -239,8 +239,8 @@ export function createWorldCompute(
             if (x < 500u && y < 500u) {
               let index = y * 500u + x;
               
-              let wx = f32(x) * uniforms.zoom + uniforms.x;
-              let wy =  uniforms.height - f32(y) * uniforms.zoom + uniforms.y;
+              let wx = f32(x) * worldMapUniforms.zoom + worldMapUniforms.x;
+              let wy =  worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;
               var worldPoint: WorldPoint;
               worldPoint.height = worldPointHeight(f32(wx), f32(wy), 0.0);
               worldPoint.temperature = worldPointTemperature(f32(wx), f32(wy), 0.0);

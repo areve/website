@@ -19,7 +19,7 @@ export function createPlane(
   };
 
   const worldWgsl = /* wgsl */ `
-    struct Uniforms {
+    struct WorldMapUniforms {
       width: f32,
       height: f32,
       seed: f32,
@@ -37,7 +37,7 @@ export function createPlane(
       @location(2) normal: vec3f,
     }
 
-    struct Uniforms2 {
+    struct CameraUniforms {
       transform: mat4x4f
     };
 
@@ -52,10 +52,10 @@ export function createPlane(
     };
 
     @group(0) @binding(0)
-    var<uniform> uniforms: Uniforms;
+    var<uniform> worldMapUniforms: WorldMapUniforms;
 
     @group(1) @binding(0) 
-    var<uniform> uniforms2: Uniforms2;
+    var<uniform> cameraUniforms: CameraUniforms;
 
     @group(2) @binding(0) 
     var<storage> textureData: array<WorldPoint>; 
@@ -68,8 +68,8 @@ export function createPlane(
       let index = u32(uv.y * 500) * 500+ u32(uv.x * 500);
       let worldPoint = textureData[index];
       let diffDist = 0.1;
-      let worldPointA = textureData[index + u32(200 * diffDist / uniforms.zoom)]; // TODO could be out of range and cause world wrap?
-      let worldPointB = textureData[index + u32(200 * 500 * diffDist / uniforms.zoom)]; // TODO could be out of range and cause crash?
+      let worldPointA = textureData[index + u32(200 * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause world wrap?
+      let worldPointB = textureData[index + u32(200 * 500 * diffDist / worldMapUniforms.zoom)]; // TODO could be out of range and cause crash?
 
       var offset = 0.1;
       var toA = normalize(vec3(diffDist, 0.0, worldPointA.height - worldPoint.height));
@@ -85,8 +85,8 @@ export function createPlane(
         output.normal = normalize(vec3(output.normal.x, output.normal.y, output.normal.z * 4));
       }
 
-      ///(height - seaLevel) / uniforms.zoom * 5
-      output.position = uniforms2.transform * (position + vec4f(0.0, 0.0, (height - worldPoint.seaLevel) / uniforms.zoom * 5, 0.0));
+      ///(height - seaLevel) / worldMapUniforms.zoom * 5
+      output.position = cameraUniforms.transform * (position + vec4f(0.0, 0.0, (height - worldPoint.seaLevel) / worldMapUniforms.zoom * 5, 0.0));
       output.uv = uv;
       output.color = worldPoint.color;//vec4f(worldPoint.height, 1.0, 0.0, 1.0);
       return output;

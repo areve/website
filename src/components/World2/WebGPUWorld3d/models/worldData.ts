@@ -174,7 +174,7 @@ export function createWorldData(
               total += noise * amplitude;
               maxAmplitude += amplitude;
       
-              amplitude *= 0.25;
+              amplitude *= 0.35;
               frequency *= 4.0;
             }
         
@@ -190,11 +190,12 @@ export function createWorldData(
               let index = y * ${height}u + x;
               
               let wx = f32(x) * worldMapUniforms.zoom + worldMapUniforms.x;
-              let wy =  worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;
+              let wy = worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;
+
               var worldPoint: WorldPoint;
-              worldPoint.height = fractalNoise(worldMapUniforms.seed, f32(wx) / 128, f32(wy) / 128, 0.0, 4); 
-              worldPoint.temperature = fractalNoise(worldMapUniforms.seed * 712345, f32(wx) / 256, f32(wy) / 256, 0.0, 2); 
-              worldPoint.moisture = fractalNoise(worldMapUniforms.seed * 812345, f32(wx) / 512, f32(wy) / 512, 0.0, 2); 
+              worldPoint.height = fractalNoise(worldMapUniforms.seed, f32(wx) / 129 , f32(wy) / 129 , 0.0, 4); 
+              worldPoint.temperature = fractalNoise(worldMapUniforms.seed * 712345, f32(wx) / 312, f32(wy) / 125, 0.0, 2); 
+              worldPoint.moisture = fractalNoise(worldMapUniforms.seed * 812345, f32(wx) / 234, f32(wy) / 123, 0.0, 2); 
               worldPoint.iciness = c(heightIcinessCurve(worldPoint.height) + temperatureIcinessCurve(worldPoint.temperature));
               worldPoint.desert = c(moistureDesertCurve(worldPoint.moisture) + temperatureDesertCurve(worldPoint.temperature));
               worldPoint.seaLevel = 0.55;

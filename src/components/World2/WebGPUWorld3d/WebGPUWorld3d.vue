@@ -91,7 +91,7 @@ async function setupWorldRenderer(
     zoom: 1,
   };
 
-  const worldMapUniformsToBuffer = () =>
+  const getWorldMapUniformsBuffer = () =>
     new Float32Array([
       worldMapUniforms.width,
       worldMapUniforms.height,
@@ -109,14 +109,14 @@ async function setupWorldRenderer(
     device,
     width,
     height,
-    worldMapUniformsToBuffer
+    getWorldMapUniformsBuffer
   );
 
-  const cube = createCube(device, worldMapUniformsToBuffer, () => camera);
+  const cube = createCube(device, getWorldMapUniformsBuffer, () => camera);
 
   const plane = createPlane(
     device,
-    worldMapUniformsToBuffer,
+    getWorldMapUniformsBuffer,
     () => camera,
     worldTexture
   );

@@ -168,13 +168,14 @@ export function createPlane(
     },
   });
 
-  const [offset1, offset2] = getBufferOffsets([
-    getWorldMapUniforms(),
-    getTransformMatrix(),
+  const [worldMapUniforms, cameraUniforms] = getBufferOffsets([
+    getWorldMapUniforms,
+    getTransformMatrix,
   ]);
+  const uniformBufferSize = cameraUniforms.next;
 
   const uniformBuffer = device.createBuffer({
-    size: offset2.next,
+    size: uniformBufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -185,8 +186,8 @@ export function createPlane(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: offset1.offset,
-          size: getWorldMapUniforms().byteLength,
+          offset: worldMapUniforms.offset,
+          size: worldMapUniforms.size,
         },
       },
     ],
@@ -199,8 +200,8 @@ export function createPlane(
         binding: 0,
         resource: {
           buffer: uniformBuffer,
-          offset: offset2.offset,
-          size: getTransformMatrix().byteLength,
+          offset: cameraUniforms.offset,
+          size: cameraUniforms.size,
         },
       },
     ],
@@ -220,8 +221,16 @@ export function createPlane(
   });
 
   function updateBuffers() {
-    device.queue.writeBuffer(uniformBuffer, offset1.offset, getWorldMapUniforms());
-    device.queue.writeBuffer(uniformBuffer, offset2.offset, getTransformMatrix());
+    device.queue.writeBuffer(
+      uniformBuffer,
+      worldMapUniforms.offset,
+      worldMapUniforms.getBuffer()
+    );
+    device.queue.writeBuffer(
+      uniformBuffer,
+      cameraUniforms.offset,
+      cameraUniforms.getBuffer()
+    );
   }
 
   function render(renderPass: GPURenderPassEncoder) {

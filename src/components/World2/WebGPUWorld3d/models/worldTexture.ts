@@ -289,8 +289,9 @@ export function createWorldTexture(
     ],
   });
 
+  const worldPointByteSize = 12 * 4;
   const textureStorageBuffer = device.createBuffer({
-    size: width * height * 12 * 4, // why 12 though, seems like 10 to me !?
+    size: width * height * worldPointByteSize,
     usage:
       GPUBufferUsage.STORAGE |
       GPUBufferUsage.COPY_SRC |
@@ -335,7 +336,7 @@ export function createWorldTexture(
         0,
         textureStorageBuffer.size
       );
- 
+
       await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
       const bufferView = new Float32Array(
@@ -350,11 +351,14 @@ export function createWorldTexture(
       textureReadBackBuffer.unmap();
     }
     device.queue.submit([encoder.finish()]);
-
   }
 
   function updateBuffers() {
-    device.queue.writeBuffer(uniformBuffer, worldMapUniforms.offset, worldMapUniforms.getBuffer());
+    device.queue.writeBuffer(
+      uniformBuffer,
+      worldMapUniforms.offset,
+      worldMapUniforms.getBuffer()
+    );
   }
 
   return {
@@ -362,6 +366,6 @@ export function createWorldTexture(
     updateBuffers,
     buffer: textureStorageBuffer,
     width,
-    height
+    height,
   };
 }

@@ -3,8 +3,32 @@ export function createWorldCompute(
   getWorldMapUniforms: () => Float32Array,
   textureStorageBuffer: GPUBuffer
 ) {
+  const storageBindGroupLayout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: { type: "storage" },
+      },
+    ],
+  });
+  const uniformBindGroupLayout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0, // Matches the binding in your WGSL shader
+        visibility: GPUShaderStage.COMPUTE, // Buffer is used in compute shader
+        buffer: {
+          type: "uniform", // It's a uniform buffer
+        },
+      },
+    ],
+  });
+
   const computePipeline = device.createComputePipeline({
-    layout: "auto",
+    // layout,
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [storageBindGroupLayout, uniformBindGroupLayout],
+    }),
     compute: {
       module: device.createShaderModule({
         code: /* wgsl */ `
@@ -184,7 +208,7 @@ export function createWorldCompute(
   });
 
   const computeWorldMapBindGroup = device.createBindGroup({
-    layout: computePipeline.getBindGroupLayout(1),
+    layout: uniformBindGroupLayout,
     entries: [
       {
         binding: 0,
@@ -203,21 +227,11 @@ export function createWorldCompute(
   });
 
   const computeBindGroup = device.createBindGroup({
-    layout: computePipeline.getBindGroupLayout(0),
+    layout: storageBindGroupLayout,
     entries: [
       {
         binding: 0,
         resource: { buffer: textureStorageBuffer },
-      },
-    ],
-  });
-
-  const computeTextureBuffer = device.createBindGroupLayout({
-    entries: [
-      {
-        binding: 2,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: "storage" },
       },
     ],
   });

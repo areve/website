@@ -19,13 +19,16 @@ export function createWorldData(
   // const textureReadBackBuffer = createReadBackBuffer(device, textureSize);
 
   const builder = createLayoutBuilder(device);
-  
-  const { layout, bindGroups } = builder.create(
-    uniformBuffer,
-    worldMapUniforms,
-    textureStorageBuffer
-  );
-  const [worldMapBindGroup, textureBindGroup] = bindGroups;
+  builder.addBuffer({ buffer: textureStorageBuffer, type: "storage" });
+  builder.addBuffer({ buffer: uniformBuffer, type: "uniform" });
+
+  const { layout, bindGroups } = builder
+    .create
+    // uniformBuffer,
+    // // worldMapUniforms,
+    // textureStorageBuffer
+    ();
+  const [textureBindGroup, worldMapBindGroup] = bindGroups;
 
   const computePipeline = device.createComputePipeline({
     layout,
@@ -267,73 +270,65 @@ export function createWorldData(
   };
 }
 
+interface BufferInfo {
+  buffer: GPUBuffer;
+  type: "uniform" | "storage";
+}
 function createLayoutBuilder(device: GPUDevice) {
+  const bufferInfos: BufferInfo[] = [];
+  function addBuffer(bufferInfo: BufferInfo) {
+    bufferInfos.push(bufferInfo);
+  }
+
   return {
+    addBuffer,
     create,
   };
 
-  function create(
-    uniformBuffer: GPUBuffer,
-    worldMapUniforms: {
-      offset: number;
-      size: number;
-      end: number;
-      getBuffer: () => ArrayBufferLike;
-    },
-    textureStorageBuffer: GPUBuffer
-  ) {
-    const uniformBindGroupLayout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.COMPUTE,
-          buffer: {
-            type: "uniform",
+  function create() {
+    // uniformBuffer: GPUBuffer,
+    // textureStorageBuffer: GPUBuffer
+    // worldMapUniforms: {
+    //   offset: number;
+    //   size: number;
+    //   end: number;
+    //   getBuffer: () => ArrayBufferLike;
+    // },
+    const bindGroupLayouts: GPUBindGroupLayout[] = [];
+    const bindGroups: GPUBindGroup[] = [];
+
+    bufferInfos.forEach((bufferInfo) => {
+      const bindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.COMPUTE,
+            buffer: {
+              type: bufferInfo.type,
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
 
-    const worldMapBindGroup = device.createBindGroup({
-      layout: uniformBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: {
-            buffer: uniformBuffer,
-            offset: worldMapUniforms.offset,
-            size: worldMapUniforms.size,
+      const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [
+          {
+            binding: 0,
+            resource: {
+              buffer: bufferInfo.buffer,
+              offset: 0,
+              size: bufferInfo.buffer.size,
+            },
           },
-        },
-      ],
+        ],
+      });
+
+      bindGroupLayouts.push(bindGroupLayout);
+      bindGroups.push(bindGroup);
     });
 
-    const storageBindGroupLayout = device.createBindGroupLayout({
-      entries: [
-        {
-          binding: 0,
-          visibility: GPUShaderStage.COMPUTE,
-          buffer: { type: "storage" },
-        },
-      ],
-    });
-
-    const textureBindGroup = device.createBindGroup({
-      layout: storageBindGroupLayout,
-      entries: [
-        {
-          binding: 0,
-          resource: { buffer: textureStorageBuffer },
-        },
-      ],
-    });
-
-    const layout = device.createPipelineLayout({
-      bindGroupLayouts: [storageBindGroupLayout, uniformBindGroupLayout],
-    });
-    return {
-      layout,
-      bindGroups: [worldMapBindGroup, textureBindGroup],
-    };
+    const layout = device.createPipelineLayout({ bindGroupLayouts });
+    return { layout, bindGroups };
   }
 }

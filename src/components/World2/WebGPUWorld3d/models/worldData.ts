@@ -27,6 +27,9 @@ export function createWorldData(
   const code: CodeInfo = {
     entryPoint: "computeMain",
     code: /* wgsl */ `
+      const width = ${width}u;
+      const height = ${height}u;
+
       struct WorldPoint {
         height: f32,
         temperature: f32,
@@ -177,9 +180,9 @@ export function createWorldData(
       fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
         let x = global_id.x;
         let y = global_id.y;
-        let index = y * ${width}u + x ;
-        if (x < ${width}u && y < ${height}u) {
-          let index = y * ${height}u + x;
+        let index = y * width + x ;
+        if (x < width && y < height) {
+          let index = y * height + x;
           
           let wx = f32(x) * worldMapUniforms.zoom + worldMapUniforms.x;
           let wy = worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;

@@ -18,56 +18,17 @@ export function createWorldData(
   const textureStorageBuffer = createStorageBuffer(device, textureSize);
   // const textureReadBackBuffer = createReadBackBuffer(device, textureSize);
 
-  const uniformBindGroupLayout = device.createBindGroupLayout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: {
-          type: "uniform",
-        },
-      },
-    ],
-  });
-
-  const computeWorldMapBindGroup = device.createBindGroup({
-    layout: uniformBindGroupLayout,
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: worldMapUniforms.offset,
-          size: worldMapUniforms.size,
-        },
-      },
-    ],
-  });
-
-  const storageBindGroupLayout = device.createBindGroupLayout({
-    entries: [
-      {
-        binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: { type: "storage" },
-      },
-    ],
-  });
-
-  const computeBindGroup = device.createBindGroup({
-    layout: storageBindGroupLayout,
-    entries: [
-      {
-        binding: 0,
-        resource: { buffer: textureStorageBuffer },
-      },
-    ],
-  });
+  const builder = createLayoutBuilder(device);
+  
+  const { layout, bindGroups } = builder.create(
+    uniformBuffer,
+    worldMapUniforms,
+    textureStorageBuffer
+  );
+  const [worldMapBindGroup, textureBindGroup] = bindGroups;
 
   const computePipeline = device.createComputePipeline({
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [storageBindGroupLayout, uniformBindGroupLayout],
-    }),
+    layout,
     compute: {
       module: device.createShaderModule({
         code: /* wgsl */ `
@@ -262,8 +223,8 @@ export function createWorldData(
     const computePass = encoder.beginComputePass();
 
     computePass.setPipeline(computePipeline);
-    computePass.setBindGroup(0, computeBindGroup);
-    computePass.setBindGroup(1, computeWorldMapBindGroup);
+    computePass.setBindGroup(0, textureBindGroup);
+    computePass.setBindGroup(1, worldMapBindGroup);
     const workgroupSize = { x: 16, y: 16 };
     computePass.dispatchWorkgroups(
       Math.ceil(width / workgroupSize.x),
@@ -304,4 +265,75 @@ export function createWorldData(
     width,
     height,
   };
+}
+
+function createLayoutBuilder(device: GPUDevice) {
+  return {
+    create,
+  };
+
+  function create(
+    uniformBuffer: GPUBuffer,
+    worldMapUniforms: {
+      offset: number;
+      size: number;
+      end: number;
+      getBuffer: () => ArrayBufferLike;
+    },
+    textureStorageBuffer: GPUBuffer
+  ) {
+    const uniformBindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: {
+            type: "uniform",
+          },
+        },
+      ],
+    });
+
+    const worldMapBindGroup = device.createBindGroup({
+      layout: uniformBindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: {
+            buffer: uniformBuffer,
+            offset: worldMapUniforms.offset,
+            size: worldMapUniforms.size,
+          },
+        },
+      ],
+    });
+
+    const storageBindGroupLayout = device.createBindGroupLayout({
+      entries: [
+        {
+          binding: 0,
+          visibility: GPUShaderStage.COMPUTE,
+          buffer: { type: "storage" },
+        },
+      ],
+    });
+
+    const textureBindGroup = device.createBindGroup({
+      layout: storageBindGroupLayout,
+      entries: [
+        {
+          binding: 0,
+          resource: { buffer: textureStorageBuffer },
+        },
+      ],
+    });
+
+    const layout = device.createPipelineLayout({
+      bindGroupLayouts: [storageBindGroupLayout, uniformBindGroupLayout],
+    });
+    return {
+      layout,
+      bindGroups: [worldMapBindGroup, textureBindGroup],
+    };
+  }
 }

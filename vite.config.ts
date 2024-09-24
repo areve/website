@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import glsl from "vite-plugin-glsl";
 
 export default defineConfig({
   server: {
@@ -11,9 +12,9 @@ export default defineConfig({
         // prefixing with any none _ character, because of a gh-pages issue I think
         entryFileNames: `x[name].[hash].js`,
         chunkFileNames: `x[name].[hash].js`,
-        assetFileNames: `x[name].[hash].[ext]`
-      }
-    }
+        assetFileNames: `x[name].[hash].[ext]`,
+      },
+    },
   },
   resolve: {
     alias: {
@@ -29,6 +30,9 @@ export default defineConfig({
           whitespace: "preserve",
         },
       },
+    }),
+    glsl({
+      defaultExtension: "wgsl",
     }),
   ],
 });

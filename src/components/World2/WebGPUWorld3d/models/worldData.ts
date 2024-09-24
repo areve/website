@@ -1,6 +1,8 @@
 import {
   BufferInfo,
+  CodeInfo,
   createLayoutBuilder,
+  createPipelineBuilder,
   createStorageBuffer,
   createUniformBuffer,
   getBufferOffsets,
@@ -239,39 +241,4 @@ export function createWorldData(
     width,
     height,
   };
-}
-
-export interface CodeInfo {
-  code: string;
-  entryPoint: string;
-}
-
-export function createPipelineBuilder(device: GPUDevice) {
-  const layoutBuilder = createLayoutBuilder(device);
-  const builder = {
-    addBuffer: (bufferInfo: BufferInfo) => {
-      layoutBuilder.addBuffer(bufferInfo);
-      return builder;
-    },
-    create(codeInfo: CodeInfo) {
-      const { layout, bindGroups } = layoutBuilder.create();
-
-      const pipeline = device.createComputePipeline({
-        layout,
-        compute: {
-          module: device.createShaderModule({
-            code: codeInfo.code,
-          }),
-          entryPoint: codeInfo.entryPoint,
-        },
-      });
-      return {
-        pipeline,
-        layout,
-        bindGroups,
-      };
-    },
-  };
-
-  return builder;
 }

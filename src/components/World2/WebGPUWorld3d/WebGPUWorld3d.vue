@@ -144,7 +144,7 @@ async function setupWorldRenderer(
       worldMapUniforms.z = t;
       cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
-      // cube.updateBuffers();
+      cube.updateBuffers();
       plane.updateBuffers();
       worldData.updateBuffers();
       worldTexture.updateBuffers();

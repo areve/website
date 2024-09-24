@@ -1,4 +1,5 @@
-import createCubeWgsl from "./createCube.wgsl";
+import createCubeVertWgsl from "./createCube.vert";
+import createCubeFragWgsl from "./createCube.frag";
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
 import { createVertexBuffer, getBufferOffsets } from "../lib/buffer";
@@ -25,10 +26,7 @@ export function createCube(
     vertex: {
       module: device.createShaderModule({
         label: "blah vertex",
-        code: /*wgsl*/ `
-          ${createCubeWgsl}
-     
-        `,
+        code: createCubeVertWgsl,
       }),
       buffers: [
         {
@@ -53,30 +51,7 @@ export function createCube(
     fragment: {
       module: device.createShaderModule({
         label: "our hardcoded red color shader",
-        code: /*wgsl*/ `
-          struct Uniforms {
-            width: f32,
-            height: f32,
-            seed: f32,
-            scale: f32,
-            x: f32,
-            y: f32,
-            z: f32,
-            zoom: f32
-          };
-
-          @group(0) @binding(0)
-          var<uniform> uniforms: Uniforms;
-
-          @fragment
-          fn main(
-            @location(0) fragUV: vec2f,
-            @location(1) fragPosition: vec4f
-          ) -> @location(0) vec4f {
-            let dummy = uniforms.seed;
-            return vec4f(fragUV.xy, 0.0, 0.0);
-          }
-        `,
+        code: createCubeFragWgsl,
       }),
       targets: [
         {

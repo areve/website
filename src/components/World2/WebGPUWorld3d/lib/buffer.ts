@@ -60,3 +60,63 @@ export function getBufferOffsets(...getBuffers: (() => ArrayBufferLike)[]) {
     return { offset, size, end: next, getBuffer };
   });
 }
+
+
+export interface BufferInfo {
+  buffer: GPUBuffer;
+  type: "uniform" | "storage";
+}
+
+export function createLayoutBuilder(device: GPUDevice) {
+  const bufferInfos: BufferInfo[] = [];
+  const builder = {
+    addBuffer,
+    create,
+  };
+
+  function addBuffer(bufferInfo: BufferInfo) {
+    bufferInfos.push(bufferInfo);
+    return builder;
+  }
+
+  function create() {
+    const bindGroupLayouts: GPUBindGroupLayout[] = [];
+    const bindGroups: GPUBindGroup[] = [];
+
+    bufferInfos.forEach((bufferInfo) => {
+      const bindGroupLayout = device.createBindGroupLayout({
+        entries: [
+          {
+            binding: 0,
+            visibility: GPUShaderStage.COMPUTE,
+            buffer: {
+              type: bufferInfo.type,
+            },
+          },
+        ],
+      });
+
+      const bindGroup = device.createBindGroup({
+        layout: bindGroupLayout,
+        entries: [
+          {
+            binding: 0,
+            resource: {
+              buffer: bufferInfo.buffer,
+              offset: 0,
+              size: bufferInfo.buffer.size,
+            },
+          },
+        ],
+      });
+
+      bindGroupLayouts.push(bindGroupLayout);
+      bindGroups.push(bindGroup);
+    });
+
+    const layout = device.createPipelineLayout({ bindGroupLayouts });
+    return { layout, bindGroups };
+  }
+
+  return builder;
+}

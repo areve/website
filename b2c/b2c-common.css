@@ -1,0 +1,104 @@
+body {
+  font-family: Roboto, Verdana, Geneva, Tahoma, sans-serif;
+  font-weight: 300;
+}
+
+h1 {
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 4em;
+}
+
+h2 {
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 2.5em;
+}
+
+[data-name="SelfAsserted"] > .intro {
+  margin: 0;
+  font-weight: 100;
+  letter-spacing: 0.1em;
+  font-size: 2.5em;
+  line-height: 1.2em;
+}
+
+[data-name="SelfAsserted"] > .intro > p {
+  margin: 0;
+}
+
+.buttons,
+.attrEntry,
+.entry-item {
+  margin: var(--vertical-padding-size) 0;
+  position: relative;
+  display: block;
+}
+
+label {
+  display: block;
+}
+
+.attrEntry input,
+.entry-item input {
+  width: 100%;
+}
+
+#forgotPassword {
+  /* needs to move */
+  display: block;
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
+#createAccount {
+  display: block;
+  width: fit-content;
+}
+
+#api {
+  margin: auto;
+  max-width: 24em;
+  position: relative;
+  opacity: 1;
+}
+
+.error {
+  color: var(--negative-color);
+}
+
+p[role="alert"] {
+  margin: 0 0;
+  font-size: var(--small__font-size);
+}
+
+ul {
+  padding: 0;
+}
+
+li {
+  list-style: none;
+  margin: var(--vertical-padding-size) 0;
+  display: block;
+}
+
+.helpLink {
+  right: 0;
+  top: 0;
+  position: absolute;
+  display: none; /* they use alerts! and some don't work! */
+}
+
+.tiny {
+  font-size: var(--small__font-size);
+}
+
+label#emailVerificationControl_label {
+  display: block;
+  min-height: 0;
+}
+
+button {
+  margin-right: 0.5em;
+}

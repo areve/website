@@ -26,6 +26,30 @@ export function createIndexBuffer(device: GPUDevice, geometry: Geometry) {
   return buffer;
 }
 
+export function createUniformBuffer(device: GPUDevice, size: number) {
+  return device.createBuffer({
+    size,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+}
+
+export function createStorageBuffer(device: GPUDevice, size: number) {
+  return device.createBuffer({
+    size,
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.COPY_SRC |
+      GPUBufferUsage.COPY_DST,
+  });
+}
+
+export function createReadBackBuffer(device: GPUDevice, size: number) {
+  return device.createBuffer({
+    size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+}
+
 export function getBufferOffsets(...getBuffers: (() => ArrayBufferLike)[]) {
   let next = 0;
   return getBuffers.map((getBuffer) => {

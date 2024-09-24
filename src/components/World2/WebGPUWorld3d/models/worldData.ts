@@ -1,4 +1,9 @@
-import { getBufferOffsets } from "../lib/buffer";
+import {
+  createReadBackBuffer,
+  createStorageBuffer,
+  createUniformBuffer,
+  getBufferOffsets,
+} from "../lib/buffer";
 
 export function createWorldData(
   device: GPUDevice,
@@ -6,6 +11,39 @@ export function createWorldData(
   height: number,
   getWorldMapUniforms: () => ArrayBufferLike
 ) {
+  const [worldMapUniforms] = getBufferOffsets(getWorldMapUniforms);
+  const uniformBuffer = createUniformBuffer(device, worldMapUniforms.end);
+  const worldPointByteSize = 12 * 4;
+  const textureSize = width * height * worldPointByteSize;
+  const textureStorageBuffer = createStorageBuffer(device, textureSize);
+  // const textureReadBackBuffer = createReadBackBuffer(device, textureSize);
+
+  const uniformBindGroupLayout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.COMPUTE,
+        buffer: {
+          type: "uniform",
+        },
+      },
+    ],
+  });
+
+  const computeWorldMapBindGroup = device.createBindGroup({
+    layout: uniformBindGroupLayout,
+    entries: [
+      {
+        binding: 0,
+        resource: {
+          buffer: uniformBuffer,
+          offset: worldMapUniforms.offset,
+          size: worldMapUniforms.size,
+        },
+      },
+    ],
+  });
+
   const storageBindGroupLayout = device.createBindGroupLayout({
     entries: [
       {
@@ -16,14 +54,12 @@ export function createWorldData(
     ],
   });
 
-  const uniformBindGroupLayout = device.createBindGroupLayout({
+  const computeBindGroup = device.createBindGroup({
+    layout: storageBindGroupLayout,
     entries: [
       {
         binding: 0,
-        visibility: GPUShaderStage.COMPUTE,
-        buffer: {
-          type: "uniform",
-        },
+        resource: { buffer: textureStorageBuffer },
       },
     ],
   });
@@ -213,52 +249,13 @@ export function createWorldData(
     },
   });
 
-  const offsets = getBufferOffsets(getWorldMapUniforms);
-  const [worldMapUniforms] = offsets;
-  const uniformBufferSize = worldMapUniforms.end;
-
-  const uniformBuffer = device.createBuffer({
-    size: uniformBufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  const computeWorldMapBindGroup = device.createBindGroup({
-    layout: uniformBindGroupLayout,
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: worldMapUniforms.offset,
-          size: worldMapUniforms.size,
-        },
-      },
-    ],
-  });
-
-  const worldPointByteSize = 12 * 4;
-  const textureStorageBuffer = device.createBuffer({
-    size: width * height * worldPointByteSize,
-    usage:
-      GPUBufferUsage.STORAGE |
-      GPUBufferUsage.COPY_SRC |
-      GPUBufferUsage.COPY_DST,
-  });
-
-  const textureReadBackBuffer = device.createBuffer({
-    size: textureStorageBuffer.size,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-  });
-
-  const computeBindGroup = device.createBindGroup({
-    layout: storageBindGroupLayout,
-    entries: [
-      {
-        binding: 0,
-        resource: { buffer: textureStorageBuffer },
-      },
-    ],
-  });
+  function updateBuffers() {
+    device.queue.writeBuffer(
+      uniformBuffer,
+      worldMapUniforms.offset,
+      worldMapUniforms.getBuffer()
+    );
+  }
 
   async function compute(device: GPUDevice) {
     const encoder = device.createCommandEncoder({ label: "our encoder" });
@@ -274,43 +271,35 @@ export function createWorldData(
     );
     computePass.end();
 
-    const debug = false;
-    if (debug) {
-      encoder.copyBufferToBuffer(
-        textureStorageBuffer,
-        0,
-        textureReadBackBuffer,
-        0,
-        textureStorageBuffer.size
-      );
+    // const debug = false;
+    // if (debug) {
+    //   encoder.copyBufferToBuffer(
+    //     textureStorageBuffer,
+    //     0,
+    //     textureReadBackBuffer,
+    //     0,
+    //     textureStorageBuffer.size
+    //   );
 
-      await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
+    //   await textureReadBackBuffer.mapAsync(GPUMapMode.READ);
 
-      const bufferView = new Float32Array(
-        textureReadBackBuffer.getMappedRange()
-      );
-      console.log(
-        "bufferView",
-        bufferView.slice(0, 24).toString(),
-        "#",
-        bufferView.slice(4 * 496, 4 * 496 + 24).toString()
-      );
-      textureReadBackBuffer.unmap();
-    }
+    //   const bufferView = new Float32Array(
+    //     textureReadBackBuffer.getMappedRange()
+    //   );
+    //   console.log(
+    //     "bufferView",
+    //     bufferView.slice(0, 24).toString(),
+    //     "#",
+    //     bufferView.slice(4 * 496, 4 * 496 + 24).toString()
+    //   );
+    //   textureReadBackBuffer.unmap();
+    // }
     device.queue.submit([encoder.finish()]);
   }
 
-  function updateBuffers() {
-    device.queue.writeBuffer(
-      uniformBuffer,
-      worldMapUniforms.offset,
-      worldMapUniforms.getBuffer()
-    );
-  }
-
   return {
-    compute,
     updateBuffers,
+    compute,
     buffer: textureStorageBuffer,
     width,
     height,

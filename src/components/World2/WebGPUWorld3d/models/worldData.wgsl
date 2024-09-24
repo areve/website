@@ -1,8 +1,8 @@
-#include WorldMapUniforms;
-#include WorldPoint;
-#include fractalNoise;
-#include clamp;
-#include piecewiseCurve;
+#include wgsl/WorldMapUniforms;
+#include wgsl/WorldPoint;
+#include wgsl/fractalNoise;
+#include wgsl/clamp;
+#include wgsl/piecewiseCurve;
 
 @group(0) @binding(0) 
 var<storage, read_write> textureData: array<WorldPoint>; 

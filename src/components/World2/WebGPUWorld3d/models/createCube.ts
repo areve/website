@@ -1,3 +1,4 @@
+import createCubeWgsl from "./createCube.wgsl";
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
 import { createVertexBuffer, getBufferOffsets } from "../lib/buffer";
@@ -25,30 +26,8 @@ export function createCube(
       module: device.createShaderModule({
         label: "blah vertex",
         code: /*wgsl*/ `
-          struct VertexOutput {
-            @builtin(position) Position: vec4f,
-            @location(0) fragUV: vec2f,
-            @location(1) fragPosition: vec4f,
-          }
-
-          struct Uniforms {
-            transform: mat4x4f
-          };
-
-          @group(1) @binding(0) 
-          var<uniform> uniforms: Uniforms;
-
-          @vertex
-          fn main(
-            @location(0) position: vec4f,
-            @location(1) uv: vec2f
-          ) -> VertexOutput {
-            var output: VertexOutput;
-            output.Position = uniforms.transform * position;
-            output.fragUV = uv;
-            output.fragPosition = 0.5 * (position + vec4(1.0, 1.0, 1.0, 1.0));
-            return output;
-          }        
+          ${createCubeWgsl}
+     
         `,
       }),
       buffers: [

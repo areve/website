@@ -1,4 +1,4 @@
-import worldTextureWgsl from "./wgsl/worldTexture.wgsl";
+import worldTextureWgsl from "./worldTexture.wgsl";
 import {
   createPipelineBuilder,
   createUniformBuffer,

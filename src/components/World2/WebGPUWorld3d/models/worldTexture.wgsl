@@ -1,7 +1,7 @@
-#include WorldMapUniforms;
-#include WorldPoint;
-#include clamp;
-#include hsv2rgb;
+#include wgsl/WorldMapUniforms;
+#include wgsl/WorldPoint;
+#include wgsl/clamp;
+#include wgsl/hsv2rgb;
 
 @group(0) @binding(0) 
 var<storage, read_write> textureData: array<WorldPoint>; 

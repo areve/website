@@ -1,4 +1,4 @@
-import worldDataWgsl from "./wgsl/worldData.wgsl";
+import worldDataWgsl from "./worldData.wgsl";
 import {
   createPipelineBuilder,
   createStorageBuffer,

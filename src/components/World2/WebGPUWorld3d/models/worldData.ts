@@ -26,7 +26,6 @@ export function createWorldData(
     .addBuffer({ type: "storage", buffer: textureStorageBuffer })
     .createUniformBuffer(getWorldMapUniforms, getTextureDimensions)
     .setComputeModule({
-      entryPoint: "computeMain",
       code: worldDataWgsl,
     })
     .create();

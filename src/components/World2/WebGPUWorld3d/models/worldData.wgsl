@@ -35,7 +35,7 @@ fn temperatureDesertCurve(t: f32) -> f32 {
 }
   
 @compute @workgroup_size(16, 16)
-fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
+fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
   var dataWidth: u32 = textureDimension.x;
   var dataHeight: u32 = textureDimension.y;
 

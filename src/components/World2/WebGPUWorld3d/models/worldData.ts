@@ -24,8 +24,12 @@ export function createWorldData(
 
   const {
     pipeline,
-    bindGroups: [textureBindGroup, worldMapBindGroup, textureDimensionsBindGroup],
-    uniformBufferInfos: [worldMapUniform, textureDimensionsUniform],
+    bindGroups: [
+      textureBindGroup,
+      worldMapBindGroup,
+      textureDimensionsBindGroup,
+    ],
+    updateBuffers,
   } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer: textureStorageBuffer })
     .createUniformBuffer(getWorldMapUniforms, getTextureDimensions)
@@ -34,11 +38,6 @@ export function createWorldData(
       code: worldDataWgsl,
     })
     .create();
-
-  function updateBuffers() {
-    worldMapUniform.update();
-    textureDimensionsUniform.update();
-  }
 
   async function compute(device: GPUDevice) {
     const encoder = device.createCommandEncoder({ label: "our encoder" });

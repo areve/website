@@ -198,6 +198,11 @@ export function createComputePipelineBuilder(device: GPUDevice) {
         pipeline,
         bindGroups,
         uniformBufferInfos,
+        updateBuffers() {
+          uniformBufferInfos.forEach((uniformBufferInfo) => {
+            uniformBufferInfo.update();
+          });
+        },
       };
     },
   };

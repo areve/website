@@ -6,6 +6,7 @@ export interface Geometry {
   positionOffset: number;
   uvOffset: number;
   label: string;
+  layout?: Iterable<GPUVertexBufferLayout | null>
 }
 
 export async function getDeviceContext(

@@ -130,7 +130,8 @@ export function createLayoutBuilder(
 
 export interface CodeInfo {
   code: string;
-  entryPoint: string;
+  entryPoint?: string;
+  layout?: Iterable<GPUVertexBufferLayout | null>
 }
 
 export function createComputePipelineBuilder(device: GPUDevice) {
@@ -160,6 +161,67 @@ export function createComputePipelineBuilder(device: GPUDevice) {
       return {
         pipeline,
         layout,
+        bindGroups,
+      };
+    },
+  };
+
+  return builder;
+}
+
+export function createRenderPipelineBuilder(device: GPUDevice) {
+  const layoutBuilder = createLayoutBuilder(device, "render");
+  let vertexModule: CodeInfo;
+  let fragmentModule: CodeInfo;
+
+  const builder = {
+    addBuffer: (bufferInfo: BufferInfo) => {
+      layoutBuilder.addBuffer(bufferInfo);
+      return builder;
+    },
+    setVertexModule(codeInfo: CodeInfo) {
+      vertexModule = codeInfo;
+      return builder;
+    },
+    setFragmentModule(codeInfo: CodeInfo) {
+      fragmentModule = codeInfo;
+      return builder;
+    },
+    create() {
+      const { layout, bindGroups } = layoutBuilder.create();
+
+      const pipeline = device.createRenderPipeline({
+        layout,
+        vertex: {
+          module: device.createShaderModule({
+            code: vertexModule.code,
+          }),
+          buffers: vertexModule.layout,
+          entryPoint: vertexModule.entryPoint,
+        },
+        fragment: {
+          module: device.createShaderModule({
+            code: fragmentModule.code,
+          }),
+          entryPoint: fragmentModule.entryPoint,
+          targets: [
+            {
+              format: navigator.gpu.getPreferredCanvasFormat(),
+            } as GPUColorTargetState,
+          ],
+        },
+        primitive: {
+          topology: "triangle-list",
+          cullMode: "back",
+        },
+        depthStencil: {
+          depthWriteEnabled: true,
+          depthCompare: "less",
+          format: "depth24plus",
+        },
+      });
+      return {
+        pipeline,
         bindGroups,
       };
     },

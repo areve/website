@@ -1,6 +1,6 @@
 export interface Geometry {
   vertexArray: Float32Array;
-  indexArray?: Uint32Array;
+  indexArray: Uint32Array;
   vertexCount: number;
   label: string;
   layout?: Iterable<GPUVertexBufferLayout | null>

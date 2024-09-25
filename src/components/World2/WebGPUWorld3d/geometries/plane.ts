@@ -47,10 +47,29 @@ export function createPlaneGeometry(
   return {
     vertexArray,
     indexArray: new Uint32Array(indices),
-    vertexCount: indices.length, 
-    vertexSize: float32size * componentsPerVertex,
-    positionOffset: 0,
-    uvOffset: float32size * 4,
+    vertexCount: indices.length,
+    // vertexSize: float32size * componentsPerVertex,
+    // positionOffset: 0,
+    // uvOffset: float32size * 4,
     label,
+    layout: [
+      {
+        arrayStride: 4 * 6,
+        attributes: [
+          {
+            // label: "position",
+            shaderLocation: 0,
+            offset: 0,
+            format: "float32x4",
+          },
+          {
+            // label: "uv",
+            shaderLocation: 1,
+            offset: 4 * 4,
+            format: "float32x2",
+          },
+        ],
+      },
+    ],
   };
 }

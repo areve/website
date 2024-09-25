@@ -7,6 +7,7 @@ import {
   createVertexBuffer,
   createIndexBuffer,
   getBufferOffsets,
+  createRenderPipelineBuilder,
 } from "../lib/buffer";
 
 export function createPlane(
@@ -38,118 +39,58 @@ export function createPlane(
 
   `;
 
-  const renderPipeline = device.createRenderPipeline({
-    layout: "auto",
-    vertex: {
-      module: device.createShaderModule({
-        code: worldWgsl,
-      }),
-      buffers: [
-        {
-          arrayStride: geometry.vertexSize,
-          attributes: [
-            {
-              // position
-              shaderLocation: 0,
-              offset: geometry.positionOffset,
-              format: "float32x4",
-            },
-            {
-              // uv
-              shaderLocation: 1,
-              offset: geometry.uvOffset,
-              format: "float32x2",
-            },
-          ],
-        },
-      ],
-    },
-    fragment: {
-      module: device.createShaderModule({
-        code: worldWgsl,
-      }),
-      targets: [
-        {
-          format: navigator.gpu.getPreferredCanvasFormat(),
-        } as GPUColorTargetState,
-      ],
-    },
-    primitive: {
-      topology: "triangle-list",
-      cullMode: "back",
-    },
-    depthStencil: {
-      depthWriteEnabled: true,
-      depthCompare: "less",
-      format: "depth24plus",
-    },
-  });
-
-  const offsets = getBufferOffsets(getWorldMapUniforms, getTransformMatrix);
-  const [worldMapUniforms, cameraUniforms] = offsets;
-  const uniformBufferSize = cameraUniforms.end;
-
-  const uniformBuffer = device.createBuffer({
-    size: uniformBufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  const worldMapBindGroup = device.createBindGroup({
-    layout: renderPipeline.getBindGroupLayout(0),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: worldMapUniforms.offset,
-          size: worldMapUniforms.size,
-        },
-      },
+  const {
+    pipeline,
+    bindGroups: [
+      worldMapBindGroup,
+      planeMatrixBindGroup,
+      computeForRenderBindGroup,
     ],
-  });
+    uniformBufferInfos: [worldMapUniform, cameraMatrixUniform],
+  } = createRenderPipelineBuilder(device)
+    .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
+    .addBuffer({
+      buffer: texture.buffer,
+      type: "storage",
+      visibility: "special"
+    })
+    .setVertexModule({
+      code: worldWgsl,
+      layout: geometry.layout,
+    })
+    .setFragmentModule({
+      code: worldWgsl,
+    })
+    .create();
 
-  const planeMatrixBindGroup = device.createBindGroup({
-    layout: renderPipeline.getBindGroupLayout(1),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: cameraUniforms.offset,
-          size: cameraUniforms.size,
-        },
-      },
-    ],
-  });
-
-  const computeForRenderBindGroup = device.createBindGroup({
-    layout: renderPipeline.getBindGroupLayout(2),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          offset: 0,
-          buffer: texture.buffer,
-        },
-      },
-    ],
-  });
+  // const computeForRenderBindGroup = device.createBindGroup({
+  //   layout: pipeline.getBindGroupLayout(2),
+  //   entries: [
+  //     {
+  //       binding: 0,
+  //       resource: {
+  //         offset: 0,
+  //         buffer: texture.buffer,
+  //       },
+  //     },
+  //   ],
+  // });
 
   function updateBuffers() {
     device.queue.writeBuffer(
-      uniformBuffer,
-      worldMapUniforms.offset,
-      worldMapUniforms.getBuffer()
+      worldMapUniform.buffer,
+      worldMapUniform.offset,
+      worldMapUniform.getBuffer()
     );
     device.queue.writeBuffer(
-      uniformBuffer,
-      cameraUniforms.offset,
-      cameraUniforms.getBuffer()
+      cameraMatrixUniform.buffer,
+      cameraMatrixUniform.offset,
+      cameraMatrixUniform.getBuffer()
     );
   }
 
   function render(renderPass: GPURenderPassEncoder) {
-    renderPass.setPipeline(renderPipeline);
+    renderPass.setPipeline(pipeline);
     renderPass.setVertexBuffer(0, vertexBuffer);
     renderPass.setIndexBuffer(indexBuffer, "uint32");
     renderPass.setBindGroup(0, worldMapBindGroup);
@@ -160,7 +101,7 @@ export function createPlane(
 
   return {
     transform,
-    pipeline: renderPipeline,
+    pipeline,
     render,
     updateBuffers,
   };

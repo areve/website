@@ -50,6 +50,7 @@ export function createCubeGeometry(label: string): Geometry {
   return {
     vertexArray,
     vertexCount: 36,
+    indexArray: new Uint32Array(0),
     label,
     layout: [
       {

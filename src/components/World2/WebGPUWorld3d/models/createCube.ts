@@ -2,12 +2,7 @@ import createCubeVertWgsl from "./createCube.vert";
 import createCubeFragWgsl from "./createCube.frag";
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
-import {
-  createRenderPipelineBuilder,
-  createUniformBuffer,
-  createVertexBuffer,
-  getBufferOffsets,
-} from "../lib/buffer";
+import { createRenderPipelineBuilder, createVertexBuffer } from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
 
 export function createCube(
@@ -28,7 +23,7 @@ export function createCube(
   const {
     pipeline,
     bindGroups: [worldMapBindGroup, cubeMatrixBindGroup],
-    bufferInfos: [worldMapUniforms, cameraUniforms]
+    uniformBufferInfos: [worldMapUniform, cameraMatrixUniform],
   } = createRenderPipelineBuilder(device)
     .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
     .setVertexModule({
@@ -42,14 +37,14 @@ export function createCube(
 
   function updateBuffers() {
     device.queue.writeBuffer(
-      worldMapUniforms.buffer,
-      worldMapUniforms.offset,
-      worldMapUniforms.getBuffer()
+      worldMapUniform.buffer,
+      worldMapUniform.offset,
+      worldMapUniform.getBuffer()
     );
     device.queue.writeBuffer(
-      cameraUniforms.buffer,
-      cameraUniforms.offset,
-      cameraUniforms.getBuffer()
+      cameraMatrixUniform.buffer,
+      cameraMatrixUniform.offset,
+      cameraMatrixUniform.getBuffer()
     );
   }
 

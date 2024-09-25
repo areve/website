@@ -66,6 +66,7 @@ export interface BufferInfo {
   type: "uniform" | "storage";
   offset?: number;
   size?: number;
+  visibility?: "compute" | "render" | "special";
 }
 
 export function createLayoutBuilder(
@@ -90,16 +91,27 @@ export function createLayoutBuilder(
     bufferInfos.forEach((bufferInfo) => {
       const bindGroupLayout = device.createBindGroupLayout({
         entries: [
-          {
-            binding: 0,
-            visibility:
-              visibility == "render"
-                ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
-                : GPUShaderStage.COMPUTE,
-            buffer: {
-              type: bufferInfo.type,
-            },
-          },
+          (bufferInfo.visibility ?? visibility) == "special"
+            ? {
+                binding: 0,
+                visibility:
+                  GPUShaderStage.COMPUTE |
+                  GPUShaderStage.VERTEX |
+                  GPUShaderStage.FRAGMENT,
+                buffer: {
+                  type: "read-only-storage",
+                },
+              }
+            : {
+                binding: 0,
+                visibility:
+                  visibility == "render"
+                    ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
+                    : GPUShaderStage.COMPUTE,
+                buffer: {
+                  type: bufferInfo.type,
+                },
+              },
         ],
       });
 
@@ -173,7 +185,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
   const layoutBuilder = createLayoutBuilder(device, "render");
   let vertexModule: CodeInfo;
   let fragmentModule: CodeInfo;
-  let bufferInfos: {
+  let uniformBufferInfos: {
     buffer: GPUBuffer;
     offset: number;
     size: number;
@@ -195,7 +207,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
           size: bufferOffset.size,
           type: "uniform",
         });
-        bufferInfos.push({ ...bufferOffset, buffer: uniformBuffer });
+        uniformBufferInfos.push({ ...bufferOffset, buffer: uniformBuffer });
       });
 
       return builder;
@@ -248,7 +260,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
       return {
         pipeline,
         bindGroups,
-        bufferInfos,
+        uniformBufferInfos,
       };
     },
   };

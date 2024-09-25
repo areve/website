@@ -11,7 +11,6 @@ export function createCube(
   getCamera: () => Camera
 ) {
   const geometry = createCubeGeometry("cube");
-  const modelBuffer = createVertexBuffer(device, geometry);
 
   const transform = {
     translation: vec3.create(0, 0, 4),
@@ -20,18 +19,12 @@ export function createCube(
   const getTransformMatrix = () =>
     applyCamera(transform.translation, transform.rotation, getCamera());
 
-  const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
+  const { draw, updateBuffers } = createRenderPipelineBuilder(device)
     .createUniformBuffer(getWorldMapParams, getTransformMatrix)
     .setGeometry(geometry)
     .setVertexModule(createCubeVertWgsl)
     .setFragmentModule(createCubeFragWgsl)
     .create();
 
-  function render(renderPass: GPURenderPassEncoder) {
-    bind(renderPass);
-    renderPass.setVertexBuffer(0, modelBuffer);
-    renderPass.draw(geometry.vertexCount);
-  }
-
-  return { transform, pipeline, render, updateBuffers };
+  return { transform, render: draw, updateBuffers };
 }

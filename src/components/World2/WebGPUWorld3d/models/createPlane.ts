@@ -18,8 +18,6 @@ export function createPlane(
   height: number
 ) {
   const geometry = createPlaneGeometry("plane", 10, 10, 500, 500);
-  const vertexBuffer = createVertexBuffer(device, geometry);
-  const indexBuffer = createIndexBuffer(device, geometry);
 
   const transform = {
     translation: vec3.create(-5, -5, 0),
@@ -31,7 +29,7 @@ export function createPlane(
 
   const getTextureDimensions = () => new Uint32Array([width, height]);
 
-  const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
+  const { drawIndexed, updateBuffers } = createRenderPipelineBuilder(device)
     .createUniformBuffer(
       getWorldMapParams,
       getTransformMatrix,
@@ -46,17 +44,9 @@ export function createPlane(
     .setFragmentModule(createPlaneWgsl)
     .create();
 
-  function render(renderPass: GPURenderPassEncoder) {
-    bind(renderPass);
-    renderPass.setVertexBuffer(0, vertexBuffer);
-    renderPass.setIndexBuffer(indexBuffer, "uint32");
-    renderPass.drawIndexed(geometry.vertexCount, 1, 0, 0, 0);
-  }
-
   return {
     transform,
-    pipeline,
-    render,
+    render: drawIndexed,
     updateBuffers,
   };
 }

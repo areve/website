@@ -254,7 +254,8 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
     update: () => void;
   }[] = [];
   let _geometry: Geometry;
-
+  let _vertexBuffer: GPUBuffer;
+  let _indexBuffer: GPUBuffer;
   const builder = {
     createUniformBuffer: (...getBuffers: (() => ArrayBufferLike)[]) => {
       const bufferOffsets = getBufferOffsets(...getBuffers);
@@ -291,6 +292,8 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
     },
     setGeometry: (geometry: Geometry) => {
       _geometry = geometry;
+      _vertexBuffer = createVertexBuffer(device, geometry);
+      _indexBuffer = createIndexBuffer(device, geometry);
       return builder;
     },
     setVertexModule(codeInfo: CodeInfo | string) {
@@ -344,6 +347,14 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
           format: "depth24plus",
         },
       });
+      function bind(renderPass: GPURenderPassEncoder) {
+        renderPass.setPipeline(pipeline);
+        // renderPass.setVertexBuffer(0, vertexBuffer);
+        // renderPass.setIndexBuffer(indexBuffer, "uint32");
+        bindGroups.forEach((bindGroup, i) => {
+          renderPass.setBindGroup(i, bindGroup);
+        });
+      }
       return {
         pipeline,
         bindGroups,
@@ -353,13 +364,17 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
             uniformBufferInfo.update();
           });
         },
-        bind(renderPass: GPURenderPassEncoder) {
-          renderPass.setPipeline(pipeline);
-          // renderPass.setVertexBuffer(0, vertexBuffer);
-          // renderPass.setIndexBuffer(indexBuffer, "uint32");
-          bindGroups.forEach((bindGroup, i) => {
-            renderPass.setBindGroup(i, bindGroup);
-          });
+        bind,
+        draw(renderPass: GPURenderPassEncoder) {
+          bind(renderPass);
+          renderPass.setVertexBuffer(0, _vertexBuffer);
+          renderPass.draw(_geometry.vertexCount);
+        },
+        drawIndexed(renderPass: GPURenderPassEncoder) {
+          bind(renderPass);
+          renderPass.setVertexBuffer(0, _vertexBuffer);
+          renderPass.setIndexBuffer(_indexBuffer, "uint32");
+          renderPass.drawIndexed(_geometry.vertexCount, 1, 0, 0, 0);
         },
       };
     },

@@ -50,13 +50,13 @@ export function createCubeGeometry(label: string): Geometry {
   return {
     vertexArray,
     vertexCount: 36,
-    vertexSize: 4 * 6, // Byte size of one cube vertex.
-    positionOffset: 0,
-    uvOffset: 4 * 4,
+    // vertexSize: 4 * 6,
+    // positionOffset: 0,
+    // uvOffset: 4 * 4,
     label,
     layout: [
       {
-        arrayStride: 4 * 6, // Byte size of one cube vertex.,
+        arrayStride: 4 * 6, // vertexSize
         attributes: [
           {
             // position

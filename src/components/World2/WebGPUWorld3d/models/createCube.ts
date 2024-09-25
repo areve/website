@@ -22,10 +22,8 @@ export function createCube(
 
   const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
     .createUniformBuffer(getWorldMapParams, getTransformMatrix)
-    .setVertexModule({
-      code: createCubeVertWgsl,
-      layout: geometry.layout,
-    })
+    .setGeometry(geometry)
+    .setVertexModule(createCubeVertWgsl)
     .setFragmentModule(createCubeFragWgsl)
     .create();
 

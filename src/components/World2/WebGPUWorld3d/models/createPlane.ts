@@ -41,13 +41,9 @@ export function createPlane(
       buffer,
       type: "read-only-storage",
     })
-    .setVertexModule({
-      code: createPlaneWgsl,
-      layout: geometry.layout,
-    })
-    .setFragmentModule({
-      code: createPlaneWgsl,
-    })
+    .setGeometry(geometry)
+    .setVertexModule(createPlaneWgsl)
+    .setFragmentModule(createPlaneWgsl)
     .create();
 
   function render(renderPass: GPURenderPassEncoder) {

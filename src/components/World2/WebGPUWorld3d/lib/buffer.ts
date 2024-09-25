@@ -131,7 +131,6 @@ export function createLayoutBuilder(
 export interface CodeInfo {
   code: string;
   entryPoint?: string;
-  layout?: Iterable<GPUVertexBufferLayout | null>;
 }
 
 export function createComputePipelineBuilder(device: GPUDevice) {
@@ -254,11 +253,13 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
     getBuffer: () => ArrayBufferLike;
     update: () => void;
   }[] = [];
+  let _geometry: Geometry;
 
   const builder = {
     createUniformBuffer: (...getBuffers: (() => ArrayBufferLike)[]) => {
       const bufferOffsets = getBufferOffsets(...getBuffers);
       const lastBufferOffset = bufferOffsets.at(-1);
+
       if (!lastBufferOffset)
         throw new Error("bufferOffsets must have at least one element");
       const uniformBuffer = createUniformBuffer(device, lastBufferOffset.end);
@@ -288,6 +289,10 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
       layoutBuilder.addBuffer(bufferInfo);
       return builder;
     },
+    setGeometry: (geometry: Geometry) => {
+      _geometry = geometry;
+      return builder;
+    },
     setVertexModule(codeInfo: CodeInfo | string) {
       vertexModule =
         typeof codeInfo === "string"
@@ -315,7 +320,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
           module: device.createShaderModule({
             code: vertexModule.code,
           }),
-          buffers: vertexModule.layout,
+          buffers: _geometry.layout,
           entryPoint: vertexModule.entryPoint,
         },
         fragment: {

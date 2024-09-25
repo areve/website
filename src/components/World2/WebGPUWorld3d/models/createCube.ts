@@ -36,16 +36,8 @@ export function createCube(
     .create();
 
   function updateBuffers() {
-    device.queue.writeBuffer(
-      worldMapUniform.buffer,
-      worldMapUniform.offset,
-      worldMapUniform.getBuffer()
-    );
-    device.queue.writeBuffer(
-      cameraMatrixUniform.buffer,
-      cameraMatrixUniform.offset,
-      cameraMatrixUniform.getBuffer()
-    );
+    worldMapUniform.update();
+    cameraMatrixUniform.update();
   }
 
   function render(renderPass: GPURenderPassEncoder) {

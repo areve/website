@@ -68,21 +68,9 @@ export function createPlane(
     .create();
 
   function updateBuffers() {
-    device.queue.writeBuffer(
-      worldMapUniform.buffer,
-      worldMapUniform.offset,
-      worldMapUniform.getBuffer()
-    );
-    device.queue.writeBuffer(
-      cameraMatrixUniform.buffer,
-      cameraMatrixUniform.offset,
-      cameraMatrixUniform.getBuffer()
-    );
-    device.queue.writeBuffer(
-      textureDimensionsUniform.buffer,
-      textureDimensionsUniform.offset,
-      textureDimensionsUniform.getBuffer()
-    );
+    worldMapUniform.update();
+    cameraMatrixUniform.update();
+    textureDimensionsUniform.update();
   }
 
   function render(renderPass: GPURenderPassEncoder) {

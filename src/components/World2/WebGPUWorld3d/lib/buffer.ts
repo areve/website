@@ -179,6 +179,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
     size: number;
     end: number;
     getBuffer: () => ArrayBufferLike;
+    update: () => void;
   }[] = [];
 
   const builder = {
@@ -195,7 +196,17 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
           size: bufferOffset.size,
           type: "uniform",
         });
-        uniformBufferInfos.push({ ...bufferOffset, buffer: uniformBuffer });
+        uniformBufferInfos.push({
+          ...bufferOffset,
+          buffer: uniformBuffer,
+          update: () => {
+            device.queue.writeBuffer(
+              uniformBuffer,
+              bufferOffset.offset,
+              bufferOffset.getBuffer()
+            );
+          },
+        });
       });
 
       return builder;

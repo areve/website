@@ -1,5 +1,5 @@
-import createCubeVertWgsl from "./createCube.vert";
-import createCubeFragWgsl from "./createCube.frag";
+import createCubeVertWgsl from "./createCube.vert.wgsl";
+import createCubeFragWgsl from "./createCube.frag.wgsl";
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
 import { createRenderPipelineBuilder, createVertexBuffer } from "../lib/buffer";

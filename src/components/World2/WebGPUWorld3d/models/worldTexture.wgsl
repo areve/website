@@ -9,6 +9,9 @@ var<storage, read_write> textureData: array<WorldPoint>;
 @group(1) @binding(0)
 var<uniform> worldMapUniforms: WorldMapUniforms;
 
+@group(2) @binding(0) 
+var<uniform> textureDimension: vec2<u32>; 
+
 fn c(v: f32) -> f32 {
   return clamp(v, 0, 1);
 }
@@ -56,6 +59,9 @@ fn getWorldPointColor(worldPoint: WorldPoint) -> vec4f {
 
 @compute @workgroup_size(16, 16)
 fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  var dataWidth: u32 = textureDimension.x;
+  var dataHeight: u32 = textureDimension.y;
+
   let x = global_id.x;
   let y = global_id.y;
   let index = y * dataWidth + x ;

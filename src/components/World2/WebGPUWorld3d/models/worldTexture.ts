@@ -14,23 +14,29 @@ export function createWorldTexture(
   },
   getWorldMapUniforms: () => ArrayBufferLike
 ) {
+  const getTextureDimensions = () => new Uint32Array([data.width, data.height]);
+
   const {
     pipeline,
-    bindGroups: [textureBindGroup, worldMapBindGroup],
-    uniformBufferInfos: [worldMapUniform],
+    bindGroups: [
+      textureBindGroup,
+      worldMapBindGroup,
+      textureDimensionsBindGroup,
+    ],
+    uniformBufferInfos: [worldMapUniform, textureDimensionsUniform],
   } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer: data.buffer })
-    .createUniformBuffer(getWorldMapUniforms)
+    .createUniformBuffer(getWorldMapUniforms, getTextureDimensions)
     .setComputeModule({
       entryPoint: "computeMain",
-      //TODO there's a better way to defined these constants!
-      code: /* wgsl */ `
-        const dataWidth: u32 = ${data.width}u;
-        const dataHeight: u32 = ${data.height}u;
-        ${worldTextureWgsl}
-      `,
+      code: worldTextureWgsl,
     })
     .create();
+
+  function updateBuffers() {
+    worldMapUniform.update();
+    textureDimensionsUniform.update();
+  }
 
   async function compute(device: GPUDevice) {
     const encoder = device.createCommandEncoder({ label: "our encoder" });
@@ -39,6 +45,7 @@ export function createWorldTexture(
     computePass.setPipeline(pipeline);
     computePass.setBindGroup(0, textureBindGroup);
     computePass.setBindGroup(1, worldMapBindGroup);
+    computePass.setBindGroup(2, textureDimensionsBindGroup);
     const workgroupSize = { x: 16, y: 16 };
     computePass.dispatchWorkgroups(
       Math.ceil(data.width / workgroupSize.x),
@@ -46,10 +53,6 @@ export function createWorldTexture(
     );
     computePass.end();
     device.queue.submit([encoder.finish()]);
-  }
-
-  function updateBuffers() {
-    worldMapUniform.update();
   }
 
   return {

@@ -20,11 +20,7 @@ export function createCube(
   const getTransformMatrix = () =>
     applyCamera(transform.translation, transform.rotation, getCamera());
 
-  const {
-    pipeline,
-    bindGroups: [worldMapBindGroup, cubeMatrixBindGroup],
-    uniformBufferInfos: [worldMapUniform, cameraMatrixUniform],
-  } = createRenderPipelineBuilder(device)
+  const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
     .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
     .setVertexModule({
       code: createCubeVertWgsl,
@@ -35,16 +31,9 @@ export function createCube(
     })
     .create();
 
-  function updateBuffers() {
-    worldMapUniform.update();
-    cameraMatrixUniform.update();
-  }
-
   function render(renderPass: GPURenderPassEncoder) {
-    renderPass.setPipeline(pipeline);
+    bind(renderPass);
     renderPass.setVertexBuffer(0, modelBuffer);
-    renderPass.setBindGroup(0, worldMapBindGroup);
-    renderPass.setBindGroup(1, cubeMatrixBindGroup);
     renderPass.draw(geometry.vertexCount);
   }
 

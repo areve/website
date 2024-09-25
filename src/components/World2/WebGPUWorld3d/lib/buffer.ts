@@ -307,6 +307,19 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
         pipeline,
         bindGroups,
         uniformBufferInfos,
+        updateBuffers() {
+          uniformBufferInfos.forEach((uniformBufferInfo) => {
+            uniformBufferInfo.update();
+          });
+        },
+        bind(renderPass: GPURenderPassEncoder) {
+          renderPass.setPipeline(pipeline);
+          // renderPass.setVertexBuffer(0, vertexBuffer);
+          // renderPass.setIndexBuffer(indexBuffer, "uint32");      
+          bindGroups.forEach((bindGroup, i) => {
+            renderPass.setBindGroup(i, bindGroup);
+          });
+        },
       };
     },
   };

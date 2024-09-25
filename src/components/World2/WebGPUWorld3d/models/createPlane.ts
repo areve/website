@@ -35,20 +35,7 @@ export function createPlane(
   const getTextureDimensions = () =>
     new Uint32Array([texture.width, texture.height]);
 
-  const {
-    pipeline,
-    bindGroups: [
-      worldMapBindGroup,
-      planeMatrixBindGroup,
-      computeForRenderBindGroup,
-      textureDimensionsBindGroup,
-    ],
-    uniformBufferInfos: [
-      worldMapUniform,
-      cameraMatrixUniform,
-      textureDimensionsUniform,
-    ],
-  } = createRenderPipelineBuilder(device)
+  const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
     .createUniformBuffer(
       getWorldMapUniforms,
       getTransformMatrix,
@@ -67,20 +54,10 @@ export function createPlane(
     })
     .create();
 
-  function updateBuffers() {
-    worldMapUniform.update();
-    cameraMatrixUniform.update();
-    textureDimensionsUniform.update();
-  }
-
   function render(renderPass: GPURenderPassEncoder) {
-    renderPass.setPipeline(pipeline);
+    bind(renderPass);
     renderPass.setVertexBuffer(0, vertexBuffer);
     renderPass.setIndexBuffer(indexBuffer, "uint32");
-    renderPass.setBindGroup(0, worldMapBindGroup);
-    renderPass.setBindGroup(1, planeMatrixBindGroup);
-    renderPass.setBindGroup(2, computeForRenderBindGroup);
-    renderPass.setBindGroup(3, textureDimensionsBindGroup);
     renderPass.drawIndexed(geometry.vertexCount, 1, 0, 0, 0);
   }
 

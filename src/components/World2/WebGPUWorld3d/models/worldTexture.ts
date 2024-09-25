@@ -14,16 +14,13 @@ export function createWorldTexture(
   },
   getWorldMapUniforms: () => ArrayBufferLike
 ) {
-  const [worldMapUniforms] = getBufferOffsets(getWorldMapUniforms);
-  const uniformBuffer = createUniformBuffer(device, worldMapUniforms.end);
-  const textureStorageBuffer = data.buffer;
-
   const {
     pipeline,
     bindGroups: [textureBindGroup, worldMapBindGroup],
+    uniformBufferInfos: [worldMapUniform],
   } = createComputePipelineBuilder(device)
-    .addBuffer({ type: "storage", buffer: textureStorageBuffer })
-    .addBuffer({ type: "uniform", buffer: uniformBuffer })
+    .addBuffer({ type: "storage", buffer: data.buffer })
+    .createUniformBuffer(getWorldMapUniforms)
     .setComputeModule({
       entryPoint: "computeMain",
       //TODO there's a better way to defined these constants!
@@ -52,11 +49,7 @@ export function createWorldTexture(
   }
 
   function updateBuffers() {
-    device.queue.writeBuffer(
-      uniformBuffer,
-      worldMapUniforms.offset,
-      worldMapUniforms.getBuffer()
-    );
+    worldMapUniform.update();
   }
 
   return {

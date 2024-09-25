@@ -131,7 +131,7 @@ export function createLayoutBuilder(
 export interface CodeInfo {
   code: string;
   entryPoint?: string;
-  layout?: Iterable<GPUVertexBufferLayout | null>
+  layout?: Iterable<GPUVertexBufferLayout | null>;
 }
 
 export function createComputePipelineBuilder(device: GPUDevice) {
@@ -173,8 +173,33 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
   const layoutBuilder = createLayoutBuilder(device, "render");
   let vertexModule: CodeInfo;
   let fragmentModule: CodeInfo;
+  let bufferInfos: {
+    buffer: GPUBuffer;
+    offset: number;
+    size: number;
+    end: number;
+    getBuffer: () => ArrayBufferLike;
+  }[] = [];
 
   const builder = {
+    createUniformBuffer: (...getBuffers: (() => ArrayBufferLike)[]) => {
+      const bufferOffsets = getBufferOffsets(...getBuffers);
+      const lastBufferOffset = bufferOffsets.at(-1);
+      if (!lastBufferOffset)
+        throw new Error("bufferOffsets must have at least one element");
+      const uniformBuffer = createUniformBuffer(device, lastBufferOffset.end);
+      bufferOffsets.forEach((bufferOffset) => {
+        builder.addBuffer({
+          buffer: uniformBuffer,
+          offset: bufferOffset.offset,
+          size: bufferOffset.size,
+          type: "uniform",
+        });
+        bufferInfos.push({ ...bufferOffset, buffer: uniformBuffer });
+      });
+
+      return builder;
+    },
     addBuffer: (bufferInfo: BufferInfo) => {
       layoutBuilder.addBuffer(bufferInfo);
       return builder;
@@ -223,6 +248,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
       return {
         pipeline,
         bindGroups,
+        bufferInfos,
       };
     },
   };

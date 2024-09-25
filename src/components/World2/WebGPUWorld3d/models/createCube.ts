@@ -25,31 +25,15 @@ export function createCube(
   const getTransformMatrix = () =>
     applyCamera(transform.translation, transform.rotation, getCamera());
 
-  const [worldMapUniforms, cameraUniforms] = getBufferOffsets(
-    getWorldMapUniforms,
-    getTransformMatrix
-  );
-  const uniformBuffer = createUniformBuffer(device, cameraUniforms.end);
-
   const {
     pipeline,
     bindGroups: [worldMapBindGroup, cubeMatrixBindGroup],
+    bufferInfos: [worldMapUniforms, cameraUniforms]
   } = createRenderPipelineBuilder(device)
-    .addBuffer({
-      buffer: uniformBuffer,
-      offset: worldMapUniforms.offset,
-      size: worldMapUniforms.size,
-      type: "uniform",
-    })
-    .addBuffer({
-      buffer: uniformBuffer,
-      offset: cameraUniforms.offset,
-      size: cameraUniforms.size,
-      type: "uniform",
-    })
+    .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
     .setVertexModule({
       code: createCubeVertWgsl,
-      layout: geometry.layout
+      layout: geometry.layout,
     })
     .setFragmentModule({
       code: createCubeFragWgsl,
@@ -58,12 +42,12 @@ export function createCube(
 
   function updateBuffers() {
     device.queue.writeBuffer(
-      uniformBuffer,
+      worldMapUniforms.buffer,
       worldMapUniforms.offset,
       worldMapUniforms.getBuffer()
     );
     device.queue.writeBuffer(
-      uniformBuffer,
+      cameraUniforms.buffer,
       cameraUniforms.offset,
       cameraUniforms.getBuffer()
     );

@@ -22,15 +22,7 @@ export function createWorldData(
 
   const getTextureDimensions = () => new Uint32Array([width, height]);
 
-  const {
-    pipeline,
-    bindGroups: [
-      textureBindGroup,
-      worldMapBindGroup,
-      textureDimensionsBindGroup,
-    ],
-    updateBuffers,
-  } = createComputePipelineBuilder(device)
+  const { updateBuffers, bind } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer: textureStorageBuffer })
     .createUniformBuffer(getWorldMapUniforms, getTextureDimensions)
     .setComputeModule({
@@ -43,10 +35,8 @@ export function createWorldData(
     const encoder = device.createCommandEncoder({ label: "our encoder" });
     const computePass = encoder.beginComputePass();
 
-    computePass.setPipeline(pipeline);
-    computePass.setBindGroup(0, textureBindGroup);
-    computePass.setBindGroup(1, worldMapBindGroup);
-    computePass.setBindGroup(2, textureDimensionsBindGroup);
+    bind(computePass);
+
     const workgroupSize = { x: 16, y: 16 };
     computePass.dispatchWorkgroups(
       Math.ceil(width / workgroupSize.x),

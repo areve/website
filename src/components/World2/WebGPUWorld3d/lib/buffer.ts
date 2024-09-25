@@ -203,6 +203,12 @@ export function createComputePipelineBuilder(device: GPUDevice) {
             uniformBufferInfo.update();
           });
         },
+        bind(computePass: GPUComputePassEncoder) {
+          computePass.setPipeline(pipeline);
+          bindGroups.forEach((bindGroup, i) => {
+            computePass.setBindGroup(i, bindGroup);
+          });
+        },
       };
     },
   };

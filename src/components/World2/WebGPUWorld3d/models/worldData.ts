@@ -1,6 +1,6 @@
 import worldDataWgsl from "./worldData.wgsl";
 import {
-  createPipelineBuilder,
+  createComputePipelineBuilder,
   createStorageBuffer,
   createUniformBuffer,
   getBufferOffsets,
@@ -25,10 +25,10 @@ export function createWorldData(
   const {
     pipeline,
     bindGroups: [textureBindGroup, worldMapBindGroup],
-  } = createPipelineBuilder(device)
+  } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer: textureStorageBuffer })
     .addBuffer({ type: "uniform", buffer: uniformBuffer })
-    .create({
+    .setComputeModule({
       entryPoint: "computeMain",
       //TODO there's a better way to defined these constants!
       code: /* wgsl */ `
@@ -36,7 +36,8 @@ export function createWorldData(
         const height = ${height}u;
         ${worldDataWgsl}
       `,
-    });
+    })
+    .create();
 
   function updateBuffers() {
     device.queue.writeBuffer(

@@ -61,13 +61,17 @@ export function getBufferOffsets(...getBuffers: (() => ArrayBufferLike)[]) {
   });
 }
 
-
 export interface BufferInfo {
   buffer: GPUBuffer;
   type: "uniform" | "storage";
+  offset?: number;
+  size?: number;
 }
 
-export function createLayoutBuilder(device: GPUDevice) {
+export function createLayoutBuilder(
+  device: GPUDevice,
+  visibility: "compute" | "render"
+) {
   const bufferInfos: BufferInfo[] = [];
   const builder = {
     addBuffer,
@@ -88,7 +92,10 @@ export function createLayoutBuilder(device: GPUDevice) {
         entries: [
           {
             binding: 0,
-            visibility: GPUShaderStage.COMPUTE,
+            visibility:
+              visibility == "render"
+                ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
+                : GPUShaderStage.COMPUTE,
             buffer: {
               type: bufferInfo.type,
             },
@@ -103,8 +110,8 @@ export function createLayoutBuilder(device: GPUDevice) {
             binding: 0,
             resource: {
               buffer: bufferInfo.buffer,
-              offset: 0,
-              size: bufferInfo.buffer.size,
+              offset: bufferInfo.offset || 0,
+              size: bufferInfo.size || bufferInfo.buffer.size,
             },
           },
         ],
@@ -121,29 +128,33 @@ export function createLayoutBuilder(device: GPUDevice) {
   return builder;
 }
 
-
 export interface CodeInfo {
   code: string;
   entryPoint: string;
 }
 
-export function createPipelineBuilder(device: GPUDevice) {
-  const layoutBuilder = createLayoutBuilder(device);
+export function createComputePipelineBuilder(device: GPUDevice) {
+  const layoutBuilder = createLayoutBuilder(device, "compute");
+  let computeModule: CodeInfo;
   const builder = {
     addBuffer: (bufferInfo: BufferInfo) => {
       layoutBuilder.addBuffer(bufferInfo);
       return builder;
     },
-    create(codeInfo: CodeInfo) {
+    setComputeModule(codeInfo: CodeInfo) {
+      computeModule = codeInfo;
+      return builder;
+    },
+    create() {
       const { layout, bindGroups } = layoutBuilder.create();
 
       const pipeline = device.createComputePipeline({
         layout,
         compute: {
           module: device.createShaderModule({
-            code: codeInfo.code,
+            code: computeModule.code,
           }),
-          entryPoint: codeInfo.entryPoint,
+          entryPoint: computeModule.entryPoint,
         },
       });
       return {

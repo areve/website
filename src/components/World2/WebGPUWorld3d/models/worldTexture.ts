@@ -1,6 +1,6 @@
 import worldTextureWgsl from "./worldTexture.wgsl";
 import {
-  createPipelineBuilder,
+  createComputePipelineBuilder,
   createUniformBuffer,
   getBufferOffsets,
 } from "../lib/buffer";
@@ -21,10 +21,10 @@ export function createWorldTexture(
   const {
     pipeline,
     bindGroups: [textureBindGroup, worldMapBindGroup],
-  } = createPipelineBuilder(device)
+  } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer: textureStorageBuffer })
     .addBuffer({ type: "uniform", buffer: uniformBuffer })
-    .create({
+    .setComputeModule({
       entryPoint: "computeMain",
       //TODO there's a better way to defined these constants!
       code: /* wgsl */ `
@@ -32,7 +32,8 @@ export function createWorldTexture(
         const dataHeight: u32 = ${data.height}u;
         ${worldTextureWgsl}
       `,
-    });
+    })
+    .create();
 
   async function compute(device: GPUDevice) {
     const encoder = device.createCommandEncoder({ label: "our encoder" });

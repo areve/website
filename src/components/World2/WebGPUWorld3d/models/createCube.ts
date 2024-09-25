@@ -2,7 +2,12 @@ import createCubeVertWgsl from "./createCube.vert";
 import createCubeFragWgsl from "./createCube.frag";
 import { vec3 } from "wgpu-matrix";
 import { createCubeGeometry } from "../geometries/cube";
-import { createVertexBuffer, getBufferOffsets } from "../lib/buffer";
+import {
+  CodeInfo,
+  createLayoutBuilder,
+  createVertexBuffer,
+  getBufferOffsets,
+} from "../lib/buffer";
 import { applyCamera, Camera } from "../lib/camera";
 
 export function createCube(
@@ -20,9 +25,47 @@ export function createCube(
   const getTransformMatrix = () =>
     applyCamera(transform.translation, transform.rotation, getCamera());
 
+  const offsets = getBufferOffsets(getWorldMapUniforms, getTransformMatrix);
+  const [worldMapUniforms, cameraUniforms] = offsets;
+  const uniformBufferSize = cameraUniforms.end;
+
+  const uniformBuffer = device.createBuffer({
+    size: uniformBufferSize,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  const {
+    layout,
+    bindGroups: [worldMapBindGroup, cubeMatrixBindGroup],
+  } = createLayoutBuilder(device, "render")
+    .addBuffer({
+      buffer: uniformBuffer,
+      offset: worldMapUniforms.offset,
+      size: worldMapUniforms.size,
+      type: "uniform",
+    })
+    .addBuffer({
+      buffer: uniformBuffer,
+      offset: cameraUniforms.offset,
+      size: cameraUniforms.size,
+      type: "uniform",
+    })
+    .create();
+
+  const { pipeline } = createRenderPipelineBuilder(device)
+    .setVertexModule({
+      entryPoint: "",
+      code: createCubeVertWgsl,
+    })
+    .setFragmentModule({
+      entryPoint: "",
+      code: createCubeFragWgsl,
+    })
+    .create();
+
   const renderPipeline = device.createRenderPipeline({
     label: "blah pipeline",
-    layout: "auto",
+    layout,
     vertex: {
       module: device.createShaderModule({
         label: "blah vertex",
@@ -70,43 +113,6 @@ export function createCube(
     },
   });
 
-  const offsets = getBufferOffsets(getWorldMapUniforms, getTransformMatrix);
-  const [worldMapUniforms, cameraUniforms] = offsets;
-  const uniformBufferSize = cameraUniforms.end;
-
-  const uniformBuffer = device.createBuffer({
-    size: uniformBufferSize,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  const worldMapBindGroup = device.createBindGroup({
-    layout: renderPipeline.getBindGroupLayout(0),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: worldMapUniforms.offset,
-          size: worldMapUniforms.size,
-        },
-      },
-    ],
-  });
-
-  const cubeMatrixBindGroup = device.createBindGroup({
-    layout: renderPipeline.getBindGroupLayout(1),
-    entries: [
-      {
-        binding: 0,
-        resource: {
-          buffer: uniformBuffer,
-          offset: cameraUniforms.offset,
-          size: cameraUniforms.size,
-        },
-      },
-    ],
-  });
-
   function updateBuffers() {
     device.queue.writeBuffer(
       uniformBuffer,
@@ -129,4 +135,26 @@ export function createCube(
   }
 
   return { transform, pipeline: renderPipeline, render, updateBuffers };
+}
+
+function createRenderPipelineBuilder(device: GPUDevice) {
+  const modules: CodeInfo[] = [];
+
+  const builder = {
+    setVertexModule(codeInfo: CodeInfo) {
+      modules.push(codeInfo);
+      return builder;
+    },
+    setFragmentModule(codeInfo: CodeInfo) {
+      modules.push(codeInfo);
+      return builder;
+    },
+    create() {
+      return {
+        pipeline: {},
+      };
+    },
+  };
+
+  return builder;
 }

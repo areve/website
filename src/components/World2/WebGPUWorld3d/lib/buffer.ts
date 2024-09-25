@@ -179,13 +179,12 @@ export function createComputePipelineBuilder(device: GPUDevice) {
       return builder;
     },
     setComputeModule(codeInfo: CodeInfo | string) {
-      if (typeof codeInfo === "string") {
-        computeModule = {
-          code: codeInfo,
-        };
-      } else {
-        computeModule = codeInfo;
-      }
+      computeModule =
+        typeof codeInfo === "string"
+          ? {
+              code: codeInfo,
+            }
+          : codeInfo;
       return builder;
     },
     create() {
@@ -289,12 +288,22 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
       layoutBuilder.addBuffer(bufferInfo);
       return builder;
     },
-    setVertexModule(codeInfo: CodeInfo) {
-      vertexModule = codeInfo;
+    setVertexModule(codeInfo: CodeInfo | string) {
+      vertexModule =
+        typeof codeInfo === "string"
+          ? {
+              code: codeInfo,
+            }
+          : codeInfo;
       return builder;
     },
-    setFragmentModule(codeInfo: CodeInfo) {
-      fragmentModule = codeInfo;
+    setFragmentModule(codeInfo: CodeInfo | string) {
+      fragmentModule =
+        typeof codeInfo === "string"
+          ? {
+              code: codeInfo,
+            }
+          : codeInfo;
       return builder;
     },
     create() {

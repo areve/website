@@ -26,9 +26,7 @@ export function createCube(
       code: createCubeVertWgsl,
       layout: geometry.layout,
     })
-    .setFragmentModule({
-      code: createCubeFragWgsl,
-    })
+    .setFragmentModule(createCubeFragWgsl)
     .create();
 
   function render(renderPass: GPURenderPassEncoder) {

@@ -6,19 +6,16 @@ import { applyCamera, Camera } from "../lib/camera";
 import {
   createVertexBuffer,
   createIndexBuffer,
-  getBufferOffsets,
   createRenderPipelineBuilder,
 } from "../lib/buffer";
 
 export function createPlane(
   device: GPUDevice,
-  getWorldMapUniforms: () => Float32Array,
+  getWorldMapParams: () => Float32Array,
   getCamera: () => Camera,
-  texture: {
-    buffer: GPUBuffer;
-    width: number;
-    height: number;
-  }
+  buffer: GPUBuffer,
+  width: number,
+  height: number
 ) {
   const geometry = createPlaneGeometry("plane", 10, 10, 500, 500);
   const vertexBuffer = createVertexBuffer(device, geometry);
@@ -32,17 +29,16 @@ export function createPlane(
   const getTransformMatrix = () =>
     applyCamera(transform.translation, transform.rotation, getCamera());
 
-  const getTextureDimensions = () =>
-    new Uint32Array([texture.width, texture.height]);
+  const getTextureDimensions = () => new Uint32Array([width, height]);
 
   const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
     .createUniformBuffer(
-      getWorldMapUniforms,
+      getWorldMapParams,
       getTransformMatrix,
       getTextureDimensions
     )
     .addBuffer({
-      buffer: texture.buffer,
+      buffer,
       type: "read-only-storage",
     })
     .setVertexModule({

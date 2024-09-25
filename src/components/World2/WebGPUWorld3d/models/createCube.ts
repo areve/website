@@ -7,7 +7,7 @@ import { applyCamera, Camera } from "../lib/camera";
 
 export function createCube(
   device: GPUDevice,
-  getWorldMapUniforms: () => Float32Array,
+  getWorldMapParams: () => Float32Array,
   getCamera: () => Camera
 ) {
   const geometry = createCubeGeometry("cube");
@@ -21,7 +21,7 @@ export function createCube(
     applyCamera(transform.translation, transform.rotation, getCamera());
 
   const { pipeline, bind, updateBuffers } = createRenderPipelineBuilder(device)
-    .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
+    .createUniformBuffer(getWorldMapParams, getTransformMatrix)
     .setVertexModule({
       code: createCubeVertWgsl,
       layout: geometry.layout,

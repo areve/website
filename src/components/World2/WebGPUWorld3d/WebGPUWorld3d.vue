@@ -92,7 +92,7 @@ async function setupWorldRenderer(
     zoom: 1,
   };
 
-  const getWorldMapUniformsBuffer = () =>
+  const getWorldMapParams = () =>
     new Float32Array([
       worldMapUniforms.width,
       worldMapUniforms.height,
@@ -106,26 +106,25 @@ async function setupWorldRenderer(
 
   const camera = createCamera(options.width, options.height);
 
-  const worldData = createWorldData(
-    device,
-    width,
-    height,
-    getWorldMapUniformsBuffer
-  );
+  const worldData = createWorldData(device, width, height, getWorldMapParams);
 
   const worldTexture = createWorldTexture(
     device,
-    worldData,
-    getWorldMapUniformsBuffer
+    worldData.buffer,
+    width,
+    height,
+    getWorldMapParams
   );
 
-  const cube = createCube(device, getWorldMapUniformsBuffer, () => camera);
+  const cube = createCube(device, getWorldMapParams, () => camera);
 
   const plane = createPlane(
     device,
-    getWorldMapUniformsBuffer,
+    getWorldMapParams,
     () => camera,
-    worldTexture
+    worldTexture.buffer,
+    width,
+    height
   );
 
   const renderer = createRenderer(device, options.width, options.height);
@@ -142,15 +141,16 @@ async function setupWorldRenderer(
       const t = time * 0.001;
       if (data) Object.assign(worldMapUniforms, data);
       worldMapUniforms.z = t;
-      cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
 
+      worldData.updateBuffers();
+      await worldData.compute(device, width, height);
+
+      worldTexture.updateBuffers();
+      await worldTexture.compute(device, width, height);
+
+      cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
       cube.updateBuffers();
       plane.updateBuffers();
-      worldData.updateBuffers();
-      worldTexture.updateBuffers();
-
-      await worldData.compute(device, width, height);
-      await worldTexture.compute(device, width, height);
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

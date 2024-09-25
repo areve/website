@@ -11,7 +11,7 @@ export function createWorldData(
   device: GPUDevice,
   width: number,
   height: number,
-  getWorldMapUniforms: () => ArrayBufferLike
+  getWorldMapParams: () => ArrayBufferLike
 ) {
   const buffer = createStorageBuffer(
     device,
@@ -22,7 +22,7 @@ export function createWorldData(
 
   const { updateBuffers, compute } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer })
-    .createUniformBuffer(getWorldMapUniforms, getTextureDimensions)
+    .createUniformBuffer(getWorldMapParams, getTextureDimensions)
     .setComputeModule(worldDataWgsl)
     .create();
 

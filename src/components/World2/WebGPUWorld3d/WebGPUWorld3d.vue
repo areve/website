@@ -116,7 +116,7 @@ async function setupWorldRenderer(
   const worldTexture = createWorldTexture(
     device,
     worldData,
-    getWorldMapUniformsBuffer,
+    getWorldMapUniformsBuffer
   );
 
   const cube = createCube(device, getWorldMapUniformsBuffer, () => camera);
@@ -149,8 +149,8 @@ async function setupWorldRenderer(
       worldData.updateBuffers();
       worldTexture.updateBuffers();
 
-      await worldData.compute(device);
-      await worldTexture.compute(device);
+      await worldData.compute(device, width, height);
+      await worldTexture.compute(device, width, height);
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();

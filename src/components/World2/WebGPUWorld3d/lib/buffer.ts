@@ -178,8 +178,14 @@ export function createComputePipelineBuilder(device: GPUDevice) {
       layoutBuilder.addBuffer(bufferInfo);
       return builder;
     },
-    setComputeModule(codeInfo: CodeInfo) {
-      computeModule = codeInfo;
+    setComputeModule(codeInfo: CodeInfo | string) {
+      if (typeof codeInfo === "string") {
+        computeModule = {
+          code: codeInfo,
+        };
+      } else {
+        computeModule = codeInfo;
+      }
       return builder;
     },
     create() {
@@ -194,6 +200,13 @@ export function createComputePipelineBuilder(device: GPUDevice) {
           entryPoint: computeModule.entryPoint,
         },
       });
+
+      function bind(computePass: GPUComputePassEncoder) {
+        computePass.setPipeline(pipeline);
+        bindGroups.forEach((bindGroup, i) => {
+          computePass.setBindGroup(i, bindGroup);
+        });
+      }
       return {
         pipeline,
         bindGroups,
@@ -208,6 +221,20 @@ export function createComputePipelineBuilder(device: GPUDevice) {
           bindGroups.forEach((bindGroup, i) => {
             computePass.setBindGroup(i, bindGroup);
           });
+        },
+        compute(device: GPUDevice, x: number, y: number) {
+          const encoder = device.createCommandEncoder({ label: "our encoder" });
+          const computePass = encoder.beginComputePass();
+
+          bind(computePass);
+
+          const workgroupSize = { x: 16, y: 16 };
+          computePass.dispatchWorkgroups(
+            Math.ceil(x / workgroupSize.x),
+            Math.ceil(y / workgroupSize.y)
+          );
+          computePass.end();
+          device.queue.submit([encoder.finish()]);
         },
       };
     },
@@ -315,7 +342,7 @@ export function createRenderPipelineBuilder(device: GPUDevice) {
         bind(renderPass: GPURenderPassEncoder) {
           renderPass.setPipeline(pipeline);
           // renderPass.setVertexBuffer(0, vertexBuffer);
-          // renderPass.setIndexBuffer(indexBuffer, "uint32");      
+          // renderPass.setIndexBuffer(indexBuffer, "uint32");
           bindGroups.forEach((bindGroup, i) => {
             renderPass.setBindGroup(i, bindGroup);
           });

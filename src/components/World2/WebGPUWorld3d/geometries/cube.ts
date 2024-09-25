@@ -50,28 +50,25 @@ export function createCubeGeometry(label: string): Geometry {
   return {
     vertexArray,
     vertexCount: 36,
-    // vertexSize: 4 * 6,
-    // positionOffset: 0,
-    // uvOffset: 4 * 4,
     label,
     layout: [
       {
-        arrayStride: 4 * 6, // vertexSize
+        arrayStride: 4 * 6,
         attributes: [
           {
-            // position
+            // label: "position",
             shaderLocation: 0,
-            offset: 0, // positionOffset
+            offset: 0,
             format: "float32x4",
           },
           {
-            // uv
+            // label: "uv",
             shaderLocation: 1,
-            offset: 4 * 4, // uvOffset
+            offset: 4 * 4,
             format: "float32x2",
           },
         ],
       },
-    ]
+    ],
   };
 }

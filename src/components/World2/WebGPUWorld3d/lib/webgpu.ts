@@ -2,9 +2,6 @@ export interface Geometry {
   vertexArray: Float32Array;
   indexArray?: Uint32Array;
   vertexCount: number;
-  // vertexSize: number; // Byte size of one cube vertex.
-  // positionOffset: number;
-  // uvOffset: number;
   label: string;
   layout?: Iterable<GPUVertexBufferLayout | null>
 }

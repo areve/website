@@ -136,8 +136,44 @@ export interface CodeInfo {
 
 export function createComputePipelineBuilder(device: GPUDevice) {
   const layoutBuilder = createLayoutBuilder(device, "compute");
+  let uniformBufferInfos: {
+    buffer: GPUBuffer;
+    offset: number;
+    size: number;
+    end: number;
+    getBuffer: () => ArrayBufferLike;
+    update: () => void;
+  }[] = [];
   let computeModule: CodeInfo;
   const builder = {
+    createUniformBuffer: (...getBuffers: (() => ArrayBufferLike)[]) => {
+      const bufferOffsets = getBufferOffsets(...getBuffers);
+      const lastBufferOffset = bufferOffsets.at(-1);
+      if (!lastBufferOffset)
+        throw new Error("bufferOffsets must have at least one element");
+      const uniformBuffer = createUniformBuffer(device, lastBufferOffset.end);
+      bufferOffsets.forEach((bufferOffset) => {
+        builder.addBuffer({
+          buffer: uniformBuffer,
+          offset: bufferOffset.offset,
+          size: bufferOffset.size,
+          type: "uniform",
+        });
+        uniformBufferInfos.push({
+          ...bufferOffset,
+          buffer: uniformBuffer,
+          update: () => {
+            device.queue.writeBuffer(
+              uniformBuffer,
+              bufferOffset.offset,
+              bufferOffset.getBuffer()
+            );
+          },
+        });
+      });
+
+      return builder;
+    },
     addBuffer: (bufferInfo: BufferInfo) => {
       layoutBuilder.addBuffer(bufferInfo);
       return builder;
@@ -160,8 +196,8 @@ export function createComputePipelineBuilder(device: GPUDevice) {
       });
       return {
         pipeline,
-        layout,
         bindGroups,
+        uniformBufferInfos,
       };
     },
   };

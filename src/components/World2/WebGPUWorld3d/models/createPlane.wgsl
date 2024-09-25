@@ -39,6 +39,9 @@ var<uniform> worldMapUniforms: WorldMapUniforms;
 var<uniform> cameraUniforms: CameraUniforms;
 
 @group(2) @binding(0) 
+var<uniform> textureDimension: vec2<u32>; 
+
+@group(3) @binding(0) 
 var<storage> textureData: array<WorldPoint>; 
 
 @vertex
@@ -46,7 +49,10 @@ fn vertexMain(
   @location(0) position: vec4f,
   @location(1) uv: vec2f
 ) -> VertexOutput {
-  let index = u32(uv.y * texHeight - 1) * texWidth + u32(uv.x * texWidth - 1);
+  var texWidth: u32 = u32(textureDimension.x);
+  var texHeight: u32 = u32(textureDimension.y);
+
+  let index = u32(uv.y * f32(texHeight) - 1) * texWidth + u32(uv.x * f32(texWidth) - 1);
   let worldPoint = textureData[index];
   let worldPointA = textureData[index + 1]; 
   let worldPointB = textureData[index + texWidth]; 
@@ -77,7 +83,10 @@ fn fragMain(
   @location(1) color: vec4f,
   @location(2) normal: vec3f,
 ) -> @location(0) vec4f {
-  let index = u32(uv.y * texHeight) * texWidth + u32(uv.x * texWidth);
+  var texWidth: u32 = u32(textureDimension.x);
+  var texHeight: u32 = u32(textureDimension.y);
+
+  let index = u32(uv.y * f32(texHeight)) * texWidth + u32(uv.x * f32(texWidth));
   let worldPoint = textureData[index];
 
   let lightDir: vec3f = normalize(vec3f(1.0, 0.0, 1.0)); 

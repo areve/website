@@ -32,12 +32,8 @@ export function createPlane(
   const getTransformMatrix = () =>
     applyCamera(transform.translation, transform.rotation, getCamera());
 
-  const worldWgsl = /* wgsl */ `
-    const texWidth = ${texture.width};
-    const texHeight = ${texture.height};
-    ${createPlaneWgsl}
-
-  `;
+  const getTextureDimensions = () =>
+    new Uint32Array([texture.width, texture.height]);
 
   const {
     pipeline,
@@ -45,35 +41,31 @@ export function createPlane(
       worldMapBindGroup,
       planeMatrixBindGroup,
       computeForRenderBindGroup,
+      textureDimensionsBindGroup,
     ],
-    uniformBufferInfos: [worldMapUniform, cameraMatrixUniform],
+    uniformBufferInfos: [
+      worldMapUniform,
+      cameraMatrixUniform,
+      textureDimensionsUniform,
+    ],
   } = createRenderPipelineBuilder(device)
-    .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
+    .createUniformBuffer(
+      getWorldMapUniforms,
+      getTransformMatrix,
+      getTextureDimensions
+    )
     .addBuffer({
       buffer: texture.buffer,
-      type: "read-only-storage"
+      type: "read-only-storage",
     })
     .setVertexModule({
-      code: worldWgsl,
+      code: createPlaneWgsl,
       layout: geometry.layout,
     })
     .setFragmentModule({
-      code: worldWgsl,
+      code: createPlaneWgsl,
     })
     .create();
-
-  // const computeForRenderBindGroup = device.createBindGroup({
-  //   layout: pipeline.getBindGroupLayout(2),
-  //   entries: [
-  //     {
-  //       binding: 0,
-  //       resource: {
-  //         offset: 0,
-  //         buffer: texture.buffer,
-  //       },
-  //     },
-  //   ],
-  // });
 
   function updateBuffers() {
     device.queue.writeBuffer(
@@ -86,6 +78,11 @@ export function createPlane(
       cameraMatrixUniform.offset,
       cameraMatrixUniform.getBuffer()
     );
+    device.queue.writeBuffer(
+      textureDimensionsUniform.buffer,
+      textureDimensionsUniform.offset,
+      textureDimensionsUniform.getBuffer()
+    );
   }
 
   function render(renderPass: GPURenderPassEncoder) {
@@ -95,6 +92,7 @@ export function createPlane(
     renderPass.setBindGroup(0, worldMapBindGroup);
     renderPass.setBindGroup(1, planeMatrixBindGroup);
     renderPass.setBindGroup(2, computeForRenderBindGroup);
+    renderPass.setBindGroup(3, textureDimensionsBindGroup);
     renderPass.drawIndexed(geometry.vertexCount, 1, 0, 0, 0);
   }
 

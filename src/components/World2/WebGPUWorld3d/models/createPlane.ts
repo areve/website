@@ -51,8 +51,7 @@ export function createPlane(
     .createUniformBuffer(getWorldMapUniforms, getTransformMatrix)
     .addBuffer({
       buffer: texture.buffer,
-      type: "storage",
-      visibility: "special"
+      type: "read-only-storage"
     })
     .setVertexModule({
       code: worldWgsl,

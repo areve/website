@@ -63,10 +63,9 @@ export function getBufferOffsets(...getBuffers: (() => ArrayBufferLike)[]) {
 
 export interface BufferInfo {
   buffer: GPUBuffer;
-  type: "uniform" | "storage";
+  type: "uniform" | "storage" | "read-only-storage";
   offset?: number;
   size?: number;
-  visibility?: "compute" | "render" | "special";
 }
 
 export function createLayoutBuilder(
@@ -91,27 +90,16 @@ export function createLayoutBuilder(
     bufferInfos.forEach((bufferInfo) => {
       const bindGroupLayout = device.createBindGroupLayout({
         entries: [
-          (bufferInfo.visibility ?? visibility) == "special"
-            ? {
-                binding: 0,
-                visibility:
-                  GPUShaderStage.COMPUTE |
-                  GPUShaderStage.VERTEX |
-                  GPUShaderStage.FRAGMENT,
-                buffer: {
-                  type: "read-only-storage",
-                },
-              }
-            : {
-                binding: 0,
-                visibility:
-                  visibility == "render"
-                    ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
-                    : GPUShaderStage.COMPUTE,
-                buffer: {
-                  type: bufferInfo.type,
-                },
-              },
+          {
+            binding: 0,
+            visibility:
+              visibility == "render"
+                ? GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT
+                : GPUShaderStage.COMPUTE,
+            buffer: {
+              type: bufferInfo.type,
+            },
+          },
         ],
       });
 

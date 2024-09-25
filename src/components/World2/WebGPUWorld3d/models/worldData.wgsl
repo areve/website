@@ -10,6 +10,10 @@ var<storage, read_write> textureData: array<WorldPoint>;
 @group(1) @binding(0)
 var<uniform> worldMapUniforms: WorldMapUniforms;
   
+@group(2) @binding(0) 
+var<uniform> textureDimension: vec2<u32>; 
+
+
 fn c(v: f32) -> f32 {
   return clamp(v, 0, 1);
 }
@@ -32,11 +36,14 @@ fn temperatureDesertCurve(t: f32) -> f32 {
   
 @compute @workgroup_size(16, 16)
 fn computeMain(@builtin(global_invocation_id) global_id: vec3<u32>) {
+  var dataWidth: u32 = textureDimension.x;
+  var dataHeight: u32 = textureDimension.y;
+
   let x = global_id.x;
   let y = global_id.y;
-  let index = y * width + x ;
-  if x < width && y < height {
-    let index = y * height + x;
+  let index = y * dataWidth + x ;
+  if x < dataWidth && y < dataHeight {
+    let index = y * dataHeight + x;
 
     let wx = f32(x) * worldMapUniforms.zoom + worldMapUniforms.x;
     let wy = worldMapUniforms.height - f32(y) * worldMapUniforms.zoom + worldMapUniforms.y;

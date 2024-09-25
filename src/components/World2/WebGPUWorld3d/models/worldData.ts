@@ -20,26 +20,24 @@ export function createWorldData(
     width * height * worldPointByteSize
   );
 
+  const getTextureDimensions = () => new Uint32Array([width, height]);
+
   const {
     pipeline,
-    bindGroups: [textureBindGroup, worldMapBindGroup],
-    uniformBufferInfos: [worldMapUniform],
+    bindGroups: [textureBindGroup, worldMapBindGroup, textureDimensionsBindGroup],
+    uniformBufferInfos: [worldMapUniform, textureDimensionsUniform],
   } = createComputePipelineBuilder(device)
     .addBuffer({ type: "storage", buffer: textureStorageBuffer })
-    .createUniformBuffer(getWorldMapUniforms)
+    .createUniformBuffer(getWorldMapUniforms, getTextureDimensions)
     .setComputeModule({
       entryPoint: "computeMain",
-      //TODO there's a better way to defined these constants!
-      code: /* wgsl */ `
-        const width = ${width}u;
-        const height = ${height}u;
-        ${worldDataWgsl}
-      `,
+      code: worldDataWgsl,
     })
     .create();
 
   function updateBuffers() {
     worldMapUniform.update();
+    textureDimensionsUniform.update();
   }
 
   async function compute(device: GPUDevice) {
@@ -49,6 +47,7 @@ export function createWorldData(
     computePass.setPipeline(pipeline);
     computePass.setBindGroup(0, textureBindGroup);
     computePass.setBindGroup(1, worldMapBindGroup);
+    computePass.setBindGroup(2, textureDimensionsBindGroup);
     const workgroupSize = { x: 16, y: 16 };
     computePass.dispatchWorkgroups(
       Math.ceil(width / workgroupSize.x),

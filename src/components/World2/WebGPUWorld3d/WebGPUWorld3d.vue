@@ -116,7 +116,7 @@ async function setupWorldRenderer(
     getWorldMapParams
   );
 
-  const cube = createCube(device, getWorldMapParams, () => camera);
+//  const cube = createCube(device, getWorldMapParams, () => camera);
 
   const plane = createPlane(
     device,
@@ -148,14 +148,14 @@ async function setupWorldRenderer(
       worldTexture.updateBuffers();
       await worldTexture.compute(device, width, height);
 
-      cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
-      cube.updateBuffers();
+      //cube.transform.rotation = vec3.create(Math.sin(t), Math.cos(t), 0);
+      //cube.updateBuffers();
       plane.updateBuffers();
 
       renderer.setup(context);
       const encoder = device.createCommandEncoder();
       const renderPass = renderer.getRenderPass(encoder);
-      cube.render(renderPass);
+      //cube.render(renderPass);
       plane.render(renderPass);
       renderPass.end();
 

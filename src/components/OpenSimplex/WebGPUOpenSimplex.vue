@@ -33,7 +33,7 @@ const controller = makeController({
   },
 });
 const width = 500;
-const height = 200;
+const height = 500;
 const seed = 12345;
 const shaderMode = ref<"simplex" | "trigonometry">("trigonometry");
 

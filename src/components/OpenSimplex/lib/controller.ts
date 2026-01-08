@@ -191,7 +191,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         event.preventDefault();
       }
       if (lowerCaseKey === "m") {
-        document.dispatchEvent(new CustomEvent("toggleMode"));
+        document.dispatchEvent(new CustomEvent("changeMode"));
         event.preventDefault();
       }
       if (lowerCaseKey === "f") {

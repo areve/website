@@ -10,12 +10,13 @@
       {{ controller.zoom.toFixed(2) }}zoom
       <span v-if="controller.paused">paused</span>
     </div>
-    <button @click="handleChangeMode" class="mode-button">
+    <label class="mode-select">
       Mode:
-      {{
-        shaderMode === "simplex" ? "OpenSimplex" : "OpenSimplex + Trigonometry"
-      }}
-    </button>
+      <select @change="handleSelectMode" v-model="shaderMode">
+        <option value="simplex">OpenSimplex</option>
+        <option value="trigonometry">OpenSimplex + Trigonometry</option>
+      </select>
+    </label>
   </div>
 </template>
 
@@ -40,9 +41,23 @@ const shaderMode = ref<"simplex" | "trigonometry">("trigonometry");
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
+const availableModes = ["simplex", "trigonometry"] as const;
+
 const handleChangeMode = async () => {
-  shaderMode.value =
-    shaderMode.value === "simplex" ? "trigonometry" : "simplex";
+  const idx = availableModes.indexOf(shaderMode.value);
+  const next = availableModes[(idx + 1) % availableModes.length];
+  shaderMode.value = next;
+  console.log("Changing mode to", shaderMode.value);
+  renderer = await setupOpenSimplexRenderer(canvas.value, {
+    width,
+    height,
+    seed,
+    shaderMode: shaderMode.value,
+  });
+  await renderer.init();
+};
+
+const handleSelectMode = async (event: Event) => {
   renderer = await setupOpenSimplexRenderer(canvas.value, {
     width,
     height,
@@ -57,7 +72,7 @@ const handleToggleFullscreen = () => {
 
   if (!document.fullscreenElement) {
     canvasElement.requestFullscreen?.().catch(() => {
-      // Fullscreen API not available or denied
+      console.warn("Failed to enter fullscreen mode");
     });
   } else {
     document.exitFullscreen?.();
@@ -69,7 +84,6 @@ const handleFullscreenChange = async () => {
   const newWidth = isFs ? window.innerWidth : width;
   const newHeight = isFs ? window.innerHeight : height;
 
-  // Recreate renderer with new size so WebGPU context is configured correctly
   renderer = await setupOpenSimplexRenderer(canvas.value, {
     width: newWidth,
     height: newHeight,

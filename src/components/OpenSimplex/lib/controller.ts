@@ -191,11 +191,11 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         event.preventDefault();
       }
       if (lowerCaseKey === "m") {
-        document.dispatchEvent(new CustomEvent("changeMode"));
+        document.dispatchEvent(new CustomEvent("toggleMode"));
         event.preventDefault();
       }
       if (lowerCaseKey === "f") {
-        document.dispatchEvent(new CustomEvent("toggleFullwindow"));
+        document.dispatchEvent(new CustomEvent("toggleFullscreen"));
         event.preventDefault();
       }
     }

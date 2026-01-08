@@ -1,7 +1,7 @@
 <template>
   <canvas
     ref="canvas"
-    :class="['canvas', { fullwindow: isFullwindow }]"
+    class="canvas"
   ></canvas>
   <div class="controls-overlay">
     <div class="stats">
@@ -10,7 +10,7 @@
       {{ controller.zoom.toFixed(2) }}zoom
       <span v-if="controller.paused">paused</span>
     </div>
-    <button @click="toggleMode" class="mode-button">
+    <button @click="handleChangeMode" class="mode-button">
       Mode:
       {{
         shaderMode === "simplex" ? "OpenSimplex" : "OpenSimplex + Trigonometry"
@@ -36,12 +36,11 @@ const width = 500;
 const height = 200;
 const seed = 12345;
 const shaderMode = ref<"simplex" | "trigonometry">("trigonometry");
-const isFullwindow = ref(false);
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
-const toggleMode = async () => {
+const handleChangeMode = async () => {
   shaderMode.value =
     shaderMode.value === "simplex" ? "trigonometry" : "simplex";
   renderer = await setupOpenSimplexRenderer(canvas.value, {
@@ -53,8 +52,32 @@ const toggleMode = async () => {
   await renderer.init();
 };
 
-const toggleFullwindow = () => {
-  isFullwindow.value = !isFullwindow.value;
+const handleChangeFullscreen = () => {
+  const canvasElement = canvas.value;
+
+  if (!document.fullscreenElement) {
+    canvasElement.requestFullscreen?.().catch(() => {
+      // Fullscreen API not available or denied
+    });
+  } else {
+    document.exitFullscreen?.();
+  }
+};
+
+const handleFullscreenChange = async () => {
+  const isFs = !!document.fullscreenElement;
+  const newWidth = isFs ? window.innerWidth : width;
+  const newHeight = isFs ? window.innerHeight : height;
+
+  // Recreate renderer with new size so WebGPU context is configured correctly
+  renderer = await setupOpenSimplexRenderer(canvas.value, {
+    width: newWidth,
+    height: newHeight,
+    seed,
+    shaderMode: shaderMode.value,
+  });
+  await renderer.init();
+  await renderer.update(0, controller.value);
 };
 
 onMounted(async () => {
@@ -68,8 +91,9 @@ onMounted(async () => {
   await renderer.init();
   await renderer.update(0, controller.value);
 
-  document.addEventListener("changeMode", toggleMode);
-  document.addEventListener("toggleFullwindow", toggleFullwindow);
+  document.addEventListener("changeMode", handleChangeMode);
+  document.addEventListener("toggleFullscreen", handleChangeFullscreen);
+  document.addEventListener("fullscreenchange", handleFullscreenChange);
 
   const render = async (time: DOMHighResTimeStamp) => {
     if (!controller.value.paused) {
@@ -84,8 +108,9 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  document.removeEventListener("changeMode", toggleMode);
-  document.removeEventListener("toggleFullwindow", toggleFullwindow);
+  document.removeEventListener("changeMode", handleChangeMode);
+  document.removeEventListener("toggleFullscreen", handleChangeFullscreen);
+  document.removeEventListener("fullscreenchange", handleFullscreenChange);
   cancelAnimationFrame(frameId);
   controller.value.unmount();
 });
@@ -94,14 +119,5 @@ onUnmounted(() => {
 <style scoped>
 .canvas {
   touch-action: none;
-}
-
-.canvas.fullwindow {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 9999;
 }
 </style>

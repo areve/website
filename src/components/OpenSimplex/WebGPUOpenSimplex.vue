@@ -12,7 +12,7 @@
     </div>
     <label class="mode-select">
       Mode:
-      <select @change="handleSelectMode" v-model="shaderMode">
+      <select @change="initializeCanvas" v-model="shaderMode">
         <option value="simplex">OpenSimplex</option>
         <option value="trigonometry">OpenSimplex + Trigonometry</option>
       </select>
@@ -50,9 +50,6 @@ const handleChangeMode = async () => {
   await initializeCanvas()
 };
 
-const handleSelectMode = async (event: Event) => {
-  await initializeCanvas()
-};
 
 const handleToggleFullscreen = () => {
   const canvasElement = canvas.value;
@@ -82,13 +79,7 @@ const initializeCanvas = async () => {
 
 onMounted(async () => {
   controller.value.mount(canvas.value);
-  renderer = await setupOpenSimplexRenderer(canvas.value, {
-    width,
-    height,
-    seed,
-    shaderMode: shaderMode.value,
-  });
-  await renderer.init();
+  await initializeCanvas();
   await renderer.update(0, controller.value);
 
   document.addEventListener("changeMode", handleChangeMode);

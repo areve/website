@@ -12,14 +12,14 @@
           <li>
             <router-link to="/colours" @click="toggle()">Colours</router-link>
           </li>
-          <li>
+          <!-- <li>
             <router-link to="/azure-ad" @click="toggle()">Azure AD</router-link>
-          </li>
-          <li>
+          </li> -->
+          <!-- <li>
             <router-link to="/azure-b2c" @click="toggle()"
               >Azure B2C</router-link
             >
-          </li>
+          </li> -->
           <li>
             <router-link to="/oldskool-fire" @click="toggle()"
               >Oldskool Fire</router-link

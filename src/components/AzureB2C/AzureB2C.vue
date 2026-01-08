@@ -1,7 +1,11 @@
 <template>
   <article>
     <h1>Azure B2C</h1>
-    <p>Experimenting with a Azure B2C, you can sign-up for an account and sign-in with it, nothing else happens.</p>
+    <p><mark>This no longer works due to expired subscription</mark></p>
+    <p>
+      Experimenting with a Azure B2C, you can sign-up for an account and sign-in
+      with it, nothing else happens.
+    </p>
     <div>
       <button v-if="!account" @click="signIn()" type="button">Sign-in</button>
       <button v-if="account" @click="signOut()" type="button">Sign-out</button>
@@ -208,5 +212,4 @@ export default defineComponent({
 });
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>

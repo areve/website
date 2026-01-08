@@ -1,6 +1,7 @@
 <template>
   <article>
     <h1>Azure AD</h1>
+    <p><mark>This no longer works due to expired subscription</mark></p>
     <p>Experimenting with a Azure AD, if you sign in with an Azure AD account you'll see your name below.</p>
     <div>
       <button v-if="!account" @click="signIn()" type="button">Sign-in</button>

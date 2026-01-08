@@ -5,6 +5,10 @@
       OpenSimplex noise rendered using WebGPU on the GPU.
       Controls and keyboard shortcuts are listed below for quick reference.
     </p>
+    <p>
+      <div>WebGPUOpenSimplex</div>
+      <WebGPUOpenSimplex />
+    </p>
     <ul class="controls">
       <li><kbd>Mouse</kbd> : drag to pan, scroll/wheel to zoom</li>
       <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> : pan the view (A = left, D = right, W = up, S = down)</li>
@@ -14,10 +18,6 @@
       <li><kbd>F</kbd> : toggle full screen mode</li>
       <li>Touch : two-finger pinch to zoom, drag to pan</li>
     </ul>
-    <p>
-      <div>WebGPUOpenSimplex</div>
-      <WebGPUOpenSimplex />
-    </p>
   </article>
 </template>
 

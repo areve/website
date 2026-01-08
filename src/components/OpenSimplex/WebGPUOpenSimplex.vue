@@ -22,7 +22,7 @@ import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
 const controller = makeController({
-  basicKeys: { pause: { startPaused: true } },
+  basicKeys: { pause: { startPaused: false } },
 });
 const width = 500;
 const height = 200;

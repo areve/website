@@ -1,5 +1,8 @@
 <template>
-  <canvas ref="canvas" class="canvas"></canvas>
+  <canvas
+    ref="canvas"
+    :class="['canvas', { fullwindow: isFullwindow }]"
+  ></canvas>
   <div class="controls-overlay">
     <div class="stats">
       {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
@@ -33,6 +36,7 @@ const width = 500;
 const height = 200;
 const seed = 12345;
 const shaderMode = ref<"simplex" | "trigonometry">("trigonometry");
+const isFullwindow = ref(false);
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -49,6 +53,10 @@ const toggleMode = async () => {
   await renderer.init();
 };
 
+const toggleFullwindow = () => {
+  isFullwindow.value = !isFullwindow.value;
+};
+
 onMounted(async () => {
   controller.value.mount(canvas.value);
   renderer = await setupOpenSimplexRenderer(canvas.value, {
@@ -61,6 +69,7 @@ onMounted(async () => {
   await renderer.update(0, controller.value);
 
   document.addEventListener("changeMode", toggleMode);
+  document.addEventListener("toggleFullwindow", toggleFullwindow);
 
   const render = async (time: DOMHighResTimeStamp) => {
     if (!controller.value.paused) {
@@ -76,6 +85,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("changeMode", toggleMode);
+  document.removeEventListener("toggleFullwindow", toggleFullwindow);
   cancelAnimationFrame(frameId);
   controller.value.unmount();
 });
@@ -84,5 +94,14 @@ onUnmounted(() => {
 <style scoped>
 .canvas {
   touch-action: none;
+}
+
+.canvas.fullwindow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
 }
 </style>

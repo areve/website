@@ -11,6 +11,7 @@
       <li><kbd>'</kbd> (apostrophe) / <kbd>/</kbd> : zoom in / out (keyboard accelerator)</li>
       <li><kbd>Space</kbd> or <kbd>P</kbd> : pause / resume animation; double-click/tap also toggles pause</li>
       <li><kbd>M</kbd> : toggle between OpenSimplex and OpenSimplex + Trigonometry modes</li>
+      <li><kbd>F</kbd> : toggle full window view</li>
       <li>Touch : two-finger pinch to zoom, drag to pan</li>
     </ul>
     <p>

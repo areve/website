@@ -5,8 +5,10 @@ export async function setupOpenSimplexRenderer(
     height: number;
     seed?: number;
     scale?: number;
+    shaderMode?: "simplex" | "trigonometry";
   }
 ) {
+  const shaderMode = options.shaderMode ?? "simplex";
   const sharedData = {
     width: options.width,
     height: options.height,
@@ -44,9 +46,8 @@ export async function setupOpenSimplexRenderer(
     format: presentationFormat,
   });
 
-  const module = device.createShaderModule({
-    label: "our hardcoded red color shader",
-    code: /* wgsl */ `      
+  const getShaderCode = (mode: "simplex" | "trigonometry") => {
+    const baseCode = /* wgsl */ `      
     
       struct Uniforms {
         width: f32,
@@ -139,13 +140,36 @@ export async function setupOpenSimplexRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let n = openSimplex3d(
-          coord.x / data.scale * data.zoom + data.x / data.scale, 
-          coord.y / data.scale * data.zoom + data.y / data.scale, 
-          data.z);
+        let normalizedX = coord.x / data.scale * data.zoom + data.x / data.scale;
+        let normalizedY = coord.y / data.scale * data.zoom + data.y / data.scale;
+        ` +
+      (mode === "trigonometry"
+        ? `
+        // OpenSimplex + Trigonometry
+        let scale = 1.2;
+        let x1 = normalizedX * 3.14159265 * 2.0 * 8.0 * scale;
+        let y1 = normalizedY * scale;
+        let z1 = data.z;
+        let n = openSimplex3d(x1, y1, z1) * 2.0;
+        let y2 = sin(x1 + n) * 20.0 + n * 100.0 + (50.0 * x1) / 17.0;
+        let result = abs(cos((y2 - y1) / 10.0));
+        return vec4<f32>(result, result, result, 1.0);
+      }
+        `
+        : `
+        // Standard OpenSimplex
+        let n = openSimplex3d(normalizedX, normalizedY, data.z);
         return vec4<f32>(n, n, n, 1.0);
       }
-    `,
+        `) +
+      `
+    `;
+    return baseCode;
+  };
+
+  const module = device.createShaderModule({
+    label: "opensimplex shader",
+    code: getShaderCode(shaderMode),
   });
 
   const pipeline = device.createRenderPipeline({

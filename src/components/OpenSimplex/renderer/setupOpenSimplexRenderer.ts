@@ -145,7 +145,7 @@ export async function setupOpenSimplexRenderer(
         ` +
       (mode === "trigonometry"
         ? `
-        // OpenSimplex + Trigonometry
+        // OpenSimplex + Trigonometry with HSV coloring
         let scale = 1.0;
         let x1 = (normalizedX / 500.0) * 3.14159265 * 2.0 * 8.0 * scale;
         let y1 = (normalizedY / 5.0) * scale;
@@ -153,7 +153,23 @@ export async function setupOpenSimplexRenderer(
         let n = openSimplex3d(x1, y1, z1) * 2.0;
         let y2 = sin(x1 + n) * 20.0 + n * 100.0 + (50.0 * x1) / 17.0;
         let result = abs(cos((y2 - y1) / 10.0));
-        return vec4<f32>(result, result, result, 1.0);
+        
+        // HSV to RGB conversion
+        let h = fract(result + 0.9) * 6.0;
+        let s = result * result;
+        let v = 1.0 - result * 0.9;
+        let c = v * s;
+        let x = c * (1.0 - abs(fract(h * 0.5) * 2.0 - 1.0));
+        let m = v - c;
+        var rgb: vec3<f32>;
+        if (h < 1.0) { rgb = vec3<f32>(c, x, 0.0); }
+        else if (h < 2.0) { rgb = vec3<f32>(x, c, 0.0); }
+        else if (h < 3.0) { rgb = vec3<f32>(0.0, c, x); }
+        else if (h < 4.0) { rgb = vec3<f32>(0.0, x, c); }
+        else if (h < 5.0) { rgb = vec3<f32>(x, 0.0, c); }
+        else { rgb = vec3<f32>(c, 0.0, x); }
+        
+        return vec4<f32>(rgb + m, 1.0);
       }
         `
         : `

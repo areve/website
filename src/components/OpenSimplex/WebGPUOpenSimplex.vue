@@ -47,24 +47,11 @@ const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);
   const next = availableModes[(idx + 1) % availableModes.length];
   shaderMode.value = next;
-  console.log("Changing mode to", shaderMode.value);
-  renderer = await setupOpenSimplexRenderer(canvas.value, {
-    width,
-    height,
-    seed,
-    shaderMode: shaderMode.value,
-  });
-  await renderer.init();
+  await initializeCanvas()
 };
 
 const handleSelectMode = async (event: Event) => {
-  renderer = await setupOpenSimplexRenderer(canvas.value, {
-    width,
-    height,
-    seed,
-    shaderMode: shaderMode.value,
-  });
-  await renderer.init();
+  await initializeCanvas()
 };
 
 const handleToggleFullscreen = () => {
@@ -79,7 +66,7 @@ const handleToggleFullscreen = () => {
   }
 };
 
-const handleFullscreenChange = async () => {
+const initializeCanvas = async () => {
   const isFs = !!document.fullscreenElement;
   const newWidth = isFs ? window.innerWidth : width;
   const newHeight = isFs ? window.innerHeight : height;
@@ -91,7 +78,6 @@ const handleFullscreenChange = async () => {
     shaderMode: shaderMode.value,
   });
   await renderer.init();
-  await renderer.update(0, controller.value);
 };
 
 onMounted(async () => {
@@ -107,7 +93,7 @@ onMounted(async () => {
 
   document.addEventListener("changeMode", handleChangeMode);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
-  document.addEventListener("fullscreenchange", handleFullscreenChange);
+  document.addEventListener("fullscreenchange", initializeCanvas);
 
   const render = async (time: DOMHighResTimeStamp) => {
     if (!controller.value.paused) {
@@ -124,7 +110,7 @@ onMounted(async () => {
 onUnmounted(() => {
   document.removeEventListener("changeMode", handleChangeMode);
   document.removeEventListener("toggleFullscreen", handleToggleFullscreen);
-  document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  document.removeEventListener("fullscreenchange", initializeCanvas);
   cancelAnimationFrame(frameId);
   controller.value.unmount();
 });

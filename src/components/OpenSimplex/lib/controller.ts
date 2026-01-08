@@ -33,7 +33,7 @@ const defaultOptions = {
       startPaused: false,
     },
     mode: {
-      toggleKeys: ["m"],
+      changeKeys: ["m"],
     },
     fullscreen: {
       toggleKeys: ["f"],
@@ -197,7 +197,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         controller.value.paused = !controller.value.paused;
         event.preventDefault();
       }
-      if (opt.basicKeys.mode.toggleKeys.includes(lowerCaseKey)) {
+      if (opt.basicKeys.mode.changeKeys.includes(lowerCaseKey)) {
         document.dispatchEvent(new CustomEvent("changeMode"));
         event.preventDefault();
       }

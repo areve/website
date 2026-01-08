@@ -190,6 +190,10 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         controller.value.paused = !controller.value.paused;
         event.preventDefault();
       }
+      if (lowerCaseKey === "m") {
+        document.dispatchEvent(new CustomEvent("changeMode"));
+        event.preventDefault();
+      }
     }
   }
 

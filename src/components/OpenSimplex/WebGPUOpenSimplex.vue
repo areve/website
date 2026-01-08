@@ -8,7 +8,10 @@
       <span v-if="controller.paused">paused</span>
     </div>
     <button @click="toggleMode" class="mode-button">
-      Mode: {{ shaderMode === "simplex" ? "OpenSimplex" : "OpenSimplex + Trigonometry" }}
+      Mode:
+      {{
+        shaderMode === "simplex" ? "OpenSimplex" : "OpenSimplex + Trigonometry"
+      }}
     </button>
   </div>
 </template>
@@ -22,7 +25,9 @@ import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
 const controller = makeController({
-  basicKeys: { pause: { startPaused: false } },
+  basicKeys: {
+    pause: { startPaused: false },
+  },
 });
 const width = 500;
 const height = 200;
@@ -33,7 +38,8 @@ let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const toggleMode = async () => {
-  shaderMode.value = shaderMode.value === "simplex" ? "trigonometry" : "simplex";
+  shaderMode.value =
+    shaderMode.value === "simplex" ? "trigonometry" : "simplex";
   renderer = await setupOpenSimplexRenderer(canvas.value, {
     width,
     height,
@@ -53,6 +59,9 @@ onMounted(async () => {
   });
   await renderer.init();
   await renderer.update(0, controller.value);
+
+  document.addEventListener("changeMode", toggleMode);
+
   const render = async (time: DOMHighResTimeStamp) => {
     if (!controller.value.paused) {
       await renderer.update(time, controller.value);
@@ -66,6 +75,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  document.removeEventListener("changeMode", toggleMode);
   cancelAnimationFrame(frameId);
   controller.value.unmount();
 });

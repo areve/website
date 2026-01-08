@@ -52,7 +52,7 @@ const handleChangeMode = async () => {
   await renderer.init();
 };
 
-const handleChangeFullscreen = () => {
+const handleToggleFullscreen = () => {
   const canvasElement = canvas.value;
 
   if (!document.fullscreenElement) {
@@ -92,7 +92,7 @@ onMounted(async () => {
   await renderer.update(0, controller.value);
 
   document.addEventListener("changeMode", handleChangeMode);
-  document.addEventListener("toggleFullscreen", handleChangeFullscreen);
+  document.addEventListener("toggleFullscreen", handleToggleFullscreen);
   document.addEventListener("fullscreenchange", handleFullscreenChange);
 
   const render = async (time: DOMHighResTimeStamp) => {
@@ -109,7 +109,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("changeMode", handleChangeMode);
-  document.removeEventListener("toggleFullscreen", handleChangeFullscreen);
+  document.removeEventListener("toggleFullscreen", handleToggleFullscreen);
   document.removeEventListener("fullscreenchange", handleFullscreenChange);
   cancelAnimationFrame(frameId);
   controller.value.unmount();

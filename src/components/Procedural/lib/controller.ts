@@ -31,11 +31,11 @@ const defaultOptions = {
     pause: {
       toggleKeys: [" ", "p"],
       startPaused: false,
+      eventName: "togglePause",
     },
     mode: {
       changeKeys: ["m"],
       eventName: "changeMode",
-      
     },
     fullscreen: {
       toggleKeys: ["f", "doubletap"],
@@ -197,12 +197,18 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   function actionHandler(action: string) {
     if (opt.basicKeys.pause.toggleKeys.includes(action)) {
       controller.value.paused = !controller.value.paused;
+      document.dispatchEvent(new CustomEvent(opt.basicKeys.pause.eventName));
+      return true;
     }
     if (opt.basicKeys.mode.changeKeys.includes(action)) {
       document.dispatchEvent(new CustomEvent(opt.basicKeys.mode.eventName));
+      return true;
     }
     if (opt.basicKeys.fullscreen.toggleKeys.includes(action)) {
-      document.dispatchEvent(new CustomEvent(opt.basicKeys.fullscreen.eventName));
+      document.dispatchEvent(
+        new CustomEvent(opt.basicKeys.fullscreen.eventName)
+      );
+      return true;
     }
     return false;
   }

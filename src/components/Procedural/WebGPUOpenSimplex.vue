@@ -12,7 +12,7 @@
         Mode:
         <select @change="initializeCanvas" v-model="shaderMode">
           <option value="simplex">OpenSimplex</option>
-          <option value="trigonometry">OpenSimplex + Trigonometry</option>
+          <option value="ripple">Ripple</option>
           <option value="mandelbrot">Mandelbrot</option>
         </select>
       </label>
@@ -27,6 +27,7 @@ import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
+import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
@@ -38,12 +39,12 @@ const controller = makeController({
 const width = 500;
 const height = 500;
 const seed = 12345;
-const shaderMode = ref<"simplex" | "trigonometry">("trigonometry");
+const shaderMode = ref<"simplex" | "ripple" | "mandelbrot">("ripple");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
-const availableModes = ["simplex", "trigonometry"] as const;
+const availableModes = ["simplex", "ripple", "mandelbrot"] as const;
 
 const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);
@@ -75,12 +76,17 @@ const initializeCanvas = async () => {
       height: newHeight,
       seed,
     });
+  } else if (shaderMode.value === "ripple") {
+    renderer = await setupRippleRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
   } else {
     renderer = await setupOpenSimplexRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
-      shaderMode: shaderMode.value,
     });
   }
   await renderer.init();

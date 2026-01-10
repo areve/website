@@ -1,4 +1,4 @@
-export async function setupOpenSimplexRenderer(
+export async function setupRippleRenderer(
   canvas: HTMLCanvasElement,
   options: {
     width: number;
@@ -45,8 +45,8 @@ export async function setupOpenSimplexRenderer(
   });
 
   const module = device.createShaderModule({
-    label: "our hardcoded red color shader",
-    code: /* wgsl */ `      
+    label: "opensimplex shader",
+    code: /* wgsl */ `
     
       struct Uniforms {
         width: f32,
@@ -139,13 +139,34 @@ export async function setupOpenSimplexRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let n = openSimplex3d(
-          coord.x / data.scale * data.zoom + data.x / data.scale, 
-          coord.y / data.scale * data.zoom + data.y / data.scale, 
-          data.z);
-        return vec4<f32>(n, n, n, 1.0);
-      }
-    `,
+        let normalizedX = coord.x / data.scale * data.zoom + data.x / data.scale;
+        let normalizedY = coord.y / data.scale * data.zoom + data.y / data.scale;
+        // OpenSimplex + Trigonometry with HSV coloring
+        let scale = 1.0;
+        let x1 = (normalizedX / 500.0) * 3.14159265 * 2.0 * 8.0 * scale;
+        let y1 = (normalizedY / 5.0) * scale;
+        let z1 = data.z;
+        let n = openSimplex3d(x1, y1, z1) * 2.0;
+        let y2 = sin(x1 + n) * 20.0 + n * 100.0 + (50.0 * x1) / 17.0;
+        let result = abs(cos((y2 - y1) / 10.0));
+        
+        // HSV to RGB conversion
+        let h = fract(result + 0.9) * 6.0;
+        let s = result * result;
+        let v = 1.0 - result * 0.9;
+        let c = v * s;
+        let x = c * (1.0 - abs(fract(h * 0.5) * 2.0 - 1.0));
+        let m = v - c;
+        var rgb: vec3<f32>;
+        if (h < 1.0) { rgb = vec3<f32>(c, x, 0.0); }
+        else if (h < 2.0) { rgb = vec3<f32>(x, c, 0.0); }
+        else if (h < 3.0) { rgb = vec3<f32>(0.0, c, x); }
+        else if (h < 4.0) { rgb = vec3<f32>(0.0, x, c); }
+        else if (h < 5.0) { rgb = vec3<f32>(x, 0.0, c); }
+        else { rgb = vec3<f32>(c, 0.0, x); }
+        
+        return vec4<f32>(rgb + m, 1.0);
+      }`
   });
 
   const pipeline = device.createRenderPipeline({

@@ -1,7 +1,7 @@
 <template>
   <article>
     <h1>Procedural</h1>
-    <p>Procedural image generation with WebGPU.</p>
+    <p>Procedural image generation with WebGPU. Double-tap to open fullscreen, pinch, drag, see more below.</p>
     <WebGPUOpenSimplex />
     <p>Controls and keyboard shortcuts are listed below.</p>
     <ul class="controls">

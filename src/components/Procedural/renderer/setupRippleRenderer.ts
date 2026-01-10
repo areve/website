@@ -145,7 +145,7 @@ export async function setupRippleRenderer(
         let scale = 1.0;
         let x1 = (normalizedX / 500.0) * 3.14159265 * 2.0 * 8.0 * scale;
         let y1 = (normalizedY / 5.0) * scale;
-        let z1 = data.z;
+        let z1 = data.z * 0.2;
         let n = openSimplex3d(x1, y1, z1) * 2.0;
         let y2 = sin(x1 + n) * 20.0 + n * 100.0 + (50.0 * x1) / 17.0;
         let result = abs(cos((y2 - y1) / 10.0));

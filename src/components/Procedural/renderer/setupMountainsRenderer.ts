@@ -143,9 +143,9 @@ export async function setupMountainsRenderer(
         let y = coord.y / data.scale * data.zoom + data.y / data.scale;
         
         // Three layers at different scales
-        let layer1 = openSimplex3d(x * 0.05, y * 0.05, data.z);  // Large features (mountains/valleys)
-        let layer2 = openSimplex3d(x * 0.2, y * 0.2, data.z);  // Medium features
-        let layer3 = openSimplex3d(x * 0.8, y * 0.8, data.z);  // Fine details
+        let layer1 = openSimplex3d(x * 0.02, y * 0.02, data.z);  // Large features (mountains/valleys)
+        let layer2 = openSimplex3d(x * 0.08, y * 0.08, data.z);  // Medium features
+        let layer3 = openSimplex3d(x * 0.3, y * 0.3, data.z);  // Fine details
         
         // Combine layers with different weights
         let combined = layer1 * 0.6 + layer2 * 0.25 + layer3 * 0.15;

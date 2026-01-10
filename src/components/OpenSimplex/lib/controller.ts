@@ -1,6 +1,5 @@
 import { ref } from "vue";
 import { DeepPartial, deepAssign } from "./deepAssign";
-import { fullscreen } from "foo";
 
 const defaultOptions = {
   acceleratorKeys: {
@@ -36,7 +35,7 @@ const defaultOptions = {
       changeKeys: ["m"],
     },
     fullscreen: {
-      toggleKeys: ["f"],
+      toggleKeys: ["f", "doubletap"],
     },
   },
 };
@@ -56,6 +55,10 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     pointer: {
       origin: { x: 0, y: 0 },
     },
+    clicking: {
+      lastTapTime: 0,
+      doubleTapThreshold: 300, // Maximum delay (in ms) between taps for a double tap
+    },
     dragging: {
       start: { x: 0, y: 0 },
       current: { x: 0, y: 0 },
@@ -69,9 +72,6 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       isPinching: false,
     },
   };
-
-  let lastTapTime = 0;
-  const doubleTapThreshold = 300; // Maximum delay (in ms) between taps for a double tap
 
   let bindElement: HTMLElement;
   let bindGlobalElement: Document;
@@ -190,21 +190,23 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     handleAcceleratorKeys(event.key, false);
   }
 
+  function actionHandler(action: string) {
+    if (opt.basicKeys.pause.toggleKeys.includes(action)) {
+      controller.value.paused = !controller.value.paused;
+    }
+    if (opt.basicKeys.mode.changeKeys.includes(action)) {
+      document.dispatchEvent(new CustomEvent("changeMode"));
+    }
+    if (opt.basicKeys.fullscreen.toggleKeys.includes(action)) {
+      document.dispatchEvent(new CustomEvent("toggleFullscreen"));
+    }
+    return false;
+  }
+
   function onKeyPress(event: KeyboardEvent) {
     if (states.isPointerOver) {
       const lowerCaseKey = event.key.toLowerCase();
-      if (opt.basicKeys.pause.toggleKeys.includes(lowerCaseKey)) {
-        controller.value.paused = !controller.value.paused;
-        event.preventDefault();
-      }
-      if (opt.basicKeys.mode.changeKeys.includes(lowerCaseKey)) {
-        document.dispatchEvent(new CustomEvent("changeMode"));
-        event.preventDefault();
-      }
-      if (opt.basicKeys.fullscreen.toggleKeys.includes(lowerCaseKey)) {
-        document.dispatchEvent(new CustomEvent("toggleFullscreen"));
-        event.preventDefault();
-      }
+      if (actionHandler(lowerCaseKey)) event.preventDefault();
     }
   }
 
@@ -289,12 +291,11 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
 
   function handleDoubleTap(event: TouchEvent | MouseEvent) {
     const currentTime = new Date().getTime();
-    const tapLength = currentTime - lastTapTime;
-    if (tapLength < doubleTapThreshold && tapLength > 0) {
-      controller.value.paused = !controller.value.paused; // TODO move action elsewhere
-      event.preventDefault();
+    const tapLength = currentTime - states.clicking.lastTapTime;
+    if (tapLength < states.clicking.doubleTapThreshold && tapLength > 0) {
+      if (actionHandler("doubletap")) event.preventDefault();
     }
-    lastTapTime = currentTime;
+    states.clicking.lastTapTime = currentTime;
   }
 
   function onTouchStart(event: TouchEvent) {

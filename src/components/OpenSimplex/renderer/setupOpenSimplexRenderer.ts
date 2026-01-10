@@ -47,7 +47,8 @@ export async function setupOpenSimplexRenderer(
   });
 
   const getShaderCode = (mode: "simplex" | "trigonometry") => {
-    const baseCode = /* wgsl */ `      
+    const baseCode =
+      /* wgsl */ `      
     
       struct Uniforms {
         width: f32,
@@ -144,7 +145,7 @@ export async function setupOpenSimplexRenderer(
         let normalizedY = coord.y / data.scale * data.zoom + data.y / data.scale;
         ` +
       (mode === "trigonometry"
-        ? `
+        ? /* wgsl */ `
         // OpenSimplex + Trigonometry with HSV coloring
         let scale = 1.0;
         let x1 = (normalizedX / 500.0) * 3.14159265 * 2.0 * 8.0 * scale;
@@ -172,7 +173,7 @@ export async function setupOpenSimplexRenderer(
         return vec4<f32>(rgb + m, 1.0);
       }
         `
-        : `
+        : /* wgsl */ `
         // Standard OpenSimplex
         let n = openSimplex3d(normalizedX, normalizedY, data.z);
         return vec4<f32>(n, n, n, 1.0);

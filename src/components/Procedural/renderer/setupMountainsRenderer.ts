@@ -180,6 +180,139 @@ export async function setupMountainsRenderer(
         // Use layer4 for earth type (will affect mountains later)
         let earthType = layer4; // Range 0-1: volcanic, rocky, sandy, etc.
         
+        // Worley-style dots (cell centers on a grid)
+        var showDot = false;
+        var onLine = false;
+        let cellSize = 5.75; // 4x more dots (area quartered)
+        let cellX = floor(x / cellSize);
+        let cellY = floor(y / cellSize);
+        
+        // Generate random point within each cell
+        let cellSeed = cellX * 73856093.0 + cellY * 19349663.0;
+        let randX = fract(sin(cellSeed * 1.234) * 43758.5453);
+        let randY = fract(sin(cellSeed * 5.678) * 43758.5453);
+        
+        let dotX = (cellX + randX) * cellSize;
+        let dotY = (cellY + randY) * cellSize;
+        
+        let dx = x - dotX;
+        let dy = y - dotY;
+        let dist = sqrt(dx * dx + dy * dy);
+        
+        // Check if dot location is on land
+        let dotLayer1 = openSimplex3d(dotX * 0.005, dotY * 0.005, data.z);
+        let dotLayer3 = openSimplex3d(dotX * 0.05, dotY * 0.05, data.z);
+        let dotLayer6 = openSimplex3d(dotX * 0.3, dotY * 0.3, data.z);
+        let dotHeight = dotLayer1 * 0.98 + dotLayer3 * 0.25 + dotLayer6 * 0.06 - 0.35;
+        // Only keep dots near sea level; drop inland/high dots
+        let dotIsLand = dotHeight > 0.455 && dotHeight < 0.50;
+        // Much narrower coastal band (~4x thinner)
+        let isCoastal = dotHeight > 0.47 && dotHeight < 0.48;
+        
+        // Coastal towns are larger, inland villages are smaller
+        var dotSize = 0.8;
+        if (!isCoastal && dotIsLand) {
+          dotSize = 0.4; // Villages are smaller
+        }
+        
+        if (dist < dotSize && dotIsLand) {
+          showDot = true;
+        }
+        
+        // Connect to neighboring dots (all land dots connect to 8 neighbors for better joining)
+        for (var ny = -1.0; ny <= 1.0; ny += 1.0) {
+          for (var nx = -1.0; nx <= 1.0; nx += 1.0) {
+            if (nx == 0.0 && ny == 0.0) {
+              continue;
+            }
+            
+            let neighborCellX = cellX + nx;
+            let neighborCellY = cellY + ny;
+            let neighborSeed = neighborCellX * 73856093.0 + neighborCellY * 19349663.0;
+            let neighborRandX = fract(sin(neighborSeed * 1.234) * 43758.5453);
+            let neighborRandY = fract(sin(neighborSeed * 5.678) * 43758.5453);
+            
+            let neighborDotX = (neighborCellX + neighborRandX) * cellSize;
+            let neighborDotY = (neighborCellY + neighborRandY) * cellSize;
+            
+            // Check if neighbor dot is on land
+            let neighborLayer1 = openSimplex3d(neighborDotX * 0.005, neighborDotY * 0.005, data.z);
+            let neighborLayer3 = openSimplex3d(neighborDotX * 0.05, neighborDotY * 0.05, data.z);
+            let neighborLayer6 = openSimplex3d(neighborDotX * 0.3, neighborDotY * 0.3, data.z);
+            let neighborHeight = neighborLayer1 * 0.98 + neighborLayer3 * 0.25 + neighborLayer6 * 0.06 - 0.35;
+            let neighborIsLand = neighborHeight > 0.455 && neighborHeight < 0.50;
+            
+            // Only draw line if both dots are on land
+            if (dotIsLand && neighborIsLand) {
+              // Draw line from current dot to neighbor
+              let lineDx = neighborDotX - dotX;
+              let lineDy = neighborDotY - dotY;
+              let lineLen = sqrt(lineDx * lineDx + lineDy * lineDy);
+              
+              if (lineLen > 0.0) {
+                var t = ((x - dotX) * lineDx + (y - dotY) * lineDy) / (lineLen * lineLen);
+                t = clamp(t, 0.0, 1.0);
+                
+                let lineX = dotX + t * lineDx;
+                let lineY = dotY + t * lineDy;
+                let perpDist = sqrt((x - lineX) * (x - lineX) + (y - lineY) * (y - lineY));
+                
+                if (perpDist < 0.18) {
+                  onLine = true;
+                }
+              }
+            }
+          }
+        }
+
+        // Fallback: ensure each land dot connects to its closest land neighbor within 2 cells
+        if (dotIsLand && !onLine) {
+          var nearestFound = false;
+          var nearestX = 0.0;
+          var nearestY = 0.0;
+          var nearestDist = 1e9;
+          for (var ny = -2.0; ny <= 2.0; ny += 1.0) {
+            for (var nx = -2.0; nx <= 2.0; nx += 1.0) {
+              if (nx == 0.0 && ny == 0.0) { continue; }
+              let neighborCellX = cellX + nx;
+              let neighborCellY = cellY + ny;
+              let neighborSeed = neighborCellX * 73856093.0 + neighborCellY * 19349663.0;
+              let neighborRandX = fract(sin(neighborSeed * 1.234) * 43758.5453);
+              let neighborRandY = fract(sin(neighborSeed * 5.678) * 43758.5453);
+              let neighborDotX = (neighborCellX + neighborRandX) * cellSize;
+              let neighborDotY = (neighborCellY + neighborRandY) * cellSize;
+              let neighborLayer1 = openSimplex3d(neighborDotX * 0.005, neighborDotY * 0.005, data.z);
+              let neighborLayer3 = openSimplex3d(neighborDotX * 0.05, neighborDotY * 0.05, data.z);
+              let neighborLayer6 = openSimplex3d(neighborDotX * 0.3, neighborDotY * 0.3, data.z);
+              let neighborHeight = neighborLayer1 * 0.98 + neighborLayer3 * 0.25 + neighborLayer6 * 0.06 - 0.35;
+              let neighborIsLand = neighborHeight > 0.455 && neighborHeight < 0.50;
+              if (!neighborIsLand) { continue; }
+              let ddx = neighborDotX - dotX;
+              let ddy = neighborDotY - dotY;
+              let dlen = sqrt(ddx * ddx + ddy * ddy);
+              if (dlen > 0.0 && dlen < nearestDist) {
+                nearestDist = dlen;
+                nearestX = neighborDotX;
+                nearestY = neighborDotY;
+                nearestFound = true;
+              }
+            }
+          }
+          if (nearestFound && nearestDist < 40.0) {
+            let lineDx = nearestX - dotX;
+            let lineDy = nearestY - dotY;
+            let lineLen = nearestDist;
+            var t = ((x - dotX) * lineDx + (y - dotY) * lineDy) / (lineLen * lineLen);
+            t = clamp(t, 0.0, 1.0);
+            let lineX = dotX + t * lineDx;
+            let lineY = dotY + t * lineDy;
+            let perpDist = sqrt((x - lineX) * (x - lineX) + (y - lineY) * (y - lineY));
+            if (perpDist < 0.18) {
+              onLine = true;
+            }
+          }
+        }
+        
         // Determine terrain type based on elevation and biome
         // Earth proportions: ~71% ocean, 29% land (with beaches ~1%, mountains ~24%, ice ~10%)
         // Colors matched to Earth from space
@@ -293,6 +426,22 @@ export async function setupMountainsRenderer(
           color = mix(vec3f(0.88, 0.90, 0.92), vec3f(0.95, 0.97, 0.98), t);
         }
         
+        // Draw lines connecting dots (natural dark road tone)
+        if (onLine) {
+          color = vec3f(0.32, 0.26, 0.20); // muted dark brown
+        }
+
+        // Draw Worley dots with natural tones: warm coastal towns, muted inland villages
+        if (showDot) {
+          var townColor: vec3f;
+          if (isCoastal) {
+            townColor = vec3f(0.78, 0.63, 0.45);
+          } else {
+            townColor = vec3f(0.58, 0.52, 0.40);
+          }
+          color = mix(color, townColor, 0.9);
+        }
+        
         return vec4<f32>(color, 1.0);
       }
     `,
@@ -342,7 +491,8 @@ export async function setupMountainsRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.00005;
+    //   sharedData.z = time * 0.00005;
+      sharedData.z = 9;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({

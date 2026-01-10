@@ -15,6 +15,7 @@
           <option value="ripple">Ripple</option>
           <option value="mandelbrot">Mandelbrot</option>
           <option value="worley">Worley</option>
+          <option value="greenNoise">Green Noise</option>
         </select>
       </label>
       <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
@@ -30,6 +31,7 @@ import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
+import { setupGreenNoiseRenderer } from "./renderer/setupGreenNoiseRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
@@ -41,12 +43,12 @@ const controller = makeController({
 const width = 500;
 const height = 500;
 const seed = 12345;
-const shaderMode = ref<"simplex" | "ripple" | "mandelbrot" | "worley">("ripple");
+const shaderMode = ref<"simplex" | "ripple" | "mandelbrot" | "worley" | "greenNoise">("greenNoise");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
-const availableModes = ["simplex", "ripple", "mandelbrot", "worley"] as const;
+const availableModes = ["simplex", "ripple", "mandelbrot", "worley", "greenNoise"] as const;
 
 const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);
@@ -86,6 +88,12 @@ const initializeCanvas = async () => {
     });
   } else if (shaderMode.value === "worley") {
     renderer = await setupWorleyRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+  } else if (shaderMode.value === "greenNoise") {
+    renderer = await setupGreenNoiseRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

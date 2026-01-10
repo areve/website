@@ -1,5 +1,6 @@
 import { ref } from "vue";
 import { DeepPartial, deepAssign } from "./deepAssign";
+import { eventNames } from "process";
 
 const defaultOptions = {
   acceleratorKeys: {
@@ -33,9 +34,12 @@ const defaultOptions = {
     },
     mode: {
       changeKeys: ["m"],
+      eventName: "changeMode",
+      
     },
     fullscreen: {
       toggleKeys: ["f", "doubletap"],
+      eventName: "toggleFullscreen",
     },
   },
 };
@@ -195,10 +199,10 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       controller.value.paused = !controller.value.paused;
     }
     if (opt.basicKeys.mode.changeKeys.includes(action)) {
-      document.dispatchEvent(new CustomEvent("changeMode"));
+      document.dispatchEvent(new CustomEvent(opt.basicKeys.mode.eventName));
     }
     if (opt.basicKeys.fullscreen.toggleKeys.includes(action)) {
-      document.dispatchEvent(new CustomEvent("toggleFullscreen"));
+      document.dispatchEvent(new CustomEvent(opt.basicKeys.fullscreen.eventName));
     }
     return false;
   }

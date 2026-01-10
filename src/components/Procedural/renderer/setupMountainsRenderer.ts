@@ -224,7 +224,7 @@ export async function setupMountainsRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.0001;
+      sharedData.z = time * 0.00005;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({

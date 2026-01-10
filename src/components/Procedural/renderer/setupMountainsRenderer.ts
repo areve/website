@@ -142,37 +142,155 @@ export async function setupMountainsRenderer(
         let x = coord.x / data.scale * data.zoom + data.x / data.scale;
         let y = coord.y / data.scale * data.zoom + data.y / data.scale;
         
-        // Three layers at different scales
-        let layer1 = openSimplex3d(x * 0.02, y * 0.02, data.z);  // Large features (mountains/valleys)
-        let layer2 = openSimplex3d(x * 0.08, y * 0.08, data.z);  // Medium features
-        let layer3 = openSimplex3d(x * 0.3, y * 0.3, data.z);  // Fine details
+        // Six layers with specific purposes
+        let layer1 = openSimplex3d(x * 0.005, y * 0.005, data.z);   // Global ocean/continent distribution
+        let layer2 = openSimplex3d(x * 0.015, y * 0.015, data.z);   // Macro-biomes (desert, forest, ice, tropical)
+        let layer3 = openSimplex3d(x * 0.05, y * 0.05, data.z);     // Detailed height (hills, valleys)
+        let layer4 = openSimplex3d(x * 0.08, y * 0.08, data.z);     // Earth type (affects mountain colors only)
+        let layer5 = openSimplex3d(x * 0.02, y * 0.02, data.z);     // Inland lakes and water bodies
+        let layer6 = openSimplex3d(x * 0.3, y * 0.3, data.z);       // Fine detail height variation
         
-        // Combine layers with different weights
-        let combined = layer1 * 0.6 + layer2 * 0.25 + layer3 * 0.15;
+        // Combine into elevation - layer1 is primary separator
+        let oceanMask = layer1; // -0.5 to 0.5 range, determines if ocean or land
+        let baseHeight = layer3 * 0.25 + layer6 * 0.06; // Base terrain height
         
-        // Determine terrain type based on elevation
+        // Lakes only affect land areas (where oceanMask is positive)
+        var lakeEffect = 0.0;
+        if (oceanMask > 0.1) {
+          lakeEffect = min(layer5 * 0.08, 0.0); // Reduced lake effect, only on land
+        }
+        
+        // Combine: heavily weight oceanMask to get clean continents
+        let rawHeight = oceanMask * 0.98 + baseHeight + lakeEffect - 0.35; // Quadruple oceans
+        
+        // Use simple non-linear scaling for more interesting terrain
+        // Gentle power function to create some cliff/plateau variety without blobs
+        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.9);
+        
+        // Mountain height variation - some areas have tall mountains, others low
+        let mountainHeightMod = openSimplex3d(x * 0.01, y * 0.01, data.z); // Even larger scale for mountain ranges
+        
+        // Use layer2 for biome (affects color palette) - smooth it for gradual transitions
+        let biomeRaw = layer2;
+        // Sample neighbors for smoothing to avoid sharp lines
+        let biomeSmooth1 = openSimplex3d((x + 5.0) * 0.015, y * 0.015, data.z);
+        let biomeSmooth2 = openSimplex3d(x * 0.015, (y + 5.0) * 0.015, data.z);
+        let biome = (biomeRaw + biomeSmooth1 + biomeSmooth2) / 3.0; // Smoothed biome
+        
+        // Use layer4 for earth type (will affect mountains later)
+        let earthType = layer4; // Range 0-1: volcanic, rocky, sandy, etc.
+        
+        // Determine terrain type based on elevation and biome
+        // Earth proportions: ~71% ocean, 29% land (with beaches ~1%, mountains ~24%, ice ~10%)
+        // Colors matched to Earth from space
         var color: vec3f;
-        if (combined < 0.35) {
-          // Deep water
-          color = vec3f(0.0, 0.2, 0.5);
-        } else if (combined < 0.42) {
-          // Shallow water
-          color = mix(vec3f(0.0, 0.2, 0.5), vec3f(0.2, 0.4, 0.7), (combined - 0.35) / 0.07);
-        } else if (combined < 0.48) {
-          // Beach/sand
-          color = vec3f(0.8, 0.75, 0.5);
-        } else if (combined < 0.65) {
-          // Lowlands/grass
-          color = mix(vec3f(0.3, 0.5, 0.2), vec3f(0.4, 0.6, 0.3), (combined - 0.48) / 0.17);
-        } else if (combined < 0.75) {
-          // Hills/forest
-          color = mix(vec3f(0.2, 0.4, 0.15), vec3f(0.3, 0.35, 0.2), (combined - 0.65) / 0.10);
-        } else if (combined < 0.85) {
-          // Mountains/rock
-          color = mix(vec3f(0.4, 0.4, 0.4), vec3f(0.6, 0.6, 0.6), (combined - 0.75) / 0.10);
+        if (combined < 0.42) {
+          // Deep water (~65% of Earth) - realistic ocean blues
+          let depth = combined / 0.42; // 0 = deepest, 1 = shallowest
+          color = mix(vec3f(0.02, 0.08, 0.20), vec3f(0.05, 0.15, 0.35), depth);
+        } else if (combined < 0.455) {
+          // Shallow water / continental shelf (~2% of Earth)
+          let t = (combined - 0.42) / 0.035;
+          color = mix(vec3f(0.05, 0.15, 0.35), vec3f(0.12, 0.28, 0.48), t);
+        } else if (combined < 0.465) {
+          // Beach/sand (~0.5% of Earth) - varies by biome smoothly
+          let t = (combined - 0.455) / 0.01;
+          let arcticSand = vec3f(0.70, 0.68, 0.60);  // Gray-white sand
+          let temperateSand = vec3f(0.76, 0.70, 0.50); // Yellow-tan sand
+          let tropicalSand = vec3f(0.88, 0.85, 0.70);  // White sand
+          let desertSand = vec3f(0.82, 0.75, 0.55);    // Light tan sand
+          
+          // Smooth biome blending
+          if (biome < 0.25) {
+            color = mix(arcticSand, temperateSand, biome / 0.25);
+          } else if (biome < 0.5) {
+            color = mix(temperateSand, tropicalSand, (biome - 0.25) / 0.25);
+          } else if (biome < 0.75) {
+            color = mix(tropicalSand, desertSand, (biome - 0.5) / 0.25);
+          } else {
+            color = mix(desertSand, arcticSand, (biome - 0.75) / 0.25);
+          }
+        } else if (combined < 0.58) {
+          // Lowlands/plains (~10% of Earth) - Earth from space colors
+          let t = (combined - 0.465) / 0.115;
+          
+          // Arctic tundra
+          let arcticPlain = mix(vec3f(0.45, 0.50, 0.42), vec3f(0.38, 0.42, 0.35), t);
+          // Temperate grassland - yellow-green
+          let temperatePlain = mix(vec3f(0.52, 0.60, 0.35), vec3f(0.48, 0.55, 0.32), t);
+          // Tropical savanna - vibrant green
+          let tropicalPlain = mix(vec3f(0.35, 0.58, 0.28), vec3f(0.30, 0.52, 0.25), t);
+          // Desert scrub - tan-brown
+          let desertPlain = mix(vec3f(0.72, 0.62, 0.42), vec3f(0.68, 0.58, 0.38), t);
+          
+          // Smooth transitions
+          if (biome < 0.25) {
+            color = mix(arcticPlain, temperatePlain, biome / 0.25);
+          } else if (biome < 0.5) {
+            color = mix(temperatePlain, tropicalPlain, (biome - 0.25) / 0.25);
+          } else if (biome < 0.75) {
+            color = mix(tropicalPlain, desertPlain, (biome - 0.5) / 0.25);
+          } else {
+            color = mix(desertPlain, arcticPlain, (biome - 0.75) / 0.25);
+          }
+        } else if (combined < 0.72) {
+          // Hills/forest (~40% of land) - realistic forest colors from space
+          let t = (combined - 0.58) / 0.14;
+          
+          // Arctic: sparse conifer forest (dark green-gray)
+          let arcticForest = mix(vec3f(0.32, 0.38, 0.30), vec3f(0.28, 0.34, 0.26), t);
+          // Temperate: mixed/deciduous forest (medium green)
+          let temperateForest = mix(vec3f(0.28, 0.45, 0.25), vec3f(0.24, 0.40, 0.22), t);
+          // Tropical: rainforest (very dark green)
+          let tropicalForest = mix(vec3f(0.15, 0.40, 0.18), vec3f(0.12, 0.32, 0.15), t);
+          // Desert: rocky scrubland (brown-tan)
+          let desertHills = mix(vec3f(0.58, 0.50, 0.35), vec3f(0.52, 0.45, 0.30), t);
+          
+          if (biome < 0.25) {
+            color = mix(arcticForest, temperateForest, biome / 0.25);
+          } else if (biome < 0.5) {
+            color = mix(temperateForest, tropicalForest, (biome - 0.25) / 0.25);
+          } else if (biome < 0.75) {
+            color = mix(tropicalForest, desertHills, (biome - 0.5) / 0.25);
+          } else {
+            color = mix(desertHills, arcticForest, (biome - 0.75) / 0.25);
+          }
+        } else if (combined < 0.78) {
+          // Mountains/rock (~24% of land, ~7% of Earth)
+          // Mountain height varies by region
+          let mountainBase = 0.72;
+          let mountainTop = 0.78 + mountainHeightMod * 0.12; // Taller in some regions
+          var t = (combined - mountainBase) / (mountainTop - mountainBase);
+          t = clamp(t, 0.0, 1.0);
+          
+          // Earth type determines rock color
+          var mountainColor: vec3f;
+          if (earthType < 0.33) {
+            // Volcanic/dark rock (black-gray)
+            mountainColor = mix(vec3f(0.25, 0.23, 0.22), vec3f(0.40, 0.38, 0.36), t);
+          } else if (earthType < 0.66) {
+            // Normal gray rock (Himalayas/Rockies style)
+            mountainColor = mix(vec3f(0.42, 0.40, 0.38), vec3f(0.55, 0.52, 0.48), t);
+          } else {
+            // Sandy/sedimentary rock (Andes/desert mountains)
+            mountainColor = mix(vec3f(0.58, 0.50, 0.38), vec3f(0.68, 0.58, 0.45), t);
+          }
+          
+          // Biome affects mountain color slightly
+          if (biome < 0.3) {
+            // Arctic mountains - add slight blue tint
+            mountainColor = mix(mountainColor, vec3f(0.45, 0.47, 0.50), 0.2);
+          } else if (biome > 0.7) {
+            // Desert mountains - add slight red-brown tint
+            mountainColor = mix(mountainColor, vec3f(0.60, 0.48, 0.35), 0.15);
+          }
+          
+          color = mountainColor;
         } else {
-          // Snow peaks
-          color = mix(vec3f(0.85, 0.85, 0.85), vec3f(1.0, 1.0, 1.0), (combined - 0.85) / 0.15);
+          // Snow/ice peaks (~10% of land, Antarctic/Greenland equivalent)
+          let t = (combined - 0.78) / 0.22;
+          // Pure white snow from space
+          color = mix(vec3f(0.88, 0.90, 0.92), vec3f(0.95, 0.97, 0.98), t);
         }
         
         return vec4<f32>(color, 1.0);

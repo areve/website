@@ -95,7 +95,7 @@
             <router-link to="/noise2" @click="toggle()">Noise2</router-link>
           </li>
           <li>
-            <router-link to="/OpenSimplex" @click="toggle()">Open Simplex</router-link>
+            <router-link to="/Procedural" @click="toggle()">Procedural</router-link>
           </li>
         </ul>
       </nav>

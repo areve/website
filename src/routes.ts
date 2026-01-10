@@ -22,7 +22,7 @@ const Curves = () => import("./components/Curves/Curves.vue");
 const World2 = () => import("./components/World2/World2.vue");
 const WebGL = () => import("./components/WebGL/WebGL.vue");
 const Noise2 = () => import("./components/Noise2/Noise2.vue");
-const OpenSimplex = () => import("./components/OpenSimplex/OpenSimplex.vue");
+const Procedural = () => import("./components/Procedural/Procedural.vue");
 
 export const routes = [
   { path: "/", component: Home },
@@ -53,5 +53,5 @@ export const routes = [
   { path: "/World2", component: World2 },
   { path: "/WebGL", component: WebGL },
   { path: "/Noise2", component: Noise2 },
-  { path: "/OpenSimplex", component: OpenSimplex },
+  { path: "/Procedural", component: Procedural },
 ];

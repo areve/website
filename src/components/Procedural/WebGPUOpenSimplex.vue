@@ -1,8 +1,5 @@
 <template>
-  <canvas
-    ref="canvas"
-    class="canvas"
-  ></canvas>
+  <canvas ref="canvas" class="canvas"></canvas>
   <div class="controls-overlay">
     <div class="stats">
       {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
@@ -10,13 +7,17 @@
       {{ controller.zoom.toFixed(2) }}zoom
       <span v-if="controller.paused">paused</span>
     </div>
-    <label class="mode-select">
-      Mode:
-      <select @change="initializeCanvas" v-model="shaderMode">
-        <option value="simplex">OpenSimplex</option>
-        <option value="trigonometry">OpenSimplex + Trigonometry</option>
-      </select>
-    </label>
+    <div>
+      <label class="mode-select">
+        Mode:
+        <select @change="initializeCanvas" v-model="shaderMode">
+          <option value="simplex">OpenSimplex</option>
+          <option value="trigonometry">OpenSimplex + Trigonometry</option>
+          <option value="mandelbrot">Mandelbrot</option>
+        </select>
+      </label>
+      <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
+    </div>
   </div>
 </template>
 
@@ -25,6 +26,7 @@ import { onMounted, onUnmounted, ref } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
+import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
@@ -47,9 +49,8 @@ const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);
   const next = availableModes[(idx + 1) % availableModes.length];
   shaderMode.value = next;
-  await initializeCanvas()
+  await initializeCanvas();
 };
-
 
 const handleToggleFullscreen = () => {
   const canvasElement = canvas.value;
@@ -68,12 +69,20 @@ const initializeCanvas = async () => {
   const newWidth = isFs ? window.innerWidth : width;
   const newHeight = isFs ? window.innerHeight : height;
 
-  renderer = await setupOpenSimplexRenderer(canvas.value, {
-    width: newWidth,
-    height: newHeight,
-    seed,
-    shaderMode: shaderMode.value,
-  });
+  if (shaderMode.value === "mandelbrot") {
+    renderer = await setupMandelbrotRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+  } else {
+    renderer = await setupOpenSimplexRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+      shaderMode: shaderMode.value,
+    });
+  }
   await renderer.init();
 };
 

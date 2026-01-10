@@ -150,26 +150,27 @@ export async function setupWorleyRenderer(
         let n = worley(x, y);
         
         // Color based on Worley noise value (matching Noise.vue: hsv2rgb([c, 1 - n ** 0.5, n]))
-        let c = fract(data.z / 1000.0);
+        // Speed up by 10x: change from 1000s to 100s cycle
+        let c = fract(data.z / 10.0);
         let h = c;
         let s = 1.0 - pow(n, 0.5);
         let v = n;
         
-        // HSV to RGB conversion
-        let h6 = h * 6.0;
-        let c_val = v * s;
-        let x_val = c_val * (1.0 - abs(fract(h6) * 2.0 - 1.0));
-        let m = v - c_val;
+        // HSV to RGB conversion (matching hsv2rgb function)
+        let hue = (((h * 360.0) % 360.0) + 360.0) % 360.0;
+        let sector = floor(hue / 60.0);
+        let sectorFloat = hue / 60.0 - sector;
+        let x_val = v * (1.0 - s);
+        let y_val = v * (1.0 - s * sectorFloat);
+        let z_val = v * (1.0 - s * (1.0 - sectorFloat));
+        let rgb_array = array<f32, 10>(x_val, x_val, z_val, v, v, y_val, x_val, x_val, z_val, v);
         
-        var rgb: vec3<f32>;
-        if (h6 < 1.0) { rgb = vec3<f32>(c_val, x_val, 0.0); }
-        else if (h6 < 2.0) { rgb = vec3<f32>(x_val, c_val, 0.0); }
-        else if (h6 < 3.0) { rgb = vec3<f32>(0.0, c_val, x_val); }
-        else if (h6 < 4.0) { rgb = vec3<f32>(0.0, x_val, c_val); }
-        else if (h6 < 5.0) { rgb = vec3<f32>(x_val, 0.0, c_val); }
-        else { rgb = vec3<f32>(c_val, 0.0, x_val); }
+        let sector_u = u32(sector);
+        let r = rgb_array[sector_u + 4u];
+        let g = rgb_array[sector_u + 2u];
+        let b = rgb_array[sector_u];
         
-        return vec4<f32>(rgb + m, 1.0);
+        return vec4<f32>(r, g, b, 1.0);
       }`,
   });
 

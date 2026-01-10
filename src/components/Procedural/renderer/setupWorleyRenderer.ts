@@ -1,4 +1,4 @@
-export async function setupRippleRenderer(
+export async function setupWorleyRenderer(
   canvas: HTMLCanvasElement,
   options: {
     width: number;
@@ -45,7 +45,7 @@ export async function setupRippleRenderer(
   });
 
   const module = device.createShaderModule({
-    label: "opensimplex shader",
+    label: "worley shader",
     code: /* wgsl */ `
     
       struct Uniforms {
@@ -62,6 +62,7 @@ export async function setupRippleRenderer(
       @group(0) @binding(0) var<uniform> data: Uniforms;
       
       fn noise(coord: vec4<f32>) -> f32 {
+        // Match the noise function pattern from worley.ts
         let n: u32 = bitcast<u32>(data.seed) +
           bitcast<u32>(coord.x * 374761393.0) +
           bitcast<u32>(coord.y * 668265263.0) +
@@ -70,57 +71,57 @@ export async function setupRippleRenderer(
         let m: u32 = (n ^ (n >> 13)) * 1274126177;
         return f32(m) / f32(0xffffffff);
       }
-      
-      const skew3d: f32 = 1.0 / 3.0;
-      const unskew3d: f32 = 1.0 / 6.0;
-      const rSquared3d: f32 = 3.0 / 4.0;
 
-      fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
-        let sx: f32 = x;
-        let sy: f32 = y;
-        let sz: f32 = z;
-        let skew: f32 = (sx + sy + sz) * skew3d;
-        let ix: i32 = i32(floor(sx + skew));
-        let iy: i32 = i32(floor(sy + skew));
-        let iz: i32 = i32(floor(sz + skew));
-        let fx: f32 = sx + skew - f32(ix);
-        let fy: f32 = sy + skew - f32(iy);
-        let fz: f32 = sz + skew - f32(iz);
-
-        return 0.5 + 
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1) ;
+      fn euclidean(dx: f32, dy: f32, dz: f32) -> f32 {
+        return dx * dx + dy * dy + dz * dz;
       }
 
-      fn vertexContribution(
-        ix: i32, iy: i32, iz: i32,
-        fx: f32, fy: f32, fz: f32,
-        cx: i32, cy: i32, cz: i32
-      ) -> f32 {
-        let dx: f32 = fx - f32(cx);
-        let dy: f32 = fy - f32(cy);
-        let dz: f32 = fz - f32(cz);
-        let skewedOffset: f32 = (dx + dy + dz) * unskew3d;
-        let dxs: f32 = dx - skewedOffset;
-        let dys: f32 = dy - skewedOffset;
-        let dzs: f32 = dz - skewedOffset;
+      fn worley(x: f32, y: f32) -> f32 {
+        let scale = data.scale;
+        let density = 1.0;
+        let dimensions = 3.0;
+        
+        let ix = x / scale;
+        let iy = y / scale;
+        let zzx = floor(ix);
+        let zzy = floor(iy);
+        let fx = ix - zzx;
+        let fy = iy - zzy;
 
-        let a: f32 = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
-        if (a < 0.0) {
-          return 0.0;
+        var minDist = 999999.0;
+
+        // Check 4 cell corners: (0,0), (1,0), (0,1), (1,1)
+        for (var cy: i32 = 0; cy <= 1; cy++) {
+          for (var cx: i32 = 0; cx <= 1; cx++) {
+            // Generate points for this cell corner
+            for (var i: i32 = 0; i < i32(density); i++) {
+              // Match worley.ts: noise(ix + cx, iy + cy, i) * 0xffffff
+              let n = noise(vec4f(zzx + f32(cx), zzy + f32(cy), f32(i), 0.0));
+              // Convert to integer range [0, 16777215] (0xffffff)
+              let h_val = n * 16777215.0;
+              let h = u32(floor(h_val));
+              
+              // Extract bits: (h & 0xff) / 0xff - 0.5
+              let px = f32(cx) + (f32(h & 0xffu) / 255.0 - 0.5);
+              let py = f32(cy) + (f32((h >> 8u) & 0xffu) / 255.0 - 0.5);
+              var pz: f32;
+              if (dimensions == 3.0) {
+                pz = (f32((h >> 16u) & 0xffu) / 255.0 - 0.5);
+              } else {
+                pz = 0.0;
+              }
+              
+              let dx = fx - px;
+              let dy = fy - py;
+              let dz = pz;
+              
+              let dist = euclidean(dx, dy, dz);
+              minDist = min(minDist, dist);
+            }
+          }
         }
 
-        let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
-        let u: i32 = (h & 0xf) - 8;
-        let v: i32 = ((h >> 4) & 0xf) - 8;
-        let w: i32 = ((h >> 8) & 0xf) - 8;
-        return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
+        return sqrt(minDist);
       }
 
       @vertex fn vs(
@@ -141,36 +142,39 @@ export async function setupRippleRenderer(
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         let normalizedX = coord.x / data.scale * data.zoom + data.x / data.scale;
         let normalizedY = coord.y / data.scale * data.zoom + data.y / data.scale;
-        // OpenSimplex + Trigonometry with HSV coloring
-        let scale = 1.0;
-        let x1 = (normalizedX / 500.0) * 3.14159265 * 2.0 * 8.0 * scale;
-        let y1 = (normalizedY / 5.0) * scale;
-        let z1 = data.z;
-        let n = openSimplex3d(x1, y1, z1) * 2.0;
-        let y2 = sin(x1 + n) * 20.0 + n * 100.0 + (50.0 * x1) / 17.0;
-        let result = abs(cos((y2 - y1) / 10.0));
+        
+        // Add time-based offset for animation
+        let x = normalizedX + data.z * 0.1;
+        let y = normalizedY + data.z * 0.15;
+        
+        let n = worley(x, y);
+        
+        // Color based on Worley noise value (matching Noise.vue: hsv2rgb([c, 1 - n ** 0.5, n]))
+        let c = fract(data.z / 1000.0);
+        let h = c;
+        let s = 1.0 - pow(n, 0.5);
+        let v = n;
         
         // HSV to RGB conversion
-        let h = fract(result + 0.9) * 6.0;
-        let s = result * result;
-        let v = 1.0 - result * 0.9;
-        let c = v * s;
-        let x = c * (1.0 - abs(fract(h * 0.5) * 2.0 - 1.0));
-        let m = v - c;
+        let h6 = h * 6.0;
+        let c_val = v * s;
+        let x_val = c_val * (1.0 - abs(fract(h6) * 2.0 - 1.0));
+        let m = v - c_val;
+        
         var rgb: vec3<f32>;
-        if (h < 1.0) { rgb = vec3<f32>(c, x, 0.0); }
-        else if (h < 2.0) { rgb = vec3<f32>(x, c, 0.0); }
-        else if (h < 3.0) { rgb = vec3<f32>(0.0, c, x); }
-        else if (h < 4.0) { rgb = vec3<f32>(0.0, x, c); }
-        else if (h < 5.0) { rgb = vec3<f32>(x, 0.0, c); }
-        else { rgb = vec3<f32>(c, 0.0, x); }
+        if (h6 < 1.0) { rgb = vec3<f32>(c_val, x_val, 0.0); }
+        else if (h6 < 2.0) { rgb = vec3<f32>(x_val, c_val, 0.0); }
+        else if (h6 < 3.0) { rgb = vec3<f32>(0.0, c_val, x_val); }
+        else if (h6 < 4.0) { rgb = vec3<f32>(0.0, x_val, c_val); }
+        else if (h6 < 5.0) { rgb = vec3<f32>(x_val, 0.0, c_val); }
+        else { rgb = vec3<f32>(c_val, 0.0, x_val); }
         
         return vec4<f32>(rgb + m, 1.0);
       }`,
   });
 
   const pipeline = device.createRenderPipeline({
-    label: "our hardcoded red line pipeline",
+    label: "worley pipeline",
     layout: "auto",
     vertex: {
       module,
@@ -199,7 +203,7 @@ export async function setupRippleRenderer(
   };
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
-    label: "our basic canvas renderPass",
+    label: "worley renderPass",
     colorAttachments: [colorAttachment],
   };
 
@@ -216,7 +220,7 @@ export async function setupRippleRenderer(
       sharedData.z = time * 0.001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
-      const encoder = device.createCommandEncoder({ label: "our encoder" });
+      const encoder = device.createCommandEncoder({ label: "worley encoder" });
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bindGroup);

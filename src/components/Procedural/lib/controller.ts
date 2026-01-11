@@ -83,8 +83,21 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       startDistance: 0,
       currentPinchDistance: 0,
       isPinching: false,
+      hasMovedSinceStart: false,
+      framesSinceFirstMove: 0,
       initialAngle: 0,
       currentAngle: 0,
+      // Finger positions in screen space
+      finger1Screen: { x: 0, y: 0 },
+      finger2Screen: { x: 0, y: 0 },
+      // World positions that fingers should track
+      finger1World: { x: 0, y: 0 },
+      finger2World: { x: 0, y: 0 },
+      // Frozen view state at touch start (for consistent coordinate transforms)
+      frozenX: 0,
+      frozenY: 0,
+      frozenZoom: 1,
+      frozenRotation: 0,
     },
   };
 
@@ -188,35 +201,85 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         states.dragging.start = states.dragging.current;
       }
 
-      if (states.pinching.isPinching) {
-        const pinchRatio =
-          states.pinching.initialDistance /
-          states.pinching.currentPinchDistance;
-        zoomBy(states.pinching.origin, pinchRatio);
-        states.pinching.initialDistance = states.pinching.currentPinchDistance;
+      // Skip first frame of movement to ensure stable baseline
+      if (states.pinching.hasMovedSinceStart) {
+        states.pinching.framesSinceFirstMove++;
+      }
+      
+      if (states.pinching.isPinching && states.pinching.framesSinceFirstMove > 0) {
+        // On first real frame, lock in the current distances as baseline
+        if (states.pinching.framesSinceFirstMove === 1) {
+          const f1s = states.pinching.finger1Screen;
+          const f2s = states.pinching.finger2Screen;
+          states.pinching.initialDistance = Math.sqrt(
+            Math.pow(f2s.x - f1s.x, 2) + Math.pow(f2s.y - f1s.y, 2)
+          );
+          states.pinching.initialAngle = Math.atan2(f2s.y - f1s.y, f2s.x - f1s.x);
+        }
         
-        // Apply rotation (negated for intuitive direction)
-        const angleDelta = states.pinching.currentAngle - states.pinching.initialAngle;
-        controller.value.rotation -= angleDelta;
-        states.pinching.initialAngle = states.pinching.currentAngle;
-
-        // Apply two-finger panning
-        const panDeltaX =
-          (states.pinching.previousOrigin.x - states.pinching.origin.x) *
-          controller.value.zoom;
-        const panDeltaY =
-          (states.pinching.previousOrigin.y - states.pinching.origin.y) *
-          controller.value.zoom;
-
-        // Rotate pan delta by current rotation
-        const cos_r = Math.cos(controller.value.rotation);
-        const sin_r = Math.sin(controller.value.rotation);
-        const rotatedPanX = panDeltaX * cos_r - panDeltaY * sin_r;
-        const rotatedPanY = panDeltaX * sin_r + panDeltaY * cos_r;
-
-        controller.value.x += rotatedPanX;
-        controller.value.y += rotatedPanY;
-        states.pinching.previousOrigin = states.pinching.origin;
+        // Calculate the transform that maps the current finger screen positions
+        // back to their original world positions
+        
+        // Current finger positions in screen space
+        const f1s = states.pinching.finger1Screen;
+        const f2s = states.pinching.finger2Screen;
+        
+        // Target world positions (captured at gesture start)
+        const f1w = states.pinching.finger1World;
+        const f2w = states.pinching.finger2World;
+        
+        // Calculate new zoom from finger distance change
+        const currentDist = Math.sqrt(
+          Math.pow(f2s.x - f1s.x, 2) + Math.pow(f2s.y - f1s.y, 2)
+        );
+        const newZoom = controller.value.zoom * (states.pinching.initialDistance / currentDist);
+        
+        // Calculate new rotation from finger angle change
+        const currentAngle = Math.atan2(f2s.y - f1s.y, f2s.x - f1s.x);
+        const newRotation = controller.value.rotation - (currentAngle - states.pinching.initialAngle);
+        
+        // Now solve for x, y offset that maps f1s to f1w under the new zoom and rotation
+        // Using the shader's transformation:
+        // 1. screen -> base: baseX = screenX / scale * zoom + x / scale
+        // 2. center: centerX = (width/2) / scale * zoom + x / scale
+        // 3. relative: relX = baseX - centerX = (screenX - width/2) / scale * zoom
+        // 4. rotate: rotX = relX * cos(r) - relY * sin(r)
+        // 5. world: worldX = rotX + centerX
+        
+        const canvas = bindElement as HTMLCanvasElement;
+        const scale = 8; // Must match shader
+        const centerScreenX = canvas.width / 2;
+        const centerScreenY = canvas.height / 2;
+        
+        // Finger 1 relative to center in screen space
+        const f1RelScreenX = f1s.x - centerScreenX;
+        const f1RelScreenY = f1s.y - centerScreenY;
+        
+        // After zoom (in world units)
+        const f1RelWorldX = f1RelScreenX / scale * newZoom;
+        const f1RelWorldY = f1RelScreenY / scale * newZoom;
+        
+        // After rotation
+        const cos_r = Math.cos(newRotation);
+        const sin_r = Math.sin(newRotation);
+        const f1RotWorldX = f1RelWorldX * cos_r - f1RelWorldY * sin_r;
+        const f1RotWorldY = f1RelWorldX * sin_r + f1RelWorldY * cos_r;
+        
+        // World position should equal f1w
+        // f1w = f1RotWorld + center
+        // center = f1w - f1RotWorld
+        const newCenterX = f1w.x - f1RotWorldX;
+        const newCenterY = f1w.y - f1RotWorldY;
+        
+        // From center equation: centerX = (width/2) / scale * zoom + x / scale
+        // x = (centerX - (width/2) / scale * zoom) * scale
+        controller.value.x = (newCenterX - centerScreenX / scale * newZoom) * scale;
+        controller.value.y = (newCenterY - centerScreenY / scale * newZoom) * scale;
+        controller.value.zoom = newZoom;
+        controller.value.rotation = newRotation;
+        
+        states.pinching.initialDistance = currentDist;
+        states.pinching.initialAngle = currentAngle;
       }
 
       prevTime = now;
@@ -390,10 +453,25 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
-      states.pinching.origin = getClientCoord(touch1, touch2);
-      states.pinching.previousOrigin = states.pinching.origin;
+      
+      // Freeze view state at this moment for consistent coordinate transforms
+      states.pinching.frozenX = controller.value.x;
+      states.pinching.frozenY = controller.value.y;
+      states.pinching.frozenZoom = controller.value.zoom;
+      states.pinching.frozenRotation = controller.value.rotation;
+      
+      // Capture finger screen positions
+      states.pinching.finger1Screen = getClientCoord(touch1);
+      states.pinching.finger2Screen = getClientCoord(touch2);
+      
+      // Calculate and store world positions for these fingers
+      states.pinching.finger1World = screenToWorld(states.pinching.finger1Screen);
+      states.pinching.finger2World = screenToWorld(states.pinching.finger2Screen);
+      
       states.pinching.initialDistance = getDistance(touch1, touch2);
       states.pinching.initialAngle = getAngle(touch1, touch2);
+      states.pinching.hasMovedSinceStart = false;
+      states.pinching.isPinching = true;
       states.dragging.isDragging = false;
       event.preventDefault();
     }
@@ -406,9 +484,20 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
-      states.pinching.origin = getClientCoord(touch1, touch2);
-      states.pinching.currentPinchDistance = getDistance(touch1, touch2);
-      states.pinching.currentAngle = getAngle(touch1, touch2);
+      
+      // Update finger screen positions
+      states.pinching.finger1Screen = getClientCoord(touch1);
+      states.pinching.finger2Screen = getClientCoord(touch2);
+      
+      // On first movement, only recalibrate distance and angle to prevent snap/zoom
+      if (!states.pinching.hasMovedSinceStart) {
+        // Don't recalculate world positions - use the ones from touch start
+        // Only update the baseline distance and angle
+        states.pinching.initialDistance = getDistance(touch1, touch2);
+        states.pinching.initialAngle = getAngle(touch1, touch2);
+      }
+      
+      states.pinching.hasMovedSinceStart = true;
       states.pinching.isPinching = true;
       event.preventDefault();
     }
@@ -418,6 +507,8 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     if (event.touches.length === 0) {
       states.dragging.isDragging = false;
       states.pinching.isPinching = false;
+      states.pinching.hasMovedSinceStart = false;
+      states.pinching.framesSinceFirstMove = 0;
       event.preventDefault();
     } else if (event.touches.length === 1) {
       const [touch1] = event.touches as unknown as [Touch];
@@ -426,6 +517,43 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       states.pinching.isPinching = false;
       event.preventDefault();
     }
+  }
+  
+  function screenToWorld(screenPos: { x: number; y: number }): { x: number; y: number } {
+    // Converts screen coordinates to world coordinates using current view transform
+    // This matches the shader's transformation exactly
+    const canvas = bindElement as HTMLCanvasElement;
+    const scale = 8; // Must match shader
+    
+    // Current view state
+    const { x: offsetX, y: offsetY, zoom, rotation } = controller.value;
+    
+    const centerScreenX = canvas.width / 2;
+    const centerScreenY = canvas.height / 2;
+    
+    // Step 1: Calculate center in world coordinates
+    const centerWorldX = centerScreenX / scale * zoom + offsetX / scale;
+    const centerWorldY = centerScreenY / scale * zoom + offsetY / scale;
+    
+    // Step 2: Screen to base world coordinates
+    const baseWorldX = screenPos.x / scale * zoom + offsetX / scale;
+    const baseWorldY = screenPos.y / scale * zoom + offsetY / scale;
+    
+    // Step 3: Relative to center
+    const relX = baseWorldX - centerWorldX;
+    const relY = baseWorldY - centerWorldY;
+    
+    // Step 4: Apply rotation
+    const cos_r = Math.cos(rotation);
+    const sin_r = Math.sin(rotation);
+    const rotX = relX * cos_r - relY * sin_r;
+    const rotY = relX * sin_r + relY * cos_r;
+    
+    // Step 5: Final world position
+    const worldX = rotX + centerWorldX;
+    const worldY = rotY + centerWorldY;
+    
+    return { x: worldX, y: worldY };
   }
 };
 

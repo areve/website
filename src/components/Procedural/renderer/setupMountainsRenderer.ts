@@ -174,7 +174,7 @@ export async function setupMountainsRenderer(
         
         // Combine into elevation - layer1 is primary separator
         let oceanMask = layer1; // -0.5 to 0.5 range, determines if ocean or land
-        let baseHeight = layer3 * 0.25 + layer6 * 0.06; // Base terrain height
+        let baseHeight = layer3 * 0.35 + layer6 * 0.08; // Increased base height for more dramatic terrain
         
         // Lakes only affect land areas (where oceanMask is positive)
         var lakeEffect = 0.0;
@@ -187,7 +187,7 @@ export async function setupMountainsRenderer(
         
         // Use simple non-linear scaling for more interesting terrain
         // Gentle power function to create some cliff/plateau variety without blobs
-        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.9);
+        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.85); // Lower exponent for more height variation
         
         // Mountain height variation - some areas have tall mountains, others low
         let mountainHeightMod = openSimplex3d(x * 0.01, y * 0.01, data.z); // Even larger scale for mountain ranges
@@ -255,9 +255,9 @@ export async function setupMountainsRenderer(
           } else {
             color = mix(desertPlain, arcticPlain, (biome - 0.75) / 0.25);
           }
-        } else if (combined < 0.72) {
+        } else if (combined < 0.68) {
           // Hills/forest (~40% of land) - realistic forest colors from space
-          let t = (combined - 0.58) / 0.14;
+          let t = (combined - 0.58) / 0.10;
           
           // Arctic: sparse conifer forest (dark green-gray)
           let arcticForest = mix(vec3f(0.32, 0.38, 0.30), vec3f(0.28, 0.34, 0.26), t);
@@ -277,11 +277,11 @@ export async function setupMountainsRenderer(
           } else {
             color = mix(desertHills, arcticForest, (biome - 0.75) / 0.25);
           }
-        } else if (combined < 0.78) {
-          // Mountains/rock (~24% of land, ~7% of Earth)
+        } else if (combined < 0.74) {
+          // Mountains/rock (~24% of land, ~7% of Earth) - lowered threshold for more mountains
           // Mountain height varies by region
-          let mountainBase = 0.72;
-          let mountainTop = 0.78 + mountainHeightMod * 0.12; // Taller in some regions
+          let mountainBase = 0.68;
+          let mountainTop = 0.74 + mountainHeightMod * 0.12; // Taller in some regions
           var t = (combined - mountainBase) / (mountainTop - mountainBase);
           t = clamp(t, 0.0, 1.0);
           
@@ -310,7 +310,7 @@ export async function setupMountainsRenderer(
           color = mountainColor;
         } else {
           // Snow/ice peaks (~10% of land, Antarctic/Greenland equivalent)
-          let t = (combined - 0.78) / 0.22;
+          let t = (combined - 0.74) / 0.26;
           // Pure white snow from space
           color = mix(vec3f(0.88, 0.90, 0.92), vec3f(0.95, 0.97, 0.98), t);
         }

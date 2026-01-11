@@ -16,6 +16,7 @@ export async function setupMountainsRenderer(
     y: 0,
     z: 0,
     zoom: 1,
+    rotation: 0,
     asBuffer() {
       return new Float32Array([
         this.width,
@@ -26,6 +27,7 @@ export async function setupMountainsRenderer(
         this.y,
         this.z,
         this.zoom,
+        this.rotation,
       ]);
     },
   };
@@ -56,7 +58,8 @@ export async function setupMountainsRenderer(
         x: f32,
         y: f32,
         z: f32,
-        zoom: f32
+        zoom: f32,
+        rotation: f32
       };
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
@@ -139,8 +142,14 @@ export async function setupMountainsRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let x = coord.x / data.scale * data.zoom + data.x / data.scale;
-        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
+        let baseX = coord.x / data.scale * data.zoom + data.x / data.scale;
+        let baseY = coord.y / data.scale * data.zoom + data.y / data.scale;
+        
+        // Apply rotation
+        let cos_r = cos(data.rotation);
+        let sin_r = sin(data.rotation);
+        let x = baseX * cos_r - baseY * sin_r;
+        let y = baseX * sin_r + baseY * cos_r;
         
         // Six layers with specific purposes
         let layer1 = openSimplex3d(x * 0.005, y * 0.005, data.z);   // Global ocean/continent distribution
@@ -488,6 +497,8 @@ export async function setupMountainsRenderer(
       data?: {
         x?: number;
         y?: number;
+        zoom?: number;
+        rotation?: number;
       }
     ) {
       Object.assign(sharedData, data);

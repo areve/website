@@ -26,6 +26,13 @@ const defaultOptions = {
       maxSpeed: 2,
       origin: "pointer" as "pointer" | "baseline",
     },
+    rotation: {
+      increaseKeys: ["."],
+      decreaseKeys: [","],
+      accel: 3,
+      decel: 3,
+      maxSpeed: 1,
+    },
   },
   basicKeys: {
     pause: {
@@ -54,6 +61,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         moveX: { increasing: false, decreasing: false, speed: 0 },
         moveY: { increasing: false, decreasing: false, speed: 0 },
         zoom: { increasing: false, decreasing: false, speed: 0 },
+        rotation: { increasing: false, decreasing: false, speed: 0 },
       },
     },
     pointer: {
@@ -140,6 +148,13 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         1 - states.keyboard.buttons.zoom.speed * diffTime
       );
 
+      states.keyboard.buttons.rotation.speed = updateSpeed(
+        opt.acceleratorKeys.rotation,
+        states.keyboard.buttons.rotation,
+        diffTime
+      );
+      controller.value.rotation += states.keyboard.buttons.rotation.speed * diffTime;
+
       if (states.dragging.isDragging) {
         const delta = {
           x:
@@ -168,6 +183,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     y: 0,
     z: 0,
     zoom: 1,
+    rotation: 0,
     paused: opt.basicKeys.pause.startPaused,
   });
   return controller;

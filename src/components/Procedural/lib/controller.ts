@@ -206,7 +206,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         states.pinching.framesSinceFirstMove++;
       }
       
-      if (states.pinching.isPinching && states.pinching.framesSinceFirstMove > 0) {
+      if (states.pinching.isPinching && states.pinching.hasMovedSinceStart && states.pinching.framesSinceFirstMove > 0) {
         // On first real frame, lock in the current distances as baseline
         if (states.pinching.framesSinceFirstMove === 1) {
           const f1s = states.pinching.finger1Screen;
@@ -471,6 +471,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       states.pinching.initialDistance = getDistance(touch1, touch2);
       states.pinching.initialAngle = getAngle(touch1, touch2);
       states.pinching.hasMovedSinceStart = false;
+      states.pinching.framesSinceFirstMove = 0;
       states.pinching.isPinching = true;
       states.dragging.isDragging = false;
       event.preventDefault();
@@ -515,6 +516,9 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       states.dragging.start = states.dragging.current = getClientCoord(touch1);
       states.dragging.isDragging = true;
       states.pinching.isPinching = false;
+      // Reset pinch movement gating so next second-finger touch starts fresh
+      states.pinching.hasMovedSinceStart = false;
+      states.pinching.framesSinceFirstMove = 0;
       event.preventDefault();
     }
   }

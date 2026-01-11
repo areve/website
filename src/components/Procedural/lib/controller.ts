@@ -78,6 +78,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     },
     pinching: {
       origin: { x: 0, y: 0 },
+      previousOrigin: { x: 0, y: 0 },
       initialDistance: 0,
       startDistance: 0,
       currentPinchDistance: 0,
@@ -198,6 +199,24 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         const angleDelta = states.pinching.currentAngle - states.pinching.initialAngle;
         controller.value.rotation -= angleDelta;
         states.pinching.initialAngle = states.pinching.currentAngle;
+
+        // Apply two-finger panning
+        const panDeltaX =
+          (states.pinching.previousOrigin.x - states.pinching.origin.x) *
+          controller.value.zoom;
+        const panDeltaY =
+          (states.pinching.previousOrigin.y - states.pinching.origin.y) *
+          controller.value.zoom;
+
+        // Rotate pan delta by current rotation
+        const cos_r = Math.cos(controller.value.rotation);
+        const sin_r = Math.sin(controller.value.rotation);
+        const rotatedPanX = panDeltaX * cos_r - panDeltaY * sin_r;
+        const rotatedPanY = panDeltaX * sin_r + panDeltaY * cos_r;
+
+        controller.value.x += rotatedPanX;
+        controller.value.y += rotatedPanY;
+        states.pinching.previousOrigin = states.pinching.origin;
       }
 
       prevTime = now;
@@ -371,6 +390,8 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       event.preventDefault();
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
+      states.pinching.origin = getClientCoord(touch1, touch2);
+      states.pinching.previousOrigin = states.pinching.origin;
       states.pinching.initialDistance = getDistance(touch1, touch2);
       states.pinching.initialAngle = getAngle(touch1, touch2);
       states.dragging.isDragging = false;

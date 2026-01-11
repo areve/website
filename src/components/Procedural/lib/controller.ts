@@ -167,16 +167,21 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       controller.value.rotation += states.keyboard.buttons.rotation.speed * diffTime;
 
       if (states.dragging.isDragging) {
-        const delta = {
-          x:
-            (states.dragging.start.x - states.dragging.current.x) *
-            controller.value.zoom,
-          y:
-            (states.dragging.start.y - states.dragging.current.y) *
-            controller.value.zoom,
-        };
-        controller.value.x += delta.x;
-        controller.value.y += delta.y;
+        const deltaX =
+          (states.dragging.start.x - states.dragging.current.x) *
+          controller.value.zoom;
+        const deltaY =
+          (states.dragging.start.y - states.dragging.current.y) *
+          controller.value.zoom;
+        
+        // Rotate drag delta by current rotation
+        const cos_r = Math.cos(controller.value.rotation);
+        const sin_r = Math.sin(controller.value.rotation);
+        const rotatedDeltaX = deltaX * cos_r - deltaY * sin_r;
+        const rotatedDeltaY = deltaX * sin_r + deltaY * cos_r;
+        
+        controller.value.x += rotatedDeltaX;
+        controller.value.y += rotatedDeltaY;
         states.dragging.start = states.dragging.current;
       }
 

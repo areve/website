@@ -142,14 +142,27 @@ export async function setupMountainsRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
+        // Calculate center of canvas in world coordinates
+        let centerX = (data.width / 2.0) / data.scale * data.zoom + data.x / data.scale;
+        let centerY = (data.height / 2.0) / data.scale * data.zoom + data.y / data.scale;
+        
+        // Convert pixel to world coordinates
         let baseX = coord.x / data.scale * data.zoom + data.x / data.scale;
         let baseY = coord.y / data.scale * data.zoom + data.y / data.scale;
         
-        // Apply rotation
+        // Translate to origin (relative to center)
+        let relX = baseX - centerX;
+        let relY = baseY - centerY;
+        
+        // Apply rotation around center
         let cos_r = cos(data.rotation);
         let sin_r = sin(data.rotation);
-        let x = baseX * cos_r - baseY * sin_r;
-        let y = baseX * sin_r + baseY * cos_r;
+        let rotX = relX * cos_r - relY * sin_r;
+        let rotY = relX * sin_r + relY * cos_r;
+        
+        // Translate back
+        let x = rotX + centerX;
+        let y = rotY + centerY;
         
         // Six layers with specific purposes
         let layer1 = openSimplex3d(x * 0.005, y * 0.005, data.z);   // Global ocean/continent distribution

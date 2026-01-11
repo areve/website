@@ -129,14 +129,25 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         states.keyboard.buttons.moveX,
         diffTime
       );
-      controller.value.x += states.keyboard.buttons.moveX.speed * diffTime;
-
+      
       states.keyboard.buttons.moveY.speed = updateSpeed(
         opt.acceleratorKeys.moveY,
         states.keyboard.buttons.moveY,
         diffTime
       );
-      controller.value.y += states.keyboard.buttons.moveY.speed * diffTime;
+      
+      // Apply movement with rotation
+      const moveX = states.keyboard.buttons.moveX.speed * diffTime;
+      const moveY = states.keyboard.buttons.moveY.speed * diffTime;
+      
+      // Rotate movement vector by current rotation
+      const cos_r = Math.cos(controller.value.rotation);
+      const sin_r = Math.sin(controller.value.rotation);
+      const rotatedMoveX = moveX * cos_r - moveY * sin_r;
+      const rotatedMoveY = moveX * sin_r + moveY * cos_r;
+      
+      controller.value.x += rotatedMoveX;
+      controller.value.y += rotatedMoveY;
 
       states.keyboard.buttons.zoom.speed = updateSpeed(
         opt.acceleratorKeys.zoom,

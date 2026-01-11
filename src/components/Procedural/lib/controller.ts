@@ -27,8 +27,8 @@ const defaultOptions = {
       origin: "pointer" as "pointer" | "baseline" | "center" | (() => "pointer" | "baseline" | "center"),
     },
     rotation: {
-      increaseKeys: ["."],
-      decreaseKeys: [","],
+      increaseKeys: [","],
+      decreaseKeys: ["."],
       accel: 3,
       decel: 3,
       maxSpeed: 1,
@@ -82,6 +82,8 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       startDistance: 0,
       currentPinchDistance: 0,
       isPinching: false,
+      initialAngle: 0,
+      currentAngle: 0,
     },
   };
 
@@ -191,6 +193,11 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
           states.pinching.currentPinchDistance;
         zoomBy(states.pinching.origin, pinchRatio);
         states.pinching.initialDistance = states.pinching.currentPinchDistance;
+        
+        // Apply rotation (negated for intuitive direction)
+        const angleDelta = states.pinching.currentAngle - states.pinching.initialAngle;
+        controller.value.rotation -= angleDelta;
+        states.pinching.initialAngle = states.pinching.currentAngle;
       }
 
       prevTime = now;
@@ -365,6 +372,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     } else if (event.touches.length === 2) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       states.pinching.initialDistance = getDistance(touch1, touch2);
+      states.pinching.initialAngle = getAngle(touch1, touch2);
       states.dragging.isDragging = false;
       event.preventDefault();
     }
@@ -379,6 +387,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       const [touch1, touch2] = event.touches as unknown as [Touch, Touch];
       states.pinching.origin = getClientCoord(touch1, touch2);
       states.pinching.currentPinchDistance = getDistance(touch1, touch2);
+      states.pinching.currentAngle = getAngle(touch1, touch2);
       states.pinching.isPinching = true;
       event.preventDefault();
     }
@@ -418,6 +427,13 @@ function getDistance(touch1: Touch, touch2: Touch): number {
   return Math.sqrt(
     Math.pow(touch2.clientX - touch1.clientX, 2) +
       Math.pow(touch2.clientY - touch1.clientY, 2)
+  );
+}
+
+function getAngle(touch1: Touch, touch2: Touch): number {
+  return Math.atan2(
+    touch2.clientY - touch1.clientY,
+    touch2.clientX - touch1.clientX
   );
 }
 

@@ -24,7 +24,7 @@ const defaultOptions = {
       accel: 20,
       decel: 20,
       maxSpeed: 2,
-      origin: "pointer" as "pointer" | "baseline",
+      origin: "pointer" as "pointer" | "baseline" | "center" | (() => "pointer" | "baseline" | "center"),
     },
     rotation: {
       increaseKeys: ["."],
@@ -200,10 +200,25 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   return controller;
 
   function zoomBy(origin: { x: number; y: number }, zoomChange: number) {
-    const o =
-      opt.acceleratorKeys.zoom.origin === "pointer"
-        ? origin
-        : { x: getBaselineCenter(), y: 0 };
+    const zoomOriginOption = opt.acceleratorKeys.zoom.origin;
+    const zoomOrigin = typeof zoomOriginOption === 'function' 
+      ? zoomOriginOption() 
+      : zoomOriginOption;
+    
+    let o: { x: number; y: number };
+    if (zoomOrigin === "pointer") {
+      o = origin;
+    } else if (zoomOrigin === "center") {
+      // Center of viewport in world coordinates
+      o = { 
+        x: bindElement ? bindElement.width / 2 : 0,
+        y: bindElement ? bindElement.height / 2 : 0
+      };
+    } else {
+      // baseline
+      o = { x: getBaselineCenter(), y: 0 };
+    }
+    
     controller.value.x +=
       o.x * (controller.value.zoom - controller.value.zoom * zoomChange);
     controller.value.y +=

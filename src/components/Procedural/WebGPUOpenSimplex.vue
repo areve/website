@@ -18,6 +18,13 @@
           <option value="mountains">Mountains</option>
         </select>
       </label>
+      <label class="mode-select">
+        Zoom Centre:
+        <select v-model="zoomOrigin">
+          <option value="pointer">Mouse</option>
+          <option value="center">Center</option>
+        </select>
+      </label>
       <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
     </div>
   </div>
@@ -35,9 +42,15 @@ import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const stats = makeStats();
+const zoomOrigin = ref<"pointer" | "center">("center");
 const controller = makeController({
   basicKeys: {
     pause: { startPaused: false },
+  },
+  acceleratorKeys: {
+    zoom: {
+      origin: () => zoomOrigin.value,
+    },
   },
 });
 const width = 500;

@@ -16,6 +16,7 @@ export async function setupMandelbrotRenderer(
     y: 0,
     z: 0,
     zoom: 1,
+    rotation: 0,
     asBuffer() {
       return new Float32Array([
         this.width,
@@ -26,6 +27,7 @@ export async function setupMandelbrotRenderer(
         this.y,
         this.z,
         this.zoom,
+        this.rotation,
       ]);
     },
   };
@@ -55,7 +57,8 @@ export async function setupMandelbrotRenderer(
         x: f32,
         y: f32,
         z: f32,
-        zoom: f32
+        zoom: f32,
+        rotation: f32
       };
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
@@ -96,9 +99,24 @@ export async function setupMandelbrotRenderer(
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         let color = abs((data.z - floor(data.z)) * 2 - 1.0);
+        
+          // Calculate center in screen coordinates
+          let centerScreenX = data.width / 2.0;
+          let centerScreenY = data.height / 2.0;
+        
+          // Apply rotation around center
+          let relX = coord.x - centerScreenX;
+          let relY = coord.y - centerScreenY;
+          let cos_r = cos(data.rotation);
+          let sin_r = sin(data.rotation);
+          let rotX = relX * cos_r - relY * sin_r;
+          let rotY = relX * sin_r + relY * cos_r;
+          let rotated_x = rotX + centerScreenX;
+          let rotated_y = rotY + centerScreenY;
+        
         let n = mandelbrot(
-          coord.x / data.scale * data.zoom + data.x / data.scale, 
-          coord.y / data.scale * data.zoom + data.y / data.scale);
+          rotated_x / data.scale * data.zoom + data.x / data.scale, 
+          rotated_y / data.scale * data.zoom + data.y / data.scale);
         return vec4<f32>(pow(n, 0.1) , pow(n, 0.2), color, 1.0);
       }
     `,

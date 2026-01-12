@@ -40,15 +40,15 @@ export async function setupMountains3DRenderer(
       const posY1 = ((y + 1) / gridHeight) * 2 - 1;
 
       // Helper to add vertex
-      const addVertex = (posX: number, posY: number, triId: number) => {
-        const tiltAmount = 0.5;
-        const tiltedY = posY - (posY * tiltAmount * 0.3);
-        const perspective = 1.0 + (posY * -0.5 * tiltAmount);
+      const addVertex = (posX: number, posZ: number, triId: number) => {
+        // Simple flat floor at y=0, varying height with noise-like pattern
+        const height = 0.0; // Floor is flat (y=0)
+        const scale = 10.0; // 10x bigger
         
         vertices.push(
-          posX * perspective,
-          tiltedY,
-          posY * 0.2  // Slightly reduced z
+          posX * scale,
+          height,
+          posZ * scale
         );
         vertexTriangleIds.push(triId);
         return vertices.length / 3 - 1;
@@ -100,9 +100,33 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
+  // Create uniform buffer for rotation
+  const uniformBuffer = device.createBuffer({
+    label: "rotation uniform",
+    size: 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+
+  const bindGroupLayout = device.createBindGroupLayout({
+    entries: [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX,
+        buffer: {},
+      },
+    ],
+  });
+
+  const bindGroup = device.createBindGroup({
+    layout: bindGroupLayout,
+    entries: [{ binding: 0, resource: { buffer: uniformBuffer } }],
+  });
+
   const module = device.createShaderModule({
     label: "mountains3d shader",
     code: /* wgsl */ `
+      @group(0) @binding(0) var<uniform> rotation: f32;
+
       struct VertexOutput {
         @builtin(position) position: vec4f,
         @location(0) position_ndc: vec3f,
@@ -115,19 +139,20 @@ export async function setupMountains3DRenderer(
       ) -> VertexOutput {
         var output: VertexOutput;
         
-        // Apply 3D perspective projection
-        let z = position.z;
-        let perspective = 1.0 / (1.0 + z * 0.5);
+        var pos = position;
         
-        // Project to screen with perspective
-        let projectedX = position.x * perspective;
-        let projectedY = position.y * perspective - z * 0.3;
+        // Rotate position around Z axis (camera orbits around mesh)
+        let cos_r = cos(rotation);
+        let sin_r = sin(rotation);
+        let rotX = pos.x * cos_r - pos.z * sin_r;
+        let rotZ = pos.x * sin_r + pos.z * cos_r;
         
-        // Map z to NDC depth [0, 1] range - prevent near/far plane clipping
-        let projectedZ = clamp((z + 0.5) / 1.5, 0.01, 0.99);
+        pos.x = rotX;
+        pos.z = rotZ;
         
-        output.position = vec4f(projectedX, projectedY, projectedZ, 1.0);
-        output.position_ndc = vec3f(projectedX, projectedY, projectedZ);
+        // Direct output - top-down orthographic view
+        output.position = vec4f(pos.x * 0.05, pos.z * 0.05, 0.5, 1.0);
+        output.position_ndc = vec3f(pos.x * 0.05, pos.z * 0.05, 0.5);
         output.triangle_id = triangle_id;
         return output;
       }
@@ -149,7 +174,9 @@ export async function setupMountains3DRenderer(
 
   const pipeline = device.createRenderPipeline({
     label: "mountains3d pipeline",
-    layout: "auto",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
+    }),
     vertex: {
       module,
       buffers: [
@@ -204,12 +231,16 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
+      // Update rotation uniform
+      device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([data?.rotation ?? 0]));
+
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({
         label: "mountains3d encoder",
       });
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
+      pass.setBindGroup(0, bindGroup);
       pass.setVertexBuffer(0, vertexBuffer);
       pass.setVertexBuffer(1, triangleIdBuffer);
       pass.setIndexBuffer(indexBuffer, "uint32");

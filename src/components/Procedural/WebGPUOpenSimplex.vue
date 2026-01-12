@@ -207,17 +207,19 @@ onUnmounted(() => {
 }
 
 .compass-pointer {
-  width: 28px; /* ~2x wider as requested */
-  height: 40px;
+  width: 2.6em; 
+  height: 2.6em;
   display: block;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
   /* SVG needle embedded as a data URI so the graphic lives in CSS */
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 40'><polygon points='5,0 8,20 5,20 2,20' fill='%23ff3b30'/><polygon points='5,40 8,20 5,20 2,20' fill='%23000000'/></svg>");
+  /* Use external SVG file so Vite handles asset bundling/inlining */
+  background-image: url('./needle.svg');
   /* ensure transform origin is the center of the SVG image box */
   transform-box: fill-box;
   transform-origin: 50% 50%;
   pointer-events: none;
+  opacity: 0.8;
 }
 </style>

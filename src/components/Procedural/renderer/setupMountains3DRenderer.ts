@@ -461,7 +461,7 @@ export async function setupMountains3DRenderer(
     ) {
       // Handle WASD movement relative to person's facing direction
       let moveForward = (keyStates['w'] ? 1 : 0) + (keyStates['s'] ? -1 : 0);
-      let moveStrafe = (keyStates['d'] ? 1 : 0) + (keyStates['a'] ? -1 : 0);
+      let moveStrafe = (keyStates['a'] ? 1 : 0) + (keyStates['d'] ? -1 : 0);
       
       // Rotate movement by person's rotation
       const cos_rot = Math.cos(personRotation);

@@ -575,68 +575,42 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     }
   }
   
-  function screenToWorld(screenPos: { x: number; y: number }): { x: number; y: number } {
-    // Converts screen coordinates to world coordinates using current view transform
-    // This matches the shader's transformation exactly
+  function screenToWorld(
+    screenPos: { x: number; y: number },
+    screenWidth?: number,
+    screenHeight?: number
+  ): { x: number; y: number } {
+    // Converts screen coordinates to world coordinates using current view transform.
+    // If screenWidth/screenHeight are provided, use them (useful when calculating
+    // transforms across a resize). Otherwise use the current canvas size.
     const canvas = bindElement as HTMLCanvasElement;
     const scale = 8; // Must match shader
-    
+
     // Current view state
     const { x: offsetX, y: offsetY, zoom, rotation } = controller.value;
-    
-    const centerScreenX = canvas.width / 2;
-    const centerScreenY = canvas.height / 2;
-    
-    // Step 1: Calculate center in world coordinates
-    const centerWorldX = centerScreenX / scale * zoom + offsetX / scale;
-    const centerWorldY = centerScreenY / scale * zoom + offsetY / scale;
-    
-    // Step 2: Screen to base world coordinates
-    const baseWorldX = screenPos.x / scale * zoom + offsetX / scale;
-    const baseWorldY = screenPos.y / scale * zoom + offsetY / scale;
-    
-    // Step 3: Relative to center
-    const relX = baseWorldX - centerWorldX;
-    const relY = baseWorldY - centerWorldY;
-    
-    // Step 4: Apply rotation
-    const cos_r = Math.cos(rotation);
-    const sin_r = Math.sin(rotation);
-    const rotX = relX * cos_r - relY * sin_r;
-    const rotY = relX * sin_r + relY * cos_r;
-    
-    // Step 5: Final world position
-    const worldX = rotX + centerWorldX;
-    const worldY = rotY + centerWorldY;
-    
-    return { x: worldX, y: worldY };
-  }
 
-  function screenToWorldAtSize(
-    screenPos: { x: number; y: number },
-    screenWidth: number,
-    screenHeight: number
-  ): { x: number; y: number } {
-    const scale = 8; // Must match shader
-    const { x: offsetX, y: offsetY, zoom, rotation } = controller.value;
+    const centerScreenX = (typeof screenWidth === "number" ? screenWidth : canvas.width) / 2;
+    const centerScreenY = (typeof screenHeight === "number" ? screenHeight : canvas.height) / 2;
 
-    const centerScreenX = screenWidth / 2;
-    const centerScreenY = screenHeight / 2;
-
-    const centerWorldX = centerScreenX / scale * zoom + offsetX / scale;
-    const centerWorldY = centerScreenY / scale * zoom + offsetY / scale;
-
+    // Screen to base world coordinates
     const baseWorldX = screenPos.x / scale * zoom + offsetX / scale;
     const baseWorldY = screenPos.y / scale * zoom + offsetY / scale;
 
+    // Center in world coordinates
+    const centerWorldX = centerScreenX / scale * zoom + offsetX / scale;
+    const centerWorldY = centerScreenY / scale * zoom + offsetY / scale;
+
+    // Relative to center
     const relX = baseWorldX - centerWorldX;
     const relY = baseWorldY - centerWorldY;
 
+    // Apply rotation
     const cos_r = Math.cos(rotation);
     const sin_r = Math.sin(rotation);
     const rotX = relX * cos_r - relY * sin_r;
     const rotY = relX * sin_r + relY * cos_r;
 
+    // Final world position
     const worldX = rotX + centerWorldX;
     const worldY = rotY + centerWorldY;
 
@@ -651,7 +625,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     const prevH = states.viewport.prevCanvasHeight || (bindElement as HTMLCanvasElement).height || 0;
     if (prevW > 0 && prevH > 0) {
       const centerScreenBefore = { x: prevW / 2, y: prevH / 2 };
-      const centerWorldBefore = screenToWorldAtSize(centerScreenBefore, prevW, prevH);
+      const centerWorldBefore = screenToWorld(centerScreenBefore, prevW, prevH);
       states.viewport.targetCenterWorld = centerWorldBefore;
       states.viewport.keepCenterOnResize = true;
     }

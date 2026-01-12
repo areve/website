@@ -149,7 +149,7 @@ const height = 500;
 const seed = 12345;
 const shaderMode = ref<
   "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "mountains3d"
->("mountains");
+>("mountains3d");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;

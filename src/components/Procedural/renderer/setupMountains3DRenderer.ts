@@ -43,7 +43,7 @@ export async function setupMountains3DRenderer(
       const addVertex = (posX: number, posZ: number, triId: number) => {
         // Simple flat floor at y=0, varying height with noise-like pattern
         const height = 0.0; // Floor is flat (y=0)
-        const scale = 1.0; // Original size
+        const scale = 5.0; // 10m x 10m square (ranges from -5 to +5)
         
         vertices.push(
           posX * scale,
@@ -100,10 +100,10 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
-  // Create uniform buffer for pan (x, y) and rotation
+  // Create uniform buffer for camera: x, z, rotation (16 bytes aligned)
   const uniformBuffer = device.createBuffer({
     label: "camera uniform",
-    size: 12, // 3 floats: x, y, rotation
+    size: 16, // 4 floats: camX, camZ, rotation, padding
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -127,8 +127,9 @@ export async function setupMountains3DRenderer(
     code: /* wgsl */ `
       struct Camera {
         x: f32,
-        y: f32,
+        z: f32,
         rotation: f32,
+        padding: f32,
       }
       @group(0) @binding(0) var<uniform> camera: Camera;
 
@@ -144,43 +145,38 @@ export async function setupMountains3DRenderer(
       ) -> VertexOutput {
         var output: VertexOutput;
         
-        var pos = position;
+        // World space mesh position
+        var worldPos = position;
         
-        // Apply pan offset (scaled down for 3D view)
-        pos.x += camera.x * 0.01;
-        pos.z += camera.y * 0.01;
+        // Camera state
+        let camHeight = 2.0; // 2m above ground
+        let camX = camera.x;
+        let camZ = camera.z;
+        let camRot = camera.rotation;
         
-        // Rotate position around Z axis (camera orbits around mesh)
-        let cos_r = cos(camera.rotation);
-        let sin_r = sin(camera.rotation);
-        let rotX = pos.x * cos_r - pos.z * sin_r;
-        let rotZ = pos.x * sin_r + pos.z * cos_r;
+        // Transform to camera space
+        var viewPos = worldPos;
+        viewPos.x -= camX;
+        viewPos.y -= camHeight;
+        viewPos.z -= camZ;
         
-        pos.x = rotX;
-        pos.z = rotZ;
+        // Rotate by camera heading (around Y axis)
+        let cos_rot = cos(camRot);
+        let sin_rot = sin(camRot);
+        let rotX = viewPos.x * cos_rot + viewPos.z * sin_rot;
+        let rotZ = -viewPos.x * sin_rot + viewPos.z * cos_rot;
+        viewPos.x = rotX;
+        viewPos.z = rotZ;
         
-        // Camera position and orientation
-        let tiltAngle = 0.5236; // 30 degrees in radians
-        let cos_tilt = cos(tiltAngle);
-        let sin_tilt = sin(tiltAngle);
+        // Perspective projection with 90 degree FOV
+        var depth = viewPos.z;
+        if (depth < 0.1) { depth = 0.1; }
         
-        // Apply tilt transform to position relative to camera
-        // Tilt around X axis: rotate Y and Z
-        let tiltedY = pos.y * cos_tilt - pos.z * sin_tilt;
-        let tiltedZ = pos.y * sin_tilt + pos.z * cos_tilt;
-        
-        // Perspective: objects further back appear smaller
-        let camDistance = 5.0;
-        let depth = camDistance - tiltedZ;
-        var safedepth = depth;
-        if (safedepth < 0.1) { safedepth = 0.1; }
-        
-        let perspective = 1.0 / safedepth;
-        
-        // Project to screen
-        let screenX = pos.x * perspective * 4.0;
-        let screenY = tiltedY * perspective * 4.0;
-        let screenZ = clamp(safedepth / 10.0, 0.01, 0.99);
+        // FOV = 90 degrees means tan(45deg) = 1.0 as the focal length
+        let fov = 1.0;
+        let screenX = (viewPos.x / depth) * fov;
+        let screenY = (viewPos.y / depth) * fov;
+        let screenZ = clamp(depth / 100.0, 0.01, 0.99);
         
         output.position = vec4f(screenX, screenY, screenZ, 1.0);
         output.position_ndc = vec3f(screenX, screenY, screenZ);
@@ -262,11 +258,22 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Update camera uniform (x, y, rotation)
+      // Update camera uniform (camX, camZ, rotation, padding)
+      // WASD moves the camera: x = D/A (strafe), y = S/W (forward/back)
+      let moveX = (data?.x ?? 0) * 0.01; // Scale down movement
+      let moveY = (data?.y ?? 0) * 0.01; // Scale down movement
+      let rotation = data?.rotation ?? 0;
+      
+      // Apply rotation to movement for forward/strafe relative to camera
+      let cos_r = Math.cos(rotation);
+      let sin_r = Math.sin(rotation);
+      let camX = moveX * cos_r - moveY * sin_r;
+      let camZ = moveX * sin_r + moveY * cos_r;
+      
       device.queue.writeBuffer(
         uniformBuffer,
         0,
-        new Float32Array([data?.x ?? 0, data?.y ?? 0, data?.rotation ?? 0])
+        new Float32Array([camX, camZ, rotation, 0])
       );
 
       colorAttachment.view = context.getCurrentTexture().createView();

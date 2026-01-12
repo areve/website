@@ -43,7 +43,7 @@ export async function setupMountains3DRenderer(
       const addVertex = (posX: number, posZ: number, triId: number) => {
         // Simple flat floor at y=0, varying height with noise-like pattern
         const height = 0.0; // Floor is flat (y=0)
-        const scale = 10.0; // 10x bigger
+        const scale = 1.0; // Original size
         
         vertices.push(
           posX * scale,
@@ -151,7 +151,7 @@ export async function setupMountains3DRenderer(
         pos.z = rotZ;
         
         // Camera position and orientation
-        let tiltAngle = 0.1745; // 10 degrees in radians
+        let tiltAngle = 0.5236; // 30 degrees in radians
         let cos_tilt = cos(tiltAngle);
         let sin_tilt = sin(tiltAngle);
         
@@ -169,8 +169,8 @@ export async function setupMountains3DRenderer(
         let perspective = 1.0 / safedepth;
         
         // Project to screen
-        let screenX = pos.x * perspective * 0.3;
-        let screenY = tiltedY * perspective * 0.3;
+        let screenX = pos.x * perspective * 4.0;
+        let screenY = tiltedY * perspective * 4.0;
         let screenZ = clamp(safedepth / 10.0, 0.01, 0.99);
         
         output.position = vec4f(screenX, screenY, screenZ, 1.0);

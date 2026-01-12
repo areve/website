@@ -101,28 +101,10 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
-  // Track person's position for WASD movement
+  // Track person's position (static for now)
   let personWorldX = 0;
   let personWorldZ = 0;
   let personRotation = 0; // radians
-  const personSpeed = 0.1; // distance per frame when key is held
-  const personRotationSpeed = 0.05; // radians per frame
-  
-  // Track key states directly
-  const keyStates: { [key: string]: boolean } = {};
-  
-  function handleKeyDown(e: KeyboardEvent) {
-    keyStates[e.key.toLowerCase()] = true;
-  }
-  
-  function handleKeyUp(e: KeyboardEvent) {
-    keyStates[e.key.toLowerCase()] = false;
-  }
-  
-  if (typeof window !== 'undefined') {
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-  }
   
   // Function to generate stick figure geometry at a given position
   function generateStickFigure(posX: number, posZ: number, rotation: number = 0) {
@@ -134,7 +116,7 @@ export async function setupMountains3DRenderer(
     const sin_rot = Math.sin(rotation);
     
     // Helper to rotate a point around Y axis
-    function rotateY(x: number, z: number): [number, number] {
+    function rotateY(x: 'number', z: number): [number, number] {
       return [x * cos_rot - z * sin_rot, x * sin_rot + z * cos_rot];
     }
     
@@ -460,27 +442,6 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Handle WASD movement relative to person's facing direction
-      let moveForward = (keyStates['w'] ? -1 : 0) + (keyStates['s'] ? 1 : 0);
-      let moveStrafe = (keyStates['a'] ? -1 : 0) + (keyStates['d'] ? 1 : 0);
-      
-      // Rotate movement by person's rotation
-      const cos_rot = Math.cos(personRotation);
-      const sin_rot = Math.sin(personRotation);
-      const worldMoveX = moveStrafe * cos_rot - moveForward * sin_rot;
-      const worldMoveZ = moveStrafe * sin_rot + moveForward * cos_rot;
-      
-      personWorldX += worldMoveX * personSpeed;
-      personWorldZ += worldMoveZ * personSpeed;
-      
-      // Handle rotation with , and . keys (reversed)
-      if (keyStates[',']) {
-        personRotation -= personRotationSpeed;
-      }
-      if (keyStates['.']) {
-        personRotation += personRotationSpeed;
-      }
-      
       // Update stick figure geometry
       stickFigureGeometry = generateStickFigure(personWorldX, personWorldZ, personRotation);
       stickFigureIndexCount = stickFigureGeometry.indices.length;
@@ -490,16 +451,36 @@ export async function setupMountains3DRenderer(
       device.queue.writeBuffer(stickFigureColorBuffer, 0, new Float32Array(stickFigureGeometry.colors));
       device.queue.writeBuffer(stickFigureIndexBuffer, 0, new Uint32Array(stickFigureGeometry.indices));
       
-      // Camera from person's nose position looking forward
-      const noseHeight = 1.7 * 0.7; // Person's head at 70% of height
-      const eye: [number, number, number] = [personWorldX, noseHeight, personWorldZ];
+      // --- CAMERA LOGIC: Eye at nose TIP, target 1 unit forward in -Z direction ---
+      const bodyD = 0.3; // body depth
+      const noseD = 0.6; // nose depth
+      const noseTipLocalX = 0; // nose is centered on X
+      const noseTipLocalZ = -bodyD / 2 - noseD; // TIP of nose in local space
+      const noseHeight = 1.7 * 0.7; // person head height
+
+      // Camera uses NEGATED rotation to match first-person perspective (left/right not flipped)
+      const cam_cos = Math.cos(-personRotation);
+      const cam_sin = Math.sin(-personRotation);
       
-      // Look in the direction of person's nose
-      const lookDistance = 10; // How far ahead to look
+      // Rotate local nose position to world (same formula, but with negated rotation)
+      const noseTipWorldX = personWorldX + (noseTipLocalX * cam_cos - noseTipLocalZ * cam_sin);
+      const noseTipWorldZ = personWorldZ + (noseTipLocalX * cam_sin + noseTipLocalZ * cam_cos);
+      const eye: [number, number, number] = [noseTipWorldX, noseHeight, noseTipWorldZ];
+
+      // Forward vector: rotate [0, 0, -1] (local forward) by negated rotation
+      const localForwardX = 0;
+      const localForwardZ = -1;
+      const forward: [number, number, number] = [
+        localForwardX * cam_cos - localForwardZ * cam_sin,
+        0,
+        localForwardX * cam_sin + localForwardZ * cam_cos
+      ];
+      // Target is 1 unit forward from eye
+      const lookDistance = 1;
       const target: [number, number, number] = [
-        personWorldX - Math.sin(personRotation) * lookDistance,
-        noseHeight,
-        personWorldZ - Math.cos(personRotation) * lookDistance
+        eye[0] + forward[0] * lookDistance,
+        eye[1],
+        eye[2] + forward[2] * lookDistance
       ];
       const up: [number, number, number] = [0, 1, 0];
       

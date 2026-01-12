@@ -3,14 +3,21 @@
     <canvas ref="canvas" class="canvas"></canvas>
 
     <!-- Compass overlay: circular 50px compass with rotating SVG needle -->
-    <div class="compass" aria-hidden="true">
+    <button
+      ref="compass"
+      type="button"
+      class="compass"
+      aria-label="Reset rotation"
+      @click.stop="resetRotation"
+      @keydown.enter.prevent="resetRotation"
+    >
       <div
         class="compass-pointer"
         :style="{ transform: compassRotation }"
         role="img"
         aria-hidden="true"
       ></div>
-    </div>
+    </button>
 
     <div class="controls-overlay">
       <div class="stats">
@@ -77,6 +84,45 @@ const compassRotation = computed(() => {
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
 });
+
+let _rotationAnim: number | null = null;
+
+function normalizeAngle(a: number) {
+  while (a <= -Math.PI) a += Math.PI * 2;
+  while (a > Math.PI) a -= Math.PI * 2;
+  return a;
+}
+
+function resetRotation() {
+  // Smoothly animate rotation back to 0 using requestAnimationFrame
+  // Cancel any existing animation first.
+  if (_rotationAnim) {
+    cancelAnimationFrame(_rotationAnim);
+    _rotationAnim = null;
+  }
+
+  const start = controller.value.rotation ?? 0;
+  // shortest delta to zero
+  const delta = normalizeAngle(0 - start);
+  const duration = 220; // ms
+  const t0 = performance.now();
+
+  function step(now: number) {
+    const elapsed = now - t0;
+    const t = Math.min(1, elapsed / duration);
+    // easeOutCubic
+    const eased = 1 - Math.pow(1 - t, 3);
+    controller.value.rotation = start + delta * eased;
+    if (t < 1) {
+      _rotationAnim = requestAnimationFrame(step);
+    } else {
+      controller.value.rotation = 0;
+      _rotationAnim = null;
+    }
+  }
+
+  _rotationAnim = requestAnimationFrame(step);
+}
 const width = 500;
 const height = 500;
 const seed = 12345;
@@ -179,6 +225,10 @@ onUnmounted(() => {
   document.removeEventListener("toggleFullscreen", handleToggleFullscreen);
   document.removeEventListener("fullscreenchange", initializeCanvas);
   cancelAnimationFrame(frameId);
+  if (_rotationAnim) {
+    cancelAnimationFrame(_rotationAnim);
+    _rotationAnim = null;
+  }
   controller.value.unmount();
 });
 </script>
@@ -212,8 +262,6 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 30;
-  box-shadow: 0 0 1em rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .compass-pointer {

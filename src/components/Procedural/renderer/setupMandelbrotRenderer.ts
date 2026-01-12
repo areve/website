@@ -63,9 +63,14 @@ export async function setupMandelbrotRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
+      // x and y are passed as coordinates relative to the view center (rotX/rotY)
+      // Map these relative world coordinates into the complex plane using a
+      // smaller world-to-complex factor so the initial view matches Mountains
+      // more closely. The offsets center the fractal appropriately.
       fn mandelbrot(x: f32, y: f32) -> f32 {
-        let r0: f32 = x / data.width * 20 - 2.0;
-        let i0: f32 = y / data.width * 20 - 1.2;
+        let worldToComplex: f32 = 0.0025; // tuned smaller to reduce apparent zoom
+        let r0: f32 = x * worldToComplex - 0.7;
+        let i0: f32 = y * worldToComplex - 0.35;
         let maxIterations: i32 = 500;
 
         var r: f32 = 0.0;
@@ -100,23 +105,33 @@ export async function setupMandelbrotRenderer(
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         let color = abs((data.z - floor(data.z)) * 2 - 1.0);
         
-          // Calculate center in screen coordinates
+          // Calculate center and base world coords (match Mountains transform)
           let centerScreenX = data.width / 2.0;
           let centerScreenY = data.height / 2.0;
-        
-          // Apply rotation around center
-          let relX = coord.x - centerScreenX;
-          let relY = coord.y - centerScreenY;
+          let scale = data.scale;
+          // Screen -> base world coordinates (apply scale and zoom, plus offsets)
+          let baseX = coord.x / scale * data.zoom + data.x / scale;
+          let baseY = coord.y / scale * data.zoom + data.y / scale;
+          let centerWorldX = centerScreenX / scale * data.zoom + data.x / scale;
+          let centerWorldY = centerScreenY / scale * data.zoom + data.y / scale;
+
+          // Relative to center in world units
+          let relX = baseX - centerWorldX;
+          let relY = baseY - centerWorldY;
+
+          // Apply rotation in world space
           let cos_r = cos(data.rotation);
           let sin_r = sin(data.rotation);
           let rotX = relX * cos_r - relY * sin_r;
           let rotY = relX * sin_r + relY * cos_r;
-          let rotated_x = rotX + centerScreenX;
-          let rotated_y = rotY + centerScreenY;
-        
-        let n = mandelbrot(
-          rotated_x / data.scale * data.zoom + data.x / data.scale, 
-          rotated_y / data.scale * data.zoom + data.y / data.scale);
+
+          // Reconstruct world coordinates after rotation so panning/offsets apply
+          // (rotX/rotY are relative to center; adding centerWorld restores absolute)
+          let worldX = rotX + centerWorldX;
+          let worldY = rotY + centerWorldY;
+
+          // Call mandelbrot with absolute world coords so controller panning works
+          let n = mandelbrot(worldX, worldY);
         return vec4<f32>(pow(n, 0.1) , pow(n, 0.2), color, 1.0);
       }
     `,

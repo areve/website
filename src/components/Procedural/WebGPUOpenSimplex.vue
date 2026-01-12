@@ -13,32 +13,34 @@
     </div>
 
     <div class="controls-overlay">
-    <div class="stats">
-      {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
-      {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
-      {{ controller.zoom.toFixed(2) }}zoom
-      <span v-if="controller.paused">paused</span>
-    </div>
-    <div>
-      <label class="mode-select">
-        Mode:
-        <select @change="initializeCanvas" v-model="shaderMode">
-          <option value="simplex">OpenSimplex</option>
-          <option value="ripple">Ripple</option>
-          <option value="mandelbrot">Mandelbrot</option>
-          <option value="worley">Worley</option>
-          <option value="mountains">Mountains</option>
-        </select>
-      </label>
-      <label class="mode-select">
-        Zoom Centre:
-        <select v-model="zoomOrigin">
-          <option value="pointer">Mouse</option>
-          <option value="center">Center</option>
-        </select>
-      </label>
-      <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
-    </div>
+      <div class="stats">
+        {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
+        {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
+        {{ controller.zoom.toFixed(2) }}zoom
+        <span v-if="controller.paused">paused</span>
+      </div>
+      <div>
+        <label class="mode-select">
+          Mode:
+          <select @change="initializeCanvas" v-model="shaderMode">
+            <option value="simplex">OpenSimplex</option>
+            <option value="ripple">Ripple</option>
+            <option value="mandelbrot">Mandelbrot</option>
+            <option value="worley">Worley</option>
+            <option value="mountains">Mountains</option>
+          </select>
+        </label>
+        <label class="mode-select">
+          Zoom Centre:
+          <select v-model="zoomOrigin">
+            <option value="pointer">Mouse</option>
+            <option value="center">Center</option>
+          </select>
+        </label>
+        <button @click="handleToggleFullscreen" type="button">
+          Fullscreen
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -78,12 +80,20 @@ const compassRotation = computed(() => {
 const width = 500;
 const height = 500;
 const seed = 12345;
-const shaderMode = ref<"simplex" | "ripple" | "mandelbrot" | "worley" | "mountains">("mountains");
+const shaderMode = ref<
+  "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains"
+>("mountains");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
-const availableModes = ["simplex", "ripple", "mandelbrot", "worley", "mountains"] as const;
+const availableModes = [
+  "simplex",
+  "ripple",
+  "mandelbrot",
+  "worley",
+  "mountains",
+] as const;
 
 const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);
@@ -194,28 +204,28 @@ onUnmounted(() => {
   position: absolute;
   top: 1em;
   right: 1em;
-  width: 3em;
-  height: 3em;
+  width: 4em;
+  height: 4em;
   border-radius: 50%;
-  background: rgba(255,255,255,0.5);
+  background: rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 30;
-  box-shadow: 0 0 1em rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 0 1em rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .compass-pointer {
-  width: 2.6em; 
-  height: 2.6em;
+  width: 3em;
+  height: 3em;
   display: block;
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
   /* SVG needle embedded as a data URI so the graphic lives in CSS */
   /* Use external SVG file so Vite handles asset bundling/inlining */
-  background-image: url('./needle.svg');
+  background-image: url("./needle.svg");
   /* ensure transform origin is the center of the SVG image box */
   transform-box: fill-box;
   transform-origin: 50% 50%;

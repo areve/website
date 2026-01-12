@@ -7,8 +7,8 @@ export async function setupMountains3DRenderer(
     scale?: number;
   }
 ) {
-  const gridWidth = 50;
-  const gridHeight = 50;
+  const gridWidth = 4;
+  const gridHeight = 4;
 
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
@@ -26,38 +26,52 @@ export async function setupMountains3DRenderer(
 
   // Generate grid vertices with perspective tilt
   const vertices: number[] = [];
-  for (let y = 0; y <= gridHeight; y++) {
-    for (let x = 0; x <= gridWidth; x++) {
-      const posX = (x / gridWidth) * 2 - 1;  // x: -1 to 1
-      const posY = (y / gridHeight) * 2 - 1; // y: -1 to 1
-      
-      // Apply perspective tilt: compress top of grid towards center
-      const tiltAmount = 0.5;
-      const tiltedY = posY - (posY * tiltAmount * 0.3);
-      const perspective = 1.0 + (posY * -0.5 * tiltAmount);
-      
-      vertices.push(
-        posX * perspective,  // x with perspective
-        tiltedY,             // y with tilt
-        posY * 0.3           // z: depth
-      );
-    }
-  }
-
+  const vertexTriangleIds: number[] = [];
+  
   // Generate triangle indices for wireframe grid
   const indices: number[] = [];
+  let triangleCounter = 0;
+  
   for (let y = 0; y < gridHeight; y++) {
     for (let x = 0; x < gridWidth; x++) {
-      const a = y * (gridWidth + 1) + x;
-      const b = a + 1;
-      const c = a + (gridWidth + 1);
-      const d = c + 1;
+      const posX0 = (x / gridWidth) * 2 - 1;
+      const posX1 = ((x + 1) / gridWidth) * 2 - 1;
+      const posY0 = (y / gridHeight) * 2 - 1;
+      const posY1 = ((y + 1) / gridHeight) * 2 - 1;
 
-      // Two triangles per quad
-      indices.push(a, b, c);
-      indices.push(b, d, c);
+      // Helper to add vertex
+      const addVertex = (posX: number, posY: number, triId: number) => {
+        const tiltAmount = 0.5;
+        const tiltedY = posY - (posY * tiltAmount * 0.3);
+        const perspective = 1.0 + (posY * -0.5 * tiltAmount);
+        
+        vertices.push(
+          posX * perspective,
+          tiltedY,
+          posY * 0.2  // Slightly reduced z
+        );
+        vertexTriangleIds.push(triId);
+        return vertices.length / 3 - 1;
+      };
+
+      // First triangle: top-left, top-right, bottom-left
+      const a0 = addVertex(posX0, posY0, triangleCounter);
+      const b0 = addVertex(posX1, posY0, triangleCounter);
+      const c0 = addVertex(posX0, posY1, triangleCounter);
+      indices.push(a0, b0, c0);
+      triangleCounter++;
+
+      // Second triangle: top-right, bottom-right, bottom-left
+      const b1 = addVertex(posX1, posY0, triangleCounter);
+      const d1 = addVertex(posX1, posY1, triangleCounter);
+      const c1 = addVertex(posX0, posY1, triangleCounter);
+      indices.push(b1, d1, c1);
+      triangleCounter++;
     }
   }
+
+  // Create triangle IDs from vertex assignments
+  const triangleIds: Uint32Array = new Uint32Array(vertexTriangleIds);
 
   const vertexBuffer = device.createBuffer({
     label: "grid vertex buffer",
@@ -67,6 +81,15 @@ export async function setupMountains3DRenderer(
   });
   new Float32Array(vertexBuffer.getMappedRange()).set(vertices);
   vertexBuffer.unmap();
+
+  const triangleIdBuffer = device.createBuffer({
+    label: "triangle id buffer",
+    size: triangleIds.byteLength,
+    mappedAtCreation: true,
+    usage: GPUBufferUsage.VERTEX,
+  });
+  new Uint32Array(triangleIdBuffer.getMappedRange()).set(triangleIds);
+  triangleIdBuffer.unmap();
 
   const indexBuffer = device.createBuffer({
     label: "grid index buffer",
@@ -87,8 +110,8 @@ export async function setupMountains3DRenderer(
       };
 
       @vertex fn vs(
-        @builtin(vertex_index) vertexIndex: u32,
-        @location(0) position: vec3f
+        @location(0) position: vec3f,
+        @location(1) triangle_id: u32
       ) -> VertexOutput {
         var output: VertexOutput;
         
@@ -99,11 +122,13 @@ export async function setupMountains3DRenderer(
         // Project to screen with perspective
         let projectedX = position.x * perspective;
         let projectedY = position.y * perspective - z * 0.3;
-        let projectedZ = z;
         
-        output.position = vec4f(projectedX, projectedY, projectedZ * 0.5, 1.0);
+        // Map z to NDC depth [0, 1] range - prevent near/far plane clipping
+        let projectedZ = clamp((z + 0.5) / 1.5, 0.01, 0.99);
+        
+        output.position = vec4f(projectedX, projectedY, projectedZ, 1.0);
         output.position_ndc = vec3f(projectedX, projectedY, projectedZ);
-        output.triangle_id = vertexIndex / 3u;
+        output.triangle_id = triangle_id;
         return output;
       }
 
@@ -135,6 +160,16 @@ export async function setupMountains3DRenderer(
               shaderLocation: 0,
               offset: 0,
               format: "float32x3",
+            },
+          ],
+        },
+        {
+          arrayStride: 4,
+          attributes: [
+            {
+              shaderLocation: 1,
+              offset: 0,
+              format: "uint32",
             },
           ],
         },
@@ -176,6 +211,7 @@ export async function setupMountains3DRenderer(
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setVertexBuffer(0, vertexBuffer);
+      pass.setVertexBuffer(1, triangleIdBuffer);
       pass.setIndexBuffer(indexBuffer, "uint32");
       pass.drawIndexed(indices.length);
       pass.end();

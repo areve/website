@@ -101,7 +101,31 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
-  // Static view-projection matrix (no camera movement)
+  // First-person camera state
+  let cameraX = 0;
+  let cameraZ = 0;
+  let cameraY = 1.7; // eye height
+  let cameraRotation = 0; // radians, 0 = looking toward -Z
+  const moveSpeed = 0.1;
+  const rotateSpeed = 0.05;
+
+  // Track key states
+  const keyStates: { [key: string]: boolean } = {};
+  
+  function handleKeyDown(e: KeyboardEvent) {
+    keyStates[e.key.toLowerCase()] = true;
+  }
+  
+  function handleKeyUp(e: KeyboardEvent) {
+    keyStates[e.key.toLowerCase()] = false;
+  }
+  
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+  }
+
+  // View-projection matrix buffer
   const uniformBuffer = device.createBuffer({
     label: "camera uniform",
     size: 64, // 4x4 matrix
@@ -225,9 +249,36 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Simple static camera looking at the floor
-      const eye: [number, number, number] = [0, 1.7, 2];
-      const target: [number, number, number] = [0, 0, -5];
+      // Handle rotation with , and . keys
+      if (keyStates[',']) {
+        cameraRotation -= rotateSpeed;
+      }
+      if (keyStates['.']) {
+        cameraRotation += rotateSpeed;
+      }
+
+      // Handle WASD movement relative to camera's facing direction
+      const forward = (keyStates['w'] ? 1 : 0) + (keyStates['s'] ? -1 : 0);
+      const strafe = (keyStates['a'] ? -1 : 0) + (keyStates['d'] ? 1 : 0);
+
+      // Forward direction: camera looks toward -Z when rotation=0
+      const forwardX = -Math.sin(cameraRotation);
+      const forwardZ = -Math.cos(cameraRotation);
+      // Right direction (perpendicular to forward)
+      const rightX = Math.cos(cameraRotation);
+      const rightZ = -Math.sin(cameraRotation);
+
+      cameraX += (forwardX * forward + rightX * strafe) * moveSpeed;
+      cameraZ += (forwardZ * forward + rightZ * strafe) * moveSpeed;
+
+      // Camera eye position
+      const eye: [number, number, number] = [cameraX, cameraY, cameraZ];
+      // Target is 1 unit forward from eye
+      const target: [number, number, number] = [
+        cameraX + forwardX,
+        cameraY,
+        cameraZ + forwardZ
+      ];
       const up: [number, number, number] = [0, 1, 0];
       
       const view = makeLookAtMatrix(eye, target, up);

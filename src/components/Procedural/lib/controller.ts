@@ -128,6 +128,8 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.addEventListener("touchstart", onTouchStart);
       bindElement.addEventListener("touchmove", onTouchMove);
       bindElement.addEventListener("touchend", onTouchEnd);
+      // Ensure we keep center stable when fullscreen is entered/exited via Esc or other controls
+      bindGlobalElement.addEventListener("fullscreenchange", onFullscreenChange as EventListener);
     },
     unmount() {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
@@ -143,6 +145,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindElement.removeEventListener("touchmove", onTouchMove);
       bindElement.removeEventListener("touchend", onTouchEnd);
+      bindGlobalElement.removeEventListener("fullscreenchange", onFullscreenChange as EventListener);
     },
     update() {
       const now = performance.now() / 1000;
@@ -607,6 +610,51 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     const worldY = rotY + centerWorldY;
     
     return { x: worldX, y: worldY };
+  }
+
+  function screenToWorldAtSize(
+    screenPos: { x: number; y: number },
+    screenWidth: number,
+    screenHeight: number
+  ): { x: number; y: number } {
+    const scale = 8; // Must match shader
+    const { x: offsetX, y: offsetY, zoom, rotation } = controller.value;
+
+    const centerScreenX = screenWidth / 2;
+    const centerScreenY = screenHeight / 2;
+
+    const centerWorldX = centerScreenX / scale * zoom + offsetX / scale;
+    const centerWorldY = centerScreenY / scale * zoom + offsetY / scale;
+
+    const baseWorldX = screenPos.x / scale * zoom + offsetX / scale;
+    const baseWorldY = screenPos.y / scale * zoom + offsetY / scale;
+
+    const relX = baseWorldX - centerWorldX;
+    const relY = baseWorldY - centerWorldY;
+
+    const cos_r = Math.cos(rotation);
+    const sin_r = Math.sin(rotation);
+    const rotX = relX * cos_r - relY * sin_r;
+    const rotY = relX * sin_r + relY * cos_r;
+
+    const worldX = rotX + centerWorldX;
+    const worldY = rotY + centerWorldY;
+
+    return { x: worldX, y: worldY };
+  }
+
+  function onFullscreenChange(_: Event) {
+    // When fullscreen changes (enter or exit via Esc), capture the previous canvas center
+    // using the last known canvas size (prevCanvasWidth/Height) so we can keep that
+    // world point centered after the resize.
+    const prevW = states.viewport.prevCanvasWidth || (bindElement as HTMLCanvasElement).width || 0;
+    const prevH = states.viewport.prevCanvasHeight || (bindElement as HTMLCanvasElement).height || 0;
+    if (prevW > 0 && prevH > 0) {
+      const centerScreenBefore = { x: prevW / 2, y: prevH / 2 };
+      const centerWorldBefore = screenToWorldAtSize(centerScreenBefore, prevW, prevH);
+      states.viewport.targetCenterWorld = centerWorldBefore;
+      states.viewport.keepCenterOnResize = true;
+    }
   }
 };
 

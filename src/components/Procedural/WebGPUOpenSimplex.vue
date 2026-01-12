@@ -2,9 +2,14 @@
   <div ref="container" class="canvas-container">
     <canvas ref="canvas" class="canvas"></canvas>
 
-    <!-- Compass overlay: circular 50px compass with rotating pointer -->
+    <!-- Compass overlay: circular 50px compass with rotating SVG needle -->
     <div class="compass" aria-hidden="true">
-      <div class="compass-pointer" :style="{ transform: compassRotation }"></div>
+      <div
+        class="compass-pointer"
+        :style="{ transform: compassRotation }"
+        role="img"
+        aria-hidden="true"
+      ></div>
     </div>
 
     <div class="controls-overlay">
@@ -202,11 +207,17 @@ onUnmounted(() => {
 }
 
 .compass-pointer {
-  width: 0;
-  height: 0;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 18px solid #000000;
-  transform-origin: center 60%;
+  width: 28px; /* ~2x wider as requested */
+  height: 40px;
+  display: block;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  /* SVG needle embedded as a data URI so the graphic lives in CSS */
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 40'><polygon points='5,0 8,20 5,20 2,20' fill='%23ff3b30'/><polygon points='5,40 8,20 5,20 2,20' fill='%23000000'/></svg>");
+  /* ensure transform origin is the center of the SVG image box */
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  pointer-events: none;
 }
 </style>

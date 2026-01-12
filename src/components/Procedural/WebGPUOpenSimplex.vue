@@ -249,6 +249,32 @@ onUnmounted(() => {
   height: 100%;
 }
 
+/* Controls overlay positioned as a semi-transparent bar across the bottom
+   of the canvas so it remains visible in fullscreen. */
+.controls-overlay {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 0.5rem 0.75rem;
+  background: rgba(0,0,0,0.45);
+  color: #fff;
+  border-radius: 8px;
+  z-index: 25;
+  backdrop-filter: blur(4px);
+  /* allow clicks on controls */
+  pointer-events: auto;
+}
+
+.controls-overlay .stats {
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
 /* Compass overlay styles */
 button.compass {
   position: absolute;

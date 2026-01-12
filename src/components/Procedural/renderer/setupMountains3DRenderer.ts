@@ -100,10 +100,10 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
-  // Create uniform buffer for rotation
+  // Create uniform buffer for pan (x, y) and rotation
   const uniformBuffer = device.createBuffer({
-    label: "rotation uniform",
-    size: 4,
+    label: "camera uniform",
+    size: 12, // 3 floats: x, y, rotation
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -125,7 +125,12 @@ export async function setupMountains3DRenderer(
   const module = device.createShaderModule({
     label: "mountains3d shader",
     code: /* wgsl */ `
-      @group(0) @binding(0) var<uniform> rotation: f32;
+      struct Camera {
+        x: f32,
+        y: f32,
+        rotation: f32,
+      }
+      @group(0) @binding(0) var<uniform> camera: Camera;
 
       struct VertexOutput {
         @builtin(position) position: vec4f,
@@ -141,9 +146,13 @@ export async function setupMountains3DRenderer(
         
         var pos = position;
         
+        // Apply pan offset (scaled down for 3D view)
+        pos.x += camera.x * 0.01;
+        pos.z += camera.y * 0.01;
+        
         // Rotate position around Z axis (camera orbits around mesh)
-        let cos_r = cos(rotation);
-        let sin_r = sin(rotation);
+        let cos_r = cos(camera.rotation);
+        let sin_r = sin(camera.rotation);
         let rotX = pos.x * cos_r - pos.z * sin_r;
         let rotZ = pos.x * sin_r + pos.z * cos_r;
         
@@ -253,8 +262,12 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Update rotation uniform
-      device.queue.writeBuffer(uniformBuffer, 0, new Float32Array([data?.rotation ?? 0]));
+      // Update camera uniform (x, y, rotation)
+      device.queue.writeBuffer(
+        uniformBuffer,
+        0,
+        new Float32Array([data?.x ?? 0, data?.y ?? 0, data?.rotation ?? 0])
+      );
 
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({

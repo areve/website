@@ -70,7 +70,10 @@ export async function setupMandelbrotRenderer(
       fn mandelbrot(x: f32, y: f32) -> f32 {
         let worldToComplex: f32 = 0.06; 
         let r0: f32 = x * worldToComplex - 2.5;
-        let i0: f32 = y * worldToComplex - 2.0;
+        // Adjusted vertical offset slightly so the set is better centered on load.
+        // For the current canvas/scale this maps the imaginary range to
+        // approximately [-1.875, 1.875], which centers the fractal vertically.
+        let i0: f32 = y * worldToComplex - 1.875;
         let maxIterations: i32 = 500;
 
         var r: f32 = 0.0;

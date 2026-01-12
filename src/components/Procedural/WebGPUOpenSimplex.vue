@@ -37,6 +37,7 @@
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
             <option value="mountains">Mountains</option>
+            <option value="mountains3d">Mountains3D</option>
           </select>
         </label>
         <label class="mode-select">
@@ -65,6 +66,7 @@ import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
+import { setupMountains3DRenderer } from "./renderer/setupMountains3DRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const container = ref<HTMLElement>(undefined!);
@@ -146,7 +148,7 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains"
+  "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "mountains3d"
 >("mountains");
 
 let frameId: number = 0;
@@ -158,6 +160,7 @@ const availableModes = [
   "mandelbrot",
   "worley",
   "mountains",
+  "mountains3d",
 ] as const;
 
 const handleChangeMode = async () => {
@@ -204,6 +207,12 @@ const initializeCanvas = async () => {
     });
   } else if (shaderMode.value === "mountains") {
     renderer = await setupMountainsRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+  } else if (shaderMode.value === "mountains3d") {
+    renderer = await setupMountains3DRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

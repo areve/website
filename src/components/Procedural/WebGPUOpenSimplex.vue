@@ -250,7 +250,7 @@ onUnmounted(() => {
 }
 
 /* Compass overlay styles */
-.compass {
+button.compass {
   position: absolute;
   top: 1em;
   right: 1em;
@@ -262,7 +262,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   z-index: 30;
+  box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+  cursor: pointer;
 }
+.compass:focus {
+  box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+} 
 
 .compass-pointer {
   width: 3em;

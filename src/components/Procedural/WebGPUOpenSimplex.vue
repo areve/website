@@ -187,17 +187,17 @@ onUnmounted(() => {
 /* Compass overlay styles */
 .compass {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 50px;
-  height: 50px;
+  top: 1em;
+  right: 1em;
+  width: 3em;
+  height: 3em;
   border-radius: 50%;
-  background: rgba(0,0,0,0.55);
+  background: rgba(255,255,255,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 30;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 0 1em rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.08);
 }
 
@@ -206,7 +206,7 @@ onUnmounted(() => {
   height: 0;
   border-left: 7px solid transparent;
   border-right: 7px solid transparent;
-  border-bottom: 18px solid #ffffffcc;
+  border-bottom: 18px solid #000000;
   transform-origin: center 60%;
 }
 </style>

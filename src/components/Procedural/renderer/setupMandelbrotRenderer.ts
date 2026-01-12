@@ -68,9 +68,9 @@ export async function setupMandelbrotRenderer(
       // smaller world-to-complex factor so the initial view matches Mountains
       // more closely. The offsets center the fractal appropriately.
       fn mandelbrot(x: f32, y: f32) -> f32 {
-        let worldToComplex: f32 = 0.0025; // tuned smaller to reduce apparent zoom
-        let r0: f32 = x * worldToComplex - 0.7;
-        let i0: f32 = y * worldToComplex - 0.35;
+        let worldToComplex: f32 = 0.06; 
+        let r0: f32 = x * worldToComplex - 2.5;
+        let i0: f32 = y * worldToComplex - 2.0;
         let maxIterations: i32 = 500;
 
         var r: f32 = 0.0;

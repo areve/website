@@ -99,6 +99,12 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       frozenZoom: 1,
       frozenRotation: 0,
     },
+    viewport: {
+      prevCanvasWidth: 0,
+      prevCanvasHeight: 0,
+      keepCenterOnResize: false,
+      targetCenterWorld: { x: 0, y: 0 },
+    },
   };
 
   let bindElement: HTMLElement;
@@ -113,6 +119,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindGlobalElement.addEventListener("keyup", onKeyUp);
       bindGlobalElement.addEventListener("keypress", onKeyPress);
       bindElement.addEventListener("mousedown", onMouseDown);
+      bindElement.addEventListener("dblclick", onDoubleClick);
       bindGlobalElement.addEventListener("mousemove", onMouseMove);
       bindGlobalElement.addEventListener("mouseup", onMouseUp);
       bindElement.addEventListener("mouseout", onMouseOut);
@@ -127,6 +134,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
       bindGlobalElement.removeEventListener("keypress", onKeyPress);
       bindElement.removeEventListener("mousedown", onMouseDown);
+      bindElement.removeEventListener("dblclick", onDoubleClick);
       bindGlobalElement.removeEventListener("mousemove", onMouseMove);
       bindGlobalElement.removeEventListener("mouseup", onMouseUp);
       bindElement.removeEventListener("mouseout", onMouseOut);
@@ -139,6 +147,27 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     update() {
       const now = performance.now() / 1000;
       const diffTime = now - prevTime;
+
+      // Detect canvas size change and keep center stable after fullscreen
+      const canvasForSize = bindElement as unknown as HTMLCanvasElement;
+      if (canvasForSize && typeof canvasForSize.width === 'number') {
+        const w = canvasForSize.width;
+        const h = canvasForSize.height;
+        const sizeChanged =
+          w !== states.viewport.prevCanvasWidth || h !== states.viewport.prevCanvasHeight;
+        if (states.viewport.keepCenterOnResize && sizeChanged) {
+          const scale = 8; // Must match shader
+          const centerScreenX = w / 2;
+          const centerScreenY = h / 2;
+          controller.value.x =
+            (states.viewport.targetCenterWorld.x - (centerScreenX / scale) * controller.value.zoom) * scale;
+          controller.value.y =
+            (states.viewport.targetCenterWorld.y - (centerScreenY / scale) * controller.value.zoom) * scale;
+          states.viewport.keepCenterOnResize = false;
+        }
+        states.viewport.prevCanvasWidth = w;
+        states.viewport.prevCanvasHeight = h;
+      }
 
       states.keyboard.buttons.moveX.speed = updateSpeed(
         opt.acceleratorKeys.moveX,
@@ -304,9 +333,10 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       o = origin;
     } else if (zoomOrigin === "center") {
       // Center of viewport in world coordinates
+      const canvasForSize = bindElement as unknown as HTMLCanvasElement;
       o = { 
-        x: bindElement ? bindElement.width / 2 : 0,
-        y: bindElement ? bindElement.height / 2 : 0
+        x: canvasForSize && typeof canvasForSize.width === 'number' ? canvasForSize.width / 2 : 0,
+        y: canvasForSize && typeof canvasForSize.height === 'number' ? canvasForSize.height / 2 : 0
       };
     } else {
       // baseline
@@ -369,7 +399,6 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   }
 
   function onMouseDown(event: MouseEvent) {
-    handleDoubleTap(event);
     states.dragging.start = states.dragging.current = getClientCoord(event);
     states.dragging.isDragging = true;
     event.preventDefault();
@@ -439,9 +468,29 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     const currentTime = new Date().getTime();
     const tapLength = currentTime - states.clicking.lastTapTime;
     if (tapLength < states.clicking.doubleTapThreshold && tapLength > 0) {
+      // Capture current center world before toggling fullscreen
+      const canvasForSize = bindElement as unknown as HTMLCanvasElement;
+      if (canvasForSize && typeof canvasForSize.width === 'number') {
+        const centerScreen = { x: canvasForSize.width / 2, y: canvasForSize.height / 2 };
+        const centerWorld = screenToWorld(centerScreen);
+        states.viewport.targetCenterWorld = centerWorld;
+        states.viewport.keepCenterOnResize = true;
+      }
       if (actionHandler("doubletap")) event.preventDefault();
     }
     states.clicking.lastTapTime = currentTime;
+  }
+
+  function onDoubleClick(event: MouseEvent) {
+    // Immediate double-click handler for mouse. Capture center and trigger fullscreen.
+    const canvasForSize = bindElement as unknown as HTMLCanvasElement;
+    if (canvasForSize && typeof canvasForSize.width === 'number') {
+      const centerScreen = { x: canvasForSize.width / 2, y: canvasForSize.height / 2 };
+      const centerWorld = screenToWorld(centerScreen);
+      states.viewport.targetCenterWorld = centerWorld;
+      states.viewport.keepCenterOnResize = true;
+    }
+    if (actionHandler("doubletap")) event.preventDefault();
   }
 
   function onTouchStart(event: TouchEvent) {

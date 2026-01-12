@@ -25,6 +25,7 @@
         {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
         {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
         {{ controller.zoom.toFixed(2) }}zoom
+        {{ controller.rotation.toFixed(1) }}rot
         <span v-if="controller.paused">paused</span>
       </div>
       <div>

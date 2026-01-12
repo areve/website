@@ -101,156 +101,6 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
-  // Track person's position (static for now)
-  let personWorldX = 0;
-  let personWorldZ = 0;
-  let personRotation = 0; // radians
-  
-  // Function to generate stick figure geometry at a given position
-  function generateStickFigure(posX: number, posZ: number, rotation: number = 0) {
-    const vertices: number[] = [];
-    const colors: number[] = []; // RGBA per vertex
-    const indicesArray: number[] = [];
-    
-    const cos_rot = Math.cos(rotation);
-    const sin_rot = Math.sin(rotation);
-    
-    // Helper to rotate a point around Y axis
-    function rotateY(x: 'number', z: number): [number, number] {
-      return [x * cos_rot - z * sin_rot, x * sin_rot + z * cos_rot];
-    }
-    
-    // Helper to add a cuboid with color
-    function addCuboid(
-      minX: number, minY: number, minZ: number,
-      maxX: number, maxY: number, maxZ: number,
-      frontColor: [number, number, number],
-      backColor: [number, number, number]
-    ) {
-      const startIdx = vertices.length / 3;
-      
-      // 8 vertices of the cuboid (in local space before rotation)
-      const verts = [
-        [minX, minY, minZ],
-        [maxX, minY, minZ],
-        [maxX, minY, maxZ],
-        [minX, minY, maxZ],
-        [minX, maxY, minZ],
-        [maxX, maxY, minZ],
-        [maxX, maxY, maxZ],
-        [minX, maxY, maxZ],
-      ];
-      
-      // Rotate and translate vertices
-      verts.forEach(v => {
-        const [rx, rz] = rotateY(v[0], v[2]);
-        vertices.push(posX + rx, v[1], posZ + rz);
-      });
-      
-      // Bottom face (backColor)
-      indicesArray.push(startIdx + 0, startIdx + 1, startIdx + 2, startIdx + 0, startIdx + 2, startIdx + 3);
-      colors.push(...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1);
-      
-      // Top face (backColor)
-      indicesArray.push(startIdx + 4, startIdx + 6, startIdx + 5, startIdx + 4, startIdx + 7, startIdx + 6);
-      colors.push(...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1);
-      
-      // Front face (+Z, frontColor)
-      indicesArray.push(startIdx + 0, startIdx + 4, startIdx + 5, startIdx + 0, startIdx + 5, startIdx + 1);
-      colors.push(...frontColor, 1, ...frontColor, 1, ...frontColor, 1, ...frontColor, 1, ...frontColor, 1, ...frontColor, 1);
-      
-      // Back face (-Z, backColor)
-      indicesArray.push(startIdx + 2, startIdx + 6, startIdx + 7, startIdx + 2, startIdx + 7, startIdx + 3);
-      colors.push(...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1);
-      
-      // Left face (backColor)
-      indicesArray.push(startIdx + 0, startIdx + 3, startIdx + 7, startIdx + 0, startIdx + 7, startIdx + 4);
-      colors.push(...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1);
-      
-      // Right face (backColor)
-      indicesArray.push(startIdx + 1, startIdx + 5, startIdx + 6, startIdx + 1, startIdx + 6, startIdx + 2);
-      colors.push(...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1, ...backColor, 1);
-    }
-    
-    // Body cuboid: 0.4m wide, 1.7m tall, 0.3m deep
-    const bodyW = 0.4;
-    const bodyH = 1.7;
-    const bodyD = 0.3;
-    const bodyBaseY = 0;
-    addCuboid(
-      -bodyW/2, bodyBaseY, -bodyD/2,
-      bodyW/2, bodyBaseY + bodyH, bodyD/2,
-      [0.2, 0.8, 0.2],  // Green front
-      [0.2, 0.2, 0.8]   // Blue back
-    );
-    
-    // Left arm cuboid
-    const armW = 0.1;
-    const armH = 0.1;
-    const armD = 0.4;
-    const armY = bodyBaseY + bodyH * 0.6;
-    addCuboid(
-      -bodyW/2 - armD, armY - armH/2, -armW/2,
-      -bodyW/2, armY + armH/2, armW/2,
-      [0.2, 0.8, 0.2],  // Green front
-      [0.2, 0.2, 0.8]   // Blue back
-    );
-    
-    // Right arm cuboid
-    addCuboid(
-      bodyW/2, armY - armH/2, -armW/2,
-      bodyW/2 + armD, armY + armH/2, armW/2,
-      [0.2, 0.8, 0.2],  // Green front
-      [0.2, 0.2, 0.8]   // Blue back
-    );
-    
-    // Huge nose cuboid for direction indication: 0.2m (20cm) wide, 0.2m tall, 0.6m deep
-    const noseW = 0.2;
-    const noseH = 0.2;
-    const noseD = 0.6;
-    const noseCenterY = bodyBaseY + bodyH * 0.7;
-    addCuboid(
-      -noseW/2, noseCenterY - noseH/2, -bodyD/2 - noseD,
-      noseW/2, noseCenterY + noseH/2, -bodyD/2,
-      [1.0, 0.2, 0.2],  // Red front (direction indicator)
-      [0.8, 0.0, 0.0]   // Dark red back
-    );
-    
-    return { vertices, colors, indices: indicesArray };
-  }
-
-  // Create initial stick figure
-  let stickFigureGeometry = generateStickFigure(personWorldX, personWorldZ);
-  
-  const stickFigureVertexBuffer = device.createBuffer({
-    label: "stick figure vertex buffer",
-    size: Math.max(stickFigureGeometry.vertices.length, 100) * 4, // allocate extra space
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    mappedAtCreation: true,
-  });
-  new Float32Array(stickFigureVertexBuffer.getMappedRange()).set(stickFigureGeometry.vertices);
-  stickFigureVertexBuffer.unmap();
-  
-  const stickFigureColorBuffer = device.createBuffer({
-    label: "stick figure color buffer",
-    size: Math.max(stickFigureGeometry.colors.length, 100) * 4, // allocate extra space
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    mappedAtCreation: true,
-  });
-  new Float32Array(stickFigureColorBuffer.getMappedRange()).set(stickFigureGeometry.colors);
-  stickFigureColorBuffer.unmap();
-  
-  const stickFigureIndexBuffer = device.createBuffer({
-    label: "stick figure index buffer",
-    size: Math.max(stickFigureGeometry.indices.length, 100) * 4, // allocate extra space
-    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-    mappedAtCreation: true,
-  });
-  new Uint32Array(stickFigureIndexBuffer.getMappedRange()).set(stickFigureGeometry.indices);
-  stickFigureIndexBuffer.unmap();
-  
-  let stickFigureIndexCount = stickFigureGeometry.indices.length;
-
   // Static view-projection matrix (no camera movement)
   const uniformBuffer = device.createBuffer({
     label: "camera uniform",
@@ -352,73 +202,6 @@ export async function setupMountains3DRenderer(
     },
   });
 
-  // Create shader for stick figure (with colors)
-  const stickFigureModule = device.createShaderModule({
-    label: "stick figure shader",
-    code: /* wgsl */ `
-      @group(0) @binding(0) var<uniform> viewProj: mat4x4<f32>;
-
-      struct VertexOutput {
-        @builtin(position) position: vec4f,
-        @location(0) color: vec4f,
-      };
-
-      @vertex fn vs(
-        @location(0) position: vec3f,
-        @location(1) color: vec4f
-      ) -> VertexOutput {
-        var output: VertexOutput;
-        let clip = viewProj * vec4f(position, 1.0);
-        output.position = clip;
-        output.color = color;
-        return output;
-      }
-
-      @fragment fn fs(input: VertexOutput) -> @location(0) vec4f {
-        return input.color;
-      }
-    `,
-  });
-
-  const stickFigurePipeline = device.createRenderPipeline({
-    label: "stick figure pipeline",
-    layout: device.createPipelineLayout({
-      bindGroupLayouts: [bindGroupLayout],
-    }),
-    vertex: {
-      module: stickFigureModule,
-      buffers: [
-        {
-          arrayStride: 3 * 4,
-          attributes: [
-            {
-              shaderLocation: 0,
-              offset: 0,
-              format: "float32x3",
-            },
-          ],
-        },
-        {
-          arrayStride: 4 * 4,
-          attributes: [
-            {
-              shaderLocation: 1,
-              offset: 0,
-              format: "float32x4",
-            },
-          ],
-        },
-      ],
-    },
-    fragment: {
-      module: stickFigureModule,
-      targets: [{ format: presentationFormat }],
-    },
-    primitive: {
-      topology: "triangle-list",
-    },
-  });
-
   const colorAttachment: GPURenderPassColorAttachment = {
     view: undefined! as GPUTextureView,
     clearValue: [0.1, 0.1, 0.1, 1],
@@ -442,46 +225,9 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Update stick figure geometry
-      stickFigureGeometry = generateStickFigure(personWorldX, personWorldZ, personRotation);
-      stickFigureIndexCount = stickFigureGeometry.indices.length;
-      
-      // Update buffers
-      device.queue.writeBuffer(stickFigureVertexBuffer, 0, new Float32Array(stickFigureGeometry.vertices));
-      device.queue.writeBuffer(stickFigureColorBuffer, 0, new Float32Array(stickFigureGeometry.colors));
-      device.queue.writeBuffer(stickFigureIndexBuffer, 0, new Uint32Array(stickFigureGeometry.indices));
-      
-      // --- CAMERA LOGIC: Eye at nose TIP, target 1 unit forward in -Z direction ---
-      const bodyD = 0.3; // body depth
-      const noseD = 0.6; // nose depth
-      const noseTipLocalX = 0; // nose is centered on X
-      const noseTipLocalZ = -bodyD / 2 - noseD; // TIP of nose in local space
-      const noseHeight = 1.7 * 0.7; // person head height
-
-      // Camera uses NEGATED rotation to match first-person perspective (left/right not flipped)
-      const cam_cos = Math.cos(-personRotation);
-      const cam_sin = Math.sin(-personRotation);
-      
-      // Rotate local nose position to world (same formula, but with negated rotation)
-      const noseTipWorldX = personWorldX + (noseTipLocalX * cam_cos - noseTipLocalZ * cam_sin);
-      const noseTipWorldZ = personWorldZ + (noseTipLocalX * cam_sin + noseTipLocalZ * cam_cos);
-      const eye: [number, number, number] = [noseTipWorldX, noseHeight, noseTipWorldZ];
-
-      // Forward vector: rotate [0, 0, -1] (local forward) by negated rotation
-      const localForwardX = 0;
-      const localForwardZ = -1;
-      const forward: [number, number, number] = [
-        localForwardX * cam_cos - localForwardZ * cam_sin,
-        0,
-        localForwardX * cam_sin + localForwardZ * cam_cos
-      ];
-      // Target is 1 unit forward from eye
-      const lookDistance = 1;
-      const target: [number, number, number] = [
-        eye[0] + forward[0] * lookDistance,
-        eye[1],
-        eye[2] + forward[2] * lookDistance
-      ];
+      // Simple static camera looking at the floor
+      const eye: [number, number, number] = [0, 1.7, 2];
+      const target: [number, number, number] = [0, 0, -5];
       const up: [number, number, number] = [0, 1, 0];
       
       const view = makeLookAtMatrix(eye, target, up);
@@ -504,14 +250,6 @@ export async function setupMountains3DRenderer(
       pass.setVertexBuffer(1, triangleIdBuffer);
       pass.setIndexBuffer(indexBuffer, "uint32");
       pass.drawIndexed(indices.length);
-      
-      // Draw stick figure
-      pass.setPipeline(stickFigurePipeline);
-      pass.setBindGroup(0, bindGroup);
-      pass.setVertexBuffer(0, stickFigureVertexBuffer);
-      pass.setVertexBuffer(1, stickFigureColorBuffer);
-      pass.setIndexBuffer(stickFigureIndexBuffer, "uint32");
-      pass.drawIndexed(stickFigureIndexCount);
       
       pass.end();
       const commandBuffer = encoder.finish();

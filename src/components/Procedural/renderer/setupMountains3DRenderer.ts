@@ -490,9 +490,17 @@ export async function setupMountains3DRenderer(
       device.queue.writeBuffer(stickFigureColorBuffer, 0, new Float32Array(stickFigureGeometry.colors));
       device.queue.writeBuffer(stickFigureIndexBuffer, 0, new Uint32Array(stickFigureGeometry.indices));
       
-      // Static camera view looking down at floor
-      const eye: [number, number, number] = [0, -3, 8];
-      const target: [number, number, number] = [0, 0, 0];
+      // Camera from person's nose position looking forward
+      const noseHeight = 1.7 * 0.7; // Person's head at 70% of height
+      const eye: [number, number, number] = [personWorldX, noseHeight, personWorldZ];
+      
+      // Look in the direction of person's nose
+      const lookDistance = 10; // How far ahead to look
+      const target: [number, number, number] = [
+        personWorldX - Math.sin(personRotation) * lookDistance,
+        noseHeight,
+        personWorldZ - Math.cos(personRotation) * lookDistance
+      ];
       const up: [number, number, number] = [0, 1, 0];
       
       const view = makeLookAtMatrix(eye, target, up);

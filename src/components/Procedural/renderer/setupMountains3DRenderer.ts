@@ -259,16 +259,13 @@ export async function setupMountains3DRenderer(
       }
     ) {
       // Update camera uniform (camX, camZ, rotation, padding)
-      // WASD moves the camera: x = D/A (strafe), y = S/W (forward/back)
-      let moveX = (data?.x ?? 0) * 0.01; // Scale down movement
-      let moveY = (data?.y ?? 0) * 0.01; // Scale down movement
+      let moveStrafe = (data?.x ?? 0) * 0.01; // A/D
+      let moveForward = (data?.y ?? 0) * 0.01; // W/S
       let rotation = data?.rotation ?? 0;
       
-      // Apply rotation to movement for forward/strafe relative to camera
-      let cos_r = Math.cos(rotation);
-      let sin_r = Math.sin(rotation);
-      let camX = moveX * cos_r - moveY * sin_r;
-      let camZ = moveX * sin_r + moveY * cos_r;
+      // Simple: W moves forward along world -Z axis (toward negative Z)
+      let camX = moveStrafe;
+      let camZ = -moveForward;
       
       device.queue.writeBuffer(
         uniformBuffer,

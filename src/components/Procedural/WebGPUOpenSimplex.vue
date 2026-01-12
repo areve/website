@@ -56,7 +56,7 @@ const controller = makeController({
 const width = 500;
 const height = 500;
 const seed = 12345;
-const shaderMode = ref<"simplex" | "ripple" | "mandelbrot" | "worley" | "mountains">("mandelbrot");
+const shaderMode = ref<"simplex" | "ripple" | "mandelbrot" | "worley" | "mountains">("mountains");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;

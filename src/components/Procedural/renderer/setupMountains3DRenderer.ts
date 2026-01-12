@@ -100,6 +100,132 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
+  // Track person's position for WASD movement
+  let personWorldX = 0;
+  let personWorldZ = 0;
+  const personSpeed = 0.1; // distance per frame when key is held
+  
+  // Track key states directly
+  const keyStates: { [key: string]: boolean } = {};
+  
+  function handleKeyDown(e: KeyboardEvent) {
+    keyStates[e.key.toLowerCase()] = true;
+  }
+  
+  function handleKeyUp(e: KeyboardEvent) {
+    keyStates[e.key.toLowerCase()] = false;
+  }
+  
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+  }
+  
+  // Function to generate stick figure geometry at a given position
+  function generateStickFigure(posX: number, posZ: number) {
+    const vertices: number[] = [];
+    const indicesArray: number[] = [];
+    
+    // Body cuboid: 0.4m wide, 1.7m tall, 0.3m deep
+    const bodyW = 0.4;
+    const bodyH = 1.7;
+    const bodyD = 0.3;
+    const bodyBaseY = 0;
+    const bodyCenterX = posX;
+    const bodyCenterZ = posZ;
+    const bodyCenterY = bodyBaseY + bodyH / 2;
+    
+    // Body vertices (8 corners of cuboid)
+    const bodyVertices = [
+      [bodyCenterX - bodyW/2, bodyBaseY, bodyCenterZ - bodyD/2],
+      [bodyCenterX + bodyW/2, bodyBaseY, bodyCenterZ - bodyD/2],
+      [bodyCenterX + bodyW/2, bodyBaseY, bodyCenterZ + bodyD/2],
+      [bodyCenterX - bodyW/2, bodyBaseY, bodyCenterZ + bodyD/2],
+      [bodyCenterX - bodyW/2, bodyBaseY + bodyH, bodyCenterZ - bodyD/2],
+      [bodyCenterX + bodyW/2, bodyBaseY + bodyH, bodyCenterZ - bodyD/2],
+      [bodyCenterX + bodyW/2, bodyBaseY + bodyH, bodyCenterZ + bodyD/2],
+      [bodyCenterX - bodyW/2, bodyBaseY + bodyH, bodyCenterZ + bodyD/2],
+    ];
+    
+    bodyVertices.forEach(v => vertices.push(...v));
+    
+    // Body cuboid indices (12 triangles = 36 indices for 6 faces)
+    // Bottom
+    indicesArray.push(0, 1, 2, 0, 2, 3);
+    // Top
+    indicesArray.push(4, 6, 5, 4, 7, 6);
+    // Front
+    indicesArray.push(0, 4, 5, 0, 5, 1);
+    // Back
+    indicesArray.push(2, 6, 7, 2, 7, 3);
+    // Left
+    indicesArray.push(0, 3, 7, 0, 7, 4);
+    // Right
+    indicesArray.push(1, 5, 6, 1, 6, 2);
+    
+    // Nose cuboid: 0.05m (5cm) wide, 0.1m tall, 0.15m deep, pointing forward (+Z)
+    const noseW = 0.05;
+    const noseH = 0.1;
+    const noseD = 0.15;
+    const noseCenterX = posX;
+    const noseCenterY = bodyBaseY + bodyH * 0.7; // upper part of face
+    const noseCenterZ = bodyCenterZ + bodyD/2 + noseD/2; // sticking out front
+    
+    // Nose vertices (8 corners)
+    const noseVertices = [
+      [noseCenterX - noseW/2, noseCenterY - noseH/2, noseCenterZ - noseD/2],
+      [noseCenterX + noseW/2, noseCenterY - noseH/2, noseCenterZ - noseD/2],
+      [noseCenterX + noseW/2, noseCenterY - noseH/2, noseCenterZ + noseD/2],
+      [noseCenterX - noseW/2, noseCenterY - noseH/2, noseCenterZ + noseD/2],
+      [noseCenterX - noseW/2, noseCenterY + noseH/2, noseCenterZ - noseD/2],
+      [noseCenterX + noseW/2, noseCenterY + noseH/2, noseCenterZ - noseD/2],
+      [noseCenterX + noseW/2, noseCenterY + noseH/2, noseCenterZ + noseD/2],
+      [noseCenterX - noseW/2, noseCenterY + noseH/2, noseCenterZ + noseD/2],
+    ];
+    
+    const noseStartIdx = vertices.length / 3;
+    noseVertices.forEach(v => vertices.push(...v));
+    
+    // Nose cuboid indices (same pattern as body)
+    // Bottom
+    indicesArray.push(noseStartIdx + 0, noseStartIdx + 1, noseStartIdx + 2, noseStartIdx + 0, noseStartIdx + 2, noseStartIdx + 3);
+    // Top
+    indicesArray.push(noseStartIdx + 4, noseStartIdx + 6, noseStartIdx + 5, noseStartIdx + 4, noseStartIdx + 7, noseStartIdx + 6);
+    // Front
+    indicesArray.push(noseStartIdx + 0, noseStartIdx + 4, noseStartIdx + 5, noseStartIdx + 0, noseStartIdx + 5, noseStartIdx + 1);
+    // Back
+    indicesArray.push(noseStartIdx + 2, noseStartIdx + 6, noseStartIdx + 7, noseStartIdx + 2, noseStartIdx + 7, noseStartIdx + 3);
+    // Left
+    indicesArray.push(noseStartIdx + 0, noseStartIdx + 3, noseStartIdx + 7, noseStartIdx + 0, noseStartIdx + 7, noseStartIdx + 4);
+    // Right
+    indicesArray.push(noseStartIdx + 1, noseStartIdx + 5, noseStartIdx + 6, noseStartIdx + 1, noseStartIdx + 6, noseStartIdx + 2);
+    
+    return { vertices, indices: indicesArray };
+  }
+
+  // Create initial stick figure
+  let stickFigureGeometry = generateStickFigure(personWorldX, personWorldZ);
+  
+  const stickFigureVertexBuffer = device.createBuffer({
+    label: "stick figure vertex buffer",
+    size: Math.max(stickFigureGeometry.vertices.length, 100) * 4, // allocate extra space
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    mappedAtCreation: true,
+  });
+  new Float32Array(stickFigureVertexBuffer.getMappedRange()).set(stickFigureGeometry.vertices);
+  stickFigureVertexBuffer.unmap();
+  
+  const stickFigureIndexBuffer = device.createBuffer({
+    label: "stick figure index buffer",
+    size: Math.max(stickFigureGeometry.indices.length, 100) * 4, // allocate extra space
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+    mappedAtCreation: true,
+  });
+  new Uint32Array(stickFigureIndexBuffer.getMappedRange()).set(stickFigureGeometry.indices);
+  stickFigureIndexBuffer.unmap();
+  
+  let stickFigureIndexCount = stickFigureGeometry.indices.length;
+
   // Static view-projection matrix (no camera movement)
   const uniformBuffer = device.createBuffer({
     label: "camera uniform",
@@ -201,6 +327,60 @@ export async function setupMountains3DRenderer(
     },
   });
 
+  // Create shader for stick figure (white lines)
+  const stickFigureModule = device.createShaderModule({
+    label: "stick figure shader",
+    code: /* wgsl */ `
+      @group(0) @binding(0) var<uniform> viewProj: mat4x4<f32>;
+
+      struct VertexOutput {
+        @builtin(position) position: vec4f,
+      };
+
+      @vertex fn vs(
+        @location(0) position: vec3f
+      ) -> VertexOutput {
+        var output: VertexOutput;
+        let clip = viewProj * vec4f(position, 1.0);
+        output.position = clip;
+        return output;
+      }
+
+      @fragment fn fs() -> @location(0) vec4f {
+        return vec4f(0.8, 0.2, 0.2, 1.0); // Red color for the stick man
+      }
+    `,
+  });
+
+  const stickFigurePipeline = device.createRenderPipeline({
+    label: "stick figure pipeline",
+    layout: device.createPipelineLayout({
+      bindGroupLayouts: [bindGroupLayout],
+    }),
+    vertex: {
+      module: stickFigureModule,
+      buffers: [
+        {
+          arrayStride: 3 * 4,
+          attributes: [
+            {
+              shaderLocation: 0,
+              offset: 0,
+              format: "float32x3",
+            },
+          ],
+        },
+      ],
+    },
+    fragment: {
+      module: stickFigureModule,
+      targets: [{ format: presentationFormat }],
+    },
+    primitive: {
+      topology: "triangle-list",
+    },
+  });
+
   const colorAttachment: GPURenderPassColorAttachment = {
     view: undefined! as GPUTextureView,
     clearValue: [0.1, 0.1, 0.1, 1],
@@ -224,8 +404,27 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Static camera view
-      const eye: [number, number, number] = [0, 2, 8];
+      // Handle WASD movement based on actual key states
+      const moveX = (keyStates['d'] ? 1 : 0) + (keyStates['a'] ? -1 : 0);
+      const moveZ = (keyStates['w'] ? 1 : 0) + (keyStates['s'] ? -1 : 0);
+      
+      personWorldX += moveX * personSpeed;
+      personWorldZ += moveZ * personSpeed;
+      
+      // Clamp position to plane bounds (-5 to 5)
+      personWorldX = Math.max(-4.5, Math.min(4.5, personWorldX));
+      personWorldZ = Math.max(-4.5, Math.min(4.5, personWorldZ));
+      
+      // Update stick figure geometry
+      stickFigureGeometry = generateStickFigure(personWorldX, personWorldZ);
+      stickFigureIndexCount = stickFigureGeometry.indices.length;
+      
+      // Update vertex buffer
+      device.queue.writeBuffer(stickFigureVertexBuffer, 0, new Float32Array(stickFigureGeometry.vertices));
+      device.queue.writeBuffer(stickFigureIndexBuffer, 0, new Uint32Array(stickFigureGeometry.indices));
+      
+      // Static camera view looking down at floor
+      const eye: [number, number, number] = [0, -3, 8];
       const target: [number, number, number] = [0, 0, 0];
       const up: [number, number, number] = [0, 1, 0];
       
@@ -241,12 +440,22 @@ export async function setupMountains3DRenderer(
         label: "mountains3d encoder",
       });
       const pass = encoder.beginRenderPass(renderPassDescriptor);
+      
+      // Draw floor mesh
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bindGroup);
       pass.setVertexBuffer(0, vertexBuffer);
       pass.setVertexBuffer(1, triangleIdBuffer);
       pass.setIndexBuffer(indexBuffer, "uint32");
       pass.drawIndexed(indices.length);
+      
+      // Draw stick figure
+      pass.setPipeline(stickFigurePipeline);
+      pass.setBindGroup(0, bindGroup);
+      pass.setVertexBuffer(0, stickFigureVertexBuffer);
+      pass.setIndexBuffer(stickFigureIndexBuffer, "uint32");
+      pass.drawIndexed(stickFigureIndexCount);
+      
       pass.end();
       const commandBuffer = encoder.finish();
       device.queue.submit([commandBuffer]);

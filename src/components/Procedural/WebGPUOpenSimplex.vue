@@ -130,7 +130,7 @@ function resetRotation() {
   _rotationAnim = requestAnimationFrame(step);
 }
 // Controls visibility
-const controlsVisible = ref(true);
+const controlsVisible = ref(false);
 
 function hideControls() {
   controlsVisible.value = false;

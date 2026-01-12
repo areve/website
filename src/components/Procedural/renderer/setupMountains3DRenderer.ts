@@ -7,8 +7,8 @@ export async function setupMountains3DRenderer(
     scale?: number;
   }
 ) {
-  const gridWidth = 4;
-  const gridHeight = 4;
+  const gridWidth = 50;
+  const gridHeight = 50;
 
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;

@@ -223,10 +223,7 @@ onUnmounted(() => {
   background-repeat: no-repeat;
   background-position: center;
   background-size: contain;
-  /* SVG needle embedded as a data URI so the graphic lives in CSS */
-  /* Use external SVG file so Vite handles asset bundling/inlining */
   background-image: url("./needle.svg");
-  /* ensure transform origin is the center of the SVG image box */
   transform-box: fill-box;
   transform-origin: 50% 50%;
   pointer-events: none;

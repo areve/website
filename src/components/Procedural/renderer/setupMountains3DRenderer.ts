@@ -44,11 +44,12 @@ export async function setupMountains3DRenderer(
         // Simple flat floor at y=0, varying height with noise-like pattern
         const height = 0.0; // Floor is flat (y=0)
         const scale = 5.0; // 10m x 10m square (ranges from -5 to +5)
+        const panelOffset = -5.0; // Offset panel so far edge is at person's feet
         
         vertices.push(
           posX * scale,
           height,
-          posZ * scale
+          posZ * scale + panelOffset
         );
         vertexTriangleIds.push(triId);
         return vertices.length / 3 - 1;
@@ -479,10 +480,6 @@ export async function setupMountains3DRenderer(
       if (keyStates['.']) {
         personRotation += personRotationSpeed;
       }
-      
-      // Clamp position to plane bounds (-5 to 5)
-      personWorldX = Math.max(-4.5, Math.min(4.5, personWorldX));
-      personWorldZ = Math.max(-4.5, Math.min(4.5, personWorldZ));
       
       // Update stick figure geometry
       stickFigureGeometry = generateStickFigure(personWorldX, personWorldZ, personRotation);

@@ -227,8 +227,8 @@ export async function setupMountains3DRenderer(
     const noseD = 0.6;
     const noseCenterY = bodyBaseY + bodyH * 0.7;
     addCuboid(
-      -noseW/2, noseCenterY - noseH/2, bodyD/2,
-      noseW/2, noseCenterY + noseH/2, bodyD/2 + noseD,
+      -noseW/2, noseCenterY - noseH/2, -bodyD/2 - noseD,
+      noseW/2, noseCenterY + noseH/2, -bodyD/2,
       [1.0, 0.2, 0.2],  // Red front (direction indicator)
       [0.8, 0.0, 0.0]   // Dark red back
     );
@@ -460,8 +460,8 @@ export async function setupMountains3DRenderer(
       }
     ) {
       // Handle WASD movement relative to person's facing direction
-      let moveForward = (keyStates['w'] ? 1 : 0) + (keyStates['s'] ? -1 : 0);
-      let moveStrafe = (keyStates['a'] ? 1 : 0) + (keyStates['d'] ? -1 : 0);
+      let moveForward = (keyStates['w'] ? -1 : 0) + (keyStates['s'] ? 1 : 0);
+      let moveStrafe = (keyStates['a'] ? -1 : 0) + (keyStates['d'] ? 1 : 0);
       
       // Rotate movement by person's rotation
       const cos_rot = Math.cos(personRotation);

@@ -44,7 +44,7 @@ export async function setupMountains3DRenderer(
         // Simple flat floor at y=0, varying height with noise-like pattern
         const height = 0.0; // Floor is flat (y=0)
         const scale = 5.0; // 10m x 10m square (ranges from -5 to +5)
-        const panelOffset = -5.0; // Offset panel so far edge is at person's feet
+        const panelOffset = 0.0; // Offset panel so far edge is at person's feet
         
         vertices.push(
           posX * scale,
@@ -103,7 +103,7 @@ export async function setupMountains3DRenderer(
 
   // First-person camera state
   let cameraX = 0;
-  let cameraZ = 0;
+  let cameraZ = 2.5;
   let cameraY = 1.7; // eye height
   let cameraRotation = 0; // radians, 0 = looking toward -Z
   const moveSpeed = 0.1;

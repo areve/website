@@ -150,9 +150,31 @@ export async function setupMountains3DRenderer(
         pos.x = rotX;
         pos.z = rotZ;
         
-        // Direct output - top-down orthographic view
-        output.position = vec4f(pos.x * 0.05, pos.z * 0.05, 0.5, 1.0);
-        output.position_ndc = vec3f(pos.x * 0.05, pos.z * 0.05, 0.5);
+        // Camera position and orientation
+        let tiltAngle = 0.1745; // 10 degrees in radians
+        let cos_tilt = cos(tiltAngle);
+        let sin_tilt = sin(tiltAngle);
+        
+        // Apply tilt transform to position relative to camera
+        // Tilt around X axis: rotate Y and Z
+        let tiltedY = pos.y * cos_tilt - pos.z * sin_tilt;
+        let tiltedZ = pos.y * sin_tilt + pos.z * cos_tilt;
+        
+        // Perspective: objects further back appear smaller
+        let camDistance = 5.0;
+        let depth = camDistance - tiltedZ;
+        var safedepth = depth;
+        if (safedepth < 0.1) { safedepth = 0.1; }
+        
+        let perspective = 1.0 / safedepth;
+        
+        // Project to screen
+        let screenX = pos.x * perspective * 0.3;
+        let screenY = tiltedY * perspective * 0.3;
+        let screenZ = clamp(safedepth / 10.0, 0.01, 0.99);
+        
+        output.position = vec4f(screenX, screenY, screenZ, 1.0);
+        output.position_ndc = vec3f(screenX, screenY, screenZ);
         output.triangle_id = triangle_id;
         return output;
       }

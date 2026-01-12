@@ -459,19 +459,25 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Handle WASD movement based on actual key states
-      const moveX = (keyStates['d'] ? 1 : 0) + (keyStates['a'] ? -1 : 0);
-      const moveZ = (keyStates['w'] ? 1 : 0) + (keyStates['s'] ? -1 : 0);
+      // Handle WASD movement relative to person's facing direction
+      let moveForward = (keyStates['w'] ? 1 : 0) + (keyStates['s'] ? -1 : 0);
+      let moveStrafe = (keyStates['d'] ? 1 : 0) + (keyStates['a'] ? -1 : 0);
       
-      personWorldX += moveX * personSpeed;
-      personWorldZ += moveZ * personSpeed;
+      // Rotate movement by person's rotation
+      const cos_rot = Math.cos(personRotation);
+      const sin_rot = Math.sin(personRotation);
+      const worldMoveX = moveStrafe * cos_rot - moveForward * sin_rot;
+      const worldMoveZ = moveStrafe * sin_rot + moveForward * cos_rot;
       
-      // Handle rotation with , and . keys
+      personWorldX += worldMoveX * personSpeed;
+      personWorldZ += worldMoveZ * personSpeed;
+      
+      // Handle rotation with , and . keys (reversed)
       if (keyStates[',']) {
-        personRotation += personRotationSpeed;
+        personRotation -= personRotationSpeed;
       }
       if (keyStates['.']) {
-        personRotation -= personRotationSpeed;
+        personRotation += personRotationSpeed;
       }
       
       // Clamp position to plane bounds (-5 to 5)

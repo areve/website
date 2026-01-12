@@ -7,9 +7,10 @@
       ref="compass"
       type="button"
       class="compass"
-      aria-label="Reset rotation"
+      aria-label="Reset rotation (click) — double-click to show controls"
       @click.stop="resetRotation"
       @keydown.enter.prevent="resetRotation"
+      @dblclick.stop="toggleControls"
     >
       <div
         class="compass-pointer"
@@ -19,7 +20,7 @@
       ></div>
     </button>
 
-    <div class="controls-overlay">
+    <div :class="['controls-overlay', { 'controls-hidden': !controlsVisible }]">
       <div class="stats">
         {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
         {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
@@ -47,6 +48,8 @@
         <button @click="handleToggleFullscreen" type="button">
           Fullscreen
         </button>
+            <!-- Close button: hides controls overlay -->
+            <button class="controls-close" type="button" @click.stop="hideControls" aria-label="Hide controls">✕</button>
       </div>
     </div>
   </div>
@@ -123,6 +126,21 @@ function resetRotation() {
 
   _rotationAnim = requestAnimationFrame(step);
 }
+// Controls visibility
+const controlsVisible = ref(true);
+
+function hideControls() {
+  controlsVisible.value = false;
+}
+
+function showControls() {
+  controlsVisible.value = true;
+}
+
+function toggleControls() {
+  controlsVisible.value = !controlsVisible.value;
+}
+
 const width = 500;
 const height = 500;
 const seed = 12345;
@@ -260,7 +278,9 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  padding: 0.5rem 0.75rem;
+  /* reserve space on the right so the close button does not overlap the
+     fullscreen button (close sits in the overlay's top-right corner) */
+  padding: 0.5rem  calc(0.75rem + 44px) 0.5rem 0.75rem;
   background: rgba(0,0,0,0.45);
   color: #fff;
   border-radius: 8px;
@@ -268,11 +288,56 @@ onUnmounted(() => {
   backdrop-filter: blur(4px);
   /* allow clicks on controls */
   pointer-events: auto;
+  /* Default (non-fullscreen): fade in/out */
+  transform: none;
+  opacity: 1;
+  transition: opacity 200ms ease;
 }
 
 .controls-overlay .stats {
   font-family: monospace;
   font-size: 0.9rem;
+}
+
+/* Close button inside controls overlay */
+.controls-close {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.12);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.controls-close:active { transform: scale(0.96); }
+
+/* Hidden (non-fullscreen): fade only */
+.controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* When the canvas container is fullscreen, slide the overlay off the bottom.
+   Use both standard and vendor-prefixed fullscreen selectors for compatibility. */
+.canvas-container:fullscreen .controls-overlay,
+.canvas-container:-webkit-full-screen .controls-overlay,
+.canvas-container:-moz-full-screen .controls-overlay {
+  transform: translateY(0);
+  transition: transform 260ms cubic-bezier(.22,.9,.32,1), opacity 200ms ease;
+}
+.canvas-container:fullscreen .controls-hidden,
+.canvas-container:-webkit-full-screen .controls-hidden,
+.canvas-container:-moz-full-screen .controls-hidden {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Compass overlay styles */

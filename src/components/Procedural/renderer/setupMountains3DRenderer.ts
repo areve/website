@@ -100,14 +100,20 @@ export async function setupMountains3DRenderer(
           color = vec3f(0.8);
         }
         
-        // Edge detection for polygon outlines
+        // Edge detection for polygon outlines - use absolute distance to nearest edge
         let dx = fwidth(pos.x);
         let dy = fwidth(pos.y);
-        let edgeX = smoothstep(0.0, 2.0 * dx, fract(pos.x / checkSize) - 0.5);
-        let edgeY = smoothstep(0.0, 2.0 * dy, fract(pos.y / checkSize) - 0.5);
-        let edge = min(edgeX, edgeY);
+        let fracX = fract(pos.x / checkSize);
+        let fracY = fract(pos.y / checkSize);
+        let distX = min(abs(fracX - 0.0), abs(fracX - 1.0));
+        let distY = min(abs(fracY - 0.0), abs(fracY - 1.0));
+        let distToEdge = min(distX, distY);
         
-        color = mix(vec3f(0.0), color, edge);
+        // Make edges very thin - only show within 1% of edge
+        let edgeThickness = 0.05;
+        let isEdge = step(distToEdge, edgeThickness);
+        
+        color = mix(color, vec3f(0.0, 0.5, 1.0), isEdge);
         
         return vec4f(color, 1.0);
       }

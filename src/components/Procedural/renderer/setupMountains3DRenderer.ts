@@ -100,10 +100,10 @@ export async function setupMountains3DRenderer(
   new Uint32Array(indexBuffer.getMappedRange()).set(indices);
   indexBuffer.unmap();
 
-  // Create uniform buffer for camera: x, z, rotation (16 bytes aligned)
+  // Static view-projection matrix (no camera movement)
   const uniformBuffer = device.createBuffer({
     label: "camera uniform",
-    size: 16, // 4 floats: camX, camZ, rotation, padding
+    size: 64, // 4x4 matrix
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -125,13 +125,7 @@ export async function setupMountains3DRenderer(
   const module = device.createShaderModule({
     label: "mountains3d shader",
     code: /* wgsl */ `
-      struct Camera {
-        x: f32,
-        z: f32,
-        rotation: f32,
-        padding: f32,
-      }
-      @group(0) @binding(0) var<uniform> camera: Camera;
+      @group(0) @binding(0) var<uniform> viewProj: mat4x4<f32>;
 
       struct VertexOutput {
         @builtin(position) position: vec4f,
@@ -146,40 +140,12 @@ export async function setupMountains3DRenderer(
         var output: VertexOutput;
         
         // World space mesh position
-        var worldPos = position;
+        let worldPos = position;
         
-        // Camera state
-        let camHeight = 2.0; // 2m above ground
-        let camX = camera.x;
-        let camZ = camera.z;
-        let camRot = camera.rotation;
-        
-        // Transform to camera space
-        var viewPos = worldPos;
-        viewPos.x -= camX;
-        viewPos.y -= camHeight;
-        viewPos.z -= camZ;
-        
-        // Rotate by camera heading (around Y axis)
-        let cos_rot = cos(camRot);
-        let sin_rot = sin(camRot);
-        let rotX = viewPos.x * cos_rot + viewPos.z * sin_rot;
-        let rotZ = -viewPos.x * sin_rot + viewPos.z * cos_rot;
-        viewPos.x = rotX;
-        viewPos.z = rotZ;
-        
-        // Perspective projection with 90 degree FOV
-        var depth = viewPos.z;
-        if (depth < 0.1) { depth = 0.1; }
-        
-        // FOV = 90 degrees means tan(45deg) = 1.0 as the focal length
-        let fov = 1.0;
-        let screenX = (viewPos.x / depth) * fov;
-        let screenY = (viewPos.y / depth) * fov;
-        let screenZ = clamp(depth / 100.0, 0.01, 0.99);
-        
-        output.position = vec4f(screenX, screenY, screenZ, 1.0);
-        output.position_ndc = vec3f(screenX, screenY, screenZ);
+        // Transform to clip space using view-projection matrix
+        let clip = viewProj * vec4f(worldPos, 1.0);
+        output.position = clip;
+        output.position_ndc = clip.xyz / clip.w;
         output.triangle_id = triangle_id;
         return output;
       }
@@ -258,20 +224,17 @@ export async function setupMountains3DRenderer(
         rotation?: number;
       }
     ) {
-      // Update camera uniform (camX, camZ, rotation, padding)
-      let moveStrafe = (data?.x ?? 0) * 0.01; // A/D
-      let moveForward = (data?.y ?? 0) * 0.01; // W/S
-      let rotation = data?.rotation ?? 0;
+      // Static camera view
+      const eye: [number, number, number] = [0, 2, 8];
+      const target: [number, number, number] = [0, 0, 0];
+      const up: [number, number, number] = [0, 1, 0];
       
-      // Simple: W moves forward along world -Z axis (toward negative Z)
-      let camX = moveStrafe;
-      let camZ = -moveForward;
+      const view = makeLookAtMatrix(eye, target, up);
+      const aspect = options.width / options.height;
+      const projection = makePerspectiveMatrix(Math.PI / 2, aspect, 0.1, 200);
+      const viewProj = multiplyMat4(projection, view);
       
-      device.queue.writeBuffer(
-        uniformBuffer,
-        0,
-        new Float32Array([camX, camZ, rotation, 0])
-      );
+      device.queue.writeBuffer(uniformBuffer, 0, viewProj);
 
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({
@@ -294,4 +257,76 @@ export async function setupMountains3DRenderer(
 
 function fail(msg: string) {
   throw new Error(msg);
+}
+
+function makePerspectiveMatrix(fovY: number, aspect: number, near: number, far: number): Float32Array {
+  const f = 1 / Math.tan(fovY / 2);
+  const nf = 1 / (near - far);
+  const out = new Float32Array(16);
+  out[0] = f / aspect;
+  out[5] = f;
+  out[10] = (far + near) * nf;
+  out[11] = -1;
+  out[14] = 2 * far * near * nf;
+  return out;
+}
+
+function normalizeVec3(v: [number, number, number]): [number, number, number] {
+  const len = Math.hypot(v[0], v[1], v[2]) || 1;
+  return [v[0] / len, v[1] / len, v[2] / len];
+}
+
+function cross(a: [number, number, number], b: [number, number, number]): [number, number, number] {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ];
+}
+
+function dot(a: [number, number, number], b: [number, number, number]): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+
+function makeLookAtMatrix(eye: [number, number, number], target: [number, number, number], up: [number, number, number]): Float32Array {
+  const zAxis = normalizeVec3([
+    eye[0] - target[0],
+    eye[1] - target[1],
+    eye[2] - target[2],
+  ]);
+  const xAxis = normalizeVec3(cross(up, zAxis));
+  const yAxis = cross(zAxis, xAxis);
+
+  const out = new Float32Array(16);
+  out[0] = xAxis[0];
+  out[1] = xAxis[1];
+  out[2] = xAxis[2];
+  out[3] = 0;
+  out[4] = yAxis[0];
+  out[5] = yAxis[1];
+  out[6] = yAxis[2];
+  out[7] = 0;
+  out[8] = zAxis[0];
+  out[9] = zAxis[1];
+  out[10] = zAxis[2];
+  out[11] = 0;
+  out[12] = -dot(xAxis, eye);
+  out[13] = -dot(yAxis, eye);
+  out[14] = -dot(zAxis, eye);
+  out[15] = 1;
+  return out;
+}
+
+function multiplyMat4(a: Float32Array, b: Float32Array): Float32Array {
+  const out = new Float32Array(16);
+  for (let col = 0; col < 4; col++) {
+    for (let row = 0; row < 4; row++) {
+      out[col * 4 + row] =
+        a[0 * 4 + row] * b[col * 4 + 0] +
+        a[1 * 4 + row] * b[col * 4 + 1] +
+        a[2 * 4 + row] * b[col * 4 + 2] +
+        a[3 * 4 + row] * b[col * 4 + 3];
+    }
+  }
+  return out;
 }

@@ -1,6 +1,13 @@
 <template>
-  <canvas ref="canvas" class="canvas"></canvas>
-  <div class="controls-overlay">
+  <div ref="container" class="canvas-container">
+    <canvas ref="canvas" class="canvas"></canvas>
+
+    <!-- Compass overlay: circular 50px compass with rotating pointer -->
+    <div class="compass" aria-hidden="true">
+      <div class="compass-pointer" :style="{ transform: compassRotation }"></div>
+    </div>
+
+    <div class="controls-overlay">
     <div class="stats">
       {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
       {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
@@ -27,11 +34,12 @@
       </label>
       <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
     </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref } from "vue";
+import { onMounted, onUnmounted, ref, computed } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
@@ -41,6 +49,7 @@ import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
+const container = ref<HTMLElement>(undefined!);
 const stats = makeStats();
 const zoomOrigin = ref<"pointer" | "center">("center");
 const controller = makeController({
@@ -52,6 +61,14 @@ const controller = makeController({
       origin: () => zoomOrigin.value,
     },
   },
+});
+
+// Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
+const compassRotation = computed(() => {
+  // controller is a ref; use .value here in script
+  const rad = controller.value.rotation ?? 0;
+  const deg = (-rad * 180) / Math.PI;
+  return `rotate(${deg}deg)`;
 });
 const width = 500;
 const height = 500;
@@ -71,10 +88,10 @@ const handleChangeMode = async () => {
 };
 
 const handleToggleFullscreen = () => {
-  const canvasElement = canvas.value;
+  const el = container.value || canvas.value;
 
   if (!document.fullscreenElement) {
-    canvasElement.requestFullscreen?.().catch(() => {
+    el.requestFullscreen?.().catch(() => {
       console.warn("Failed to enter fullscreen mode");
     });
   } else {
@@ -154,5 +171,42 @@ onUnmounted(() => {
 <style scoped>
 .canvas {
   touch-action: none;
+}
+
+.canvas-container {
+  position: relative;
+  display: inline-block;
+}
+
+.canvas-container .canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Compass overlay styles */
+.compass {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.compass-pointer {
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 18px solid #ffffffcc;
+  transform-origin: center 60%;
 }
 </style>

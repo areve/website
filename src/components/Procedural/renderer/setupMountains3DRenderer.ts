@@ -24,14 +24,22 @@ export async function setupMountains3DRenderer(
     format: presentationFormat,
   });
 
-  // Generate grid vertices
+  // Generate grid vertices with perspective tilt
   const vertices: number[] = [];
   for (let y = 0; y <= gridHeight; y++) {
     for (let x = 0; x <= gridWidth; x++) {
+      const posX = (x / gridWidth) * 2 - 1;  // x: -1 to 1
+      const posY = (y / gridHeight) * 2 - 1; // y: -1 to 1
+      
+      // Apply perspective tilt: compress top of grid towards center
+      const tiltAmount = 0.5;
+      const tiltedY = posY - (posY * tiltAmount * 0.3);
+      const perspective = 1.0 + (posY * -0.5 * tiltAmount);
+      
       vertices.push(
-        (x / gridWidth) * 2 - 1,  // x: -1 to 1
-        (y / gridHeight) * 2 - 1, // y: -1 to 1
-        0                          // z: 0
+        posX * perspective,  // x with perspective
+        tiltedY,             // y with tilt
+        posY * 0.3           // z: depth
       );
     }
   }
@@ -75,45 +83,39 @@ export async function setupMountains3DRenderer(
       struct VertexOutput {
         @builtin(position) position: vec4f,
         @location(0) position_ndc: vec3f,
+        @location(1) @interpolate(flat) triangle_id: u32,
       };
 
       @vertex fn vs(
+        @builtin(vertex_index) vertexIndex: u32,
         @location(0) position: vec3f
       ) -> VertexOutput {
         var output: VertexOutput;
-        output.position = vec4f(position, 1.0);
-        output.position_ndc = position;
+        
+        // Apply 3D perspective projection
+        let z = position.z;
+        let perspective = 1.0 / (1.0 + z * 0.5);
+        
+        // Project to screen with perspective
+        let projectedX = position.x * perspective;
+        let projectedY = position.y * perspective - z * 0.3;
+        let projectedZ = z;
+        
+        output.position = vec4f(projectedX, projectedY, projectedZ * 0.5, 1.0);
+        output.position_ndc = vec3f(projectedX, projectedY, projectedZ);
+        output.triangle_id = vertexIndex / 3u;
         return output;
       }
 
       @fragment fn fs(input: VertexOutput) -> @location(0) vec4f {
-        let pos = input.position_ndc;
+        let triId = input.triangle_id;
         
-        // Checkerboard pattern
-        let checkSize = 0.1;
-        let checkX = i32(floor(pos.x / checkSize));
-        let checkY = i32(floor(pos.y / checkSize));
-        let isEven = (checkX + checkY) % 2 == 0;
-        
-        var color = vec3f(0.2);
-        if (isEven) {
-          color = vec3f(0.8);
-        }
-        
-        // Edge detection for polygon outlines - use absolute distance to nearest edge
-        let dx = fwidth(pos.x);
-        let dy = fwidth(pos.y);
-        let fracX = fract(pos.x / checkSize);
-        let fracY = fract(pos.y / checkSize);
-        let distX = min(abs(fracX - 0.0), abs(fracX - 1.0));
-        let distY = min(abs(fracY - 0.0), abs(fracY - 1.0));
-        let distToEdge = min(distX, distY);
-        
-        // Make edges very thin - only show within 1% of edge
-        let edgeThickness = 0.05;
-        let isEdge = step(distToEdge, edgeThickness);
-        
-        color = mix(color, vec3f(0.0, 0.5, 1.0), isEdge);
+        // Generate solid color per triangle using hash
+        let hash = (triId * 73856093u) ^ ((triId * 19349663u) >> 1u);
+        let r = f32((hash >> 0u) & 255u) / 255.0;
+        let g = f32((hash >> 8u) & 255u) / 255.0;
+        let b = f32((hash >> 16u) & 255u) / 255.0;
+        let color = vec3f(r, g, b);
         
         return vec4f(color, 1.0);
       }

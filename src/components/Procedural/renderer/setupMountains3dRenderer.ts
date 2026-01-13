@@ -202,8 +202,36 @@ export async function setupMountains3dRenderer(
         let rawHeight = oceanMask * 0.98 + baseHeight + lakeEffect - 0.35;
         let combined = sign(rawHeight) * pow(abs(rawHeight), 0.85);
         
-        // Scale height for 3D view
-        let height = combined * 15.0;
+        // Map elevation to height with distinct levels
+        var height: f32;
+        if (combined < 0.42) {
+          // Deep water - almost flat with slight variation
+          height = -2.0 + combined * 0.5;
+        } else if (combined < 0.455) {
+          // Shallow water - slight slope up
+          let t = (combined - 0.42) / 0.035;
+          height = mix(-1.5, -0.5, t);
+        } else if (combined < 0.465) {
+          // Beach - gentle incline
+          let t = (combined - 0.455) / 0.01;
+          height = mix(-0.5, 0.0, t);
+        } else if (combined < 0.58) {
+          // Lowlands/plains - elevated
+          let t = (combined - 0.465) / 0.115;
+          height = mix(0.0, 5.0, t);
+        } else if (combined < 0.68) {
+          // Hills/forest - more elevated
+          let t = (combined - 0.58) / 0.10;
+          height = mix(5.0, 10.0, t);
+        } else if (combined < 0.74) {
+          // Mountains - highly elevated
+          let t = (combined - 0.68) / 0.06;
+          height = mix(10.0, 16.0, t * t); // Square for steeper mountains
+        } else {
+          // Snow peaks - highest
+          let t = (combined - 0.74) / 0.26;
+          height = mix(16.0, 20.0, t);
+        }
         
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;

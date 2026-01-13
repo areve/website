@@ -30,7 +30,7 @@ const defaultOptions = {
 
 type Options = typeof defaultOptions;
 
-export const makeController3D = function (options: Partial<Options> = {}) {
+export const makeController3d = function (options: Partial<Options> = {}) {
   const opt = { ...defaultOptions, ...options };
   
   const states = {

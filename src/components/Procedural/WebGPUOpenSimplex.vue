@@ -61,7 +61,7 @@
 import { onMounted, onUnmounted, ref, computed } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
-import { makeController3D } from "./lib/controller3d";
+import { makeController3d } from "./lib/controller3d";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
@@ -84,7 +84,7 @@ const controller = makeController({
   },
 });
 
-const controller3D = makeController3D();
+const controller3D = makeController3d();
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {

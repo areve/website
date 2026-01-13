@@ -104,6 +104,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement.addEventListener("touchstart", onTouchStart);
       bindGlobalElement.addEventListener("touchmove", onTouchMove);
       bindGlobalElement.addEventListener("touchend", onTouchEnd);
+      bindElement.addEventListener("wheel", onWheel);
     },
     unmount() {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
@@ -114,6 +115,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindGlobalElement.removeEventListener("touchmove", onTouchMove);
       bindGlobalElement.removeEventListener("touchend", onTouchEnd);
+      bindElement.removeEventListener("wheel", onWheel);
     },
     update(deltaTime: number) {
       // Update zoom with acceleration/deceleration
@@ -347,6 +349,16 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
   function onMouseUp() {
     states.dragging.isDragging = false;
+  }
+
+  function onWheel(e: WheelEvent) {
+    e.preventDefault();
+    const zoomFactor = 1 + e.deltaY * 0.001;
+    const newFov = controller.value.fov * zoomFactor;
+    controller.value.fov = Math.min(
+      opt.camera.maxFov,
+      Math.max(opt.camera.minFov, newFov)
+    );
   }
 
   function onTouchStart(e: TouchEvent) {

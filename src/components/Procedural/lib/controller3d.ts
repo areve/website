@@ -77,6 +77,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       isRotating: false,
       lastAngle: 0,
     },
+    pinch: {
+      isPinching: false,
+      startDistance: 0,
+    },
   };
 
   let bindElement: HTMLElement;
@@ -305,17 +309,23 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     if (e.touches.length === 1) {
       const touch = e.touches[0];
       states.touchRotate.isRotating = false;
+      states.pinch.isPinching = false;
       states.dragging.isDragging = true;
       states.dragging.start = { x: touch.clientX, y: touch.clientY };
       states.dragging.current = { x: touch.clientX, y: touch.clientY };
     } else if (e.touches.length === 2) {
+      e.preventDefault();
       const [t1, t2] = e.touches as unknown as [Touch, Touch];
       states.dragging.isDragging = false;
       states.touchRotate.isRotating = true;
+      states.pinch.isPinching = true;
       states.touchRotate.lastAngle = Math.atan2(
         t2.clientY - t1.clientY,
         t2.clientX - t1.clientX
       );
+      const dx = t2.clientX - t1.clientX;
+      const dy = t2.clientY - t1.clientY;
+      states.pinch.startDistance = Math.hypot(dx, dy);
     }
   }
 
@@ -324,6 +334,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       const touch = e.touches[0];
       states.dragging.current = { x: touch.clientX, y: touch.clientY };
     } else if (states.touchRotate.isRotating && e.touches.length === 2) {
+      e.preventDefault();
       const [t1, t2] = e.touches as unknown as [Touch, Touch];
       const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
       const deltaAngle = states.touchRotate.lastAngle - angle; // flipped direction
@@ -376,12 +387,30 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       // Update yaw to match rotation
       controller.value.yaw += deltaAngle;
       states.touchRotate.lastAngle = angle;
+
+      // Pinch zoom (adjust FOV)
+      const dxp = t2.clientX - t1.clientX;
+      const dyp = t2.clientY - t1.clientY;
+      const dist = Math.hypot(dxp, dyp);
+      const pinchEps = 1e-4;
+      if (states.pinch.isPinching && dist > pinchEps && states.pinch.startDistance > pinchEps) {
+        const ratio = dist / states.pinch.startDistance;
+        const safeRatio = Math.max(pinchEps, ratio);
+        const newFov = controller.value.fov / safeRatio;
+        controller.value.fov = Math.min(
+          opt.camera.maxFov,
+          Math.max(opt.camera.minFov, newFov)
+        );
+        states.pinch.startDistance = dist;
+      }
     }
   }
 
   function onTouchEnd() {
     states.dragging.isDragging = false;
     states.touchRotate.isRotating = false;
+    states.pinch.isPinching = false;
+    states.pinch.startDistance = 0;
   }
 
   return controller;

@@ -186,9 +186,11 @@ export async function setupMountains3dRenderer(
         let layer1 = openSimplex3d(x * 0.005, y * 0.005, z);
         let layer3 = openSimplex3d(x * 0.05, y * 0.05, z);
         let layer5 = openSimplex3d(x * 0.02, y * 0.02, z);
-        let layer6 = openSimplex3d(x * 0.3, y * 0.3, z);
+        // Soften fine detail without extra layers: lower frequency + weight
+        let layer6 = openSimplex3d(x * 0.2, y * 0.2, z);
         let oceanMask = layer1;
-        let baseHeight = layer3 * 0.35 + layer6 * 0.08;
+        // Reduce layer6 influence to soften bumpiness
+        let baseHeight = layer3 * 0.35 + layer6 * 0.03;
         var lakeEffect = 0.0;
         if (oceanMask > 0.1) {
           lakeEffect = min(layer5 * 0.08, 0.0);
@@ -200,23 +202,32 @@ export async function setupMountains3dRenderer(
       fn terrainHeightFromCombined(combined: f32) -> f32 {
         var height: f32;
         if (combined < 0.42) {
-          height = -0.0 + combined * 0.0;
+          // Water: deep oceans — slightly below sea level, gentle variation
+          // t goes from 0 at deepest to 1 near the shallow threshold
+          let t = combined / 0.42;
+          height = mix(-0.0, -0.0, t);
         } else if (combined < 0.455) {
+          // Water: shallow coastal — continues rising towards shoreline
           let t = (combined - 0.42) / 0.035;
           height = mix(-0.0, -0.0, t);
         } else if (combined < 0.465) {
+          // Beach: gentle incline near shoreline
           let t = (combined - 0.455) / 0.01;
-          height = mix(-0.5, 0.0, t);
+          height = mix(-0.0, 1.0, t);
         } else if (combined < 0.58) {
+          // Plains/lowlands: gradually rising terrain
           let t = (combined - 0.465) / 0.115;
-          height = mix(0.0, 5.0, t);
+          height = mix(1.0, 5.0, t);
         } else if (combined < 0.68) {
+          // Hills/forest: more elevated rolling hills
           let t = (combined - 0.58) / 0.10;
           height = mix(5.0, 10.0, t);
         } else if (combined < 0.74) {
+          // Mountains: steeper elevation increase
           let t = (combined - 0.68) / 0.06;
           height = mix(10.0, 16.0, t * t);
         } else {
+          // Snow peaks: highest elevations
           let t = (combined - 0.74) / 0.26;
           height = mix(16.0, 22.0, t);
         }

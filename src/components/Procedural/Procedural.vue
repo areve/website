@@ -2,7 +2,7 @@
   <article>
     <h1>Procedural</h1>
     <p>Procedural image generation with WebGPU. Double-tap to open fullscreen, pinch, drag, see more below.</p>
-    <WebGPUOpenSimplex />
+    <ProceduralRenderer />
     <p>Controls and keyboard shortcuts are listed below.</p>
     <ul class="controls">
       <li><kbd>Mouse</kbd> : drag to pan, scroll/wheel to zoom</li>
@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts" setup>
-import WebGPUOpenSimplex from "./WebGPUOpenSimplex.vue";
+import ProceduralRenderer from "./ProceduralRenderer.vue";
 </script>
 
 <style scoped></style>

@@ -114,8 +114,8 @@ function resetRotation() {
   }
 
   // Determine which controller to reset based on current mode
-  const is3D = shaderMode.value === 'mountains3d';
-  const start = is3D ? (controller3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
+  const is3d = shaderMode.value === 'mountains3d';
+  const start = is3d ? (controller3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
   // shortest delta to zero
   const delta = normalizeAngle(0 - start);
   const duration = 220; // ms
@@ -128,7 +128,7 @@ function resetRotation() {
     // easeOutCubic
     const eased = 1 - Math.pow(1 - t, 3);
     const newAngle = start + delta * eased;
-    if (is3D) {
+    if (is3d) {
       // Use rotateAroundLook for incremental rotation
       const deltaStep = newAngle - lastAngle;
       controller3d.value.rotateAroundLook(deltaStep);
@@ -139,7 +139,7 @@ function resetRotation() {
     if (t < 1) {
       _rotationAnim = requestAnimationFrame(step);
     } else {
-      if (is3D) {
+      if (is3d) {
         // Final adjustment to ensure we're exactly at 0
         const finalDelta = 0 - controller3d.value.yaw;
         controller3d.value.rotateAroundLook(finalDelta);

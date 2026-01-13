@@ -16,18 +16,101 @@ function createPlaneGeometry(
 
   const step = size / segments;
   const half = size / 2;
+  const seed = 12345;
+  const scale = 0.1;
+  const maxHeight = 20;
+
+  // Helper functions for OpenSimplex noise
+  function noise(x: number, y: number, z: number, w: number): number {
+    const sx = Math.floor(x);
+    const sy = Math.floor(y);
+    const sz = Math.floor(z);
+    const sw = Math.floor(w);
+    
+    const n = bitcastToU32(seed) +
+      bitcastToU32(x * 374761393.0) +
+      bitcastToU32(y * 668265263.0) +
+      bitcastToU32(z * 1440662683.0) +
+      bitcastToU32(w * 3865785317.0);
+    const m = (n ^ (n >> 13)) * 1274126177;
+    return m / 0xffffffff;
+  }
+
+  function bitcastToU32(f: number): number {
+    const buf = new ArrayBuffer(4);
+    new Float32Array(buf)[0] = f;
+    return new Uint32Array(buf)[0];
+  }
+
+  function vertexContribution(
+    ix: number, iy: number, iz: number,
+    fx: number, fy: number, fz: number,
+    cx: number, cy: number, cz: number
+  ): number {
+    const unskew3d = 1.0 / 6.0;
+    const rSquared3d = 3.0 / 4.0;
+
+    const dx = fx - cx;
+    const dy = fy - cy;
+    const dz = fz - cz;
+    const skewedOffset = (dx + dy + dz) * unskew3d;
+    const dxs = dx - skewedOffset;
+    const dys = dy - skewedOffset;
+    const dzs = dz - skewedOffset;
+
+    const a = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
+    if (a < 0.0) {
+      return 0.0;
+    }
+
+    const h = Math.floor(noise(ix + cx, iy + cy, iz + cz, 0.0) * 0xfff) & 0xfff;
+    const u = (h & 0xf) - 8;
+    const v = ((h >> 4) & 0xf) - 8;
+    const w = ((h >> 8) & 0xf) - 8;
+    return (a * a * a * a * (u * dxs + v * dys + w * dzs)) / 2.0;
+  }
+
+  function openSimplex3d(x: number, y: number, z: number): number {
+    const skew3d = 1.0 / 3.0;
+    const unskew3d = 1.0 / 6.0;
+
+    const sx = x;
+    const sy = y;
+    const sz = z;
+    const skew = (sx + sy + sz) * skew3d;
+    const ix = Math.floor(sx + skew);
+    const iy = Math.floor(sy + skew);
+    const iz = Math.floor(sz + skew);
+    const fx = sx + skew - ix;
+    const fy = sy + skew - iy;
+    const fz = sz + skew - iz;
+
+    return 0.5 +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
+      vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1);
+  }
 
   for (let i = 0; i <= segments; i++) {
     for (let j = 0; j <= segments; j++) {
       const x = -half + i * step;
       const z = -half + j * step;
-      // Flat plane
-      const height = 0;
+      
+      // Calculate noise-based height
+      const noiseX = x * scale;
+      const noiseZ = z * scale;
+      const noiseVal = openSimplex3d(noiseX, noiseZ, 0);
+      const height = noiseVal * maxHeight;
+      
       positions.push(x, height, z);
       
-      // Colors will be computed by noise in the shader
-      // Use position as color input for now (will be replaced by shader)
-      colors.push(x / size, height / 10, z / size);
+      // Colors based on noise value (white to black)
+      colors.push(noiseVal, noiseVal, noiseVal);
     }
   }
 
@@ -182,7 +265,14 @@ export async function setupMountains3dRenderer(
       }
 
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
-        let worldPos = vec4f(pos, 1.0);
+        let x = pos.x * matrices.scale;
+        let y = pos.z * matrices.scale;
+        let z = matrices.z;
+        
+        let noiseVal = openSimplex3d(x, y, z);
+        let height = noiseVal * 20.0;
+        
+        let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
         let clipPos = matrices.projection * viewPos;
         
@@ -321,7 +411,7 @@ export async function setupMountains3dRenderer(
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
     matrixData[33] = 0.1; // scale
-    matrixData[34] = time * 0.001; // z (for animation)
+    matrixData[34] = time * 0.0005; // z (animated)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

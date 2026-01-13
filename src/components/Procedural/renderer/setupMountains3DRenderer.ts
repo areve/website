@@ -58,7 +58,7 @@ function createPlaneGeometry(
   };
 }
 
-export async function setupMountains3DRenderer(
+export async function setupMountains3dRenderer(
   canvas: HTMLCanvasElement,
   options: { width: number; height: number },
   controller?: any

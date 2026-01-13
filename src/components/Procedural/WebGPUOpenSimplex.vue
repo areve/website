@@ -67,7 +67,7 @@ import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
-import { setupMountains3DRenderer } from "./renderer/setupMountains3DRenderer";
+import { setupMountains3dRenderer } from "./renderer/setupMountains3dRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const container = ref<HTMLElement>(undefined!);
@@ -215,7 +215,7 @@ const initializeCanvas = async () => {
       seed,
     });
   } else if (shaderMode.value === "mountains3d") {
-    renderer = await setupMountains3DRenderer(canvas.value, {
+    renderer = await setupMountains3dRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

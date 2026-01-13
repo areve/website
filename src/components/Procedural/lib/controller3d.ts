@@ -68,6 +68,11 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       decreasing: false,
       speed: 0,
     },
+    dragging: {
+      isDragging: false,
+      start: { x: 0, y: 0 },
+      current: { x: 0, y: 0 },
+    },
   };
 
   let bindElement: HTMLElement;
@@ -85,10 +90,16 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement = element;
       bindGlobalElement.addEventListener("keydown", onKeyDown);
       bindGlobalElement.addEventListener("keyup", onKeyUp);
+      bindElement.addEventListener("mousedown", onMouseDown);
+      bindGlobalElement.addEventListener("mousemove", onMouseMove);
+      bindGlobalElement.addEventListener("mouseup", onMouseUp);
     },
     unmount() {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
+      bindElement.removeEventListener("mousedown", onMouseDown);
+      bindGlobalElement.removeEventListener("mousemove", onMouseMove);
+      bindGlobalElement.removeEventListener("mouseup", onMouseUp);
     },
     update(deltaTime: number) {
       // Update zoom with acceleration/deceleration
@@ -139,6 +150,23 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
       const rightX = cosYaw;
       const rightZ = sinYaw;
+
+      // Apply drag pan
+      if (states.dragging.isDragging) {
+        const deltaX = states.dragging.current.x - states.dragging.start.x;
+        const deltaY = states.dragging.current.y - states.dragging.start.y;
+        
+        // Pan camera horizontally (along right vector) - flipped
+        const panSpeed = 0.1;
+        this.position[0] -= rightX * deltaX * panSpeed;
+        this.position[2] -= rightZ * deltaX * panSpeed;
+        
+        // Pan camera forward/backward (along Z axis) - flipped
+        this.position[2] -= deltaY * panSpeed;
+        
+        // Update drag start for next frame
+        states.dragging.start = { ...states.dragging.current };
+      }
 
       // Apply movement
       if (states.keys.forward) {
@@ -240,6 +268,22 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     if (opt.zoom.decreaseKeys.includes(key)) {
       states.zoom.decreasing = false;
     }
+  }
+
+  function onMouseDown(e: MouseEvent) {
+    states.dragging.isDragging = true;
+    states.dragging.start = { x: e.clientX, y: e.clientY };
+    states.dragging.current = { x: e.clientX, y: e.clientY };
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (states.dragging.isDragging) {
+      states.dragging.current = { x: e.clientX, y: e.clientY };
+    }
+  }
+
+  function onMouseUp() {
+    states.dragging.isDragging = false;
   }
 
   return controller;

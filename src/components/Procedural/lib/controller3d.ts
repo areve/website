@@ -8,9 +8,9 @@ interface CameraState {
 
 const defaultOptions = {
   camera: {
-    initialPosition: [0, 25, 40] as [number, number, number],
+    initialPosition: [0, 80, 80] as [number, number, number],
     initialYaw: 0,
-    initialPitch: -0.6,
+    initialPitch: -Math.PI / 4,
     initialFov: Math.PI / 4, // Default FOV (45 degrees)
     minFov: Math.PI / 12, // Min zoom in (15 degrees)
     maxFov: Math.PI / 2, // Max zoom out (90 degrees)

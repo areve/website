@@ -203,8 +203,126 @@ export async function setupMountains3dRenderer(
         let y = input.worldPos.z * matrices.scale;
         let z = matrices.z;
         
-        let noiseVal = openSimplex3d(x, y, z);
-        return vec4f(noiseVal, noiseVal, noiseVal, 1.0);
+        // Six layers with specific purposes
+        let layer1 = openSimplex3d(x * 0.005, y * 0.005, z);   // Global ocean/continent distribution
+        let layer2 = openSimplex3d(x * 0.015, y * 0.015, z);   // Macro-biomes (desert, forest, ice, tropical)
+        let layer3 = openSimplex3d(x * 0.05, y * 0.05, z);     // Detailed height (hills, valleys)
+        let layer4 = openSimplex3d(x * 0.08, y * 0.08, z);     // Earth type (affects mountain colors only)
+        let layer5 = openSimplex3d(x * 0.02, y * 0.02, z);     // Inland lakes and water bodies
+        let layer6 = openSimplex3d(x * 0.3, y * 0.3, z);       // Fine detail height variation
+        
+        // Combine into elevation - layer1 is primary separator
+        let oceanMask = layer1;
+        let baseHeight = layer3 * 0.35 + layer6 * 0.08;
+        
+        // Lakes only affect land areas
+        var lakeEffect = 0.0;
+        if (oceanMask > 0.1) {
+          lakeEffect = min(layer5 * 0.08, 0.0);
+        }
+        
+        let rawHeight = oceanMask * 0.98 + baseHeight + lakeEffect - 0.35;
+        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.85);
+        let mountainHeightMod = openSimplex3d(x * 0.01, y * 0.01, z);
+        
+        // Use layer2 for biome
+        let biomeRaw = layer2;
+        let biomeSmooth1 = openSimplex3d((x + 5.0) * 0.015, y * 0.015, z);
+        let biomeSmooth2 = openSimplex3d(x * 0.015, (y + 5.0) * 0.015, z);
+        let biome = (biomeRaw + biomeSmooth1 + biomeSmooth2) / 3.0;
+        let earthType = layer4;
+        
+        // Determine terrain type based on elevation and biome
+        var color: vec3f;
+        if (combined < 0.42) {
+          // Deep water
+          let depth = combined / 0.42;
+          color = mix(vec3f(0.02, 0.08, 0.20), vec3f(0.05, 0.15, 0.35), depth);
+        } else if (combined < 0.455) {
+          // Shallow water
+          let t = (combined - 0.42) / 0.035;
+          color = mix(vec3f(0.05, 0.15, 0.35), vec3f(0.12, 0.28, 0.48), t);
+        } else if (combined < 0.465) {
+          // Beach/sand
+          let t = (combined - 0.455) / 0.01;
+          let arcticSand = vec3f(0.70, 0.68, 0.60);
+          let temperateSand = vec3f(0.76, 0.70, 0.50);
+          let tropicalSand = vec3f(0.88, 0.85, 0.70);
+          let desertSand = vec3f(0.82, 0.75, 0.55);
+          
+          if (biome < 0.25) {
+            color = mix(arcticSand, temperateSand, biome / 0.25);
+          } else if (biome < 0.5) {
+            color = mix(temperateSand, tropicalSand, (biome - 0.25) / 0.25);
+          } else if (biome < 0.75) {
+            color = mix(tropicalSand, desertSand, (biome - 0.5) / 0.25);
+          } else {
+            color = mix(desertSand, arcticSand, (biome - 0.75) / 0.25);
+          }
+        } else if (combined < 0.58) {
+          // Lowlands/plains
+          let t = (combined - 0.465) / 0.115;
+          let arcticPlain = mix(vec3f(0.45, 0.50, 0.42), vec3f(0.38, 0.42, 0.35), t);
+          let temperatePlain = mix(vec3f(0.52, 0.60, 0.35), vec3f(0.48, 0.55, 0.32), t);
+          let tropicalPlain = mix(vec3f(0.35, 0.58, 0.28), vec3f(0.30, 0.52, 0.25), t);
+          let desertPlain = mix(vec3f(0.72, 0.62, 0.42), vec3f(0.68, 0.58, 0.38), t);
+          
+          if (biome < 0.25) {
+            color = mix(arcticPlain, temperatePlain, biome / 0.25);
+          } else if (biome < 0.5) {
+            color = mix(temperatePlain, tropicalPlain, (biome - 0.25) / 0.25);
+          } else if (biome < 0.75) {
+            color = mix(tropicalPlain, desertPlain, (biome - 0.5) / 0.25);
+          } else {
+            color = mix(desertPlain, arcticPlain, (biome - 0.75) / 0.25);
+          }
+        } else if (combined < 0.68) {
+          // Hills/forest
+          let t = (combined - 0.58) / 0.10;
+          let arcticForest = mix(vec3f(0.32, 0.38, 0.30), vec3f(0.28, 0.34, 0.26), t);
+          let temperateForest = mix(vec3f(0.28, 0.45, 0.25), vec3f(0.24, 0.40, 0.22), t);
+          let tropicalForest = mix(vec3f(0.15, 0.40, 0.18), vec3f(0.12, 0.32, 0.15), t);
+          let desertHills = mix(vec3f(0.58, 0.50, 0.35), vec3f(0.52, 0.45, 0.30), t);
+          
+          if (biome < 0.25) {
+            color = mix(arcticForest, temperateForest, biome / 0.25);
+          } else if (biome < 0.5) {
+            color = mix(temperateForest, tropicalForest, (biome - 0.25) / 0.25);
+          } else if (biome < 0.75) {
+            color = mix(tropicalForest, desertHills, (biome - 0.5) / 0.25);
+          } else {
+            color = mix(desertHills, arcticForest, (biome - 0.75) / 0.25);
+          }
+        } else if (combined < 0.74) {
+          // Mountains/rock
+          let mountainBase = 0.68;
+          let mountainTop = 0.74 + mountainHeightMod * 0.12;
+          var t = (combined - mountainBase) / (mountainTop - mountainBase);
+          t = clamp(t, 0.0, 1.0);
+          
+          var mountainColor: vec3f;
+          if (earthType < 0.33) {
+            mountainColor = mix(vec3f(0.25, 0.23, 0.22), vec3f(0.40, 0.38, 0.36), t);
+          } else if (earthType < 0.66) {
+            mountainColor = mix(vec3f(0.42, 0.40, 0.38), vec3f(0.55, 0.52, 0.48), t);
+          } else {
+            mountainColor = mix(vec3f(0.58, 0.50, 0.38), vec3f(0.68, 0.58, 0.45), t);
+          }
+          
+          if (biome < 0.3) {
+            mountainColor = mix(mountainColor, vec3f(0.45, 0.47, 0.50), 0.2);
+          } else if (biome > 0.7) {
+            mountainColor = mix(mountainColor, vec3f(0.60, 0.48, 0.35), 0.15);
+          }
+          
+          color = mountainColor;
+        } else {
+          // Snow/ice peaks
+          let t = (combined - 0.74) / 0.26;
+          color = mix(vec3f(0.88, 0.90, 0.92), vec3f(0.95, 0.97, 0.98), t);
+        }
+        
+        return vec4f(color, 1.0);
       }
     `,
   });

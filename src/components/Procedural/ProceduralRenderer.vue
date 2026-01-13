@@ -89,7 +89,10 @@ const controller3D = makeController3d();
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
   // controller is a ref; use .value here in script
-  const rad = controller.value.rotation ?? 0;
+  // In mountains3d mode, show 3D yaw instead of 2D rotation
+  const rad = shaderMode.value === 'mountains3d' 
+    ? controller3D.value.yaw ?? 0
+    : controller.value.rotation ?? 0;
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
 });
@@ -110,22 +113,39 @@ function resetRotation() {
     _rotationAnim = null;
   }
 
-  const start = controller.value.rotation ?? 0;
+  // Determine which controller to reset based on current mode
+  const is3D = shaderMode.value === 'mountains3d';
+  const start = is3D ? (controller3D.value.yaw ?? 0) : (controller.value.rotation ?? 0);
   // shortest delta to zero
   const delta = normalizeAngle(0 - start);
   const duration = 220; // ms
   const t0 = performance.now();
+  let lastAngle = start;
 
   function step(now: number) {
     const elapsed = now - t0;
     const t = Math.min(1, elapsed / duration);
     // easeOutCubic
     const eased = 1 - Math.pow(1 - t, 3);
-    controller.value.rotation = start + delta * eased;
+    const newAngle = start + delta * eased;
+    if (is3D) {
+      // Use rotateAroundLook for incremental rotation
+      const deltaStep = newAngle - lastAngle;
+      controller3D.value.rotateAroundLook(deltaStep);
+      lastAngle = newAngle;
+    } else {
+      controller.value.rotation = newAngle;
+    }
     if (t < 1) {
       _rotationAnim = requestAnimationFrame(step);
     } else {
-      controller.value.rotation = 0;
+      if (is3D) {
+        // Final adjustment to ensure we're exactly at 0
+        const finalDelta = 0 - controller3D.value.yaw;
+        controller3D.value.rotateAroundLook(finalDelta);
+      } else {
+        controller.value.rotation = 0;
+      }
       _rotationAnim = null;
     }
   }

@@ -214,6 +214,9 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     get paused() {
       return false; // Can extend later if needed
     },
+    rotateAroundLook(deltaAngle: number) {
+      rotateAroundLook(deltaAngle);
+    },
   });
 
   function rotateAroundLook(deltaAngle: number) {

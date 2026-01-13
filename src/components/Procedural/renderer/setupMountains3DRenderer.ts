@@ -254,65 +254,24 @@ export async function setupMountains3dRenderer(
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
-  // Camera state
-  const camera: CameraState = {
-    position: [0, 25, 40],
-    yaw: 0,
-    pitch: -0.6,
-  };
-
-  const cameraSpeed = 0.05;
-
-  const updateCamera = (deltaTime: number) => {
-    // Get input from 3D controller
-    const movement = controller?.value?.movement || { forward: 0, backward: 0, left: 0, right: 0 };
-    const rotationSpeed = controller?.value?.rotation || 0;
-
-    // Apply rotation
-    camera.yaw += rotationSpeed;
-
-    // Calculate forward and right vectors from yaw and pitch
-    const cosYaw = Math.cos(camera.yaw);
-    const sinYaw = Math.sin(camera.yaw);
-    const cosPitch = Math.cos(camera.pitch);
-
-    const forwardX = sinYaw * cosPitch;
-    const forwardZ = -cosYaw * cosPitch;
-
-    const rightX = cosYaw;
-    const rightZ = sinYaw;
-
-    const speed = cameraSpeed * deltaTime;
-
-    // Apply movement
-    if (movement.forward) {
-      camera.position[0] += forwardX * speed;
-      camera.position[2] += forwardZ * speed;
-    }
-    if (movement.backward) {
-      camera.position[0] -= forwardX * speed;
-      camera.position[2] -= forwardZ * speed;
-    }
-    if (movement.left) {
-      camera.position[0] -= rightX * speed;
-      camera.position[2] -= rightZ * speed;
-    }
-    if (movement.right) {
-      camera.position[0] += rightX * speed;
-      camera.position[2] += rightZ * speed;
-    }
-  };
-
   let lastTime = 0;
 
   const render = (time: DOMHighResTimeStamp) => {
     const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
 
-    // Update camera
-    updateCamera(deltaTime);
+    // Update camera from controller
+    if (controller?.value?.update) {
+      controller.value.update(deltaTime);
+    }
 
-    // Create view and projection matrices
+    // Create view and projection matrices using controller's camera state
+    const camera: CameraState = {
+      position: controller?.value?.position || [0, 25, 40],
+      yaw: controller?.value?.yaw ?? 0,
+      pitch: controller?.value?.pitch ?? -0.6,
+    };
+
     const projMatrix = createPerspectiveMatrix(
       Math.PI / 4,
       options.width / options.height,

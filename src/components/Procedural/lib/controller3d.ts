@@ -1,11 +1,22 @@
 import { ref } from "vue";
 
+interface CameraState {
+  position: [number, number, number];
+  yaw: number;
+  pitch: number;
+}
+
 const defaultOptions = {
+  camera: {
+    initialPosition: [0, 25, 40] as [number, number, number],
+    initialYaw: 0,
+    initialPitch: -0.6,
+  },
   movement: {
-    forward: { keys: ["w"], speed: 1 },
-    backward: { keys: ["s"], speed: 1 },
-    left: { keys: ["a"], speed: 1 },
-    right: { keys: ["d"], speed: 1 },
+    forward: { keys: ["w"], speed: 0.05 },
+    backward: { keys: ["s"], speed: 0.05 },
+    left: { keys: ["a"], speed: 0.05 },
+    right: { keys: ["d"], speed: 0.05 },
   },
   rotation: {
     left: { keys: [","], speed: 0.02 },
@@ -46,8 +57,13 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
   let bindElement: HTMLElement;
   let bindGlobalElement: Document;
+  let lastTime = performance.now();
 
   const controller = ref({
+    position: [...opt.camera.initialPosition] as [number, number, number],
+    yaw: opt.camera.initialYaw,
+    pitch: opt.camera.initialPitch,
+
     mount(element: HTMLElement) {
       bindGlobalElement = document;
       bindElement = element;
@@ -58,25 +74,42 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
     },
-    update() {
-      // Controller doesn't need frame updates for 3D, input is read directly
+    update(deltaTime: number) {
+      // Apply rotation
+      if (states.keys.rotateLeft) this.yaw -= opt.rotation.left.speed;
+      if (states.keys.rotateRight) this.yaw += opt.rotation.right.speed;
+
+      // Calculate forward and right vectors from yaw and pitch
+      const cosYaw = Math.cos(this.yaw);
+      const sinYaw = Math.sin(this.yaw);
+      const cosPitch = Math.cos(this.pitch);
+
+      const forwardX = sinYaw * cosPitch;
+      const forwardZ = -cosYaw * cosPitch;
+
+      const rightX = cosYaw;
+      const rightZ = sinYaw;
+
+      // Apply movement
+      if (states.keys.forward) {
+        this.position[0] += forwardX * opt.movement.forward.speed * deltaTime;
+        this.position[2] += forwardZ * opt.movement.forward.speed * deltaTime;
+      }
+      if (states.keys.backward) {
+        this.position[0] -= forwardX * opt.movement.backward.speed * deltaTime;
+        this.position[2] -= forwardZ * opt.movement.backward.speed * deltaTime;
+      }
+      if (states.keys.left) {
+        this.position[0] -= rightX * opt.movement.left.speed * deltaTime;
+        this.position[2] -= rightZ * opt.movement.left.speed * deltaTime;
+      }
+      if (states.keys.right) {
+        this.position[0] += rightX * opt.movement.right.speed * deltaTime;
+        this.position[2] += rightZ * opt.movement.right.speed * deltaTime;
+      }
     },
     get paused() {
       return false; // Can extend later if needed
-    },
-    get movement() {
-      return {
-        forward: states.keys.forward ? opt.movement.forward.speed : 0,
-        backward: states.keys.backward ? opt.movement.backward.speed : 0,
-        left: states.keys.left ? opt.movement.left.speed : 0,
-        right: states.keys.right ? opt.movement.right.speed : 0,
-      };
-    },
-    get rotation() {
-      let rotationSpeed = 0;
-      if (states.keys.rotateLeft) rotationSpeed -= opt.rotation.left.speed;
-      if (states.keys.rotateRight) rotationSpeed += opt.rotation.right.speed;
-      return rotationSpeed;
     },
   });
 

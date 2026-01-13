@@ -233,7 +233,7 @@ export async function setupMountains3dRenderer(
         } else {
           // Snow peaks: highest elevations
           let t = (combined - 0.74) / 0.26;
-          height = mix(16.0, 22.0, t);
+          height = mix(16.0, 24.0, t);
         }
         return height;
       }

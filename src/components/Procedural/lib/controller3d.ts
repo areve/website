@@ -161,19 +161,24 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       const rightX = cosYaw;
       const rightZ = sinYaw;
 
-      // Apply drag pan
+      // Apply drag pan (camera-relative axes)
       if (states.dragging.isDragging) {
         const deltaX = states.dragging.current.x - states.dragging.start.x;
         const deltaY = states.dragging.current.y - states.dragging.start.y;
         
-        // Pan camera horizontally (along right vector) - flipped
         const panSpeed = 0.2;
+
+        // Horizontal drag: move along camera right (flipped)
         this.position[0] -= rightX * deltaX * panSpeed;
         this.position[2] -= rightZ * deltaX * panSpeed;
-        
-        // Pan camera forward/backward (along Z axis) - flipped
-        this.position[2] -= deltaY * panSpeed;
-        
+
+        // Vertical drag: move along camera forward on the XZ plane (flipped)
+        const flatLen = Math.hypot(forwardX, forwardZ) || 1;
+        const fwdXFlat = forwardX / flatLen;
+        const fwdZFlat = forwardZ / flatLen;
+        this.position[0] += fwdXFlat * deltaY * panSpeed;
+        this.position[2] += fwdZFlat * deltaY * panSpeed;
+
         // Update drag start for next frame
         states.dragging.start = { ...states.dragging.current };
       }

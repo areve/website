@@ -269,8 +269,8 @@ export async function setupMountains3DRenderer(
 
   // Camera state
   const camera: CameraState = {
-    position: [30, 25, 40],
-    yaw: -2.4,
+    position: [0, 25, 40],
+    yaw: 0,
     pitch: -0.6,
   };
 

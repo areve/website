@@ -21,8 +21,8 @@ function createPlaneGeometry(
     for (let j = 0; j <= segments; j++) {
       const x = -half + i * step;
       const z = -half + j * step;
-      // Add some height variation for depth perception
-      const height = Math.sin(x * 0.05) * Math.cos(z * 0.05) * 3;
+      // Flat plane
+      const height = 0;
       positions.push(x, height, z);
       
       // Colors will be computed by noise in the shader

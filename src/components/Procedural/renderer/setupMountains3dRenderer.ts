@@ -404,7 +404,7 @@ export async function setupMountains3dRenderer(
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
-    matrixData[33] = 0.2; // scale
+    matrixData[33] = 0.8; // scale
     matrixData[34] = time * 0.0005; // z (animated)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 

@@ -16,14 +16,14 @@ const defaultOptions = {
     maxFov: Math.PI / 2, // Max zoom out (90 degrees)
   },
   movement: {
-    forward: { keys: ["w"], accel: 100, decel: 100, maxSpeed: 50 },
-    backward: { keys: ["s"], accel: 100, decel: 100, maxSpeed: 50 },
-    left: { keys: ["a"], accel: 100, decel: 100, maxSpeed: 50 },
-    right: { keys: ["d"], accel: 100, decel: 100, maxSpeed: 50 },
+    forward: { keys: ["w"], accel: 400, decel: 400, maxSpeed: 50 },
+    backward: { keys: ["s"], accel: 400, decel: 400, maxSpeed: 50 },
+    left: { keys: ["a"], accel: 400, decel: 400, maxSpeed: 50 },
+    right: { keys: ["d"], accel: 400, decel: 400, maxSpeed: 50 },
   },
   rotation: {
-    left: { keys: [","], accel: 3, decel: 3, maxSpeed: 1 },
-    right: { keys: ["."], accel: 3, decel: 3, maxSpeed: 1 },
+    left: { keys: [","], accel: 6, decel: 6, maxSpeed: 1 },
+    right: { keys: ["."], accel: 6, decel: 6, maxSpeed: 1 },
   },
   zoom: {
     increaseKeys: ["'"],
@@ -53,7 +53,7 @@ type Options = typeof defaultOptions;
 
 export const makeController3d = function (options: Partial<Options> = {}) {
   const opt = { ...defaultOptions, ...options };
-  
+
   const states = {
     keys: {
       forward: false,
@@ -147,19 +147,22 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       } else {
         // Decelerate
         if (states.zoom.speed > 0) {
-          states.zoom.speed = Math.max(0, states.zoom.speed - opt.zoom.decel * diffTime);
+          states.zoom.speed = Math.max(
+            0,
+            states.zoom.speed - opt.zoom.decel * diffTime
+          );
         } else if (states.zoom.speed < 0) {
-          states.zoom.speed = Math.min(0, states.zoom.speed + opt.zoom.decel * diffTime);
+          states.zoom.speed = Math.min(
+            0,
+            states.zoom.speed + opt.zoom.decel * diffTime
+          );
         }
       }
 
       // Apply zoom (inverse relationship: positive speed reduces FOV for zoom in)
       this.fov = Math.max(
         opt.camera.minFov,
-        Math.min(
-          opt.camera.maxFov,
-          this.fov - states.zoom.speed * diffTime
-        )
+        Math.min(opt.camera.maxFov, this.fov - states.zoom.speed * diffTime)
       );
 
       // Update rotation speeds
@@ -175,7 +178,8 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       );
 
       // Apply rotation
-      const netRotationSpeed = states.rotation.right.speed - states.rotation.left.speed;
+      const netRotationSpeed =
+        states.rotation.right.speed - states.rotation.left.speed;
       if (Math.abs(netRotationSpeed) > 1e-6) {
         rotateAroundLook(netRotationSpeed * diffTime);
       }
@@ -217,7 +221,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       if (states.dragging.isDragging) {
         const deltaX = states.dragging.current.x - states.dragging.start.x;
         const deltaY = states.dragging.current.y - states.dragging.start.y;
-        
+
         const panSpeed = 0.2;
 
         // Horizontal drag: move along camera right (flipped)
@@ -236,11 +240,15 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       }
 
       // Apply movement with net speeds
-      const netForwardSpeed = states.movement.forward.speed - states.movement.backward.speed;
-      const netRightSpeed = states.movement.right.speed - states.movement.left.speed;
+      const netForwardSpeed =
+        states.movement.forward.speed - states.movement.backward.speed;
+      const netRightSpeed =
+        states.movement.right.speed - states.movement.left.speed;
 
-      this.position[0] += (forwardX * netForwardSpeed + rightX * netRightSpeed) * diffTime;
-      this.position[2] += (forwardZ * netForwardSpeed + rightZ * netRightSpeed) * diffTime;
+      this.position[0] +=
+        (forwardX * netForwardSpeed + rightX * netRightSpeed) * diffTime;
+      this.position[2] +=
+        (forwardZ * netForwardSpeed + rightZ * netRightSpeed) * diffTime;
     },
     get paused() {
       return false; // Can extend later if needed
@@ -347,7 +355,9 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       document.dispatchEvent(new CustomEvent(opt.basicKeys.mode.eventName));
     }
     if (opt.basicKeys.fullscreen.toggleKeys.includes(key)) {
-      document.dispatchEvent(new CustomEvent(opt.basicKeys.fullscreen.eventName));
+      document.dispatchEvent(
+        new CustomEvent(opt.basicKeys.fullscreen.eventName)
+      );
     }
   }
 
@@ -442,7 +452,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     } else if (states.touchRotate.isRotating && e.touches.length === 2) {
       e.preventDefault();
       const [t1, t2] = e.touches as unknown as [Touch, Touch];
-      const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+      const angle = Math.atan2(
+        t2.clientY - t1.clientY,
+        t2.clientX - t1.clientX
+      );
       const deltaAngle = states.touchRotate.lastAngle - angle; // flipped direction
 
       rotateAroundLook(deltaAngle);
@@ -453,7 +466,11 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       const dyp = t2.clientY - t1.clientY;
       const dist = Math.hypot(dxp, dyp);
       const pinchEps = 1e-4;
-      if (states.pinch.isPinching && dist > pinchEps && states.pinch.startDistance > pinchEps) {
+      if (
+        states.pinch.isPinching &&
+        dist > pinchEps &&
+        states.pinch.startDistance > pinchEps
+      ) {
         const ratio = dist / states.pinch.startDistance;
         const safeRatio = Math.max(pinchEps, ratio);
         const newFov = controller.value.fov / safeRatio;

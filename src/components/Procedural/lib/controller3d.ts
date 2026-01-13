@@ -73,6 +73,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       start: { x: 0, y: 0 },
       current: { x: 0, y: 0 },
     },
+    touchRotate: {
+      isRotating: false,
+      lastAngle: 0,
+    },
   };
 
   let bindElement: HTMLElement;
@@ -295,9 +299,18 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   function onTouchStart(e: TouchEvent) {
     if (e.touches.length === 1) {
       const touch = e.touches[0];
+      states.touchRotate.isRotating = false;
       states.dragging.isDragging = true;
       states.dragging.start = { x: touch.clientX, y: touch.clientY };
       states.dragging.current = { x: touch.clientX, y: touch.clientY };
+    } else if (e.touches.length === 2) {
+      const [t1, t2] = e.touches as unknown as [Touch, Touch];
+      states.dragging.isDragging = false;
+      states.touchRotate.isRotating = true;
+      states.touchRotate.lastAngle = Math.atan2(
+        t2.clientY - t1.clientY,
+        t2.clientX - t1.clientX
+      );
     }
   }
 
@@ -305,11 +318,65 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     if (states.dragging.isDragging && e.touches.length === 1) {
       const touch = e.touches[0];
       states.dragging.current = { x: touch.clientX, y: touch.clientY };
+    } else if (states.touchRotate.isRotating && e.touches.length === 2) {
+      const [t1, t2] = e.touches as unknown as [Touch, Touch];
+      const angle = Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+      const deltaAngle = states.touchRotate.lastAngle - angle; // flipped direction
+
+      // Rotate camera around the point on the plane the camera is looking at (y = 0 plane)
+      const cam = controller.value.position;
+      const yaw = controller.value.yaw;
+      const pitch = controller.value.pitch;
+
+      const cosYaw = Math.cos(yaw);
+      const sinYaw = Math.sin(yaw);
+      const cosPitch = Math.cos(pitch);
+      const sinPitch = Math.sin(pitch);
+
+      // Forward vector
+      const fwdX = sinYaw * cosPitch;
+      const fwdY = -sinPitch;
+      const fwdZ = -cosYaw * cosPitch;
+
+      // Intersection of ray (cam + t*fwd) with plane y=0
+      // Use a stable forward distance when looking nearly parallel to the plane
+      let t: number;
+      const eps = 1e-4;
+      if (Math.abs(fwdY) < eps) {
+        t = 200; // looking parallel; pick a far forward point
+      } else {
+        t = -cam[1] / fwdY;
+      }
+
+      // If intersection is behind the camera, push it forward instead of rotating in place
+      if (t < 0) {
+        t = Math.abs(cam[1]) / Math.max(eps, Math.abs(fwdY));
+      }
+
+      // Clamp to avoid extreme distances
+      t = Math.min(Math.max(t, 1), 2000);
+      const centerX = cam[0] + fwdX * t;
+      const centerZ = cam[2] + fwdZ * t;
+
+      // Rotate position around center on Y axis by deltaAngle
+      const dx = cam[0] - centerX;
+      const dz = cam[2] - centerZ;
+      const cosA = Math.cos(deltaAngle);
+      const sinA = Math.sin(deltaAngle);
+      const rx = dx * cosA - dz * sinA;
+      const rz = dx * sinA + dz * cosA;
+      controller.value.position[0] = centerX + rx;
+      controller.value.position[2] = centerZ + rz;
+
+      // Update yaw to match rotation
+      controller.value.yaw += deltaAngle;
+      states.touchRotate.lastAngle = angle;
     }
   }
 
   function onTouchEnd() {
     states.dragging.isDragging = false;
+    states.touchRotate.isRotating = false;
   }
 
   return controller;

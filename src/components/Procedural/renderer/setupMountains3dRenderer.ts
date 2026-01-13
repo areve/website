@@ -116,6 +116,7 @@ export async function setupMountains3dRenderer(
       struct VertexOutput {
         @builtin(position) position: vec4f,
         @location(0) worldPos: vec3f,
+        @location(1) worldXZ: vec2f,
       }
 
       fn noise(coord: vec4<f32>) -> f32 {
@@ -180,66 +181,64 @@ export async function setupMountains3dRenderer(
           vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1);
       }
 
-      @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
-        let x = pos.x * matrices.scale;
-        let y = pos.z * matrices.scale;
-        let z = matrices.z;
-        
-        // Calculate terrain height using the same multi-layer system
+      // Elevation combination shared by vertex & fragment
+      fn combinedElevation(x: f32, y: f32, z: f32) -> f32 {
         let layer1 = openSimplex3d(x * 0.005, y * 0.005, z);
         let layer3 = openSimplex3d(x * 0.05, y * 0.05, z);
         let layer5 = openSimplex3d(x * 0.02, y * 0.02, z);
         let layer6 = openSimplex3d(x * 0.3, y * 0.3, z);
-        
         let oceanMask = layer1;
         let baseHeight = layer3 * 0.35 + layer6 * 0.08;
-        
         var lakeEffect = 0.0;
         if (oceanMask > 0.1) {
           lakeEffect = min(layer5 * 0.08, 0.0);
         }
-        
         let rawHeight = oceanMask * 0.98 + baseHeight + lakeEffect - 0.35;
-        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.85);
-        
-        // Map elevation to height with distinct levels
+        return sign(rawHeight) * pow(abs(rawHeight), 0.85);
+      }
+
+      fn terrainHeightFromCombined(combined: f32) -> f32 {
         var height: f32;
         if (combined < 0.42) {
-          // Deep water - almost flat with slight variation
           height = -2.0 + combined * 0.5;
         } else if (combined < 0.455) {
-          // Shallow water - slight slope up
           let t = (combined - 0.42) / 0.035;
           height = mix(-1.5, -0.5, t);
         } else if (combined < 0.465) {
-          // Beach - gentle incline
           let t = (combined - 0.455) / 0.01;
           height = mix(-0.5, 0.0, t);
         } else if (combined < 0.58) {
-          // Lowlands/plains - elevated
           let t = (combined - 0.465) / 0.115;
           height = mix(0.0, 5.0, t);
         } else if (combined < 0.68) {
-          // Hills/forest - more elevated
           let t = (combined - 0.58) / 0.10;
           height = mix(5.0, 10.0, t);
         } else if (combined < 0.74) {
-          // Mountains - highly elevated
           let t = (combined - 0.68) / 0.06;
-          height = mix(10.0, 16.0, t * t); // Square for steeper mountains
+          height = mix(10.0, 16.0, t * t);
         } else {
-          // Snow peaks - highest
           let t = (combined - 0.74) / 0.26;
           height = mix(16.0, 20.0, t);
         }
-        
+        return height;
+      }
+
+      fn terrainHeightAtPlaneXZ(planeX: f32, planeZ: f32, zAnim: f32) -> f32 {
+        let x = planeX * matrices.scale;
+        let y = planeZ * matrices.scale;
+        let combined = combinedElevation(x, y, zAnim);
+        return terrainHeightFromCombined(combined);
+      }
+
+      @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
+        let height = terrainHeightAtPlaneXZ(pos.x, pos.z, matrices.z);
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
         let clipPos = matrices.projection * viewPos;
-        
         var output: VertexOutput;
         output.position = clipPos;
         output.worldPos = pos;
+        output.worldXZ = vec2f(pos.x, pos.z);
         return output;
       }
 
@@ -366,8 +365,24 @@ export async function setupMountains3dRenderer(
           let t = (combined - 0.74) / 0.26;
           color = mix(vec3f(0.88, 0.90, 0.92), vec3f(0.95, 0.97, 0.98), t);
         }
+        // Lighting: compute normal via height field finite differences
+        let dx: f32 = 0.5;
+        let dz: f32 = 0.5;
+        let h = terrainHeightAtPlaneXZ(input.worldXZ.x, input.worldXZ.y, z);
+        let hx = terrainHeightAtPlaneXZ(input.worldXZ.x + dx, input.worldXZ.y, z);
+        let hz = terrainHeightAtPlaneXZ(input.worldXZ.x, input.worldXZ.y + dz, z);
+        let p = vec3f(input.worldXZ.x, h, input.worldXZ.y);
+        let px = vec3f(input.worldXZ.x + dx, hx, input.worldXZ.y);
+        let pz = vec3f(input.worldXZ.x, hz, input.worldXZ.y + dz);
+        let n = normalize(cross(pz - p, px - p));
+        // Sun direction (fixed for now): slightly from above and one side
+        let sunDir = normalize(vec3f(0.6, 0.8, 0.2));
+        let ambient: f32 = 0.35;
+        let diffuse = max(dot(n, sunDir), 0.0);
+        let lighting = clamp(ambient + diffuse, 0.0, 1.2);
+        let litColor = color * lighting;
         
-        return vec4f(color, 1.0);
+        return vec4f(litColor, 1.0);
       }
     `,
   });

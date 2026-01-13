@@ -345,6 +345,8 @@ export async function setupMountains3DRenderer(
     if (e.key === ".") camera.yaw += rotationSpeed;
   });
 
+  let frameId = 0;
+
   const render = (time: DOMHighResTimeStamp) => {
     const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
@@ -397,14 +399,19 @@ export async function setupMountains3DRenderer(
 
     device.queue.submit([encoder.finish()]);
 
-    requestAnimationFrame(render);
+    frameId = requestAnimationFrame(render);
   };
 
-  requestAnimationFrame(render);
+  frameId = requestAnimationFrame(render);
 
   return {
     init: async () => {},
     update: async () => {},
+    cleanup: () => {
+      cancelAnimationFrame(frameId);
+      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keyup", handleKeyUp);
+    },
   };
 }
 

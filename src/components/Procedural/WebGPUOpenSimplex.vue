@@ -50,8 +50,15 @@
         <button @click="handleToggleFullscreen" type="button">
           Fullscreen
         </button>
-            <!-- Close button: hides controls overlay -->
-            <button class="controls-close" type="button" @click.stop="hideControls" aria-label="Hide controls">✕</button>
+        <!-- Close button: hides controls overlay -->
+        <button
+          class="controls-close"
+          type="button"
+          @click.stop="hideControls"
+          aria-label="Hide controls"
+        >
+          ✕
+        </button>
       </div>
     </div>
   </div>
@@ -167,6 +174,7 @@ const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);
   const next = availableModes[(idx + 1) % availableModes.length];
   shaderMode.value = next;
+
   await initializeCanvas();
 };
 
@@ -186,6 +194,17 @@ const initializeCanvas = async () => {
   const isFs = !!document.fullscreenElement;
   const newWidth = isFs ? window.innerWidth : width;
   const newHeight = isFs ? window.innerHeight : height;
+
+  // Cancel the external render loop before reinitializing
+  if (frameId) {
+    cancelAnimationFrame(frameId);
+    frameId = 0;
+  }
+
+  // Cleanup old renderer if it has a cleanup method
+  if (renderer && typeof renderer.cleanup === "function") {
+    renderer.cleanup();
+  }
 
   if (shaderMode.value === "mandelbrot") {
     renderer = await setupMandelbrotRenderer(canvas.value, {
@@ -225,27 +244,31 @@ const initializeCanvas = async () => {
     });
   }
   await renderer.init();
+
+  // Start external render loop only for non-mountains3d modes
+  if (renderer && typeof renderer.cleanup !== "function") {
+    const render = async (time: DOMHighResTimeStamp) => {
+      if (!controller.value.paused) {
+        await renderer.update(time, controller.value);
+        controller.value.update();
+        stats.value.update();
+      }
+      frameId = requestAnimationFrame(render);
+    };
+    frameId = requestAnimationFrame(render);
+  }
 };
 
 onMounted(async () => {
   controller.value.mount(canvas.value);
   await initializeCanvas();
-  await renderer.update(0, controller.value);
+  if (renderer && typeof renderer.cleanup !== "function") {
+    await renderer.update(0, controller.value);
+  }
 
   document.addEventListener("changeMode", handleChangeMode);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
   document.addEventListener("fullscreenchange", initializeCanvas);
-
-  const render = async (time: DOMHighResTimeStamp) => {
-    if (!controller.value.paused) {
-      await renderer.update(time, controller.value);
-      controller.value.update();
-      stats.value.update();
-    }
-    frameId = requestAnimationFrame(render);
-  };
-
-  frameId = requestAnimationFrame(render);
 });
 
 onUnmounted(() => {
@@ -290,8 +313,8 @@ onUnmounted(() => {
   gap: 12px;
   /* reserve space on the right so the close button does not overlap the
      fullscreen button (close sits in the overlay's top-right corner) */
-  padding: 0.5rem  calc(0.75rem + 44px) 0.5rem 0.75rem;
-  background: rgba(0,0,0,0.45);
+  padding: 0.5rem calc(0.75rem + 44px) 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
   border-radius: 8px;
   z-index: 25;
@@ -313,7 +336,7 @@ onUnmounted(() => {
 .controls-close {
   background: transparent;
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -326,7 +349,9 @@ onUnmounted(() => {
   top: 8px;
   right: 8px;
 }
-.controls-close:active { transform: scale(0.96); }
+.controls-close:active {
+  transform: scale(0.96);
+}
 
 /* Hidden (non-fullscreen): fade only */
 .controls-hidden {
@@ -340,7 +365,8 @@ onUnmounted(() => {
 .canvas-container:-webkit-full-screen .controls-overlay,
 .canvas-container:-moz-full-screen .controls-overlay {
   transform: translateY(0);
-  transition: transform 260ms cubic-bezier(.22,.9,.32,1), opacity 200ms ease;
+  transition: transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
+    opacity 200ms ease;
 }
 .canvas-container:fullscreen .controls-hidden,
 .canvas-container:-webkit-full-screen .controls-hidden,
@@ -368,7 +394,7 @@ button.compass {
 }
 .compass:focus {
   box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
-} 
+}
 
 .compass-pointer {
   width: 3em;

@@ -200,10 +200,10 @@ export async function setupMountains3dRenderer(
       fn terrainHeightFromCombined(combined: f32) -> f32 {
         var height: f32;
         if (combined < 0.42) {
-          height = -2.0 + combined * 0.5;
+          height = -0.0 + combined * 0.0;
         } else if (combined < 0.455) {
           let t = (combined - 0.42) / 0.035;
-          height = mix(-1.5, -0.5, t);
+          height = mix(-0.0, -0.0, t);
         } else if (combined < 0.465) {
           let t = (combined - 0.455) / 0.01;
           height = mix(-0.5, 0.0, t);
@@ -218,7 +218,7 @@ export async function setupMountains3dRenderer(
           height = mix(10.0, 16.0, t * t);
         } else {
           let t = (combined - 0.74) / 0.26;
-          height = mix(16.0, 20.0, t);
+          height = mix(16.0, 22.0, t);
         }
         return height;
       }

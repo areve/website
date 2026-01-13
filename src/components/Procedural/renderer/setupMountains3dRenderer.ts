@@ -185,8 +185,25 @@ export async function setupMountains3dRenderer(
         let y = pos.z * matrices.scale;
         let z = matrices.z;
         
-        let noiseVal = openSimplex3d(x, y, z);
-        let height = noiseVal * 10.0;
+        // Calculate terrain height using the same multi-layer system
+        let layer1 = openSimplex3d(x * 0.005, y * 0.005, z);
+        let layer3 = openSimplex3d(x * 0.05, y * 0.05, z);
+        let layer5 = openSimplex3d(x * 0.02, y * 0.02, z);
+        let layer6 = openSimplex3d(x * 0.3, y * 0.3, z);
+        
+        let oceanMask = layer1;
+        let baseHeight = layer3 * 0.35 + layer6 * 0.08;
+        
+        var lakeEffect = 0.0;
+        if (oceanMask > 0.1) {
+          lakeEffect = min(layer5 * 0.08, 0.0);
+        }
+        
+        let rawHeight = oceanMask * 0.98 + baseHeight + lakeEffect - 0.35;
+        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.85);
+        
+        // Scale height for 3D view
+        let height = combined * 15.0;
         
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
@@ -404,8 +421,8 @@ export async function setupMountains3dRenderer(
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
-    matrixData[33] = 0.8; // scale
-    matrixData[34] = time * 0.0005; // z (animated)
+    matrixData[33] = 1.0; // scale
+    matrixData[34] = time * 0.0001; // z (animated)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

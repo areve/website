@@ -15,22 +15,35 @@ const defaultOptions = {
     minFov: Math.PI / 12, // Min zoom in (15 degrees)
     maxFov: Math.PI / 2, // Max zoom out (90 degrees)
   },
-  movement: {
-    forward: { keys: ["w"], accel: 400, decel: 400, maxSpeed: 50 },
-    backward: { keys: ["s"], accel: 400, decel: 400, maxSpeed: 50 },
-    left: { keys: ["a"], accel: 400, decel: 400, maxSpeed: 50 },
-    right: { keys: ["d"], accel: 400, decel: 400, maxSpeed: 50 },
-  },
-  rotation: {
-    left: { keys: [","], accel: 6, decel: 6, maxSpeed: 1 },
-    right: { keys: ["."], accel: 6, decel: 6, maxSpeed: 1 },
-  },
-  zoom: {
-    increaseKeys: ["'"],
-    decreaseKeys: ["/"],
-    accel: 5,
-    decel: 5,
-    maxSpeed: 2,
+  acceleratorKeys: {
+    moveForward: {
+      increaseKeys: ["w"],
+      decreaseKeys: ["s"],
+      accel: 400,
+      decel: 400,
+      maxSpeed: 50,
+    },
+    moveRight: {
+      increaseKeys: ["d"],
+      decreaseKeys: ["a"],
+      accel: 400,
+      decel: 400,
+      maxSpeed: 50,
+    },
+    rotation: {
+      increaseKeys: ["."],
+      decreaseKeys: [","],
+      accel: 6,
+      decel: 6,
+      maxSpeed: 1,
+    },
+    zoom: {
+      increaseKeys: ["'"],
+      decreaseKeys: ["/"],
+      accel: 6,
+      decel: 6,
+      maxSpeed: 1,
+    },
   },
   basicKeys: {
     pause: {
@@ -55,28 +68,13 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   const opt = { ...defaultOptions, ...options };
 
   const states = {
-    keys: {
-      forward: false,
-      backward: false,
-      left: false,
-      right: false,
-      rotateLeft: false,
-      rotateRight: false,
-    },
-    movement: {
-      forward: { increasing: false, decreasing: false, speed: 0 },
-      backward: { increasing: false, decreasing: false, speed: 0 },
-      left: { increasing: false, decreasing: false, speed: 0 },
-      right: { increasing: false, decreasing: false, speed: 0 },
-    },
-    rotation: {
-      left: { increasing: false, decreasing: false, speed: 0 },
-      right: { increasing: false, decreasing: false, speed: 0 },
-    },
-    zoom: {
-      increasing: false,
-      decreasing: false,
-      speed: 0,
+    keyboard: {
+      buttons: {
+        moveForward: { increasing: false, decreasing: false, speed: 0 },
+        moveRight: { increasing: false, decreasing: false, speed: 0 },
+        rotation: { increasing: false, decreasing: false, speed: 0 },
+        zoom: { increasing: false, decreasing: false, speed: 0 },
+      },
     },
     dragging: {
       isDragging: false,
@@ -133,76 +131,41 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       const diffTime = now - lastTime;
       lastTime = now;
 
-      // Calculate zoom speed with acceleration/deceleration
-      if (states.zoom.increasing) {
-        states.zoom.speed = Math.min(
-          states.zoom.speed + opt.zoom.accel * diffTime,
-          opt.zoom.maxSpeed
-        );
-      } else if (states.zoom.decreasing) {
-        states.zoom.speed = Math.max(
-          states.zoom.speed - opt.zoom.accel * diffTime,
-          -opt.zoom.maxSpeed
-        );
-      } else {
-        // Decelerate
-        if (states.zoom.speed > 0) {
-          states.zoom.speed = Math.max(
-            0,
-            states.zoom.speed - opt.zoom.decel * diffTime
-          );
-        } else if (states.zoom.speed < 0) {
-          states.zoom.speed = Math.min(
-            0,
-            states.zoom.speed + opt.zoom.decel * diffTime
-          );
-        }
-      }
+      // Update zoom speed
+      states.keyboard.buttons.zoom.speed = updateSpeed(
+        opt.acceleratorKeys.zoom,
+        states.keyboard.buttons.zoom,
+        diffTime
+      );
 
       // Apply zoom (inverse relationship: positive speed reduces FOV for zoom in)
       this.fov = Math.max(
         opt.camera.minFov,
-        Math.min(opt.camera.maxFov, this.fov - states.zoom.speed * diffTime)
+        Math.min(opt.camera.maxFov, this.fov - states.keyboard.buttons.zoom.speed * diffTime)
       );
 
-      // Update rotation speeds
-      states.rotation.left.speed = updateSpeed(
-        opt.rotation.left,
-        states.rotation.left,
-        diffTime
-      );
-      states.rotation.right.speed = updateSpeed(
-        opt.rotation.right,
-        states.rotation.right,
+      // Update rotation speed
+      states.keyboard.buttons.rotation.speed = updateSpeed(
+        opt.acceleratorKeys.rotation,
+        states.keyboard.buttons.rotation,
         diffTime
       );
 
       // Apply rotation
-      const netRotationSpeed =
-        states.rotation.right.speed - states.rotation.left.speed;
-      if (Math.abs(netRotationSpeed) > 1e-6) {
-        rotateAroundLook(netRotationSpeed * diffTime);
+      const rotationSpeed = states.keyboard.buttons.rotation.speed;
+      if (Math.abs(rotationSpeed) > 1e-6) {
+        rotateAroundLook(rotationSpeed * diffTime);
       }
 
       // Update movement speeds
-      states.movement.forward.speed = updateSpeed(
-        opt.movement.forward,
-        states.movement.forward,
+      states.keyboard.buttons.moveForward.speed = updateSpeed(
+        opt.acceleratorKeys.moveForward,
+        states.keyboard.buttons.moveForward,
         diffTime
       );
-      states.movement.backward.speed = updateSpeed(
-        opt.movement.backward,
-        states.movement.backward,
-        diffTime
-      );
-      states.movement.left.speed = updateSpeed(
-        opt.movement.left,
-        states.movement.left,
-        diffTime
-      );
-      states.movement.right.speed = updateSpeed(
-        opt.movement.right,
-        states.movement.right,
+      states.keyboard.buttons.moveRight.speed = updateSpeed(
+        opt.acceleratorKeys.moveRight,
+        states.keyboard.buttons.moveRight,
         diffTime
       );
 
@@ -239,16 +202,14 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         states.dragging.start = { ...states.dragging.current };
       }
 
-      // Apply movement with net speeds
-      const netForwardSpeed =
-        states.movement.forward.speed - states.movement.backward.speed;
-      const netRightSpeed =
-        states.movement.right.speed - states.movement.left.speed;
+      // Apply movement
+      const forwardSpeed = states.keyboard.buttons.moveForward.speed;
+      const rightSpeed = states.keyboard.buttons.moveRight.speed;
 
       this.position[0] +=
-        (forwardX * netForwardSpeed + rightX * netRightSpeed) * diffTime;
+        (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
       this.position[2] +=
-        (forwardZ * netForwardSpeed + rightZ * netRightSpeed) * diffTime;
+        (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
     },
     get paused() {
       return false; // Can extend later if needed
@@ -317,34 +278,14 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   function onKeyDown(e: KeyboardEvent) {
     const key = e.key.toLowerCase();
 
-    // Movement keys
-    if (opt.movement.forward.keys.includes(key)) {
-      states.movement.forward.increasing = true;
-    }
-    if (opt.movement.backward.keys.includes(key)) {
-      states.movement.backward.increasing = true;
-    }
-    if (opt.movement.left.keys.includes(key)) {
-      states.movement.left.increasing = true;
-    }
-    if (opt.movement.right.keys.includes(key)) {
-      states.movement.right.increasing = true;
-    }
-
-    // Rotation keys
-    if (opt.rotation.left.keys.includes(key)) {
-      states.rotation.left.increasing = true;
-    }
-    if (opt.rotation.right.keys.includes(key)) {
-      states.rotation.right.increasing = true;
-    }
-
-    // Zoom keys
-    if (opt.zoom.increaseKeys.includes(key)) {
-      states.zoom.increasing = true;
-    }
-    if (opt.zoom.decreaseKeys.includes(key)) {
-      states.zoom.decreasing = true;
+    // Handle accelerator keys
+    for (const k in opt.acceleratorKeys) {
+      const { increaseKeys, decreaseKeys } =
+        opt.acceleratorKeys[k as keyof typeof opt.acceleratorKeys];
+      const state =
+        states.keyboard.buttons[k as keyof typeof states.keyboard.buttons];
+      if (increaseKeys.includes(key)) state.increasing = true;
+      if (decreaseKeys.includes(key)) state.decreasing = true;
     }
 
     // Basic toggle keys
@@ -364,34 +305,14 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   function onKeyUp(e: KeyboardEvent) {
     const key = e.key.toLowerCase();
 
-    // Movement keys
-    if (opt.movement.forward.keys.includes(key)) {
-      states.movement.forward.increasing = false;
-    }
-    if (opt.movement.backward.keys.includes(key)) {
-      states.movement.backward.increasing = false;
-    }
-    if (opt.movement.left.keys.includes(key)) {
-      states.movement.left.increasing = false;
-    }
-    if (opt.movement.right.keys.includes(key)) {
-      states.movement.right.increasing = false;
-    }
-
-    // Rotation keys
-    if (opt.rotation.left.keys.includes(key)) {
-      states.rotation.left.increasing = false;
-    }
-    if (opt.rotation.right.keys.includes(key)) {
-      states.rotation.right.increasing = false;
-    }
-
-    // Zoom keys
-    if (opt.zoom.increaseKeys.includes(key)) {
-      states.zoom.increasing = false;
-    }
-    if (opt.zoom.decreaseKeys.includes(key)) {
-      states.zoom.decreasing = false;
+    // Handle accelerator keys
+    for (const k in opt.acceleratorKeys) {
+      const { increaseKeys, decreaseKeys } =
+        opt.acceleratorKeys[k as keyof typeof opt.acceleratorKeys];
+      const state =
+        states.keyboard.buttons[k as keyof typeof states.keyboard.buttons];
+      if (increaseKeys.includes(key)) state.increasing = false;
+      if (decreaseKeys.includes(key)) state.decreasing = false;
     }
   }
 
@@ -413,12 +334,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
   function onWheel(e: WheelEvent) {
     e.preventDefault();
-    // Add wheel delta to zoom speed (negative deltaY = zoom in = positive speed)
-    const wheelInfluence = -e.deltaY * 0.01;
-    states.zoom.speed = Math.max(
-      -opt.zoom.maxSpeed,
-      Math.min(opt.zoom.maxSpeed, states.zoom.speed + wheelInfluence)
-    );
+    const maxSpeed = opt.acceleratorKeys.zoom.maxSpeed;
+    const zoomChange = e.deltaY * maxSpeed;
+    const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
+    states.keyboard.buttons.zoom.speed = Math.max(-maxSpeed, Math.min(maxSpeed, zoomDiff));
   }
 
   function onTouchStart(e: TouchEvent) {

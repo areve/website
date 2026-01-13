@@ -163,7 +163,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         const deltaY = states.dragging.current.y - states.dragging.start.y;
         
         // Pan camera horizontally (along right vector) - flipped
-        const panSpeed = 0.1;
+        const panSpeed = 0.2;
         this.position[0] -= rightX * deltaX * panSpeed;
         this.position[2] -= rightZ * deltaX * panSpeed;
         

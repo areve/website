@@ -186,7 +186,7 @@ export async function setupMountains3dRenderer(
         let z = matrices.z;
         
         let noiseVal = openSimplex3d(x, y, z);
-        let height = noiseVal * 5.0;
+        let height = noiseVal * 10.0;
         
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
@@ -286,7 +286,7 @@ export async function setupMountains3dRenderer(
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
-    matrixData[33] = 0.4; // scale
+    matrixData[33] = 0.2; // scale
     matrixData[34] = time * 0.0005; // z (animated)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 

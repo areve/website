@@ -93,6 +93,9 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement.addEventListener("mousedown", onMouseDown);
       bindGlobalElement.addEventListener("mousemove", onMouseMove);
       bindGlobalElement.addEventListener("mouseup", onMouseUp);
+      bindElement.addEventListener("touchstart", onTouchStart);
+      bindGlobalElement.addEventListener("touchmove", onTouchMove);
+      bindGlobalElement.addEventListener("touchend", onTouchEnd);
     },
     unmount() {
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
@@ -100,6 +103,9 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement.removeEventListener("mousedown", onMouseDown);
       bindGlobalElement.removeEventListener("mousemove", onMouseMove);
       bindGlobalElement.removeEventListener("mouseup", onMouseUp);
+      bindElement.removeEventListener("touchstart", onTouchStart);
+      bindGlobalElement.removeEventListener("touchmove", onTouchMove);
+      bindGlobalElement.removeEventListener("touchend", onTouchEnd);
     },
     update(deltaTime: number) {
       // Update zoom with acceleration/deceleration
@@ -283,6 +289,26 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   }
 
   function onMouseUp() {
+    states.dragging.isDragging = false;
+  }
+
+  function onTouchStart(e: TouchEvent) {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      states.dragging.isDragging = true;
+      states.dragging.start = { x: touch.clientX, y: touch.clientY };
+      states.dragging.current = { x: touch.clientX, y: touch.clientY };
+    }
+  }
+
+  function onTouchMove(e: TouchEvent) {
+    if (states.dragging.isDragging && e.touches.length === 1) {
+      const touch = e.touches[0];
+      states.dragging.current = { x: touch.clientX, y: touch.clientY };
+    }
+  }
+
+  function onTouchEnd() {
     states.dragging.isDragging = false;
   }
 

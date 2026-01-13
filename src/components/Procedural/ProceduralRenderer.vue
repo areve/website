@@ -84,14 +84,14 @@ const controller = makeController({
   },
 });
 
-const controller3D = makeController3d();
+const controller3d = makeController3d();
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
   // controller is a ref; use .value here in script
   // In mountains3d mode, show 3D yaw instead of 2D rotation
   const rad = shaderMode.value === 'mountains3d' 
-    ? controller3D.value.yaw ?? 0
+    ? controller3d.value.yaw ?? 0
     : controller.value.rotation ?? 0;
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
@@ -115,7 +115,7 @@ function resetRotation() {
 
   // Determine which controller to reset based on current mode
   const is3D = shaderMode.value === 'mountains3d';
-  const start = is3D ? (controller3D.value.yaw ?? 0) : (controller.value.rotation ?? 0);
+  const start = is3D ? (controller3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
   // shortest delta to zero
   const delta = normalizeAngle(0 - start);
   const duration = 220; // ms
@@ -131,7 +131,7 @@ function resetRotation() {
     if (is3D) {
       // Use rotateAroundLook for incremental rotation
       const deltaStep = newAngle - lastAngle;
-      controller3D.value.rotateAroundLook(deltaStep);
+      controller3d.value.rotateAroundLook(deltaStep);
       lastAngle = newAngle;
     } else {
       controller.value.rotation = newAngle;
@@ -141,8 +141,8 @@ function resetRotation() {
     } else {
       if (is3D) {
         // Final adjustment to ensure we're exactly at 0
-        const finalDelta = 0 - controller3D.value.yaw;
-        controller3D.value.rotateAroundLook(finalDelta);
+        const finalDelta = 0 - controller3d.value.yaw;
+        controller3d.value.rotateAroundLook(finalDelta);
       } else {
         controller.value.rotation = 0;
       }
@@ -239,7 +239,7 @@ const initializeCanvas = async () => {
       width: newWidth,
       height: newHeight,
       seed,
-    }, controller3D);
+    }, controller3d);
   } else {
     renderer = await setupOpenSimplexRenderer(canvas.value, {
       width: newWidth,
@@ -252,7 +252,7 @@ const initializeCanvas = async () => {
 
 onMounted(async () => {
   controller.value.mount(canvas.value);
-  controller3D.value.mount(canvas.value);
+  controller3d.value.mount(canvas.value);
   await initializeCanvas();
   await renderer.update(0, controller.value);
 
@@ -282,7 +282,7 @@ onUnmounted(() => {
     _rotationAnim = null;
   }
   controller.value.unmount();
-  controller3D.value.unmount();
+  controller3d.value.unmount();
 });
 </script>
 

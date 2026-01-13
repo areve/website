@@ -11,6 +11,9 @@ const defaultOptions = {
     initialPosition: [0, 25, 40] as [number, number, number],
     initialYaw: 0,
     initialPitch: -0.6,
+    initialFov: Math.PI / 4, // Default FOV (45 degrees)
+    minFov: Math.PI / 12, // Min zoom in (15 degrees)
+    maxFov: Math.PI / 2, // Max zoom out (90 degrees)
   },
   movement: {
     forward: { keys: ["w"], speed: 0.05 },
@@ -21,6 +24,13 @@ const defaultOptions = {
   rotation: {
     left: { keys: [","], speed: 0.02 },
     right: { keys: ["."], speed: 0.02 },
+  },
+  zoom: {
+    increaseKeys: ["'"],
+    decreaseKeys: ["/"],
+    accel: 5,
+    decel: 5,
+    maxSpeed: 2,
   },
   basicKeys: {
     pause: {
@@ -53,16 +63,22 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       rotateLeft: false,
       rotateRight: false,
     },
+    zoom: {
+      increasing: false,
+      decreasing: false,
+      speed: 0,
+    },
   };
 
   let bindElement: HTMLElement;
   let bindGlobalElement: Document;
-  let lastTime = performance.now();
+  let lastTime = performance.now() / 1000;
 
   const controller = ref({
     position: [...opt.camera.initialPosition] as [number, number, number],
     yaw: opt.camera.initialYaw,
     pitch: opt.camera.initialPitch,
+    fov: opt.camera.initialFov,
 
     mount(element: HTMLElement) {
       bindGlobalElement = document;
@@ -75,6 +91,40 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
     },
     update(deltaTime: number) {
+      // Update zoom with acceleration/deceleration
+      const now = performance.now() / 1000;
+      const diffTime = now - lastTime;
+      lastTime = now;
+
+      // Calculate zoom speed with acceleration/deceleration
+      if (states.zoom.increasing) {
+        states.zoom.speed = Math.min(
+          states.zoom.speed + opt.zoom.accel * diffTime,
+          opt.zoom.maxSpeed
+        );
+      } else if (states.zoom.decreasing) {
+        states.zoom.speed = Math.max(
+          states.zoom.speed - opt.zoom.accel * diffTime,
+          -opt.zoom.maxSpeed
+        );
+      } else {
+        // Decelerate
+        if (states.zoom.speed > 0) {
+          states.zoom.speed = Math.max(0, states.zoom.speed - opt.zoom.decel * diffTime);
+        } else if (states.zoom.speed < 0) {
+          states.zoom.speed = Math.min(0, states.zoom.speed + opt.zoom.decel * diffTime);
+        }
+      }
+
+      // Apply zoom (inverse relationship: positive speed reduces FOV for zoom in)
+      this.fov = Math.max(
+        opt.camera.minFov,
+        Math.min(
+          opt.camera.maxFov,
+          this.fov - states.zoom.speed * diffTime
+        )
+      );
+
       // Apply rotation
       if (states.keys.rotateLeft) this.yaw -= opt.rotation.left.speed;
       if (states.keys.rotateRight) this.yaw += opt.rotation.right.speed;
@@ -138,6 +188,14 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       states.keys.rotateRight = true;
     }
 
+    // Zoom keys
+    if (opt.zoom.increaseKeys.includes(key)) {
+      states.zoom.increasing = true;
+    }
+    if (opt.zoom.decreaseKeys.includes(key)) {
+      states.zoom.decreasing = true;
+    }
+
     // Basic toggle keys
     if (opt.basicKeys.pause.toggleKeys.includes(key)) {
       document.dispatchEvent(new CustomEvent(opt.basicKeys.pause.eventName));
@@ -173,6 +231,14 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     }
     if (opt.rotation.right.keys.includes(key)) {
       states.keys.rotateRight = false;
+    }
+
+    // Zoom keys
+    if (opt.zoom.increaseKeys.includes(key)) {
+      states.zoom.increasing = false;
+    }
+    if (opt.zoom.decreaseKeys.includes(key)) {
+      states.zoom.decreasing = false;
     }
   }
 

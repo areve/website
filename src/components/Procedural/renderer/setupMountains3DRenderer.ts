@@ -272,8 +272,9 @@ export async function setupMountains3dRenderer(
       pitch: controller?.value?.pitch ?? -0.6,
     };
 
+    const fov = controller?.value?.fov ?? Math.PI / 4;
     const projMatrix = createPerspectiveMatrix(
-      Math.PI / 4,
+      fov,
       options.width / options.height,
       0.1,
       1000

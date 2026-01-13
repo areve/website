@@ -142,7 +142,8 @@ function createPlaneGeometry(
 
 export async function setupMountains3DRenderer(
   canvas: HTMLCanvasElement,
-  options: { width: number; height: number }
+  options: { width: number; height: number },
+  controller?: any
 ) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice();
@@ -274,76 +275,49 @@ export async function setupMountains3DRenderer(
     pitch: -0.6,
   };
 
-  const keys: KeyState = {
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-  };
-
   const cameraSpeed = 0.05;
-  const rotationSpeed = 0.02;
-
-  // Keyboard event handlers
-  const handleKeyDown = (e: KeyboardEvent) => {
-    const key = e.key.toLowerCase();
-    if (key === "w") keys.w = true;
-    if (key === "a") keys.a = true;
-    if (key === "s") keys.s = true;
-    if (key === "d") keys.d = true;
-  };
-
-  const handleKeyUp = (e: KeyboardEvent) => {
-    const key = e.key.toLowerCase();
-    if (key === "w") keys.w = false;
-    if (key === "a") keys.a = false;
-    if (key === "s") keys.s = false;
-    if (key === "d") keys.d = false;
-  };
-
-  document.addEventListener("keydown", handleKeyDown);
-  document.addEventListener("keyup", handleKeyUp);
-
-  let lastTime = 0;
 
   const updateCamera = (deltaTime: number) => {
+    // Get input from 3D controller
+    const movement = controller?.value?.movement || { forward: 0, backward: 0, left: 0, right: 0 };
+    const rotationSpeed = controller?.value?.rotation || 0;
+
+    // Apply rotation
+    camera.yaw += rotationSpeed;
+
     // Calculate forward and right vectors from yaw and pitch
     const cosYaw = Math.cos(camera.yaw);
     const sinYaw = Math.sin(camera.yaw);
     const cosPitch = Math.cos(camera.pitch);
 
     const forwardX = sinYaw * cosPitch;
-    const forwardY = 0;
     const forwardZ = -cosYaw * cosPitch;
 
     const rightX = cosYaw;
     const rightZ = sinYaw;
 
-    const moveSpeed = cameraSpeed * deltaTime;
+    const speed = cameraSpeed * deltaTime;
 
-    if (keys.w) {
-      camera.position[0] += forwardX * moveSpeed;
-      camera.position[2] += forwardZ * moveSpeed;
+    // Apply movement
+    if (movement.forward) {
+      camera.position[0] += forwardX * speed;
+      camera.position[2] += forwardZ * speed;
     }
-    if (keys.s) {
-      camera.position[0] -= forwardX * moveSpeed;
-      camera.position[2] -= forwardZ * moveSpeed;
+    if (movement.backward) {
+      camera.position[0] -= forwardX * speed;
+      camera.position[2] -= forwardZ * speed;
     }
-    if (keys.a) {
-      camera.position[0] -= rightX * moveSpeed;
-      camera.position[2] -= rightZ * moveSpeed;
+    if (movement.left) {
+      camera.position[0] -= rightX * speed;
+      camera.position[2] -= rightZ * speed;
     }
-    if (keys.d) {
-      camera.position[0] += rightX * moveSpeed;
-      camera.position[2] += rightZ * moveSpeed;
+    if (movement.right) {
+      camera.position[0] += rightX * speed;
+      camera.position[2] += rightZ * speed;
     }
   };
 
-  // Add rotation handler for , and . keys
-  document.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key === ",") camera.yaw -= rotationSpeed;
-    if (e.key === ".") camera.yaw += rotationSpeed;
-  });
+  let lastTime = 0;
 
   const render = (time: DOMHighResTimeStamp) => {
     const deltaTime = lastTime ? time - lastTime : 0;
@@ -402,10 +376,6 @@ export async function setupMountains3DRenderer(
     init: async () => {},
     update: async (time: DOMHighResTimeStamp) => {
       render(time);
-    },
-    cleanup: () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("keyup", handleKeyUp);
     },
   };
 }

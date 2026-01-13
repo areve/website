@@ -61,6 +61,7 @@
 import { onMounted, onUnmounted, ref, computed } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
+import { makeController3D } from "./lib/controller3d";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
@@ -82,6 +83,8 @@ const controller = makeController({
     },
   },
 });
+
+const controller3D = makeController3D();
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
@@ -216,7 +219,7 @@ const initializeCanvas = async () => {
       width: newWidth,
       height: newHeight,
       seed,
-    });
+    }, controller3D);
   } else {
     renderer = await setupOpenSimplexRenderer(canvas.value, {
       width: newWidth,
@@ -229,6 +232,7 @@ const initializeCanvas = async () => {
 
 onMounted(async () => {
   controller.value.mount(canvas.value);
+  controller3D.value.mount(canvas.value);
   await initializeCanvas();
   await renderer.update(0, controller.value);
 
@@ -258,6 +262,7 @@ onUnmounted(() => {
     _rotationAnim = null;
   }
   controller.value.unmount();
+  controller3D.value.unmount();
 });
 </script>
 

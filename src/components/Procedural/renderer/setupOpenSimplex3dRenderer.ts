@@ -49,7 +49,7 @@ function createPlaneGeometry(
   };
 }
 
-export async function setupMountains3dRenderer(
+export async function setupOpenSimplex3dRenderer(
   canvas: HTMLCanvasElement,
   options: { width: number; height: number },
   controller?: any

@@ -37,7 +37,7 @@
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
             <option value="mountains">Mountains</option>
-            <option value="mountains3d">Mountains3D</option>
+            <option value="opensimplex3d">OpenSimplex 3D</option>
           </select>
         </label>
         <label class="mode-select">
@@ -67,7 +67,7 @@ import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
-import { setupMountains3dRenderer } from "./renderer/setupMountains3dRenderer";
+import { setupOpenSimplex3dRenderer } from "./renderer/setupOpenSimplex3dRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const container = ref<HTMLElement>(undefined!);
@@ -89,8 +89,8 @@ const controller3d = makeController3d();
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
   // controller is a ref; use .value here in script
-  // In mountains3d mode, show 3D yaw instead of 2D rotation
-  const rad = shaderMode.value === 'mountains3d' 
+  // In opensimplex3d mode, show 3D yaw instead of 2D rotation
+  const rad = shaderMode.value === 'opensimplex3d' 
     ? controller3d.value.yaw ?? 0
     : controller.value.rotation ?? 0;
   const deg = (-rad * 180) / Math.PI;
@@ -114,7 +114,7 @@ function resetRotation() {
   }
 
   // Determine which controller to reset based on current mode
-  const is3d = shaderMode.value === 'mountains3d';
+  const is3d = shaderMode.value === 'opensimplex3d';
   const start = is3d ? (controller3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
   // shortest delta to zero
   const delta = normalizeAngle(0 - start);
@@ -171,8 +171,8 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "mountains3d"
->("mountains3d");
+  "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d"
+>("opensimplex3d");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -183,7 +183,7 @@ const availableModes = [
   "mandelbrot",
   "worley",
   "mountains",
-  "mountains3d",
+  "opensimplex3d",
 ] as const;
 
 const handleChangeMode = async () => {
@@ -234,8 +234,8 @@ const initializeCanvas = async () => {
       height: newHeight,
       seed,
     });
-  } else if (shaderMode.value === "mountains3d") {
-    renderer = await setupMountains3dRenderer(canvas.value, {
+  } else if (shaderMode.value === "opensimplex3d") {
+    renderer = await setupOpenSimplex3dRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

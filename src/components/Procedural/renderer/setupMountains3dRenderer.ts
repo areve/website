@@ -190,7 +190,7 @@ export async function setupMountains3dRenderer(
         let layer6 = openSimplex3d(x * 0.2, y * 0.2, z);
         let oceanMask = layer1;
         // Reduce layer6 influence to soften bumpiness
-        let baseHeight = layer3 * 0.35 + layer6 * 0.03;
+        let baseHeight = layer3 * 0.35 + layer6 * 0.05;
         var lakeEffect = 0.0;
         if (oceanMask > 0.1) {
           lakeEffect = min(layer5 * 0.08, 0.0);
@@ -209,19 +209,23 @@ export async function setupMountains3dRenderer(
         } else if (combined < 0.455) {
           // Water: shallow coastal — continues rising towards shoreline
           let t = (combined - 0.42) / 0.035;
-          height = mix(-0.0, -0.0, t);
+          height = mix(-0.0, 0.1, t);
         } else if (combined < 0.465) {
           // Beach: gentle incline near shoreline
           let t = (combined - 0.455) / 0.01;
-          height = mix(-0.0, 0.5, t);
+          height = mix(0.1, 0.3, t);
+        } else if (combined < 0.55) {
+          // Beach to lowlands: continued gentle rise
+          let t = (combined - 0.465) / 0.085;
+          height = mix(0.3, 1.8, t);
         } else if (combined < 0.58) {
           // Plains/lowlands: gradually rising terrain
-          let t = (combined - 0.465) / 0.115;
-          height = mix(0.5, 3.0, t);
+          let t = (combined - 0.55) / 0.03;
+          height = mix(1.8, 5.0, t);
         } else if (combined < 0.68) {
           // Hills/forest: more elevated rolling hills
           let t = (combined - 0.58) / 0.10;
-          height = mix(3.0, 10.0, t);
+          height = mix(5.0, 10.0, t);
         } else if (combined < 0.74) {
           // Mountains: steeper elevation increase
           let t = (combined - 0.68) / 0.06;

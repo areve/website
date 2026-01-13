@@ -213,15 +213,15 @@ export async function setupMountains3dRenderer(
         } else if (combined < 0.465) {
           // Beach: gentle incline near shoreline
           let t = (combined - 0.455) / 0.01;
-          height = mix(-0.0, 1.0, t);
+          height = mix(-0.0, 0.5, t);
         } else if (combined < 0.58) {
           // Plains/lowlands: gradually rising terrain
           let t = (combined - 0.465) / 0.115;
-          height = mix(1.0, 5.0, t);
+          height = mix(0.5, 3.0, t);
         } else if (combined < 0.68) {
           // Hills/forest: more elevated rolling hills
           let t = (combined - 0.58) / 0.10;
-          height = mix(5.0, 10.0, t);
+          height = mix(3.0, 10.0, t);
         } else if (combined < 0.74) {
           // Mountains: steeper elevation increase
           let t = (combined - 0.68) / 0.06;

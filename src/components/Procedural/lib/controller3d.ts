@@ -16,14 +16,14 @@ const defaultOptions = {
     maxFov: Math.PI / 2, // Max zoom out (90 degrees)
   },
   movement: {
-    forward: { keys: ["w"], speed: 0.05 },
-    backward: { keys: ["s"], speed: 0.05 },
-    left: { keys: ["a"], speed: 0.05 },
-    right: { keys: ["d"], speed: 0.05 },
+    forward: { keys: ["w"], accel: 100, decel: 100, maxSpeed: 50 },
+    backward: { keys: ["s"], accel: 100, decel: 100, maxSpeed: 50 },
+    left: { keys: ["a"], accel: 100, decel: 100, maxSpeed: 50 },
+    right: { keys: ["d"], accel: 100, decel: 100, maxSpeed: 50 },
   },
   rotation: {
-    left: { keys: [","], speed: 0.02 },
-    right: { keys: ["."], speed: 0.02 },
+    left: { keys: [","], accel: 3, decel: 3, maxSpeed: 1 },
+    right: { keys: ["."], accel: 3, decel: 3, maxSpeed: 1 },
   },
   zoom: {
     increaseKeys: ["'"],
@@ -62,6 +62,16 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       right: false,
       rotateLeft: false,
       rotateRight: false,
+    },
+    movement: {
+      forward: { increasing: false, decreasing: false, speed: 0 },
+      backward: { increasing: false, decreasing: false, speed: 0 },
+      left: { increasing: false, decreasing: false, speed: 0 },
+      right: { increasing: false, decreasing: false, speed: 0 },
+    },
+    rotation: {
+      left: { increasing: false, decreasing: false, speed: 0 },
+      right: { increasing: false, decreasing: false, speed: 0 },
     },
     zoom: {
       increasing: false,
@@ -152,9 +162,45 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         )
       );
 
+      // Update rotation speeds
+      states.rotation.left.speed = updateSpeed(
+        opt.rotation.left,
+        states.rotation.left,
+        diffTime
+      );
+      states.rotation.right.speed = updateSpeed(
+        opt.rotation.right,
+        states.rotation.right,
+        diffTime
+      );
+
       // Apply rotation
-      if (states.keys.rotateLeft) rotateAroundLook(-opt.rotation.left.speed);
-      if (states.keys.rotateRight) rotateAroundLook(opt.rotation.right.speed);
+      const netRotationSpeed = states.rotation.right.speed - states.rotation.left.speed;
+      if (Math.abs(netRotationSpeed) > 1e-6) {
+        rotateAroundLook(netRotationSpeed * diffTime);
+      }
+
+      // Update movement speeds
+      states.movement.forward.speed = updateSpeed(
+        opt.movement.forward,
+        states.movement.forward,
+        diffTime
+      );
+      states.movement.backward.speed = updateSpeed(
+        opt.movement.backward,
+        states.movement.backward,
+        diffTime
+      );
+      states.movement.left.speed = updateSpeed(
+        opt.movement.left,
+        states.movement.left,
+        diffTime
+      );
+      states.movement.right.speed = updateSpeed(
+        opt.movement.right,
+        states.movement.right,
+        diffTime
+      );
 
       // Calculate forward and right vectors from yaw and pitch
       const cosYaw = Math.cos(this.yaw);
@@ -189,23 +235,12 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         states.dragging.start = { ...states.dragging.current };
       }
 
-      // Apply movement
-      if (states.keys.forward) {
-        this.position[0] += forwardX * opt.movement.forward.speed * deltaTime;
-        this.position[2] += forwardZ * opt.movement.forward.speed * deltaTime;
-      }
-      if (states.keys.backward) {
-        this.position[0] -= forwardX * opt.movement.backward.speed * deltaTime;
-        this.position[2] -= forwardZ * opt.movement.backward.speed * deltaTime;
-      }
-      if (states.keys.left) {
-        this.position[0] -= rightX * opt.movement.left.speed * deltaTime;
-        this.position[2] -= rightZ * opt.movement.left.speed * deltaTime;
-      }
-      if (states.keys.right) {
-        this.position[0] += rightX * opt.movement.right.speed * deltaTime;
-        this.position[2] += rightZ * opt.movement.right.speed * deltaTime;
-      }
+      // Apply movement with net speeds
+      const netForwardSpeed = states.movement.forward.speed - states.movement.backward.speed;
+      const netRightSpeed = states.movement.right.speed - states.movement.left.speed;
+
+      this.position[0] += (forwardX * netForwardSpeed + rightX * netRightSpeed) * diffTime;
+      this.position[2] += (forwardZ * netForwardSpeed + rightZ * netRightSpeed) * diffTime;
     },
     get paused() {
       return false; // Can extend later if needed
@@ -256,29 +291,44 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     controller.value.yaw += deltaAngle;
   }
 
+  function updateSpeed(
+    options: { accel: number; decel: number; maxSpeed: number },
+    state: { speed: number; increasing: boolean; decreasing: boolean },
+    diffTime: number
+  ): number {
+    const { accel, decel, maxSpeed } = options;
+    const { speed, increasing, decreasing } = state;
+    const bothOrNone = increasing === decreasing;
+    if (bothOrNone && speed > 0) return Math.max(speed - decel * diffTime, 0);
+    if (bothOrNone && speed < 0) return Math.min(speed + decel * diffTime, 0);
+    if (increasing) return Math.min(speed + accel * diffTime, maxSpeed);
+    if (decreasing) return Math.max(speed - accel * diffTime, -maxSpeed);
+    return speed;
+  }
+
   function onKeyDown(e: KeyboardEvent) {
     const key = e.key.toLowerCase();
 
     // Movement keys
     if (opt.movement.forward.keys.includes(key)) {
-      states.keys.forward = true;
+      states.movement.forward.increasing = true;
     }
     if (opt.movement.backward.keys.includes(key)) {
-      states.keys.backward = true;
+      states.movement.backward.increasing = true;
     }
     if (opt.movement.left.keys.includes(key)) {
-      states.keys.left = true;
+      states.movement.left.increasing = true;
     }
     if (opt.movement.right.keys.includes(key)) {
-      states.keys.right = true;
+      states.movement.right.increasing = true;
     }
 
     // Rotation keys
     if (opt.rotation.left.keys.includes(key)) {
-      states.keys.rotateLeft = true;
+      states.rotation.left.increasing = true;
     }
     if (opt.rotation.right.keys.includes(key)) {
-      states.keys.rotateRight = true;
+      states.rotation.right.increasing = true;
     }
 
     // Zoom keys
@@ -306,24 +356,24 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
     // Movement keys
     if (opt.movement.forward.keys.includes(key)) {
-      states.keys.forward = false;
+      states.movement.forward.increasing = false;
     }
     if (opt.movement.backward.keys.includes(key)) {
-      states.keys.backward = false;
+      states.movement.backward.increasing = false;
     }
     if (opt.movement.left.keys.includes(key)) {
-      states.keys.left = false;
+      states.movement.left.increasing = false;
     }
     if (opt.movement.right.keys.includes(key)) {
-      states.keys.right = false;
+      states.movement.right.increasing = false;
     }
 
     // Rotation keys
     if (opt.rotation.left.keys.includes(key)) {
-      states.keys.rotateLeft = false;
+      states.rotation.left.increasing = false;
     }
     if (opt.rotation.right.keys.includes(key)) {
-      states.keys.rotateRight = false;
+      states.rotation.right.increasing = false;
     }
 
     // Zoom keys
@@ -353,11 +403,11 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
   function onWheel(e: WheelEvent) {
     e.preventDefault();
-    const zoomFactor = 1 + e.deltaY * 0.001;
-    const newFov = controller.value.fov * zoomFactor;
-    controller.value.fov = Math.min(
-      opt.camera.maxFov,
-      Math.max(opt.camera.minFov, newFov)
+    // Add wheel delta to zoom speed (negative deltaY = zoom in = positive speed)
+    const wheelInfluence = -e.deltaY * 0.01;
+    states.zoom.speed = Math.max(
+      -opt.zoom.maxSpeed,
+      Math.min(opt.zoom.maxSpeed, states.zoom.speed + wheelInfluence)
     );
   }
 

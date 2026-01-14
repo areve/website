@@ -479,10 +479,10 @@ export async function setupMountains3dRenderer(
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
-    matrixData[33] = 1.0; // scale
+    matrixData[33] = controller2d?.value?.zoom ?? 1.0; // scale (from 2D controller zoom)
     matrixData[34] = time * 0.0001; // z (animated)
-    matrixData[35] = controller2d?.value?.x ?? 0; // textureOffsetX (from 2D controller)
-    matrixData[36] = controller2d?.value?.y ?? 0; // textureOffsetY (from 2D controller)
+    matrixData[35] = 0; // textureOffsetX (not used - camera moves instead)
+    matrixData[36] = 0; // textureOffsetY (not used - camera moves instead)
     matrixData[37] = controller2d?.value?.rotation ?? 0; // textureRotation (from 2D controller)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 

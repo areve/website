@@ -210,8 +210,16 @@ const handleToggleFullscreen = () => {
 
 const initializeCanvas = async () => {
   const isFs = !!document.fullscreenElement;
-  const newWidth = isFs ? window.innerWidth : width;
-  const newHeight = isFs ? window.innerHeight : height;
+  const fsEl = document.fullscreenElement as HTMLElement | null;
+  // Prefer the fullscreen element's client size (accounts for toolbars/OS chrome) when available
+  const newWidth = isFs ? (fsEl?.clientWidth ?? window.innerWidth) : width;
+  const newHeight = isFs ? (fsEl?.clientHeight ?? window.innerHeight) : height;
+
+  // Ensure the canvas CSS size matches measured values so drawing matches onscreen aspect
+  if (canvas.value) {
+    canvas.value.style.width = `${newWidth}px`;
+    canvas.value.style.height = `${newHeight}px`;
+  }
 
   // Unmount both controllers before switching modes
   controller.value.unmount();
@@ -323,6 +331,19 @@ onUnmounted(() => {
 
 .canvas-container .canvas {
   display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Fullscreen: make canvas/container fill viewport so pixel size matches fullscreen */
+.canvas-container:fullscreen,
+.canvas-container:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.canvas-container:fullscreen .canvas,
+.canvas-container:-webkit-full-screen .canvas {
   width: 100%;
   height: 100%;
 }

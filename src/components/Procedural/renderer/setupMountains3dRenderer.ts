@@ -96,7 +96,7 @@ export async function setupMountains3dRenderer(
 
   // Create uniform buffer for matrices and noise parameters
   const matrixBuffer = device.createBuffer({
-    size: 176, // 2 matrices (16 floats each) + 6 floats (seed, scale, z, offsetX, offsetY, rotation), 16-byte aligned
+    size: 192, // 2 matrices (16 floats each) + 10 floats (seed, scale, z, offsetX, offsetY, rotation, width, height + padding), 16-byte aligned
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -113,6 +113,10 @@ export async function setupMountains3dRenderer(
         textureOffsetX: f32,
         textureOffsetY: f32,
         textureRotation: f32,
+        canvasWidth: f32,
+        canvasHeight: f32,
+        pad0: f32,
+        pad1: f32,
       }
 
       @group(0) @binding(0) var<uniform> matrices: Matrices;
@@ -243,26 +247,38 @@ export async function setupMountains3dRenderer(
       }
 
       fn terrainHeightAtPlaneXZ(planeX: f32, planeZ: f32, zAnim: f32) -> f32 {
-        let x = planeX * matrices.scale;
-        let y = planeZ * matrices.scale;
-        let combined = combinedElevation(x, y, zAnim);
-          let height = terrainHeightFromCombined(combined);
-          return height;
+        // planeX/planeZ are already in scaled texture space
+        let combined = combinedElevation(planeX, planeZ, zAnim);
+        return terrainHeightFromCombined(combined);
+      }
+
+      fn applyTextureTransform(px: f32, pz: f32) -> vec2f {
+        // Zoom then rotate about the plane origin (center of mesh) plus current offsets
+        let centerX = matrices.textureOffsetX;
+        let centerZ = matrices.textureOffsetY;
+
+        // Zoom first
+        let baseX = px * matrices.scale + matrices.textureOffsetX;
+        let baseZ = pz * matrices.scale + matrices.textureOffsetY;
+
+        // Rotate around center
+        let relX = baseX - centerX;
+        let relZ = baseZ - centerZ;
+        let cosR = cos(matrices.textureRotation);
+        let sinR = sin(matrices.textureRotation);
+        let rotX = relX * cosR - relZ * sinR;
+        let rotZ = relX * sinR + relZ * cosR;
+
+        // Translate back
+        return vec2f(rotX + centerX, rotZ + centerZ);
       }
 
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
-        // Apply texture rotation and offset to height calculation
-        let cosR = cos(matrices.textureRotation);
-        let sinR = sin(matrices.textureRotation);
-        let rotX = pos.x * cosR - pos.z * sinR;
-        let rotZ = pos.x * sinR + pos.z * cosR;
-        // Normalize offsets so zoom (scale) does not amplify pan
-        let worldX = rotX + matrices.textureOffsetX / matrices.scale;
-        let worldZ = rotZ + matrices.textureOffsetY / matrices.scale;
-          let height = terrainHeightAtPlaneXZ(worldX, worldZ, matrices.z);
-          // Keep perceived height consistent across zoom levels
-          let heightScaled = height / matrices.scale;
-          let worldPos = vec4f(pos.x, heightScaled, pos.z, 1.0);
+        let texCoord = applyTextureTransform(pos.x, pos.z);
+        let height = terrainHeightAtPlaneXZ(texCoord.x, texCoord.y, matrices.z);
+        // Keep perceived height consistent across zoom levels
+        let heightScaled = height / matrices.scale;
+        let worldPos = vec4f(pos.x, heightScaled, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
         let clipPos = matrices.projection * viewPos;
         var output: VertexOutput;
@@ -274,13 +290,9 @@ export async function setupMountains3dRenderer(
 
       @fragment fn fs(input: VertexOutput) -> @location(0) vec4f {
         // Apply texture rotation and offset
-        let cosR = cos(matrices.textureRotation);
-        let sinR = sin(matrices.textureRotation);
-        let rotX = input.worldPos.x * cosR - input.worldPos.z * sinR;
-        let rotZ = input.worldPos.x * sinR + input.worldPos.z * cosR;
-        // Apply offset after removing scale effect to keep pan consistent across zoom
-        let x = (rotX + matrices.textureOffsetX / matrices.scale) * matrices.scale;
-        let y = (rotZ + matrices.textureOffsetY / matrices.scale) * matrices.scale;
+        let texCoord = applyTextureTransform(input.worldPos.x, input.worldPos.z);
+        let x = texCoord.x;
+        let y = texCoord.y;
         let z = matrices.z;
         
         // Simplified: reuse combinedElevation and trim biome smoothing
@@ -383,10 +395,9 @@ export async function setupMountains3dRenderer(
         // Lighting: compute per-fragment normal via height field finite differences
         let dx: f32 = 0.5;
         let dz: f32 = 0.5;
-        let rotX2 = input.worldXZ.x * cosR - input.worldXZ.y * sinR;
-        let rotZ2 = input.worldXZ.x * sinR + input.worldXZ.y * cosR;
-        let worldX = rotX2 + matrices.textureOffsetX / matrices.scale;
-        let worldZ = rotZ2 + matrices.textureOffsetY / matrices.scale;
+        let texCoord2 = applyTextureTransform(input.worldXZ.x, input.worldXZ.y);
+        let worldX = texCoord2.x;
+        let worldZ = texCoord2.y;
         let h = terrainHeightAtPlaneXZ(worldX, worldZ, z);
         let hx = terrainHeightAtPlaneXZ(worldX + dx, worldZ, z);
         let hz = terrainHeightAtPlaneXZ(worldX, worldZ + dz, z);
@@ -480,7 +491,7 @@ export async function setupMountains3dRenderer(
     const viewMatrix = createViewMatrix(camera);
 
     // Update uniform buffer with matrices and noise parameters
-    const matrixData = new Float32Array(44); // 176 bytes / 4 bytes per float
+    const matrixData = new Float32Array(48); // 192 bytes / 4 bytes per float
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
@@ -488,9 +499,12 @@ export async function setupMountains3dRenderer(
     matrixData[34] = time * 0.0001; // z (animated)
     // 2D controller drives texture pan; keep units consistent with 2D shaders (scale = 8)
     const texScale = 8;
-    matrixData[35] = (controller2d?.value?.x ?? 0) / texScale;
-    matrixData[36] = (controller2d?.value?.y ?? 0) / texScale;
+    const zoom2d = controller2d?.value?.zoom ?? 1;
+    matrixData[35] = (controller2d?.value?.x ?? 0) / (texScale * zoom2d);
+    matrixData[36] = (controller2d?.value?.y ?? 0) / (texScale * zoom2d);
     matrixData[37] = controller2d?.value?.rotation ?? 0; // textureRotation (from 2D controller)
+    matrixData[38] = options.width;
+    matrixData[39] = options.height;
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

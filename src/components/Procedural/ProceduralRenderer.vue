@@ -267,7 +267,9 @@ const initializeCanvas = async () => {
       height: newHeight,
       seed,
     });
-    // Mount only 2D controller
+  }
+  // For all non-3D modes, mount the 2D controller (covers simplex/ripple/worley/mountains)
+  if (shaderMode.value !== "opensimplex3d" && shaderMode.value !== "mountains3d") {
     if (canvas.value) {
       controller.value.mount(canvas.value);
     }

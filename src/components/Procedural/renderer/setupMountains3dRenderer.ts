@@ -264,7 +264,9 @@ export async function setupMountains3dRenderer(
         
         // Simplified: reuse combinedElevation and trim biome smoothing
         let combined = combinedElevation(x, y, z);
-        let biome = openSimplex3d(x * 0.015, y * 0.015, z);
+        // Stronger biome effect: higher frequency + sharper transitions
+        let biomeRaw = openSimplex3d(x * 0.04, y * 0.04, z);
+        let biome = pow(biomeRaw, 0.7); // Sharpen transitions
         let earthType = openSimplex3d(x * 0.08, y * 0.08, z);
         let mountainHeightMod = openSimplex3d(x * 0.01, y * 0.01, z);
         

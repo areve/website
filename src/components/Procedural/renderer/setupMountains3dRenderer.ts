@@ -490,7 +490,7 @@ export async function setupMountains3dRenderer(
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 123456; // seed
-    matrixData[33] = controller2d?.value?.zoom ?? 1.0; // scale (from 2D controller zoom)
+    matrixData[33] = (controller2d?.value?.zoom ?? 1.0) * 2.0; // scale (from 2D controller zoom)
     matrixData[34] = time * 0.0000; // z (animated)
     // Pass raw controller offsets (not divided by zoom or texScale)
     matrixData[35] = controller2d?.value?.x ?? 0;

@@ -87,13 +87,14 @@ const controller = makeController({
 });
 
 const controller3d = makeController3d();
+let activeController3d = controller3d; // Track which 3D controller is active
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
   // controller is a ref; use .value here in script
   // In opensimplex3d/mountains3d mode, show 3D yaw instead of 2D rotation
   const rad = (shaderMode.value === 'opensimplex3d' || shaderMode.value === 'mountains3d') 
-    ? controller3d.value.yaw ?? 0
+    ? activeController3d.value.yaw ?? 0
     : controller.value.rotation ?? 0;
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
@@ -117,7 +118,7 @@ function resetRotation() {
 
   // Determine which controller to reset based on current mode
   const is3d = shaderMode.value === 'opensimplex3d' || shaderMode.value === 'mountains3d';
-  const start = is3d ? (controller3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
+  const start = is3d ? (activeController3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
   // shortest delta to zero
   const delta = normalizeAngle(0 - start);
   const duration = 220; // ms
@@ -133,7 +134,7 @@ function resetRotation() {
     if (is3d) {
       // Use rotateAroundLook for incremental rotation
       const deltaStep = newAngle - lastAngle;
-      controller3d.value.rotateAroundLook(deltaStep);
+      activeController3d.value.rotateAroundLook(deltaStep);
       lastAngle = newAngle;
     } else {
       controller.value.rotation = newAngle;
@@ -143,8 +144,8 @@ function resetRotation() {
     } else {
       if (is3d) {
         // Final adjustment to ensure we're exactly at 0
-        const finalDelta = 0 - controller3d.value.yaw;
-        controller3d.value.rotateAroundLook(finalDelta);
+        const finalDelta = 0 - activeController3d.value.yaw;
+        activeController3d.value.rotateAroundLook(finalDelta);
       } else {
         controller.value.rotation = 0;
       }
@@ -238,17 +239,25 @@ const initializeCanvas = async () => {
       seed,
     });
   } else if (shaderMode.value === "opensimplex3d") {
+    activeController3d = controller3d;
     renderer = await setupOpenSimplex3dRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     }, controller3d);
   } else if (shaderMode.value === "mountains3d") {
+    // Use texture movement mode for mountains3d
+    const mountains3dController = makeController3d({ movementMode: "texture" });
+    activeController3d = mountains3dController;
     renderer = await setupMountains3dRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
-    }, controller3d);
+    }, mountains3dController);
+    // Mount the new controller
+    if (canvas.value) {
+      mountains3dController.value.mount(canvas.value);
+    }
   } else {
     renderer = await setupOpenSimplexRenderer(canvas.value, {
       width: newWidth,

@@ -95,7 +95,7 @@ export async function setupMountains3dRenderer(
 
   // Create uniform buffer for matrices and noise parameters
   const matrixBuffer = device.createBuffer({
-    size: 144, // 2 matrices (16 floats each) + 3 floats (seed, scale, z)
+    size: 160, // 2 matrices (16 floats each) + 5 floats (seed, scale, z, offsetX, offsetY), 16-byte aligned
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -109,6 +109,8 @@ export async function setupMountains3dRenderer(
         seed: f32,
         scale: f32,
         z: f32,
+        textureOffsetX: f32,
+        textureOffsetY: f32,
       }
 
       @group(0) @binding(0) var<uniform> matrices: Matrices;
@@ -246,7 +248,10 @@ export async function setupMountains3dRenderer(
       }
 
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
-        let height = terrainHeightAtPlaneXZ(pos.x, pos.z, matrices.z);
+        // Apply texture offset to height calculation
+        let worldX = pos.x + matrices.textureOffsetX;
+        let worldZ = pos.z + matrices.textureOffsetY;
+        let height = terrainHeightAtPlaneXZ(worldX, worldZ, matrices.z);
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
         let clipPos = matrices.projection * viewPos;
@@ -258,8 +263,9 @@ export async function setupMountains3dRenderer(
       }
 
       @fragment fn fs(input: VertexOutput) -> @location(0) vec4f {
-        let x = input.worldPos.x * matrices.scale;
-        let y = input.worldPos.z * matrices.scale;
+        // Apply texture offset
+        let x = (input.worldPos.x + matrices.textureOffsetX) * matrices.scale;
+        let y = (input.worldPos.z + matrices.textureOffsetY) * matrices.scale;
         let z = matrices.z;
         
         // Simplified: reuse combinedElevation and trim biome smoothing
@@ -362,12 +368,14 @@ export async function setupMountains3dRenderer(
         // Lighting: compute per-fragment normal via height field finite differences
         let dx: f32 = 0.5;
         let dz: f32 = 0.5;
-        let h = terrainHeightAtPlaneXZ(input.worldXZ.x, input.worldXZ.y, z);
-        let hx = terrainHeightAtPlaneXZ(input.worldXZ.x + dx, input.worldXZ.y, z);
-        let hz = terrainHeightAtPlaneXZ(input.worldXZ.x, input.worldXZ.y + dz, z);
-        let p = vec3f(input.worldXZ.x, h, input.worldXZ.y);
-        let px = vec3f(input.worldXZ.x + dx, hx, input.worldXZ.y);
-        let pz = vec3f(input.worldXZ.x, hz, input.worldXZ.y + dz);
+        let worldX = input.worldXZ.x + matrices.textureOffsetX;
+        let worldZ = input.worldXZ.y + matrices.textureOffsetY;
+        let h = terrainHeightAtPlaneXZ(worldX, worldZ, z);
+        let hx = terrainHeightAtPlaneXZ(worldX + dx, worldZ, z);
+        let hz = terrainHeightAtPlaneXZ(worldX, worldZ + dz, z);
+        let p = vec3f(worldX, h, worldZ);
+        let px = vec3f(worldX + dx, hx, worldZ);
+        let pz = vec3f(worldX, hz, worldZ + dz);
         let n = normalize(cross(pz - p, px - p));
         // Sun direction (fixed for now): slightly from above and one side
         let sunDir = normalize(vec3f(0.6, 0.8, 0.2));
@@ -455,12 +463,14 @@ export async function setupMountains3dRenderer(
     const viewMatrix = createViewMatrix(camera);
 
     // Update uniform buffer with matrices and noise parameters
-    const matrixData = new Float32Array(36);
+    const matrixData = new Float32Array(40); // 160 bytes / 4 bytes per float
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
     matrixData[33] = 1.0; // scale
-    matrixData[34] = time * 0.0001; // z (animated)
+    matrixData[34] = time * 0.0000; // z (animated)
+    matrixData[35] = controller?.value?.textureOffset?.[0] ?? 0; // textureOffsetX
+    matrixData[36] = controller?.value?.textureOffset?.[1] ?? 0; // textureOffsetY
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

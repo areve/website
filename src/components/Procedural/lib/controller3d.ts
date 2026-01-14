@@ -7,6 +7,7 @@ interface CameraState {
 }
 
 const defaultOptions = {
+  movementMode: "camera" as "camera" | "texture",
   camera: {
     initialPosition: [0, 80, 80] as [number, number, number],
     initialYaw: 0,
@@ -100,6 +101,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     yaw: opt.camera.initialYaw,
     pitch: opt.camera.initialPitch,
     fov: opt.camera.initialFov,
+    textureOffset: [0, 0] as [number, number],
 
     mount(element: HTMLElement) {
       bindGlobalElement = document;
@@ -202,14 +204,23 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         states.dragging.start = { ...states.dragging.current };
       }
 
-      // Apply movement
+      // Apply movement (camera or texture)
       const forwardSpeed = states.keyboard.buttons.moveForward.speed;
       const rightSpeed = states.keyboard.buttons.moveRight.speed;
 
-      this.position[0] +=
-        (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
-      this.position[2] +=
-        (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
+      if (opt.movementMode === "texture") {
+        // Move texture offset instead of camera
+        this.textureOffset[0] +=
+          (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
+        this.textureOffset[1] +=
+          (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
+      } else {
+        // Move camera
+        this.position[0] +=
+          (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
+        this.position[2] +=
+          (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
+      }
     },
     get paused() {
       return false; // Can extend later if needed

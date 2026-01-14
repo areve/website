@@ -56,7 +56,7 @@ const defaultOptions = {
       eventName: "changeMode",
     },
     fullscreen: {
-      toggleKeys: ["f"],
+      toggleKeys: ["f", "doubletap"],
       eventName: "toggleFullscreen",
     },
   },
@@ -106,8 +106,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement = element;
       bindGlobalElement.addEventListener("keydown", onKeyDown);
       bindGlobalElement.addEventListener("keyup", onKeyUp);
-      bindElement.addEventListener("mousedown", onMouseDown);
-      bindGlobalElement.addEventListener("mousemove", onMouseMove);
+      bindElement.addEventListener("mousedown", onMouseDown);      bindElement.addEventListener("dblclick", onDoubleClick);      bindGlobalElement.addEventListener("mousemove", onMouseMove);
       bindGlobalElement.addEventListener("mouseup", onMouseUp);
       bindElement.addEventListener("touchstart", onTouchStart);
       bindGlobalElement.addEventListener("touchmove", onTouchMove);
@@ -118,8 +117,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       if (!bindElement || !bindGlobalElement) return; // Guard against unmounting before mounting
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
-      bindElement.removeEventListener("mousedown", onMouseDown);
-      bindGlobalElement.removeEventListener("mousemove", onMouseMove);
+      bindElement.removeEventListener("mousedown", onMouseDown);      bindElement.removeEventListener("dblclick", onDoubleClick);      bindGlobalElement.removeEventListener("mousemove", onMouseMove);
       bindGlobalElement.removeEventListener("mouseup", onMouseUp);
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindGlobalElement.removeEventListener("touchmove", onTouchMove);
@@ -280,6 +278,23 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     return speed;
   }
 
+  function actionHandler(action: string) {
+    if (opt.basicKeys.pause.toggleKeys.includes(action)) {
+      controller.value.paused = !controller.value.paused;
+      document.dispatchEvent(new CustomEvent(opt.basicKeys.pause.eventName));
+      return true;
+    }
+    if (opt.basicKeys.mode.changeKeys.includes(action)) {
+      document.dispatchEvent(new CustomEvent(opt.basicKeys.mode.eventName));
+      return true;
+    }
+    if (opt.basicKeys.fullscreen.toggleKeys.includes(action)) {
+      document.dispatchEvent(new CustomEvent(opt.basicKeys.fullscreen.eventName));
+      return true;
+    }
+    return false;
+  }
+
   function onKeyDown(e: KeyboardEvent) {
     const key = e.key.toLowerCase();
 
@@ -335,6 +350,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
   function onMouseUp() {
     states.dragging.isDragging = false;
+  }
+
+  function onDoubleClick(event: MouseEvent) {
+    if (actionHandler("doubletap")) event.preventDefault();
   }
 
   function onWheel(e: WheelEvent) {

@@ -52,7 +52,8 @@ function createPlaneGeometry(
 export async function setupMountains3dRenderer(
   canvas: HTMLCanvasElement,
   options: { width: number; height: number },
-  controller?: any
+  controller2d?: any,
+  controller3d?: any
 ) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice();
@@ -452,19 +453,19 @@ export async function setupMountains3dRenderer(
     const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
 
-    // Update camera from controller
-    if (controller?.value?.update) {
-      controller.value.update(deltaTime);
+    // Update camera from 3D controller
+    if (controller3d?.value?.update) {
+      controller3d.value.update(deltaTime);
     }
 
-    // Create view and projection matrices using controller's camera state
+    // Create view and projection matrices using 3D controller's camera state
     const camera: CameraState = {
-      position: controller?.value?.position || [0, 25, 40],
-      yaw: controller?.value?.yaw ?? 0,
-      pitch: controller?.value?.pitch ?? -0.6,
+      position: controller3d?.value?.position || [0, 25, 40],
+      yaw: controller3d?.value?.yaw ?? 0,
+      pitch: controller3d?.value?.pitch ?? -0.6,
     };
 
-    const fov = controller?.value?.fov ?? Math.PI / 4;
+    const fov = controller3d?.value?.fov ?? Math.PI / 4;
     const projMatrix = createPerspectiveMatrix(
       fov,
       options.width / options.height,
@@ -480,9 +481,9 @@ export async function setupMountains3dRenderer(
     matrixData[32] = 12345; // seed
     matrixData[33] = 1.0; // scale
     matrixData[34] = time * 0.0001; // z (animated)
-    matrixData[35] = controller?.value?.textureOffset?.[0] ?? 0; // textureOffsetX
-    matrixData[36] = controller?.value?.textureOffset?.[1] ?? 0; // textureOffsetY
-    matrixData[37] = controller?.value?.textureRotation ?? 0; // textureRotation
+    matrixData[35] = controller2d?.value?.x ?? 0; // textureOffsetX (from 2D controller)
+    matrixData[36] = controller2d?.value?.y ?? 0; // textureOffsetY (from 2D controller)
+    matrixData[37] = controller2d?.value?.rotation ?? 0; // textureRotation (from 2D controller)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

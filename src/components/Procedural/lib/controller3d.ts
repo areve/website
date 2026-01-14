@@ -7,7 +7,6 @@ interface CameraState {
 }
 
 const defaultOptions = {
-  movementMode: "camera" as "camera" | "texture",
   camera: {
     initialPosition: [0, 80, 80] as [number, number, number],
     initialYaw: 0,
@@ -101,8 +100,6 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     yaw: opt.camera.initialYaw,
     pitch: opt.camera.initialPitch,
     fov: opt.camera.initialFov,
-    textureOffset: [0, 0] as [number, number],
-    textureRotation: 0,
 
     mount(element: HTMLElement) {
       bindGlobalElement = document;
@@ -118,6 +115,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement.addEventListener("wheel", onWheel);
     },
     unmount() {
+      if (!bindElement || !bindGlobalElement) return; // Guard against unmounting before mounting
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
       bindElement.removeEventListener("mousedown", onMouseDown);
@@ -154,14 +152,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         diffTime
       );
 
-      // Apply rotation (texture or camera)
+      // Apply rotation
       const rotationSpeed = states.keyboard.buttons.rotation.speed;
       if (Math.abs(rotationSpeed) > 1e-6) {
-        if (opt.movementMode === "texture") {
-          this.textureRotation += rotationSpeed * diffTime;
-        } else {
-          rotateAroundLook(rotationSpeed * diffTime);
-        }
+        rotateAroundLook(rotationSpeed * diffTime);
       }
 
       // Update movement speeds
@@ -187,77 +181,50 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       const rightX = cosYaw;
       const rightZ = sinYaw;
 
-      // Apply drag pan (camera-relative axes or texture offset)
+      // Apply drag pan (camera-relative axes)
       if (states.dragging.isDragging) {
         const deltaX = states.dragging.current.x - states.dragging.start.x;
         const deltaY = states.dragging.current.y - states.dragging.start.y;
 
         const panSpeed = 0.2;
 
-        if (opt.movementMode === "texture") {
-          // Move texture offset instead of camera
-          // Horizontal drag: move along camera right (flipped)
-          this.textureOffset[0] -= rightX * deltaX * panSpeed;
-          this.textureOffset[1] -= rightZ * deltaX * panSpeed;
+        // Horizontal drag: move along camera right (flipped)
+        this.position[0] -= rightX * deltaX * panSpeed;
+        this.position[2] -= rightZ * deltaX * panSpeed;
 
-          // Vertical drag: move along camera forward on the XZ plane (flipped)
-          const flatLen = Math.hypot(forwardX, forwardZ) || 1;
-          const fwdXFlat = forwardX / flatLen;
-          const fwdZFlat = forwardZ / flatLen;
-          this.textureOffset[0] += fwdXFlat * deltaY * panSpeed;
-          this.textureOffset[1] += fwdZFlat * deltaY * panSpeed;
-        } else {
-          // Move camera
-          // Horizontal drag: move along camera right (flipped)
-          this.position[0] -= rightX * deltaX * panSpeed;
-          this.position[2] -= rightZ * deltaX * panSpeed;
-
-          // Vertical drag: move along camera forward on the XZ plane (flipped)
-          const flatLen = Math.hypot(forwardX, forwardZ) || 1;
-          const fwdXFlat = forwardX / flatLen;
-          const fwdZFlat = forwardZ / flatLen;
-          this.position[0] += fwdXFlat * deltaY * panSpeed;
-          this.position[2] += fwdZFlat * deltaY * panSpeed;
-        }
+        // Vertical drag: move along camera forward on the XZ plane (flipped)
+        const flatLen = Math.hypot(forwardX, forwardZ) || 1;
+        const fwdXFlat = forwardX / flatLen;
+        const fwdZFlat = forwardZ / flatLen;
+        this.position[0] += fwdXFlat * deltaY * panSpeed;
+        this.position[2] += fwdZFlat * deltaY * panSpeed;
 
         // Update drag start for next frame
         states.dragging.start = { ...states.dragging.current };
       }
 
-      // Apply movement (camera or texture)
+      // Apply movement
       const forwardSpeed = states.keyboard.buttons.moveForward.speed;
       const rightSpeed = states.keyboard.buttons.moveRight.speed;
 
-      if (opt.movementMode === "texture") {
-        // Move texture offset instead of camera
-        this.textureOffset[0] +=
-          (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
-        this.textureOffset[1] +=
-          (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
-      } else {
-        // Move camera
-        this.position[0] +=
-          (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
-        this.position[2] +=
-          (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
-      }
+      this.position[0] +=
+        (forwardX * forwardSpeed + rightX * rightSpeed) * diffTime;
+      this.position[2] +=
+        (forwardZ * forwardSpeed + rightZ * rightSpeed) * diffTime;
     },
     get paused() {
       return false; // Can extend later if needed
     },
     rotateAroundLook(deltaAngle: number) {
-      if (opt.movementMode === "texture") {
-        this.textureRotation += deltaAngle;
-      } else {
-        rotateAroundLook(deltaAngle);
-      }
+      rotateAroundLook(deltaAngle);
     },
   });
 
   function rotateAroundLook(deltaAngle: number) {
-    const cam = controller.value.position;
-    const yaw = controller.value.yaw;
-    const pitch = controller.value.pitch;
+    const ctrl = controller.value;
+    const cam = ctrl.position;
+    const yaw = ctrl.yaw;
+    const pitch = ctrl.pitch;
 
     const cosYaw = Math.cos(yaw);
     const sinYaw = Math.sin(yaw);
@@ -292,10 +259,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     const sinA = Math.sin(deltaAngle);
     const rx = dx * cosA - dz * sinA;
     const rz = dx * sinA + dz * cosA;
-    controller.value.position[0] = centerX + rx;
-    controller.value.position[2] = centerZ + rz;
+    ctrl.position[0] = centerX + rx;
+    ctrl.position[2] = centerZ + rz;
 
-    controller.value.yaw += deltaAngle;
+    ctrl.yaw += deltaAngle;
   }
 
   function updateSpeed(
@@ -415,11 +382,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       );
       const deltaAngle = states.touchRotate.lastAngle - angle; // flipped direction
 
-      if (opt.movementMode === "texture") {
-        controller.value.textureRotation += deltaAngle;
-      } else {
-        rotateAroundLook(deltaAngle);
-      }
+      rotateAroundLook(deltaAngle);
       states.touchRotate.lastAngle = angle;
 
       // Pinch zoom (adjust FOV)

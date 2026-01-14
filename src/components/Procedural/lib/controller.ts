@@ -132,6 +132,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindGlobalElement.addEventListener("fullscreenchange", onFullscreenChange as EventListener);
     },
     unmount() {
+      if (!bindElement || !bindGlobalElement) return; // Guard against unmounting before mounting
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
       bindGlobalElement.removeEventListener("keypress", onKeyPress);

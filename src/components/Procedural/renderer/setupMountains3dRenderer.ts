@@ -262,34 +262,11 @@ export async function setupMountains3dRenderer(
         let y = input.worldPos.z * matrices.scale;
         let z = matrices.z;
         
-        // Six layers with specific purposes
-        let layer1 = openSimplex3d(x * 0.005, y * 0.005, z);   // Global ocean/continent distribution
-        let layer2 = openSimplex3d(x * 0.015, y * 0.015, z);   // Macro-biomes (desert, forest, ice, tropical)
-        let layer3 = openSimplex3d(x * 0.05, y * 0.05, z);     // Detailed height (hills, valleys)
-        let layer4 = openSimplex3d(x * 0.08, y * 0.08, z);     // Earth type (affects mountain colors only)
-        let layer5 = openSimplex3d(x * 0.02, y * 0.02, z);     // Inland lakes and water bodies
-        let layer6 = openSimplex3d(x * 0.3, y * 0.3, z);       // Fine detail height variation
-        
-        // Combine into elevation - layer1 is primary separator
-        let oceanMask = layer1;
-        let baseHeight = layer3 * 0.35 + layer6 * 0.08;
-        
-        // Lakes only affect land areas
-        var lakeEffect = 0.0;
-        if (oceanMask > 0.1) {
-          lakeEffect = min(layer5 * 0.08, 0.0);
-        }
-        
-        let rawHeight = oceanMask * 0.98 + baseHeight + lakeEffect - 0.35;
-        let combined = sign(rawHeight) * pow(abs(rawHeight), 0.85);
+        // Simplified: reuse combinedElevation and trim biome smoothing
+        let combined = combinedElevation(x, y, z);
+        let biome = openSimplex3d(x * 0.015, y * 0.015, z);
+        let earthType = openSimplex3d(x * 0.08, y * 0.08, z);
         let mountainHeightMod = openSimplex3d(x * 0.01, y * 0.01, z);
-        
-        // Use layer2 for biome
-        let biomeRaw = layer2;
-        let biomeSmooth1 = openSimplex3d((x + 5.0) * 0.015, y * 0.015, z);
-        let biomeSmooth2 = openSimplex3d(x * 0.015, (y + 5.0) * 0.015, z);
-        let biome = (biomeRaw + biomeSmooth1 + biomeSmooth2) / 3.0;
-        let earthType = layer4;
         
         // Determine terrain type based on elevation and biome
         var color: vec3f;
@@ -380,7 +357,7 @@ export async function setupMountains3dRenderer(
           let t = (combined - 0.74) / 0.26;
           color = mix(vec3f(0.88, 0.90, 0.92), vec3f(0.95, 0.97, 0.98), t);
         }
-        // Lighting: compute normal via height field finite differences
+        // Lighting: compute per-fragment normal via height field finite differences
         let dx: f32 = 0.5;
         let dz: f32 = 0.5;
         let h = terrainHeightAtPlaneXZ(input.worldXZ.x, input.worldXZ.y, z);
@@ -425,7 +402,8 @@ export async function setupMountains3dRenderer(
     },
     primitive: {
       topology: "triangle-list",
-      cullMode: "none",
+      cullMode: "back",
+      frontFace: "cw",
     },
     depthStencil: {
       format: "depth24plus",

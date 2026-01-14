@@ -252,24 +252,31 @@ export async function setupMountains3dRenderer(
       }
 
       fn applyTextureTransform(px: f32, pz: f32) -> vec2f {
-        // Zoom then rotate about the plane origin (center of mesh) plus current offsets
-        let centerX = matrices.textureOffsetX;
-        let centerZ = matrices.textureOffsetY;
-
-        // Zoom first
-        let baseX = px * matrices.scale + matrices.textureOffsetX;
-        let baseZ = pz * matrices.scale + matrices.textureOffsetY;
-
-        // Rotate around center
-        let relX = baseX - centerX;
-        let relZ = baseZ - centerZ;
+        // Zoom around the screen center in texture space
+        // Screen center in mesh coords is (0, 0) since mesh is centered
+        // After pan, the center point in texture space is at the offset
+        
+        // First, compute where screen center is in texture space before zoom
+        // (offset is already scaled by zoom in the JS, so this is the visual center)
+        let screenCenterTexX = matrices.textureOffsetX;
+        let screenCenterTexZ = matrices.textureOffsetY;
+        
+        // Position relative to texture center
+        let relX = px;
+        let relZ = pz;
+        
+        // Zoom around center (mesh origin, which is the center of the plane)
+        let zoomedX = relX * matrices.scale;
+        let zoomedZ = relZ * matrices.scale;
+        
+        // Rotate
         let cosR = cos(matrices.textureRotation);
         let sinR = sin(matrices.textureRotation);
-        let rotX = relX * cosR - relZ * sinR;
-        let rotZ = relX * sinR + relZ * cosR;
-
-        // Translate back
-        return vec2f(rotX + centerX, rotZ + centerZ);
+        let rotX = zoomedX * cosR - zoomedZ * sinR;
+        let rotZ = zoomedX * sinR + zoomedZ * cosR;
+        
+        // Apply offset to place the zoomed-rotated mesh
+        return vec2f(rotX + screenCenterTexX, rotZ + screenCenterTexZ);
       }
 
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
@@ -491,11 +498,10 @@ export async function setupMountains3dRenderer(
     matrixData[32] = 12345; // seed
     matrixData[33] = controller2d?.value?.zoom ?? 1.0; // scale (from 2D controller zoom)
     matrixData[34] = time * 0.0001; // z (animated)
-    // 2D controller drives texture pan; keep units consistent with 2D shaders (scale = 8)
+    // 2D controller x/y already include zoom scaling, just divide by texScale
     const texScale = 8;
-    const zoom2d = controller2d?.value?.zoom ?? 1;
-    matrixData[35] = (controller2d?.value?.x ?? 0) / (texScale * zoom2d);
-    matrixData[36] = (controller2d?.value?.y ?? 0) / (texScale * zoom2d);
+    matrixData[35] = (controller2d?.value?.x ?? 0) / texScale;
+    matrixData[36] = (controller2d?.value?.y ?? 0) / texScale;
     matrixData[37] = controller2d?.value?.rotation ?? 0; // textureRotation (from 2D controller)
     matrixData[38] = options.width;
     matrixData[39] = options.height;

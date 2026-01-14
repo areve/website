@@ -66,7 +66,7 @@ export async function setupMountains3dRenderer(
   context.configure({ device, format });
 
   // Create geometry
-  const geometry = createPlaneGeometry(100, 200);
+  const geometry = createPlaneGeometry(100, 50);
   const vertexBuffer = device.createBuffer({
     size: geometry.positions.byteLength,
     usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,

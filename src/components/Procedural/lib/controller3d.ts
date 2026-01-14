@@ -102,6 +102,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     pitch: opt.camera.initialPitch,
     fov: opt.camera.initialFov,
     textureOffset: [0, 0] as [number, number],
+    textureRotation: 0,
 
     mount(element: HTMLElement) {
       bindGlobalElement = document;
@@ -153,10 +154,14 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         diffTime
       );
 
-      // Apply rotation
+      // Apply rotation (texture or camera)
       const rotationSpeed = states.keyboard.buttons.rotation.speed;
       if (Math.abs(rotationSpeed) > 1e-6) {
-        rotateAroundLook(rotationSpeed * diffTime);
+        if (opt.movementMode === "texture") {
+          this.textureRotation += rotationSpeed * diffTime;
+        } else {
+          rotateAroundLook(rotationSpeed * diffTime);
+        }
       }
 
       // Update movement speeds
@@ -241,7 +246,11 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       return false; // Can extend later if needed
     },
     rotateAroundLook(deltaAngle: number) {
-      rotateAroundLook(deltaAngle);
+      if (opt.movementMode === "texture") {
+        this.textureRotation += deltaAngle;
+      } else {
+        rotateAroundLook(deltaAngle);
+      }
     },
   });
 
@@ -406,7 +415,11 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       );
       const deltaAngle = states.touchRotate.lastAngle - angle; // flipped direction
 
-      rotateAroundLook(deltaAngle);
+      if (opt.movementMode === "texture") {
+        controller.value.textureRotation += deltaAngle;
+      } else {
+        rotateAroundLook(deltaAngle);
+      }
       states.touchRotate.lastAngle = angle;
 
       // Pinch zoom (adjust FOV)

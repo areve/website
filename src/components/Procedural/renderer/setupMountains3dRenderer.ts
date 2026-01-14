@@ -95,7 +95,7 @@ export async function setupMountains3dRenderer(
 
   // Create uniform buffer for matrices and noise parameters
   const matrixBuffer = device.createBuffer({
-    size: 160, // 2 matrices (16 floats each) + 5 floats (seed, scale, z, offsetX, offsetY), 16-byte aligned
+    size: 176, // 2 matrices (16 floats each) + 6 floats (seed, scale, z, offsetX, offsetY, rotation), 16-byte aligned
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -111,6 +111,7 @@ export async function setupMountains3dRenderer(
         z: f32,
         textureOffsetX: f32,
         textureOffsetY: f32,
+        textureRotation: f32,
       }
 
       @group(0) @binding(0) var<uniform> matrices: Matrices;
@@ -248,9 +249,13 @@ export async function setupMountains3dRenderer(
       }
 
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
-        // Apply texture offset to height calculation
-        let worldX = pos.x + matrices.textureOffsetX;
-        let worldZ = pos.z + matrices.textureOffsetY;
+        // Apply texture rotation and offset to height calculation
+        let cosR = cos(matrices.textureRotation);
+        let sinR = sin(matrices.textureRotation);
+        let rotX = pos.x * cosR - pos.z * sinR;
+        let rotZ = pos.x * sinR + pos.z * cosR;
+        let worldX = rotX + matrices.textureOffsetX;
+        let worldZ = rotZ + matrices.textureOffsetY;
         let height = terrainHeightAtPlaneXZ(worldX, worldZ, matrices.z);
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
@@ -263,9 +268,13 @@ export async function setupMountains3dRenderer(
       }
 
       @fragment fn fs(input: VertexOutput) -> @location(0) vec4f {
-        // Apply texture offset
-        let x = (input.worldPos.x + matrices.textureOffsetX) * matrices.scale;
-        let y = (input.worldPos.z + matrices.textureOffsetY) * matrices.scale;
+        // Apply texture rotation and offset
+        let cosR = cos(matrices.textureRotation);
+        let sinR = sin(matrices.textureRotation);
+        let rotX = input.worldPos.x * cosR - input.worldPos.z * sinR;
+        let rotZ = input.worldPos.x * sinR + input.worldPos.z * cosR;
+        let x = (rotX + matrices.textureOffsetX) * matrices.scale;
+        let y = (rotZ + matrices.textureOffsetY) * matrices.scale;
         let z = matrices.z;
         
         // Simplified: reuse combinedElevation and trim biome smoothing
@@ -368,8 +377,10 @@ export async function setupMountains3dRenderer(
         // Lighting: compute per-fragment normal via height field finite differences
         let dx: f32 = 0.5;
         let dz: f32 = 0.5;
-        let worldX = input.worldXZ.x + matrices.textureOffsetX;
-        let worldZ = input.worldXZ.y + matrices.textureOffsetY;
+        let rotX2 = input.worldXZ.x * cosR - input.worldXZ.y * sinR;
+        let rotZ2 = input.worldXZ.x * sinR + input.worldXZ.y * cosR;
+        let worldX = rotX2 + matrices.textureOffsetX;
+        let worldZ = rotZ2 + matrices.textureOffsetY;
         let h = terrainHeightAtPlaneXZ(worldX, worldZ, z);
         let hx = terrainHeightAtPlaneXZ(worldX + dx, worldZ, z);
         let hz = terrainHeightAtPlaneXZ(worldX, worldZ + dz, z);
@@ -463,14 +474,15 @@ export async function setupMountains3dRenderer(
     const viewMatrix = createViewMatrix(camera);
 
     // Update uniform buffer with matrices and noise parameters
-    const matrixData = new Float32Array(40); // 160 bytes / 4 bytes per float
+    const matrixData = new Float32Array(44); // 176 bytes / 4 bytes per float
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
     matrixData[33] = 1.0; // scale
-    matrixData[34] = time * 0.0000; // z (animated)
+    matrixData[34] = time * 0.0001; // z (animated)
     matrixData[35] = controller?.value?.textureOffset?.[0] ?? 0; // textureOffsetX
     matrixData[36] = controller?.value?.textureOffset?.[1] ?? 0; // textureOffsetY
+    matrixData[37] = controller?.value?.textureRotation ?? 0; // textureRotation
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

@@ -52,8 +52,7 @@ function createPlaneGeometry(
 export async function setupMountains3dRenderer(
   canvas: HTMLCanvasElement,
   options: { width: number; height: number },
-  controller2d?: any,
-  controller3d?: any
+  controller2d?: any
 ) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice();
@@ -469,19 +468,14 @@ export async function setupMountains3dRenderer(
     const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
 
-    // Update camera from 3D controller
-    if (controller3d?.value?.update) {
-      controller3d.value.update(deltaTime);
-    }
-
-    // Create view and projection matrices using 3D controller's camera state
+    // Fixed camera (no external 3D controller needed)
     const camera: CameraState = {
-      position: controller3d?.value?.position || [0, 25, 40],
-      yaw: controller3d?.value?.yaw ?? 0,
-      pitch: controller3d?.value?.pitch ?? -0.6,
+      position: [0, 25, 40],
+      yaw: 0,
+      pitch: -0.6,
     };
 
-    const fov = controller3d?.value?.fov ?? Math.PI / 4;
+    const fov = Math.PI / 4;
     const projMatrix = createPerspectiveMatrix(
       fov,
       options.width / options.height,

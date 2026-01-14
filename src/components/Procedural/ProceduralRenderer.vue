@@ -256,7 +256,7 @@ const initializeCanvas = async () => {
       width: newWidth,
       height: newHeight,
       seed,
-    }, controller, controller3d);
+    }, controller);
     // Mount only 2D controller so WASD/drag pan the texture
     if (canvas.value) {
       controller.value.mount(canvas.value);

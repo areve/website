@@ -477,9 +477,9 @@ export async function setupMountains3dRenderer(
 
     // Fixed camera (no external 3D controller needed)
     const camera: CameraState = {
-      position: [0, 25, 40],
+      position: [0, 80, 80],
       yaw: 0,
-      pitch: -0.6,
+      pitch:  -Math.PI / 4,
     };
 
     const fov = Math.PI / 4;
@@ -497,7 +497,7 @@ export async function setupMountains3dRenderer(
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
     matrixData[33] = controller2d?.value?.zoom ?? 1.0; // scale (from 2D controller zoom)
-    matrixData[34] = time * 0.0001; // z (animated)
+    matrixData[34] = time * 0.0000; // z (animated)
     // 2D controller x/y already include zoom scaling, just divide by texScale
     const texScale = 8;
     matrixData[35] = (controller2d?.value?.x ?? 0) / texScale;

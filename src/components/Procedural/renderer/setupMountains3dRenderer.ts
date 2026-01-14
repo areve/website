@@ -246,7 +246,8 @@ export async function setupMountains3dRenderer(
         let x = planeX * matrices.scale;
         let y = planeZ * matrices.scale;
         let combined = combinedElevation(x, y, zAnim);
-        return terrainHeightFromCombined(combined);
+          let height = terrainHeightFromCombined(combined);
+          return height;
       }
 
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
@@ -257,8 +258,10 @@ export async function setupMountains3dRenderer(
         let rotZ = pos.x * sinR + pos.z * cosR;
         let worldX = rotX + matrices.textureOffsetX;
         let worldZ = rotZ + matrices.textureOffsetY;
-        let height = terrainHeightAtPlaneXZ(worldX, worldZ, matrices.z);
-        let worldPos = vec4f(pos.x, height, pos.z, 1.0);
+          let height = terrainHeightAtPlaneXZ(worldX, worldZ, matrices.z);
+          // Keep perceived height consistent across zoom levels
+          let heightScaled = height / matrices.scale;
+          let worldPos = vec4f(pos.x, heightScaled, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
         let clipPos = matrices.projection * viewPos;
         var output: VertexOutput;

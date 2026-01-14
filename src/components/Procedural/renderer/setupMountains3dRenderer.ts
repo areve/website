@@ -256,8 +256,9 @@ export async function setupMountains3dRenderer(
         let sinR = sin(matrices.textureRotation);
         let rotX = pos.x * cosR - pos.z * sinR;
         let rotZ = pos.x * sinR + pos.z * cosR;
-        let worldX = rotX + matrices.textureOffsetX;
-        let worldZ = rotZ + matrices.textureOffsetY;
+        // Normalize offsets so zoom (scale) does not amplify pan
+        let worldX = rotX + matrices.textureOffsetX / matrices.scale;
+        let worldZ = rotZ + matrices.textureOffsetY / matrices.scale;
           let height = terrainHeightAtPlaneXZ(worldX, worldZ, matrices.z);
           // Keep perceived height consistent across zoom levels
           let heightScaled = height / matrices.scale;
@@ -277,8 +278,9 @@ export async function setupMountains3dRenderer(
         let sinR = sin(matrices.textureRotation);
         let rotX = input.worldPos.x * cosR - input.worldPos.z * sinR;
         let rotZ = input.worldPos.x * sinR + input.worldPos.z * cosR;
-        let x = (rotX + matrices.textureOffsetX) * matrices.scale;
-        let y = (rotZ + matrices.textureOffsetY) * matrices.scale;
+        // Apply offset after removing scale effect to keep pan consistent across zoom
+        let x = (rotX + matrices.textureOffsetX / matrices.scale) * matrices.scale;
+        let y = (rotZ + matrices.textureOffsetY / matrices.scale) * matrices.scale;
         let z = matrices.z;
         
         // Simplified: reuse combinedElevation and trim biome smoothing
@@ -383,8 +385,8 @@ export async function setupMountains3dRenderer(
         let dz: f32 = 0.5;
         let rotX2 = input.worldXZ.x * cosR - input.worldXZ.y * sinR;
         let rotZ2 = input.worldXZ.x * sinR + input.worldXZ.y * cosR;
-        let worldX = rotX2 + matrices.textureOffsetX;
-        let worldZ = rotZ2 + matrices.textureOffsetY;
+        let worldX = rotX2 + matrices.textureOffsetX / matrices.scale;
+        let worldZ = rotZ2 + matrices.textureOffsetY / matrices.scale;
         let h = terrainHeightAtPlaneXZ(worldX, worldZ, z);
         let hx = terrainHeightAtPlaneXZ(worldX + dx, worldZ, z);
         let hz = terrainHeightAtPlaneXZ(worldX, worldZ + dz, z);
@@ -484,8 +486,10 @@ export async function setupMountains3dRenderer(
     matrixData[32] = 12345; // seed
     matrixData[33] = controller2d?.value?.zoom ?? 1.0; // scale (from 2D controller zoom)
     matrixData[34] = time * 0.0001; // z (animated)
-    matrixData[35] = 0; // textureOffsetX (not used - camera moves instead)
-    matrixData[36] = 0; // textureOffsetY (not used - camera moves instead)
+    // 2D controller drives texture pan; keep units consistent with 2D shaders (scale = 8)
+    const texScale = 8;
+    matrixData[35] = (controller2d?.value?.x ?? 0) / texScale;
+    matrixData[36] = (controller2d?.value?.y ?? 0) / texScale;
     matrixData[37] = controller2d?.value?.rotation ?? 0; // textureRotation (from 2D controller)
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 

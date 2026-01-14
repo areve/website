@@ -257,8 +257,7 @@ const initializeCanvas = async () => {
       height: newHeight,
       seed,
     }, controller, controller3d);
-    // Mount only 2D controller for input (texture manipulation)
-    // 3D controller provides camera state but doesn't handle input
+    // Mount only 2D controller so WASD/drag pan the texture
     if (canvas.value) {
       controller.value.mount(canvas.value);
     }

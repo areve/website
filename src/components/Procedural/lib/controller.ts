@@ -76,6 +76,11 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       current: { x: 0, y: 0 },
       isDragging: false,
     },
+    rightDragging: {
+      start: { x: 0, y: 0 },
+      current: { x: 0, y: 0 },
+      isRightDragging: false,
+    },
     pinching: {
       origin: { x: 0, y: 0 },
       previousOrigin: { x: 0, y: 0 },
@@ -111,6 +116,11 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   let bindGlobalElement: Document;
   const start = performance.now() / 1000;
   let prevTime = start;
+
+  function preventContextMenu(e: Event) {
+    e.preventDefault();
+  }
+
   const controller = ref({
     mount(element: HTMLElement) {
       bindGlobalElement = document;
@@ -128,8 +138,8 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.addEventListener("touchstart", onTouchStart);
       bindElement.addEventListener("touchmove", onTouchMove);
       bindElement.addEventListener("touchend", onTouchEnd);
-      // Ensure we keep center stable when fullscreen is entered/exited via Esc or other controls
-      bindGlobalElement.addEventListener("fullscreenchange", onFullscreenChange as EventListener);
+      // Prevent context menu on right click
+      bindElement.addEventListener("contextmenu", preventContextMenu);
     },
     unmount() {
       if (!bindElement || !bindGlobalElement) return; // Guard against unmounting before mounting
@@ -147,6 +157,7 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.removeEventListener("touchmove", onTouchMove);
       bindElement.removeEventListener("touchend", onTouchEnd);
       bindGlobalElement.removeEventListener("fullscreenchange", onFullscreenChange as EventListener);
+      bindElement.removeEventListener("contextmenu", preventContextMenu);
     },
     update() {
       const now = performance.now() / 1000;
@@ -232,6 +243,16 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
         controller.value.x += rotatedDeltaX;
         controller.value.y += rotatedDeltaY;
         states.dragging.start = states.dragging.current;
+      }
+
+      if (states.rightDragging.isRightDragging) {
+        const deltaX = states.rightDragging.start.x - states.rightDragging.current.x;
+        const deltaY = states.rightDragging.start.y - states.rightDragging.current.y;
+        
+        // Add rotation based on horizontal drag (deltaX)
+        controller.value.rotation += deltaX * 0.005; // Adjust sensitivity as needed
+        
+        states.rightDragging.start = states.rightDragging.current;
       }
 
       // Skip first frame of movement to ensure stable baseline
@@ -403,8 +424,13 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   }
 
   function onMouseDown(event: MouseEvent) {
-    states.dragging.start = states.dragging.current = getClientCoord(event);
-    states.dragging.isDragging = true;
+    if (event.button === 0) { // Left button
+      states.dragging.start = states.dragging.current = getClientCoord(event);
+      states.dragging.isDragging = true;
+    } else if (event.button === 2) { // Right button
+      states.rightDragging.start = states.rightDragging.current = getClientCoord(event);
+      states.rightDragging.isRightDragging = true;
+    }
     event.preventDefault();
   }
 
@@ -445,10 +471,15 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       states.dragging.current = getClientCoord(event);
       event.preventDefault();
     }
+    if (states.rightDragging.isRightDragging) {
+      states.rightDragging.current = getClientCoord(event);
+      event.preventDefault();
+    }
   }
 
   function onMouseUp() {
     states.dragging.isDragging = false;
+    states.rightDragging.isRightDragging = false;
   }
 
   function onMouseOver() {

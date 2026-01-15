@@ -253,7 +253,7 @@ const height = 500;
 const seed = 12345;
 const shaderMode = ref<
   "perlin" | "value" | "valuecubic" | "newton" | "julia" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("newton");
+>("julia");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;

@@ -81,10 +81,31 @@ export async function setupJuliaRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        // Use the same screen-space mapping as the CPU generator (x/300 - 1) so
-        // the fragment produces the expected Julia set rather than a flat color.
-        let r0 = coord.x / 300.0 - 1.0;
-        let i0 = coord.y / 300.0 - 1.0;
+        // Map screen -> world -> apply rotation, similar to Mandelbrot shader
+        let centerScreenX = data.width / 2.0;
+        let centerScreenY = data.height / 2.0;
+        let scale = data.scale;
+
+        let baseX = coord.x / scale * data.zoom + data.x / scale;
+        let baseY = coord.y / scale * data.zoom + data.y / scale;
+        let centerWorldX = centerScreenX / scale * data.zoom + data.x / scale;
+        let centerWorldY = centerScreenY / scale * data.zoom + data.y / scale;
+
+        let relX = baseX - centerWorldX;
+        let relY = baseY - centerWorldY;
+
+        let cos_r = cos(data.rotation);
+        let sin_r = sin(data.rotation);
+        let rotX = relX * cos_r - relY * sin_r;
+        let rotY = relX * sin_r + relY * cos_r;
+
+        let worldX = rotX + centerWorldX;
+        let worldY = rotY + centerWorldY;
+
+        // Convert world coords to complex plane using Mandelbrot-style constants
+        let worldToComplex: f32 = 0.06;
+        let r0 = worldX * worldToComplex - 2.5;
+        let i0 = worldY * worldToComplex - 1.875;
 
         // Animated Julia constant from uniform z
         let cRe = 0.355 + sin(data.z) / 200.0;

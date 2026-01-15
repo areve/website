@@ -36,6 +36,7 @@
           <select @change="initializeCanvas" v-model="shaderMode">
             <option value="simplex">OpenSimplex</option>
             <option value="opensimplex2">OpenSimplex2</option>
+            <option value="opensimplex2s">OpenSimplex2S</option>
             <option value="ripple">Ripple</option>
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
@@ -75,6 +76,7 @@ import { makeController } from "./lib/controller";
 import { makeController3d } from "./lib/controller3d";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer";
+import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
@@ -248,6 +250,7 @@ let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const availableModes = [
   "opensimplex2",
+  "opensimplex2s",
   "simplex",
   "ripple",
   "mandelbrot",

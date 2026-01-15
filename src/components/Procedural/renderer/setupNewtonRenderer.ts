@@ -159,10 +159,7 @@ export async function setupNewtonRenderer(
     async init() {},
     async update(time: DOMHighResTimeStamp, data?: { x?: number; y?: number; }) {
       Object.assign(sharedData, data);
-      // Newton view pans are intentionally less sensitive — apply a local pan factor
-      const panFactor = 0.25; // reduce panning to 25% for easier debugging
-      sharedData.x = (sharedData.x ?? 0) * panFactor;
-      sharedData.y = (sharedData.y ?? 0) * panFactor;
+      // No local pan scaling — use controller-provided `x`/`y` directly.
       sharedData.z = time * 0.001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();

@@ -53,7 +53,7 @@
         <button @click="handleToggleFullscreen" type="button">
           Fullscreen
         </button>
-        <label v-if="shaderMode === 'mountains3d'" class="mode-select">
+        <label v-if="shaderMode === 'mountains3d' || shaderMode === 'opensimplex3d'" class="mode-select">
           Controller:
           <select v-model="controllerMode" @change="setControllerMode(controllerMode)">
             <option value="2d">2D Controller (texture)</option>
@@ -118,8 +118,8 @@ function setControllerMode(mode: '2d' | '3d') {
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
-  // Show 3D yaw when in 3D modes or when 3D controller active for mountains3d
-  const use3d = shaderMode.value === 'opensimplex3d' || (shaderMode.value === 'mountains3d' && controllerMode.value === '3d');
+  // Use 3D yaw only when a 3D controller is active for 3D-capable modes
+  const use3d = (shaderMode.value === 'opensimplex3d' && controllerMode.value === '3d') || (shaderMode.value === 'mountains3d' && controllerMode.value === '3d');
   const rad = use3d ? controller3d.value.yaw ?? 0 : controller.value.rotation ?? 0;
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
@@ -127,7 +127,9 @@ const compassRotation = computed(() => {
 
 // Which controller is currently active (object, not ref)
 const activeController = computed(() => {
-  if (shaderMode.value === 'opensimplex3d') return controller3d.value;
+  if (shaderMode.value === 'opensimplex3d') {
+    return controllerMode.value === '3d' ? controller3d.value : controller.value;
+  }
   if (shaderMode.value === 'mountains3d' && controllerMode.value === '3d') return controller3d.value;
   return controller.value;
 });
@@ -237,7 +239,7 @@ const height = 500;
 const seed = 12345;
 const shaderMode = ref<
   "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("mountains3d");
+>("opensimplex3d");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -313,14 +315,19 @@ const initializeCanvas = async () => {
       seed,
     });
   } else if (shaderMode.value === "opensimplex3d") {
+    // Pass both controllers; renderer.update will receive the currently active controller
     renderer = await setupOpenSimplex3dRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
-    }, controller3d);
-    // Mount only 3D controller
+    }, controller, controller3d);
+    // Mount the currently selected controller (2D or 3D)
     if (canvas.value) {
-      controller3d.value.mount(canvas.value);
+      if (controllerMode.value === '2d') {
+        controller.value.mount(canvas.value);
+      } else {
+        controller3d.value.mount(canvas.value);
+      }
     }
   } else if (shaderMode.value === "mountains3d") {
     // Pass both controllers; renderer will use controller3d for camera if present

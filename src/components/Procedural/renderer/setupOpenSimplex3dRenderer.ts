@@ -52,7 +52,8 @@ function createPlaneGeometry(
 export async function setupOpenSimplex3dRenderer(
   canvas: HTMLCanvasElement,
   options: { width: number; height: number },
-  controller?: any
+  controller?: any,
+  controller3d?: any
 ) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice();
@@ -95,7 +96,7 @@ export async function setupOpenSimplex3dRenderer(
 
   // Create uniform buffer for matrices and noise parameters
   const matrixBuffer = device.createBuffer({
-    size: 144, // 2 matrices (16 floats each) + 3 floats (seed, scale, z)
+    size: 192, // 2 matrices (16 floats each) + extra floats for seed, scale, z, texture offsets, rotation, canvas size
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -109,6 +110,13 @@ export async function setupOpenSimplex3dRenderer(
         seed: f32,
         scale: f32,
         z: f32,
+        textureOffsetX: f32,
+        textureOffsetY: f32,
+        textureRotation: f32,
+        canvasWidth: f32,
+        canvasHeight: f32,
+        pad0: f32,
+        pad1: f32,
       }
 
       @group(0) @binding(0) var<uniform> matrices: Matrices;
@@ -180,18 +188,35 @@ export async function setupOpenSimplex3dRenderer(
           vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1);
       }
 
+      fn applyTextureTransform(px: f32, pz: f32) -> vec2f {
+        // Map mesh coordinates [-50,50] to pixel coordinates [0, canvasWidth/Height]
+        let pixelX = (px + 50.0) * (500.0 / 100.0) + (matrices.canvasWidth - 500.0) / 2.0;
+        let pixelZ = (pz + 50.0) * (500.0 / 100.0) + (matrices.canvasHeight - 500.0) / 2.0;
+        let texScale: f32 = 8.0;
+        let offsetX = matrices.textureOffsetX / texScale;
+        let offsetZ = matrices.textureOffsetY / texScale;
+        let centerX = (matrices.canvasWidth * 0.5) / texScale * matrices.scale + offsetX;
+        let centerZ = (matrices.canvasHeight * 0.5) / texScale * matrices.scale + offsetZ;
+        let baseX = pixelX / texScale * matrices.scale + offsetX;
+        let baseZ = pixelZ / texScale * matrices.scale + offsetZ;
+        let relX = baseX - centerX;
+        let relZ = baseZ - centerZ;
+        let cosR = cos(matrices.textureRotation);
+        let sinR = sin(matrices.textureRotation);
+        let rotX = relX * cosR - relZ * sinR;
+        let rotZ = relX * sinR + relZ * cosR;
+        return vec2f(rotX + centerX, rotZ + centerZ);
+      }
+
       @vertex fn vs(@location(0) pos: vec3f, @location(1) color: vec3f) -> VertexOutput {
-        let x = pos.x * matrices.scale;
-        let y = pos.z * matrices.scale;
-        let z = matrices.z;
-        
-        let noiseVal = openSimplex3d(x, y, z);
+        let texCoord = applyTextureTransform(pos.x, pos.z);
+        let noiseVal = openSimplex3d(texCoord.x, texCoord.y, matrices.z);
         let height = noiseVal * 10.0;
-        
+
         let worldPos = vec4f(pos.x, height, pos.z, 1.0);
         let viewPos = matrices.view * worldPos;
         let clipPos = matrices.projection * viewPos;
-        
+
         var output: VertexOutput;
         output.position = clipPos;
         output.worldPos = pos;
@@ -199,10 +224,11 @@ export async function setupOpenSimplex3dRenderer(
       }
 
       @fragment fn fs(input: VertexOutput) -> @location(0) vec4f {
-        let x = input.worldPos.x * matrices.scale;
-        let y = input.worldPos.z * matrices.scale;
+        let texCoord = applyTextureTransform(input.worldPos.x, input.worldPos.z);
+        let x = texCoord.x;
+        let y = texCoord.y;
         let z = matrices.z;
-        
+
         let noiseVal = openSimplex3d(x, y, z);
         return vec4f(noiseVal, noiseVal, noiseVal, 1.0);
       }
@@ -256,38 +282,60 @@ export async function setupOpenSimplex3dRenderer(
 
   let lastTime = 0;
 
-  const render = (time: DOMHighResTimeStamp) => {
+  // Render now accepts an optional active controller so the app can swap controllers
+  const render = (time: DOMHighResTimeStamp, activeController?: any) => {
     const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
 
-    // Update camera from controller
-    if (controller?.value?.update) {
-      controller.value.update(deltaTime);
+    // Normalize controller: accept either a ref-like `{ value: T }` or a raw object
+    const candidate = activeController ?? controller;
+    const ctrl = candidate && typeof candidate === 'object' && 'value' in candidate ? candidate.value : candidate;
+
+    // Update controller logic if available
+    if (ctrl?.update) {
+      try {
+        ctrl.update(deltaTime);
+      } catch (e) {
+        // ignore controller update errors to avoid breaking render loop
+        console.warn('controller.update error', e);
+      }
     }
 
-    // Create view and projection matrices using controller's camera state
-    const camera: CameraState = {
-      position: controller?.value?.position || [0, 25, 40],
-      yaw: controller?.value?.yaw ?? 0,
-      pitch: controller?.value?.pitch ?? -0.6,
-    };
+    // Determine camera from controller type
+    let camera: CameraState;
+    let fov = Math.PI / 4;
 
-    const fov = controller?.value?.fov ?? Math.PI / 4;
-    const projMatrix = createPerspectiveMatrix(
-      fov,
-      options.width / options.height,
-      0.1,
-      1000
-    );
+    if (ctrl?.position) {
+      // 3D controller available -> use it for camera
+      camera = {
+        position: ctrl.position,
+        yaw: ctrl.yaw ?? 0,
+        pitch: ctrl.pitch ?? -0.6,
+      };
+      fov = ctrl.fov ?? Math.PI / 4;
+    } else {
+      // Use a fixed overhead camera for 2D controller mode so the mesh stays still
+      camera = { position: [0, 80, 80], yaw: 0, pitch: -Math.PI / 4 };
+      fov = Math.PI / 4;
+    }
+
+    const projMatrix = createPerspectiveMatrix(fov, options.width / options.height, 0.1, 1000);
     const viewMatrix = createViewMatrix(camera);
 
     // Update uniform buffer with matrices and noise parameters
-    const matrixData = new Float32Array(36);
+    const matrixData = new Float32Array(48); // 192 bytes
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 12345; // seed
-    matrixData[33] = 0.2; // scale
+    // Use 2D controller zoom as scale so texture zoom matches 2D controllers
+    matrixData[33] = controller?.value?.zoom ?? 1.0; // scale
     matrixData[34] = time * 0.0005; // z (animated)
+    // Pass raw controller offsets/rotation for texture transform
+    matrixData[35] = controller?.value?.x ?? 0;
+    matrixData[36] = controller?.value?.y ?? 0;
+    matrixData[37] = controller?.value?.rotation ?? 0; // textureRotation
+    matrixData[38] = options.width;
+    matrixData[39] = options.height;
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render
@@ -323,8 +371,9 @@ export async function setupOpenSimplex3dRenderer(
 
   return {
     init: async () => {},
-    update: async (time: DOMHighResTimeStamp) => {
-      render(time);
+    // Accept an optional controller passed each frame so app can switch controllers
+    update: async (time: DOMHighResTimeStamp, activeController?: any) => {
+      render(time, activeController);
     },
   };
 }

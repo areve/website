@@ -219,20 +219,10 @@ export async function setupOpenSimplex2Renderer(
       data?: {
         x?: number;
         y?: number;
-        z?: number;
       }
     ) {
-      if (data) {
-        const { z, ...rest } = data as any;
-        Object.assign(sharedData, rest);
-        if (typeof z === "number") {
-          sharedData.z = z;
-        } else {
-          sharedData.z = time;
-        }
-      } else {
-        sharedData.z = time;
-      }
+      Object.assign(sharedData, data);
+      sharedData.z = time * 0.2;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

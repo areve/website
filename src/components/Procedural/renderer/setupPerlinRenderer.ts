@@ -92,10 +92,8 @@ export async function setupPerlinRenderer(
         vec3<f32>(0.0, -1.0, -1.0)
       );
 
-      fn gradFromHash(h: i32) -> vec3<f32> {
-        let idx = u32(h ^ (h >> 15)) & 63u;
-        let sel = idx % 12u;
-        return GRAD_TABLE[sel];
+      fn gradIndex(h: i32) -> u32 {
+        return (u32(h ^ (h >> 15)) & 63u) % 12u;
       }
 
       fn perlin3d(x: f32, y: f32, z: f32) -> f32 {
@@ -124,14 +122,14 @@ export async function setupPerlinRenderer(
         let n110 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32(Z), 0.0))) & 0xff;
         let n111 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0))) & 0xff;
 
-        let g000 = gradFromHash(n000);
-        let g100 = gradFromHash(n100);
-        let g010 = gradFromHash(n010);
-        let g110 = gradFromHash(n110);
-        let g001 = gradFromHash(n001);
-        let g101 = gradFromHash(n101);
-        let g011 = gradFromHash(n011);
-        let g111 = gradFromHash(n111);
+        let g000 = GRAD_TABLE[gradIndex(n000)];
+        let g100 = GRAD_TABLE[gradIndex(n100)];
+        let g010 = GRAD_TABLE[gradIndex(n010)];
+        let g110 = GRAD_TABLE[gradIndex(n110)];
+        let g001 = GRAD_TABLE[gradIndex(n001)];
+        let g101 = GRAD_TABLE[gradIndex(n101)];
+        let g011 = GRAD_TABLE[gradIndex(n011)];
+        let g111 = GRAD_TABLE[gradIndex(n111)];
 
         // Calculate noise contributions from each of the eight corners (dot products)
         let n000f = dot(g000, vec3<f32>(fx, fy, fz));

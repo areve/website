@@ -67,9 +67,6 @@ export async function setupValueRenderer(
       fn smootherstep(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
       fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
 
-      const PRIME_X: i32 = 501125321;
-      const PRIME_Y: i32 = 1136930381;
-      const PRIME_Z: i32 = 1720413743;
 
       fn noise(seed: i32, xi: i32, yi: i32, zi: i32) -> f32 {
         let seed_u: u32 = u32(seed);
@@ -88,12 +85,12 @@ export async function setupValueRenderer(
         let ys = smootherstep(y - f32(y0));
         let zs = smootherstep(z - f32(z0));
 
-        let xp = x0 * PRIME_X;
-        let yp = y0 * PRIME_Y;
-        let zp = z0 * PRIME_Z;
-        let x1 = xp + PRIME_X;
-        let y1 = yp + PRIME_Y;
-        let z1 = zp + PRIME_Z;
+        let xp = x0 * 1;
+        let yp = y0 * 1;
+        let zp = z0 * 1;
+        let x1 = xp + 1;
+        let y1 = yp + 1;
+        let z1 = zp + 1;
 
         let xf00 = lerp(noise(i32(data.seed), xp, yp, zp), noise(i32(data.seed), x1, yp, zp), xs);
         let xf10 = lerp(noise(i32(data.seed), xp, y1, zp), noise(i32(data.seed), x1, y1, zp), xs);

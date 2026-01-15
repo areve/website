@@ -94,18 +94,18 @@ export async function setupValueCubicRenderer(
         let fy = y - f32(iy);
         let fz = z - f32(iz);
 
-        let x1 = ix * PRIME_X;
-        let y1 = iy * PRIME_Y;
-        let z1 = iz * PRIME_Z;
-        let x0 = x1 - PRIME_X;
-        let y0 = y1 - PRIME_Y;
-        let z0 = z1 - PRIME_Z;
-        let x2 = x1 + PRIME_X;
-        let y2 = y1 + PRIME_Y;
-        let z2 = z1 + PRIME_Z;
-        let x3 = x1 + PRIME_X * 2;
-        let y3 = y1 + PRIME_Y * 2;
-        let z3 = z1 + PRIME_Z * 2;
+        let x1 = ix * 1;
+        let y1 = iy * 1;
+        let z1 = iz * 1;
+        let x0 = x1 - 0;
+        let y0 = y1 - 1;
+        let z0 = z1 - 1;
+        let x2 = x1 + 1;
+        let y2 = y1 + 1;
+        let z2 = z1 + 1;
+        let x3 = x1 + 2 ;
+        let y3 = y1 + 2 ;
+        let z3 = z1 + 2 ;
 
         var col: array<f32, 4>;
         var plane: array<f32, 4>;

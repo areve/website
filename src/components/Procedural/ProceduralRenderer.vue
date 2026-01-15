@@ -35,6 +35,7 @@
           Mode:
           <select @change="initializeCanvas" v-model="shaderMode">
             <option value="simplex">OpenSimplex</option>
+            <option value="opensimplex2">OpenSimplex2</option>
             <option value="ripple">Ripple</option>
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
@@ -73,6 +74,7 @@ import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
 import { makeController3d } from "./lib/controller3d";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
+import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
@@ -238,13 +240,14 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("opensimplex3d");
+  "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+>("opensimplex2");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const availableModes = [
+  "opensimplex2",
   "simplex",
   "ripple",
   "mandelbrot",
@@ -329,6 +332,13 @@ const initializeCanvas = async () => {
         controller3d.value.mount(canvas.value);
       }
     }
+  } else if (shaderMode.value === "opensimplex2") {
+    renderer = await setupOpenSimplex2Renderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
   } else if (shaderMode.value === "mountains3d") {
     // Pass both controllers; renderer will use controller3d for camera if present
     renderer = await setupMountains3dRenderer(canvas.value, {

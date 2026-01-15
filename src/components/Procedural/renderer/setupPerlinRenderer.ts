@@ -116,7 +116,7 @@ export async function setupPerlinRenderer(
         Y = Y & 255;
         Z = Z & 255;
 
-        // Calculate noise contributions from each of the eight corners (inline single-use hashes/gradients)
+        // Calculate noise contributions from each of the eight corners
         let h000 = noise(vec4<f32>(f32(X), f32(Y), f32(Z), 0.0));
         let g000 = grad(bitcast<i32>(h000) & 0xff);
         let d000 = dot(g000, vec3<f32>(fx, fy, fz));

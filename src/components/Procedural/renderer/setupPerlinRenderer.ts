@@ -96,6 +96,10 @@ export async function setupPerlinRenderer(
         return (u32(h ^ (h >> 15)) & 63u) % 12u;
       }
 
+      fn grad(h: i32) -> vec3<f32> {
+        return GRAD_TABLE[gradIndex(h)];
+      }
+
       fn perlin3d(x: f32, y: f32, z: f32) -> f32 {
         // Find unit grid cell containing point
         var X = i32(floor(x));
@@ -112,34 +116,37 @@ export async function setupPerlinRenderer(
         Y = Y & 255;
         Z = Z & 255;
 
-        // Compute hash-like values for each corner and convert to gradient via _fnlGradFromHash
-        let n000 = bitcast<i32>(noise(vec4<f32>(f32(X), f32(Y), f32(Z), 0.0))) & 0xff;
-        let n001 = bitcast<i32>(noise(vec4<f32>(f32(X), f32(Y), f32((Z + 1) & 255), 0.0))) & 0xff;
-        let n010 = bitcast<i32>(noise(vec4<f32>(f32(X), f32((Y + 1) & 255), f32(Z), 0.0))) & 0xff;
-        let n011 = bitcast<i32>(noise(vec4<f32>(f32(X), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0))) & 0xff;
-        let n100 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32(Y), f32(Z), 0.0))) & 0xff;
-        let n101 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32(Y), f32((Z + 1) & 255), 0.0))) & 0xff;
-        let n110 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32(Z), 0.0))) & 0xff;
-        let n111 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0))) & 0xff;
+        // Calculate noise contributions from each of the eight corners (inline single-use hashes/gradients)
+        let h000 = noise(vec4<f32>(f32(X), f32(Y), f32(Z), 0.0));
+        let g000 = grad(bitcast<i32>(h000) & 0xff);
+        let d000 = dot(g000, vec3<f32>(fx, fy, fz));
 
-        let g000 = GRAD_TABLE[gradIndex(n000)];
-        let g100 = GRAD_TABLE[gradIndex(n100)];
-        let g010 = GRAD_TABLE[gradIndex(n010)];
-        let g110 = GRAD_TABLE[gradIndex(n110)];
-        let g001 = GRAD_TABLE[gradIndex(n001)];
-        let g101 = GRAD_TABLE[gradIndex(n101)];
-        let g011 = GRAD_TABLE[gradIndex(n011)];
-        let g111 = GRAD_TABLE[gradIndex(n111)];
+        let h001 = noise(vec4<f32>(f32(X), f32(Y), f32((Z + 1) & 255), 0.0));
+        let g001 = grad(bitcast<i32>(h001) & 0xff);
+        let d001 = dot(g001, vec3<f32>(fx, fy, fz - 1.0));  
+        let h010 = noise(vec4<f32>(f32(X), f32((Y + 1) & 255), f32(Z), 0.0));
+        let g010 = grad(bitcast<i32>(h010) & 0xff);
+        let d010 = dot(g010, vec3<f32>(fx, fy - 1.0, fz));
 
-        // Calculate noise contributions from each of the eight corners (dot products)
-        let n000f = dot(g000, vec3<f32>(fx, fy, fz));
-        let n001f = dot(g001, vec3<f32>(fx, fy, fz - 1.0));
-        let n010f = dot(g010, vec3<f32>(fx, fy - 1.0, fz));
-        let n011f = dot(g011, vec3<f32>(fx, fy - 1.0, fz - 1.0));
-        let n100f = dot(g100, vec3<f32>(fx - 1.0, fy, fz));
-        let n101f = dot(g101, vec3<f32>(fx - 1.0, fy, fz - 1.0));
-        let n110f = dot(g110, vec3<f32>(fx - 1.0, fy - 1.0, fz));
-        let n111f = dot(g111, vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
+        let h011 = noise(vec4<f32>(f32(X), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0));
+        let g011 = grad(bitcast<i32>(h011) & 0xff);
+        let d011 = dot(g011, vec3<f32>(fx, fy - 1.0, fz - 1.0));
+
+        let h100 = noise(vec4<f32>(f32((X + 1) & 255), f32(Y), f32(Z), 0.0));
+        let g100 = grad(bitcast<i32>(h100) & 0xff);
+        let d100 = dot(g100, vec3<f32>(fx - 1.0, fy, fz));
+
+        let h101 = noise(vec4<f32>(f32((X + 1) & 255), f32(Y), f32((Z + 1) & 255), 0.0));
+        let g101 = grad(bitcast<i32>(h101) & 0xff);
+        let d101 = dot(g101, vec3<f32>(fx - 1.0, fy, fz - 1.0));
+
+        let h110 = noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32(Z), 0.0));
+        let g110 = grad(bitcast<i32>(h110) & 0xff);
+        let d110 = dot(g110, vec3<f32>(fx - 1.0, fy - 1.0, fz));
+
+        let h111 = noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0));
+        let g111 = grad(bitcast<i32>(h111) & 0xff);
+        let d111 = dot(g111, vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
 
         // Compute the fade curve value for fx, fy, fz
         let u = smootherstep(fx);
@@ -147,12 +154,12 @@ export async function setupPerlinRenderer(
         let w = smootherstep(fz);
 
         // Interpolate: u inner, w mid, v outer (matches reference implementation)
-        let ix0 = lerp(n000f, n100f, u);
-        let ix1 = lerp(n010f, n110f, u);
+        let ix0 = lerp(d000, d100, u);
+        let ix1 = lerp(d010, d110, u);
         let iy0 = lerp(ix0, ix1, v);
 
-        let jx0 = lerp(n001f, n101f, u);
-        let jx1 = lerp(n011f, n111f, u);
+        let jx0 = lerp(d001, d101, u);
+        let jx1 = lerp(d011, d111, u);
         let jy0 = lerp(jx0, jx1, v);
 
         let value = lerp(iy0, jy0, w);

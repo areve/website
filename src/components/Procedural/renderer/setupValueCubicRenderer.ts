@@ -77,18 +77,14 @@ export async function setupValueCubicRenderer(
       const PRIME_Y: i32 = 1136930381;
       const PRIME_Z: i32 = 1720413743;
 
-      fn noise(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
+      fn noise(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> f32 {
         let seed_u: u32 = u32(seed);
         let n: u32 = seed_u + u32(xPrimed) * 374761393u + u32(yPrimed) * 668265263u + u32(zPrimed) * 1440662683u;
         let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
-        return bitcast<i32>(m);
-      }
-
-      fn _fnlValCoord3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> f32 {
-        var hash = noise(seed, xPrimed, yPrimed, zPrimed);
-        hash = hash * hash;
-        hash = hash ^ (hash << 19);
-        return f32(hash) * (1.0 / 2147483648.0);
+        var h: i32 = bitcast<i32>(m);
+        h = h * h;
+        h = h ^ (h << 19);
+        return f32(h) * (1.0 / 2147483648.0);
       }
 
       fn value_cubic3d(x: f32, y: f32, z: f32) -> f32 {
@@ -127,7 +123,7 @@ export async function setupValueCubicRenderer(
             let yp = ypArr[ky];
             for (var kx: i32 = 0; kx < 4; kx = kx + 1) {
               let xp = xpArr[kx];
-              row[kx] = _fnlValCoord3D(i32(data.seed), xp, yp, zp);
+              row[kx] = noise(i32(data.seed), xp, yp, zp);
             }
             col[ky] = cubic_interp(row[0], row[1], row[2], row[3], fx);
           }

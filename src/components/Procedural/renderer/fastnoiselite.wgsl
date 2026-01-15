@@ -13,148 +13,134 @@ struct Uniforms {
 
 @group(0) @binding(0) var<uniform> data: Uniforms;
 
-// Helpers
-fn permute_vec4(t: vec4f) -> vec4f { return t * ((t * 34.0) + 133.0); }
-fn mod_vec3(a: vec3f, b: vec3f) -> vec3f { return a - b * floor(a / b); }
-fn mod_vec4(a: vec4f, b: vec4f) -> vec4f { return a - b * floor(a / b); }
+// Integer primes (copied from C)
+const PRIME_X: i32 = 501125321;
+const PRIME_Y: i32 = 1136930381;
+const PRIME_Z: i32 = 1720413743;
 
-// OpenSimplex2 (value-only) - port
-fn grad_from_hash(hash: f32) -> vec3f {
-  let h = hash;
-  var cube = mod_vec3(floor(vec3f(h, h, h) / vec3f(1.0, 2.0, 4.0)), vec3f(2.0)) * 2.0 - vec3f(1.0);
-  var cuboct = cube;
-  let idx = i32(floor(h / 16.0)) % 3;
-  if (idx == 0) { cuboct.x = 0.0; } else if (idx == 1) { cuboct.y = 0.0; } else { cuboct.z = 0.0; }
-  let typ = floor(h / 8.0) - floor(h / 16.0) * 2.0;
-  let rhomb = (1.0 - typ) * cube + typ * (cuboct + cross(cube, cuboct));
-  var g = cuboct * 1.22474487139 + rhomb;
-  g = g * ((1.0 - 0.042942436724648037 * typ) * 32.80201376986577);
-  return g;
+// Small helpers
+fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
+fn interpQuintic(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
+fn interpHermite(t: f32) -> f32 { return t * t * (3.0 - 2.0 * t); }
+
+// Simple integer hash (2D)
+fn hash2d(seed: i32, xPrimed: i32, yPrimed: i32) -> i32 {
+  var h = seed ^ xPrimed ^ yPrimed;
+  h = h * 0x27d4eb2d;
+  return h;
 }
 
-fn openSimplex2Base(X: vec3f) -> vec4f {
-  let v1 = round(X);
-  let d1 = X - v1;
-  let score1 = abs(d1);
-  let dir1 = step(max(score1.yzx, score1.zxy), score1);
-  let v2 = v1 + dir1 * sign(d1);
-  let d2 = X - v2;
-
-  let X2 = X + vec3f(144.5, 144.5, 144.5);
-  let v3 = round(X2);
-  let d3 = X2 - v3;
-  let score2 = abs(d3);
-  let dir2 = step(max(score2.yzx, score2.zxy), score2);
-  let v4 = v3 + dir2 * sign(d3);
-  let d4 = X2 - v4;
-
-  var hashes = permute_vec4(mod_vec4(vec4f(v1.x, v2.x, v3.x, v4.x), vec4f(289.0)));
-  hashes = permute_vec4(mod_vec4(hashes + vec4f(v1.y, v2.y, v3.y, v4.y), vec4f(289.0)));
-  hashes = mod_vec4(permute_vec4(mod_vec4(hashes + vec4f(v1.z, v2.z, v3.z, v4.z), vec4f(289.0))), vec4f(48.0));
-
-  let a = max(vec4f(0.5) - vec4f(dot(d1, d1), dot(d2, d2), dot(d3, d3), dot(d4, d4)), vec4f(0.0));
-  let aa = a * a;
-  let aaaa = aa * aa;
-  let g1 = grad_from_hash(hashes.x);
-  let g2 = grad_from_hash(hashes.y);
-  let g3 = grad_from_hash(hashes.z);
-  let g4 = grad_from_hash(hashes.w);
-  let extrapolations = vec4f(dot(d1, g1), dot(d2, g2), dot(d3, g3), dot(d4, g4));
-
-  let value = dot(aaaa, extrapolations);
-  return vec4f(0.0, 0.0, 0.0, value);
+// Convert integer hash to a pseudo-random float in [0,1)
+fn hash_to_unit(h: i32) -> f32 {
+  // use bit-mangling then normalize
+  var x = f32(h);
+  return fract(sin(x) * 43758.5453123);
 }
 
-fn openSimplex2_ImproveXY(X: vec3f) -> vec4f {
-  let orthonormalMap = mat3x3<f32>(
-    vec3f(0.788675134594813, -0.211324865405187, -0.577350269189626),
-    vec3f(-0.211324865405187, 0.788675134594813, -0.577350269189626),
-    vec3f(0.577350269189626, 0.577350269189626, 0.577350269189626)
-  );
-  let result = openSimplex2Base(orthonormalMap * X);
-  let mapped = vec3f(result.x, result.y, result.z) * orthonormalMap;
-  return vec4f(mapped.x, mapped.y, mapped.z, result.w);
+// Procedural gradient from hash (2D)
+fn grad2_from_hash(h: i32) -> vec2<f32> {
+  let u = hash_to_unit(h);
+  let angle = u * 6.283185307179586;
+  return vec2<f32>(cos(angle), sin(angle));
 }
 
-// OpenSimplex2S (value-only port)
-fn grad_from_hash_s(hash: f32) -> vec3f {
-  let h = hash;
-  var cube = mod_vec3(floor(vec3f(h, h, h) / vec3f(1.0, 2.0, 4.0)), vec3f(2.0)) * 2.0 - vec3f(1.0);
-  var cuboct = cube;
-  let idx = i32(floor(h / 16.0)) % 3;
-  if (idx == 0) { cuboct.x = 0.0; } else if (idx == 1) { cuboct.y = 0.0; } else { cuboct.z = 0.0; }
-  let typ = floor(h / 8.0) - floor(h / 16.0) * 2.0;
-  let rhomb = (1.0 - typ) * cube + typ * (cuboct + cross(cube, cuboct));
-  var g = cuboct * 1.22474487139 + rhomb;
-  g = g * ((1.0 - 0.042942436724648037 * typ) * 3.5946317686139184);
-  return g;
+// Value coordinate from integer grid
+fn val_coord2d(seed: i32, xPrimed: i32, yPrimed: i32) -> f32 {
+  var h = hash2d(seed, xPrimed, yPrimed);
+  h = h * h;
+  h = h ^ (h << 19);
+  return f32(h) * (1.0 / 2147483648.0);
 }
 
-fn openSimplex2SDerivativesPart(X: vec3f) -> vec4f {
-  let b = floor(X);
-  let i4 = vec4f(X.x - b.x, X.y - b.y, X.z - b.z, 2.5);
-
-  let v1 = b + vec3f(floor(dot(i4, vec4f(.25, .25, .25, .25))));
-  let v2 = b + vec3f(1.0, 0.0, 0.0) + vec3f(-1.0, 1.0, 1.0) * vec3f(floor(dot(i4, vec4f(-.25, .25, .25, .35))));
-  let v3 = b + vec3f(0.0, 1.0, 0.0) + vec3f(1.0, -1.0, 1.0) * vec3f(floor(dot(i4, vec4f(.25, -.25, .25, .35))));
-  let v4 = b + vec3f(0.0, 0.0, 1.0) + vec3f(1.0, 1.0, -1.0) * vec3f(floor(dot(i4, vec4f(.25, .25, -.25, .35))));
-
-  let d1 = X - v1; let d2 = X - v2; let d3 = X - v3; let d4 = X - v4;
-
-  var hashes = permute_vec4(mod_vec4(vec4f(v1.x, v2.x, v3.x, v4.x), vec4f(289.0)));
-  hashes = permute_vec4(mod_vec4(hashes + vec4f(v1.y, v2.y, v3.y, v4.y), vec4f(289.0)));
-  hashes = mod_vec4(permute_vec4(mod_vec4(hashes + vec4f(v1.z, v2.z, v3.z, v4.z), vec4f(289.0))), vec4f(48.0));
-
-  let a = max(vec4f(0.75) - vec4f(dot(d1, d1), dot(d2, d2), dot(d3, d3), dot(d4, d4)), vec4f(0.0));
-  let aa = a * a; let aaaa = aa * aa;
-  let g1 = grad_from_hash_s(hashes.x);
-  let g2 = grad_from_hash_s(hashes.y);
-  let g3 = grad_from_hash_s(hashes.z);
-  let g4 = grad_from_hash_s(hashes.w);
-  let extrapolations = vec4f(dot(d1, g1), dot(d2, g2), dot(d3, g3), dot(d4, g4));
-  let value = dot(aaaa, extrapolations);
-  return vec4f(0.0, 0.0, 0.0, value);
+// Gradient dot product for 2D
+fn grad_coord2d(seed: i32, xPrimed: i32, yPrimed: i32, xd: f32, yd: f32) -> f32 {
+  var h = hash2d(seed, xPrimed, yPrimed);
+  h = h ^ (h >> 15);
+  let g = grad2_from_hash(h);
+  return xd * g.x + yd * g.y;
 }
 
-fn openSimplex2SDerivatives_ImproveXY(X: vec3f) -> vec4f {
-  let orthonormalMap = mat3x3<f32>(
-    vec3f(0.788675134594813, -0.211324865405187, -0.577350269189626),
-    vec3f(-0.211324865405187, 0.788675134594813, -0.577350269189626),
-    vec3f(0.577350269189626, 0.577350269189626, 0.577350269189626)
-  );
-  let X2 = orthonormalMap * X;
-  let result = openSimplex2SDerivativesPart(X2) + openSimplex2SDerivativesPart(X2 + vec3f(144.5, 144.5, 144.5));
-  let mapped = vec3f(result.x, result.y, result.z) * orthonormalMap;
-  return vec4f(mapped.x, mapped.y, mapped.z, result.w);
+// Simplex-like 2D (approximation of OpenSimplex2)
+fn single_simplex2d(seed: i32, x: f32, y: f32) -> f32 {
+  let SQRT3 = 1.7320508075688772;
+  let G2 = (3.0 - SQRT3) / 6.0;
+
+  var i = i32(floor(x));
+  var j = i32(floor(y));
+  let xi = x - f32(i);
+  let yi = y - f32(j);
+
+  let t = (xi + yi) * G2;
+  let x0 = xi - t;
+  let y0 = yi - t;
+
+  var i0 = i * PRIME_X;
+  var j0 = j * PRIME_Y;
+
+  var n0 = 0.0;
+  var a = 0.5 - x0 * x0 - y0 * y0;
+  if (a > 0.0) {
+    let aa = a * a;
+    n0 = aa * aa * grad_coord2d(seed, i0, j0, x0, y0);
+  }
+
+  // other corners
+  var x1: f32; var y1: f32; var n1: f32 = 0.0;
+  var x2: f32; var y2: f32; var n2: f32 = 0.0;
+
+  if (y0 > x0) {
+    x1 = x0 + G2; y1 = y0 + (G2 - 1.0);
+    let b = 0.5 - x1 * x1 - y1 * y1;
+    if (b > 0.0) { let bb = b * b; n1 = bb * bb * grad_coord2d(seed, i0, j0 + PRIME_Y, x1, y1); }
+
+    x2 = x0 + (2.0 * G2 - 1.0); y2 = y0 + (2.0 * G2 - 1.0);
+    let c = (2.0 * (1.0 - 2.0 * G2) * (1.0 / G2 - 2.0)) * t + ((-2.0 * (1.0 - 2.0 * G2) * (1.0 - 2.0 * G2)) + a);
+    if (c > 0.0) { let cc = c * c; n2 = cc * cc * grad_coord2d(seed, i0 + PRIME_X, j0 + PRIME_Y, x2, y2); }
+  } else {
+    x1 = x0 + (G2 - 1.0); y1 = y0 + G2;
+    let b = 0.5 - x1 * x1 - y1 * y1;
+    if (b > 0.0) { let bb = b * b; n1 = bb * bb * grad_coord2d(seed, i0 + PRIME_X, j0, x1, y1); }
+
+    x2 = x0 + (2.0 * G2 - 1.0); y2 = y0 + (2.0 * G2 - 1.0);
+    let c = (2.0 * (1.0 - 2.0 * G2) * (1.0 / G2 - 2.0)) * t + ((-2.0 * (1.0 - 2.0 * G2) * (1.0 - 2.0 * G2)) + a);
+    if (c > 0.0) { let cc = c * c; n2 = cc * cc * grad_coord2d(seed, i0 + PRIME_X, j0 + PRIME_Y, x2, y2); }
+  }
+
+  return (n0 + n1 + n2) * 99.836854;
 }
 
-// Simple value-noise fallback (fast, hash-based)
-fn hash21(p: vec2f) -> f32 {
-  let h = dot(p, vec2f(127.1, 311.7));
-  return fract(sin(h) * 43758.5453);
+// Simple OpenSimplex2S approximation: use two offset simplex calls
+fn single_open_simplex2s2d(seed: i32, x: f32, y: f32) -> f32 {
+  let v1 = single_simplex2d(seed, x, y);
+  let v2 = single_simplex2d(seed + 1293373, x + 0.5, y + 0.5);
+  return (v1 + v2) * 0.5;
 }
 
-fn valueNoise(p: vec2f) -> f32 {
-  let i = floor(p);
-  let f = fract(p);
-  let u = f * f * (3.0 - 2.0 * f);
+// Value noise (cubic omitted; using bilinear interp)
+fn single_value2d(seed: i32, x: f32, y: f32) -> f32 {
+  let x0 = i32(floor(x));
+  let y0 = i32(floor(y));
+  let xs = interpHermite(x - f32(x0));
+  let ys = interpHermite(y - f32(y0));
 
-  let a = hash21(i + vec2f(0.0, 0.0));
-  let b = hash21(i + vec2f(1.0, 0.0));
-  let c = hash21(i + vec2f(0.0, 1.0));
-  let d = hash21(i + vec2f(1.0, 1.0));
+  let v00 = val_coord2d(seed, x0 * PRIME_X, y0 * PRIME_Y);
+  let v10 = val_coord2d(seed, (x0 + 1) * PRIME_X, y0 * PRIME_Y);
+  let v01 = val_coord2d(seed, x0 * PRIME_X, (y0 + 1) * PRIME_Y);
+  let v11 = val_coord2d(seed, (x0 + 1) * PRIME_X, (y0 + 1) * PRIME_Y);
 
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y) * 2.0 - 1.0;
+  let ix0 = lerp(v00, v10, xs);
+  let ix1 = lerp(v01, v11, xs);
+  return lerp(ix0, ix1, ys) * 2.0 - 1.0;
 }
 
-@vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
-  let pos = array(vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0) , vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(1.0, -1.0));
-  return vec4f(pos[vertexIndex], 0.0, 1.0);
+@vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4<f32> {
+  let pos = array<vec2<f32>, 6>(vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(-1.0, 1.0), vec2<f32>(-1.0, -1.0), vec2<f32>(1.0, 1.0), vec2<f32>(1.0, -1.0));
+  return vec4<f32>(pos[vertexIndex], 0.0, 1.0);
 }
 
-@fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-  let centerX = (data.width / 2.0) / data.scale * data.zoom + data.x / data.scale;
-  let centerY = (data.height / 2.0) / data.scale * data.zoom + data.y / data.scale;
+@fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4<f32> {
+  let centerX = (data.width * 0.5) / data.scale * data.zoom + data.x / data.scale;
+  let centerY = (data.height * 0.5) / data.scale * data.zoom + data.y / data.scale;
   let baseX = coord.x / data.scale * data.zoom + data.x / data.scale;
   let baseY = coord.y / data.scale * data.zoom + data.y / data.scale;
   let relX = baseX - centerX;
@@ -167,17 +153,17 @@ fn valueNoise(p: vec2f) -> f32 {
   let y = rotY + centerY;
 
   let t = data.z * 0.001;
-  let coords3 = vec3f(x, y, t);
 
-  var n = 0.0;
+  let seed = i32(data.seed);
+  var n: f32 = 0.0;
   if (data.mode < 0.5) {
-    n = openSimplex2_ImproveXY(coords3).w;
+    n = single_simplex2d(seed, x, y);
   } else if (data.mode < 1.5) {
-    n = openSimplex2SDerivatives_ImproveXY(coords3).w;
+    n = single_open_simplex2s2d(seed, x, y);
   } else {
-    n = valueNoise(vec2f(x, y));
+    n = single_value2d(seed, x, y);
   }
 
   let v = n * 0.5 + 0.5;
-  return vec4f(v, v, v, 1.0);
+  return vec4<f32>(v, v, v, 1.0);
 }

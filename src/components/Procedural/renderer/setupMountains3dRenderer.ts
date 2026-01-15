@@ -52,7 +52,8 @@ function createPlaneGeometry(
 export async function setupMountains3dRenderer(
   canvas: HTMLCanvasElement,
   options: { width: number; height: number },
-  controller2d?: any
+  controller2d?: any,
+  controller3d?: any
 ) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice();
@@ -471,21 +472,29 @@ export async function setupMountains3dRenderer(
     const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
 
-    // Fixed camera (no external 3D controller needed)
-    const camera: CameraState = {
-      position: [0, 80, 80],
-      yaw: 0,
-      pitch:  -Math.PI / 4,
-    };
-
-    const fov = Math.PI / 4;
-    const projMatrix = createPerspectiveMatrix(
-      fov,
-      options.width / options.height,
-      0.1,
-      1000
-    );
-    const viewMatrix = createViewMatrix(camera);
+    // Camera: use `controller3d` if provided, otherwise fall back to fixed camera
+    let projMatrix: number[];
+    let viewMatrix: number[];
+    if (controller3d && controller3d.value) {
+      const c = controller3d.value;
+      const cam: CameraState = {
+        position: c.position ?? [0, 80, 80],
+        yaw: c.yaw ?? 0,
+        pitch: c.pitch ?? -Math.PI / 4,
+      };
+      const fov = c.fov ?? Math.PI / 4;
+      projMatrix = createPerspectiveMatrix(fov, options.width / options.height, 0.1, 1000);
+      viewMatrix = createViewMatrix(cam);
+    } else {
+      const camera: CameraState = {
+        position: [0, 80, 80],
+        yaw: 0,
+        pitch: -Math.PI / 4,
+      };
+      const fov = Math.PI / 4;
+      projMatrix = createPerspectiveMatrix(fov, options.width / options.height, 0.1, 1000);
+      viewMatrix = createViewMatrix(camera);
+    }
 
     // Update uniform buffer with matrices and noise parameters
     const matrixData = new Float32Array(48); // 192 bytes / 4 bytes per float

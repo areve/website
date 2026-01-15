@@ -22,11 +22,13 @@
 
     <div :class="['controls-overlay', { 'controls-hidden': !controlsVisible }]">
       <div class="stats">
-        {{ stats.fps.toPrecision(3) }}fps {{ controller.x.toFixed(1) }}x
-        {{ controller.y.toFixed(1) }}y {{ controller.z.toFixed(1) }}z
-        {{ controller.zoom.toFixed(2) }}zoom
-        {{ controller.rotation.toFixed(1) }}rot
-        <span v-if="controller.paused">paused</span>
+        {{ stats.fps.toPrecision(3) }}fps
+        {{ statsX }}x
+        {{ statsY }}y
+        {{ statsZ }}z
+        {{ statsZoom }}zoom
+        {{ statsRot }}rot
+        <span v-if="statsPaused">paused</span>
       </div>
       <div>
         <label class="mode-select">
@@ -50,6 +52,9 @@
         </label>
         <button @click="handleToggleFullscreen" type="button">
           Fullscreen
+        </button>
+        <button v-if="shaderMode === 'mountains3d'" @click="toggleControllerMode" type="button">
+          {{ controllerMode === '2d' ? 'Use 3D Controller' : 'Use 2D Controller' }}
         </button>
             <!-- Close button: hides controls overlay -->
             <button class="controls-close" type="button" @click.stop="hideControls" aria-label="Hide controls">✕</button>
@@ -87,17 +92,67 @@ const controller = makeController({
 });
 
 const controller3d = makeController3d();
+const controllerMode = ref<'2d' | '3d'>('2d');
+
+function toggleControllerMode() {
+  if (!canvas.value) return;
+  // Swap mounted controller on the canvas
+  if (controllerMode.value === '2d') {
+    controller.value.unmount();
+    controller3d.value.mount(canvas.value);
+    controllerMode.value = '3d';
+  } else {
+    controller3d.value.unmount();
+    controller.value.mount(canvas.value);
+    controllerMode.value = '2d';
+  }
+}
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
-  // controller is a ref; use .value here in script
-  // In opensimplex3d mode, show 3D yaw; otherwise show 2D rotation
-  const rad = shaderMode.value === 'opensimplex3d'
-    ? controller3d.value.yaw ?? 0
-    : controller.value.rotation ?? 0;
+  // Show 3D yaw when in 3D modes or when 3D controller active for mountains3d
+  const use3d = shaderMode.value === 'opensimplex3d' || (shaderMode.value === 'mountains3d' && controllerMode.value === '3d');
+  const rad = use3d ? controller3d.value.yaw ?? 0 : controller.value.rotation ?? 0;
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
 });
+
+// Which controller is currently active (object, not ref)
+const activeController = computed(() => {
+  if (shaderMode.value === 'opensimplex3d') return controller3d.value;
+  if (shaderMode.value === 'mountains3d' && controllerMode.value === '3d') return controller3d.value;
+  return controller.value;
+});
+
+// Safe formatted stats for template (avoid calling toFixed on undefined)
+const statsX = computed(() => {
+  const c = activeController.value;
+  const x = typeof c?.x === 'number' ? c.x : (c?.position ? c.position[0] : 0);
+  return x.toFixed(1);
+});
+const statsY = computed(() => {
+  const c = activeController.value;
+  const y = typeof c?.y === 'number' ? c.y : (c?.position ? c.position[1] : 0);
+  return y.toFixed(1);
+});
+const statsZ = computed(() => {
+  const c = activeController.value;
+  const z = typeof c?.z === 'number' ? c.z : (c?.position ? c.position[2] : 0);
+  return z.toFixed(1);
+});
+const statsZoom = computed(() => {
+  const c = activeController.value;
+  if (typeof c?.zoom === 'number') return c.zoom.toFixed(2);
+  if (typeof c?.fov === 'number') return c.fov.toFixed(2);
+  return '0.00';
+});
+const statsRot = computed(() => {
+  const c = activeController.value;
+  if (typeof c?.rotation === 'number') return c.rotation.toFixed(1);
+  if (typeof c?.yaw === 'number') return c.yaw.toFixed(1);
+  return '0.0';
+});
+const statsPaused = computed(() => !!activeController.value?.paused);
 
 let _rotationAnim: number | null = null;
 
@@ -260,14 +315,19 @@ const initializeCanvas = async () => {
       controller3d.value.mount(canvas.value);
     }
   } else if (shaderMode.value === "mountains3d") {
+    // Pass both controllers; renderer will use controller3d for camera if present
     renderer = await setupMountains3dRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
-    }, controller);
-    // Mount only 2D controller so WASD/drag pan the texture
+    }, controller, controller3d);
+    // Mount the currently selected controller
     if (canvas.value) {
-      controller.value.mount(canvas.value);
+      if (controllerMode.value === '2d') {
+        controller.value.mount(canvas.value);
+      } else {
+        controller3d.value.mount(canvas.value);
+      }
     }
   } else {
     renderer = await setupOpenSimplexRenderer(canvas.value, {
@@ -287,16 +347,18 @@ const initializeCanvas = async () => {
 
 onMounted(async () => {
   await initializeCanvas();
-  await renderer.update(0, controller.value);
+  await renderer.update(0, activeController.value);
 
   document.addEventListener("changeMode", handleChangeMode);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
   document.addEventListener("fullscreenchange", initializeCanvas);
 
   const render = async (time: DOMHighResTimeStamp) => {
-    if (!controller.value.paused) {
-      await renderer.update(time, controller.value);
-      controller.value.update();
+    const active = activeController.value;
+    if (!active.paused) {
+      await renderer.update(time, active);
+      // Call the update method on whichever controller is active
+      if (active.update) active.update();
       stats.value.update();
     }
     frameId = requestAnimationFrame(render);

@@ -41,6 +41,7 @@
             <option value="value">Value</option>
             <option value="julia">Julia</option>
               <option value="lorenz">Lorenz</option>
+              <option value="sierpinski">Sierpinski</option>
             <option value="valuecubic">Value Cubic</option>
             <option value="newton">Newton Raphson</option>
             <option value="ripple">Ripple</option>
@@ -90,6 +91,7 @@ import { setupNewtonRenderer } from "./renderer/setupNewtonRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupJuliaRenderer } from "./renderer/setupJuliaRenderer";
 import { setupLorenzRenderer } from "./renderer/setupLorenzRenderer";
+import { setupSierpinskiRenderer } from "./renderer/setupSierpinskiRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
@@ -254,14 +256,15 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("lorenz");
+  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+>("sierpinski");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const availableModes = [
   "opensimplex2",
+  "sierpinski",
   "opensimplex2s",
   "perlin",
   "simplex",
@@ -372,6 +375,13 @@ const initializeCanvas = async () => {
     if (canvas.value) controller.value.mount(canvas.value);
   } else if (shaderMode.value === "lorenz") {
     renderer = await setupLorenzRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+  } else if (shaderMode.value === "sierpinski") {
+    renderer = await setupSierpinskiRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

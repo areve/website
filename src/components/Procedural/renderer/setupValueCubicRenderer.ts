@@ -77,12 +77,14 @@ export async function setupValueCubicRenderer(
       const PRIME_Y: i32 = 1136930381;
       const PRIME_Z: i32 = 1720413743;
 
-      fn noise(seed: i32, xi: i32, yi: i32, zi: i32) -> f32 {
-        let seed_u: u32 = u32(seed);
-        let n: u32 = seed_u + u32(xi) * 374761393u + u32(yi) * 668265263u + u32(zi) * 1440662683u;
+      // optimized noise: take 3 float coordinates and return [0,1]
+      fn noise(coord: vec3<f32>) -> f32 {
+        let n: u32 = bitcast<u32>(data.seed) +
+          bitcast<u32>(coord.x * 374761393.0) +
+          bitcast<u32>(coord.y * 668265263.0) +
+          bitcast<u32>(coord.z * 1440662683.0);
         let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
-        var h: i32 = bitcast<i32>(m);
-        return f32(h) * (1.0 / 2147483648.0);
+        return f32(m) / f32(0xffffffffu);
       }
 
       fn value_cubic3d(x: f32, y: f32, z: f32) -> f32 {
@@ -121,7 +123,7 @@ export async function setupValueCubicRenderer(
             let yp = ypArr[ky];
             for (var kx: i32 = 0; kx < 4; kx = kx + 1) {
               let xp = xpArr[kx];
-              row[kx] = noise(i32(data.seed), xp, yp, zp);
+              row[kx] = noise(vec3f(f32(xp), f32(yp), f32(zp)));
             }
             col[ky] = cubic_interp(row[0], row[1], row[2], row[3], fx);
           }

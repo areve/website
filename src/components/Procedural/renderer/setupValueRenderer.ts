@@ -68,12 +68,14 @@ export async function setupValueRenderer(
       fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
 
 
-      fn noise(seed: i32, xi: i32, yi: i32, zi: i32) -> f32 {
-        let seed_u: u32 = u32(seed);
-        let n: u32 = seed_u + u32(xi) * 374761393u + u32(yi) * 668265263u + u32(zi) * 1440662683u;
+      // optimized noise: sample from 3 float coords (x,y,z) and return [0,1]
+      fn noise(coord: vec3<f32>) -> f32 {
+        let n: u32 = bitcast<u32>(data.seed) +
+          bitcast<u32>(coord.x * 374761393.0) +
+          bitcast<u32>(coord.y * 668265263.0) +
+          bitcast<u32>(coord.z * 1440662683.0);
         let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
-        var h: i32 = bitcast<i32>(m);
-        return f32(h) * (1.0 / 2147483648.0);
+        return f32(m) / f32(0xffffffffu);
       }
 
       fn value3d(x: f32, y: f32, z: f32) -> f32 {
@@ -92,10 +94,10 @@ export async function setupValueRenderer(
         let y1 = yp + 1;
         let z1 = zp + 1;
 
-        let xf00 = lerp(noise(i32(data.seed), xp, yp, zp), noise(i32(data.seed), x1, yp, zp), xs);
-        let xf10 = lerp(noise(i32(data.seed), xp, y1, zp), noise(i32(data.seed), x1, y1, zp), xs);
-        let xf01 = lerp(noise(i32(data.seed), xp, yp, z1), noise(i32(data.seed), x1, yp, z1), xs);
-        let xf11 = lerp(noise(i32(data.seed), xp, y1, z1), noise(i32(data.seed), x1, y1, z1), xs);
+        let xf00 = lerp(noise(vec3f(f32(xp), f32(yp), f32(zp))), noise(vec3f(f32(x1), f32(yp), f32(zp))), xs);
+        let xf10 = lerp(noise(vec3f(f32(xp), f32(y1), f32(zp))), noise(vec3f(f32(x1), f32(y1), f32(zp))), xs);
+        let xf01 = lerp(noise(vec3f(f32(xp), f32(yp), f32(z1))), noise(vec3f(f32(x1), f32(yp), f32(z1))), xs);
+        let xf11 = lerp(noise(vec3f(f32(xp), f32(y1), f32(z1))), noise(vec3f(f32(x1), f32(y1), f32(z1))), xs);
 
         let yf0 = lerp(xf00, xf10, ys);
         let yf1 = lerp(xf01, xf11, ys);

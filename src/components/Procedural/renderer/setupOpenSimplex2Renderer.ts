@@ -168,7 +168,7 @@ export async function setupOpenSimplex2Renderer(
 
         // Use OpenSimplex2; treat data.z (ms) as the z/time coordinate
         let t = data.z * 0.001;
-        let coords = vec3f(x / data.scale, y / data.scale, t);
+        let coords = vec3f(x, y, t);
         let n4 = openSimplex2_ImproveXY(coords);
         let n = n4.w;
         // remap from small-range to [0,1]
@@ -222,7 +222,7 @@ export async function setupOpenSimplex2Renderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.2;
+      sharedData.z = time;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

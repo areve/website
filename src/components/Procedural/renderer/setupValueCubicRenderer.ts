@@ -130,7 +130,7 @@ export async function setupValueCubicRenderer(
           plane[kz] = cubic_interp(col[0], col[1], col[2], col[3], fy);
         }
 
-        return cubic_interp(plane[0], plane[1], plane[2], plane[3], fz) * (1.0 / (1.5 * 1.5));
+        return cubic_interp(plane[0], plane[1], plane[2], plane[3], fz);
       }
 
       @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
@@ -161,7 +161,7 @@ export async function setupValueCubicRenderer(
 
         let n = value_cubic3d(x, y, data.z);
         // invert mapping so bright/dark match expectations (white = high)
-        let m = clamp(1.0 - (n * 0.5 + 0.5), 0.0, 1.0);
+        let m = clamp(1.0 - n, 0.0, 1.0);
         return vec4<f32>(m, m, m, 1.0);
       }
     `,

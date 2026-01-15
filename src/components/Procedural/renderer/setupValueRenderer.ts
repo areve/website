@@ -132,7 +132,7 @@ export async function setupValueRenderer(
         let y = rotY + centerY;
 
         let n = value3d(x, y, data.z);
-        let m = clamp(n * 0.5 + 0.5, 0.0, 1.0);
+        let m = clamp(n, 0.0, 1.0);
         return vec4<f32>(m, m, m, 1.0);
       }
     `,

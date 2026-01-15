@@ -77,7 +77,7 @@ export async function setupValueCubicRenderer(
       const PRIME_Y: i32 = 1136930381;
       const PRIME_Z: i32 = 1720413743;
 
-      fn hash3(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
+      fn noise(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
         let seed_u: u32 = u32(seed);
         let n: u32 = seed_u + u32(xPrimed) * 374761393u + u32(yPrimed) * 668265263u + u32(zPrimed) * 1440662683u;
         let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
@@ -85,7 +85,7 @@ export async function setupValueCubicRenderer(
       }
 
       fn _fnlValCoord3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> f32 {
-        var hash = hash3(seed, xPrimed, yPrimed, zPrimed);
+        var hash = noise(seed, xPrimed, yPrimed, zPrimed);
         hash = hash * hash;
         hash = hash ^ (hash << 19);
         return f32(hash) * (1.0 / 2147483648.0);

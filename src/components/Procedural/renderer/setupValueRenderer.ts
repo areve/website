@@ -64,14 +64,14 @@ export async function setupValueRenderer(
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
       // inlined at call sites for performance
-      fn _fnlInterpHermite(t: f32) -> f32 { return t * t * (3.0 - 2.0 * t); }
+      fn smootherstep(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
       fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
 
       const PRIME_X: i32 = 501125321;
       const PRIME_Y: i32 = 1136930381;
       const PRIME_Z: i32 = 1720413743;
 
-      fn hash3(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
+      fn noise(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
         let seed_u: u32 = u32(seed);
         let n: u32 = seed_u + u32(xPrimed) * 374761393u + u32(yPrimed) * 668265263u + u32(zPrimed) * 1440662683u;
         let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
@@ -79,7 +79,7 @@ export async function setupValueRenderer(
       }
 
       fn _fnlValCoord3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> f32 {
-        var hash = hash3(seed, xPrimed, yPrimed, zPrimed);
+        var hash = noise(seed, xPrimed, yPrimed, zPrimed);
         hash = hash * hash;
         hash = hash ^ (hash << 19);
         return f32(hash) * (1.0 / 2147483648.0);
@@ -90,9 +90,9 @@ export async function setupValueRenderer(
         let y0 = i32(floor(y));
         let z0 = i32(floor(z));
 
-        let xs = _fnlInterpHermite(x - f32(x0));
-        let ys = _fnlInterpHermite(y - f32(y0));
-        let zs = _fnlInterpHermite(z - f32(z0));
+        let xs = smootherstep(x - f32(x0));
+        let ys = smootherstep(y - f32(y0));
+        let zs = smootherstep(z - f32(z0));
 
         let xp = x0 * PRIME_X;
         let yp = y0 * PRIME_Y;

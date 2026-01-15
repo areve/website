@@ -77,21 +77,19 @@ export async function setupPerlinRenderer(
       }
 
 
-      const G0 = vec3<f32>(1.0, 1.0, 0.0);
-      const G1 = vec3<f32>(-1.0, 1.0, 0.0);
-      const G2 = vec3<f32>(1.0, -1.0, 0.0);
-      const G3 = vec3<f32>(-1.0, -1.0, 0.0);
-      const G4 = vec3<f32>(1.0, 0.0, 1.0);
-      const G5 = vec3<f32>(-1.0, 0.0, 1.0);
-      const G6 = vec3<f32>(1.0, 0.0, -1.0);
-      const G7 = vec3<f32>(-1.0, 0.0, -1.0);
-      const G8 = vec3<f32>(0.0, 1.0, 1.0);
-      const G9 = vec3<f32>(0.0, -1.0, 1.0);
-      const G10 = vec3<f32>(0.0, 1.0, -1.0);
-      const G11 = vec3<f32>(0.0, -1.0, -1.0);
-
       const GRAD_TABLE: array<vec3<f32>, 12> = array<vec3<f32>, 12>(
-        G0, G1, G2, G3, G4, G5, G6, G7, G8, G9, G10, G11
+        vec3<f32>(1.0, 1.0, 0.0),
+        vec3<f32>(-1.0, 1.0, 0.0),
+        vec3<f32>(1.0, -1.0, 0.0),
+        vec3<f32>(-1.0, -1.0, 0.0),
+        vec3<f32>(1.0, 0.0, 1.0),
+        vec3<f32>(-1.0, 0.0, 1.0),
+        vec3<f32>(1.0, 0.0, -1.0),
+        vec3<f32>(-1.0, 0.0, -1.0),
+        vec3<f32>(0.0, 1.0, 1.0),
+        vec3<f32>(0.0, -1.0, 1.0),
+        vec3<f32>(0.0, 1.0, -1.0),
+        vec3<f32>(0.0, -1.0, -1.0)
       );
 
       fn gradFromHash(h: i32) -> vec3<f32> {

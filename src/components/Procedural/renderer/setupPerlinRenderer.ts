@@ -63,70 +63,102 @@ export async function setupPerlinRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
-      fn fract(x: f32) -> f32 { return x - floor(x); }
-      fn fade(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
+      // Helpers matching FastNoiseLite semantics
+      fn _fnlFastFloor(f: f32) -> i32 {
+        if (f >= 0.0) {
+          return i32(f);
+        } else {
+          return i32(f) - 1;
+        }
+      }
+      fn _fnlInterpQuintic(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
+      fn _fnlLerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
 
-      fn hashf(v: vec3<f32>) -> f32 {
-        let n: u32 = bitcast<u32>(data.seed) +
-          bitcast<u32>(v.x * 374761393.0) +
-          bitcast<u32>(v.y * 668265263.0) +
-          bitcast<u32>(v.z * 1440662683.0);
-        let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
-        return f32(m) / f32(0xffffffffu);
+      const PRIME_X: i32 = 501125321;
+      const PRIME_Y: i32 = 1136930381;
+      const PRIME_Z: i32 = 1720413743;
+
+      fn _fnlHash3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
+        var hash: i32 = seed ^ xPrimed ^ yPrimed ^ zPrimed;
+        // multiplier from FastNoiseLite.h (0x27d4eb2d == 668265261)
+        hash = hash * 668265261;
+        return hash;
       }
 
-      fn gradFromHash(h: i32) -> vec3<f32> {
-        // Use 16 possible gradients
-        let idx = u32(h & 15);
-        let g0 = vec3<f32>(1.0,1.0,0.0);
-        let g1 = vec3<f32>(-1.0,1.0,0.0);
-        let g2 = vec3<f32>(1.0,-1.0,0.0);
-        let g3 = vec3<f32>(-1.0,-1.0,0.0);
-        let g4 = vec3<f32>(1.0,0.0,1.0);
-        let g5 = vec3<f32>(-1.0,0.0,1.0);
-        let g6 = vec3<f32>(1.0,0.0,-1.0);
-        let g7 = vec3<f32>(-1.0,0.0,-1.0);
-        let g8 = vec3<f32>(0.0,1.0,1.0);
-        let g9 = vec3<f32>(0.0,-1.0,1.0);
-        let g10 = vec3<f32>(0.0,1.0,-1.0);
-        let g11 = vec3<f32>(0.0,-1.0,-1.0);
-        let g12 = vec3<f32>(1.0,1.0,0.0);
-        let g13 = vec3<f32>(-1.0,1.0,0.0);
-        let g14 = vec3<f32>(0.0,-1.0,1.0);
-        let g15 = vec3<f32>(0.0,-1.0,-1.0);
-        let table = array<vec3<f32>,16>(g0,g1,g2,g3,g4,g5,g6,g7,g8,g9,g10,g11,g12,g13,g14,g15);
-        return table[idx];
+      // Small gradient table based on FastNoiseLite gradients (12 base gradients repeated)
+      const G0 = vec3<f32>(1.0, 1.0, 0.0);
+      const G1 = vec3<f32>(-1.0, 1.0, 0.0);
+      const G2 = vec3<f32>(1.0, -1.0, 0.0);
+      const G3 = vec3<f32>(-1.0, -1.0, 0.0);
+      const G4 = vec3<f32>(1.0, 0.0, 1.0);
+      const G5 = vec3<f32>(-1.0, 0.0, 1.0);
+      const G6 = vec3<f32>(1.0, 0.0, -1.0);
+      const G7 = vec3<f32>(-1.0, 0.0, -1.0);
+      const G8 = vec3<f32>(0.0, 1.0, 1.0);
+      const G9 = vec3<f32>(0.0, -1.0, 1.0);
+      const G10 = vec3<f32>(0.0, 1.0, -1.0);
+      const G11 = vec3<f32>(0.0, -1.0, -1.0);
+
+      fn _fnlGradFromHash(h: i32) -> vec3<f32> {
+        let idx = u32((h ^ (h >> 15)) & 63);
+        // map idx into 12-entry set
+        let sel = idx % 12u;
+        if (sel == 0u) { return G0; }
+        if (sel == 1u) { return G1; }
+        if (sel == 2u) { return G2; }
+        if (sel == 3u) { return G3; }
+        if (sel == 4u) { return G4; }
+        if (sel == 5u) { return G5; }
+        if (sel == 6u) { return G6; }
+        if (sel == 7u) { return G7; }
+        if (sel == 8u) { return G8; }
+        if (sel == 9u) { return G9; }
+        if (sel == 10u) { return G10; }
+        return G11;
       }
 
       fn perlin3d(x: f32, y: f32, z: f32) -> f32 {
-        let X = i32(floor(x));
-        let Y = i32(floor(y));
-        let Z = i32(floor(z));
-        let xf = x - f32(X);
-        let yf = y - f32(Y);
-        let zf = z - f32(Z);
+        let x0 = _fnlFastFloor(x);
+        let y0 = _fnlFastFloor(y);
+        let z0 = _fnlFastFloor(z);
 
-        let u = fade(xf);
-        let v = fade(yf);
-        let w = fade(zf);
+        let xd0 = x - f32(x0);
+        let yd0 = y - f32(y0);
+        let zd0 = z - f32(z0);
+        let xd1 = xd0 - 1.0;
+        let yd1 = yd0 - 1.0;
+        let zd1 = zd0 - 1.0;
 
-        var accum: f32 = 0.0;
-        for (var ix: i32 = 0; ix <= 1; ix = ix + 1) {
-          for (var iy: i32 = 0; iy <= 1; iy = iy + 1) {
-            for (var iz: i32 = 0; iz <= 1; iz = iz + 1) {
-              let corner = vec3<f32>(f32(X + ix), f32(Y + iy), f32(Z + iz));
-              let gradHash = i32(bitcast<i32>(hashf(corner)));
-              let grad = gradFromHash(gradHash);
-              let diff = vec3<f32>(xf - f32(ix), yf - f32(iy), zf - f32(iz));
-              let dotv = dot(grad, diff);
-              let sx = select(1.0 - u, u, ix == 1);
-              let sy = select(1.0 - v, v, iy == 1);
-              let sz = select(1.0 - w, w, iz == 1);
-              accum = accum + dotv * sx * sy * sz;
-            }
-          }
-        }
-        return clamp(accum * 2.0, -1.0, 1.0);
+        let xs = _fnlInterpQuintic(xd0);
+        let ys = _fnlInterpQuintic(yd0);
+        let zs = _fnlInterpQuintic(zd0);
+
+        let xp = x0 * PRIME_X;
+        let yp = y0 * PRIME_Y;
+        let zp = z0 * PRIME_Z;
+        let x1 = xp + PRIME_X;
+        let y1 = yp + PRIME_Y;
+        let z1 = zp + PRIME_Z;
+
+        // compute corner dot products
+        let g000 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), xp, yp, zp));
+        let g100 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), x1, yp, zp));
+        let g010 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), xp, y1, zp));
+        let g110 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), x1, y1, zp));
+        let g001 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), xp, yp, z1));
+        let g101 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), x1, yp, z1));
+        let g011 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), xp, y1, z1));
+        let g111 = _fnlGradFromHash(_fnlHash3D(i32(data.seed), x1, y1, z1));
+
+        let xf00 = _fnlLerp(dot(g000, vec3<f32>(xd0, yd0, zd0)), dot(g100, vec3<f32>(xd1, yd0, zd0)), xs);
+        let xf10 = _fnlLerp(dot(g010, vec3<f32>(xd0, yd1, zd0)), dot(g110, vec3<f32>(xd1, yd1, zd0)), xs);
+        let xf01 = _fnlLerp(dot(g001, vec3<f32>(xd0, yd0, zd1)), dot(g101, vec3<f32>(xd1, yd0, zd1)), xs);
+        let xf11 = _fnlLerp(dot(g011, vec3<f32>(xd0, yd1, zd1)), dot(g111, vec3<f32>(xd1, yd1, zd1)), xs);
+
+        let yf0 = _fnlLerp(xf00, xf10, ys);
+        let yf1 = _fnlLerp(xf01, xf11, ys);
+
+        return clamp(_fnlLerp(yf0, yf1, zs) * 0.9649214148521423, -1.0, 1.0);
       }
 
       @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {

@@ -96,8 +96,8 @@ export async function setupLorenzRenderer(
 
         // Initial conditions from world coords (scaled down)
         // Zoom out 10x: use smaller multiplier so the attractor is visible at default zoom
-        var x = worldX * 0.002;
-        var y = worldY * 0.002;
+        var x = worldX * 1.2;
+        var y = worldY * 1.2;
         var z = 25.0 + sin(data.z) * 5.0;
 
         let sigma = 10.0;

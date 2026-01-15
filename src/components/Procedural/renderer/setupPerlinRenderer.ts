@@ -76,10 +76,6 @@ export async function setupPerlinRenderer(
         return f32(m) / f32(0xffffffff);
       }
 
-      const PRIME_X: i32 = 374761393;
-      const PRIME_Y: i32 = 668265263;
-      const PRIME_Z: i32 = 1440662683;
-      // 3865785317
 
       const G0 = vec3<f32>(1.0, 1.0, 0.0);
       const G1 = vec3<f32>(-1.0, 1.0, 0.0);
@@ -113,32 +109,30 @@ export async function setupPerlinRenderer(
       }
 
       fn perlin3d(x: f32, y: f32, z: f32) -> f32 {
-        let x0 = i32(floor(x));
-        let y0 = i32(floor(y));
-        let z0 = i32(floor(z));
+        // Find unit grid cell containing point
+        var X = i32(floor(x));
+        var Y = i32(floor(y));
+        var Z = i32(floor(z));
 
-        let xd0 = x - f32(x0);
-        let yd0 = y - f32(y0);
-        let zd0 = z - f32(z0);
-        let xd1 = xd0 - 1.0;
-        let yd1 = yd0 - 1.0;
-        let zd1 = zd0 - 1.0;
+        // Get relative xyz coordinates of point within that cell
+        let fx = x - f32(X);
+        let fy = y - f32(Y);
+        let fz = z - f32(Z);
 
-        let xp = x0 * PRIME_X;
-        let yp = y0 * PRIME_Y;
-        let zp = z0 * PRIME_Z;
-        let x1 = xp + PRIME_X;
-        let y1 = yp + PRIME_Y;
-        let z1 = zp + PRIME_Z;
+        // Wrap the integer cells at 255
+        X = X & 255;
+        Y = Y & 255;
+        Z = Z & 255;
 
-        let n000 = bitcast<i32>(noise(vec4<f32>(f32(xp), f32(yp), f32(zp), 0.0))) & 0xff;
-        let n100 = bitcast<i32>(noise(vec4<f32>(f32(x1), f32(yp), f32(zp), 0.0))) & 0xff;
-        let n010 = bitcast<i32>(noise(vec4<f32>(f32(xp), f32(y1), f32(zp), 0.0))) & 0xff;
-        let n110 = bitcast<i32>(noise(vec4<f32>(f32(x1), f32(y1), f32(zp), 0.0))) & 0xff;
-        let n001 = bitcast<i32>(noise(vec4<f32>(f32(xp), f32(yp), f32(z1), 0.0))) & 0xff;
-        let n101 = bitcast<i32>(noise(vec4<f32>(f32(x1), f32(yp), f32(z1), 0.0))) & 0xff;
-        let n011 = bitcast<i32>(noise(vec4<f32>(f32(xp), f32(y1), f32(z1), 0.0))) & 0xff;
-        let n111 = bitcast<i32>(noise(vec4<f32>(f32(x1), f32(y1), f32(z1), 0.0))) & 0xff;
+        // Compute hash-like values for each corner and convert to gradient via _fnlGradFromHash
+        let n000 = bitcast<i32>(noise(vec4<f32>(f32(X), f32(Y), f32(Z), 0.0))) & 0xff;
+        let n001 = bitcast<i32>(noise(vec4<f32>(f32(X), f32(Y), f32((Z + 1) & 255), 0.0))) & 0xff;
+        let n010 = bitcast<i32>(noise(vec4<f32>(f32(X), f32((Y + 1) & 255), f32(Z), 0.0))) & 0xff;
+        let n011 = bitcast<i32>(noise(vec4<f32>(f32(X), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0))) & 0xff;
+        let n100 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32(Y), f32(Z), 0.0))) & 0xff;
+        let n101 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32(Y), f32((Z + 1) & 255), 0.0))) & 0xff;
+        let n110 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32(Z), 0.0))) & 0xff;
+        let n111 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0))) & 0xff;
 
         let g000 = _fnlGradFromHash(n000);
         let g100 = _fnlGradFromHash(n100);
@@ -149,19 +143,32 @@ export async function setupPerlinRenderer(
         let g011 = _fnlGradFromHash(n011);
         let g111 = _fnlGradFromHash(n111);
 
-        let u = smootherstep(xd0);
-        let v = smootherstep(yd0);
-        let w = smootherstep(zd0);
+        // Calculate noise contributions from each of the eight corners (dot products)
+        let n000f = dot(g000, vec3<f32>(fx, fy, fz));
+        let n001f = dot(g001, vec3<f32>(fx, fy, fz - 1.0));
+        let n010f = dot(g010, vec3<f32>(fx, fy - 1.0, fz));
+        let n011f = dot(g011, vec3<f32>(fx, fy - 1.0, fz - 1.0));
+        let n100f = dot(g100, vec3<f32>(fx - 1.0, fy, fz));
+        let n101f = dot(g101, vec3<f32>(fx - 1.0, fy, fz - 1.0));
+        let n110f = dot(g110, vec3<f32>(fx - 1.0, fy - 1.0, fz));
+        let n111f = dot(g111, vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
 
-        let xf00 = lerp(dot(g000, vec3<f32>(xd0, yd0, zd0)), dot(g100, vec3<f32>(xd1, yd0, zd0)), u);
-        let xf10 = lerp(dot(g010, vec3<f32>(xd0, yd1, zd0)), dot(g110, vec3<f32>(xd1, yd1, zd0)), u);
-        let xf01 = lerp(dot(g001, vec3<f32>(xd0, yd0, zd1)), dot(g101, vec3<f32>(xd1, yd0, zd1)), u);
-        let xf11 = lerp(dot(g011, vec3<f32>(xd0, yd1, zd1)), dot(g111, vec3<f32>(xd1, yd1, zd1)), u);
+        // Compute the fade curve value for fx, fy, fz
+        let u = smootherstep(fx);
+        let v = smootherstep(fy);
+        let w = smootherstep(fz);
 
-        let yf0 = lerp(xf00, xf10, v);
-        let yf1 = lerp(xf01, xf11, v);
+        // Interpolate: u inner, w mid, v outer (matches reference implementation)
+        let ix0 = lerp(n000f, n100f, u);
+        let ix1 = lerp(n010f, n110f, u);
+        let iy0 = lerp(ix0, ix1, v);
 
-        return clamp(lerp(yf0, yf1, w) * 0.9649214148521423, -1.0, 1.0);
+        let jx0 = lerp(n001f, n101f, u);
+        let jx1 = lerp(n011f, n111f, u);
+        let jy0 = lerp(jx0, jx1, v);
+
+        let value = lerp(iy0, jy0, w);
+        return clamp(value * 0.9649214148521423, -1.0, 1.0);
       }
 
       @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {

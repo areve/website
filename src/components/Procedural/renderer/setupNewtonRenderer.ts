@@ -60,8 +60,6 @@ export async function setupNewtonRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
-      fn mag2(x: f32, y: f32) -> f32 { return x*x + y*y; }
-
       fn newton_iterations(cx: f32, cy: f32) -> f32 {
         var xr = cx;
         var yi = cy;
@@ -70,24 +68,20 @@ export async function setupNewtonRenderer(
         var i: i32 = 0;
         loop {
           if (i >= maxIter) { break; }
-          // compute z^3 = (xr + i yi)^3
           let xr2 = xr*xr;
           let yi2 = yi*yi;
-          let xr3 = xr2 * xr - 3.0 * xr * yi2; // real part
-          let yi3 = 3.0 * xr2 * yi - yi2 * yi; // imag part
+          let xr3 = xr2 * xr - 3.0 * xr * yi2;
+          let yi3 = 3.0 * xr2 * yi - yi2 * yi;
 
-          // p = z^3 - 1  => (xr3 - 1) + i yi3
           let pr = xr3 - 1.0;
           let pi = yi3;
 
-          // derivative p' = 3 z^2 => 3*(xr^2 - yi^2) + i*6*xr*yi
           let dr = 3.0 * (xr2 - yi2);
           let di = 6.0 * xr * yi;
 
           let denom = dr*dr + di*di;
           if (denom == 0.0) { break; }
 
-          // complex division: (p * conj(d)) / |d|^2
           let nr = pr*dr + pi*di;
           let ni = pi*dr - pr*di;
 
@@ -108,9 +102,32 @@ export async function setupNewtonRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        // map pixel to complex plane similar to existing noise page
-        let cReal = (coord.x / 200.0) - 2.0 + data.x;
-        let cImag = (coord.y / 200.0) - 0.25 + data.y;
+        // Map screen coordinate to world space (match Mandelbrot/Mountains transform)
+        let centerScreenX = data.width / 2.0;
+        let centerScreenY = data.height / 2.0;
+        let scale = data.scale;
+
+        let baseX = coord.x / scale * data.zoom + data.x / scale;
+        let baseY = coord.y / scale * data.zoom + data.y / scale;
+        let centerWorldX = centerScreenX / scale * data.zoom + data.x / scale;
+        let centerWorldY = centerScreenY / scale * data.zoom + data.y / scale;
+
+        let relX = baseX - centerWorldX;
+        let relY = baseY - centerWorldY;
+
+        let cos_r = cos(data.rotation);
+        let sin_r = sin(data.rotation);
+        let rotX = relX * cos_r - relY * sin_r;
+        let rotY = relX * sin_r + relY * cos_r;
+
+        let worldX = rotX + centerWorldX;
+        let worldY = rotY + centerWorldY;
+
+        // Convert world coords to complex plane for Newton iteration
+        let worldToComplex: f32 = 0.06;
+        let cReal = worldX * worldToComplex - 2.0;
+        let cImag = worldY * worldToComplex - 0.25;
+
         let v = newton_iterations(cReal, cImag);
         let m = clamp(1.0 - v, 0.0, 1.0);
         return vec4<f32>(m, m, m, 1.0);
@@ -142,6 +159,10 @@ export async function setupNewtonRenderer(
     async init() {},
     async update(time: DOMHighResTimeStamp, data?: { x?: number; y?: number; }) {
       Object.assign(sharedData, data);
+      // Newton view pans are intentionally less sensitive — apply a local pan factor
+      const panFactor = 0.25; // reduce panning to 25% for easier debugging
+      sharedData.x = (sharedData.x ?? 0) * panFactor;
+      sharedData.y = (sharedData.y ?? 0) * panFactor;
       sharedData.z = time * 0.001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();

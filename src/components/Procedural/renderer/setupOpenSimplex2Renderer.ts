@@ -48,8 +48,7 @@ export async function setupOpenSimplex2Renderer(
 
   const module = device.createShaderModule({
     label: "opensimplex2 shader",
-    code: /* wgsl */ `      
-    
+    code: /* wgsl */ `
       struct Uniforms {
         width: f32,
         height: f32,
@@ -63,81 +62,61 @@ export async function setupOpenSimplex2Renderer(
       };
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
-      
-      fn noise(coord: vec4<f32>) -> f32 {
-        let n: u32 = bitcast<u32>(data.seed) +
-          bitcast<u32>(coord.x * 374761393.0) +
-          bitcast<u32>(coord.y * 668265263.0) +
-          bitcast<u32>(coord.z * 1440662683.0) +
-          bitcast<u32>(coord.w * 3865785317.0);
-        let m: u32 = (n ^ (n >> 13)) * 1274126177;
-        return f32(m) / f32(0xffffffff);
-      }
-      
-      const skew3d: f32 = 1.0 / 3.0;
-      const unskew3d: f32 = 1.0 / 6.0;
-      const rSquared3d: f32 = 3.0 / 4.0;
 
-      fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
-        let sx: f32 = x;
-        let sy: f32 = y;
-        let sz: f32 = z;
-        let skew: f32 = (sx + sy + sz) * skew3d;
-        let ix: i32 = i32(floor(sx + skew));
-        let iy: i32 = i32(floor(sy + skew));
-        let iz: i32 = i32(floor(sz + skew));
-        let fx: f32 = sx + skew - f32(ix);
-        let fy: f32 = sy + skew - f32(iy);
-        let fz: f32 = sz + skew - f32(iz);
+      // 2D Simplex noise (Gustavson) adapted to WGSL
+      const C0: f32 = 0.3660254037844386; // (sqrt(3)-1)/2
+      const C1: f32 = 0.21132486540518713; // (3-sqrt(3))/6
 
-        return 0.5 + 
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1) ;
-      }
+      fn mod289(x: vec3f) -> vec3f { return x - floor(x / 289.0) * 289.0; }
+      fn permute(x: vec3f) -> vec3f { return mod289(((x * 34.0) + 1.0) * x); }
 
-      fn vertexContribution(
-        ix: i32, iy: i32, iz: i32,
-        fx: f32, fy: f32, fz: f32,
-        cx: i32, cy: i32, cz: i32
-      ) -> f32 {
-        let dx: f32 = fx - f32(cx);
-        let dy: f32 = fy - f32(cy);
-        let dz: f32 = fz - f32(cz);
-        let skewedOffset: f32 = (dx + dy + dz) * unskew3d;
-        let dxs: f32 = dx - skewedOffset;
-        let dys: f32 = dy - skewedOffset;
-        let dzs: f32 = dz - skewedOffset;
+      fn snoise2(v: vec2f) -> f32 {
+        let s: f32 = (v.x + v.y) * C0;
+        let i: vec2f = floor(v + vec2f(s, s));
+        let t: f32 = (i.x + i.y) * C1;
+        let X0: vec2f = i - vec2f(t, t);
+        let x0: vec2f = v - X0;
 
-        let a: f32 = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
-        if (a < 0.0) {
-          return 0.0;
+        var i1: vec2f;
+        if (x0.x > x0.y) {
+          i1 = vec2f(1.0, 0.0);
+        } else {
+          i1 = vec2f(0.0, 1.0);
         }
 
-        let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
-        let u: i32 = (h & 0xf) - 8;
-        let v: i32 = ((h >> 4) & 0xf) - 8;
-        let w: i32 = ((h >> 8) & 0xf) - 8;
-        return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
+        let x12: vec4f = vec4f(x0.x - i1.x + C1, x0.y - i1.y + C1, x0.x - 1.0 + 2.0 * C1, x0.y - 1.0 + 2.0 * C1);
+
+        var ii: vec3f = vec3f(i.y, i.y + i1.y, i.y + 1.0);
+        var jj: vec3f = vec3f(i.x, i.x + i1.x, i.x + 1.0);
+        var perm = permute(permute(ii) + jj);
+
+        var m: vec3f;
+        m.x = max(0.5 - dot(x0, x0), 0.0);
+        m.y = max(0.5 - dot(x12.xy, x12.xy), 0.0);
+        m.z = max(0.5 - dot(x12.zw, x12.zw), 0.0);
+        m = m * m;
+        m = m * m;
+
+        // Gradients: convert perm to gradients
+        let permf = fract(perm * (1.0 / 41.0));
+        let gx = permf * 2.0 - 1.0;
+        let gy = abs(gx) - 0.5;
+        let ox = floor(gx + 0.5);
+        let ax = gx - ox;
+
+        let g0 = vec2f(ax.x, gy.x);
+        let g1 = vec2f(ax.y, gy.y);
+        let g2 = vec2f(ax.z, gy.z);
+
+        let n0 = m.x * dot(g0, x0);
+        let n1 = m.y * dot(g1, x12.xy);
+        let n2 = m.z * dot(g2, x12.zw);
+
+        return 130.0 * (n0 + n1 + n2);
       }
 
-      @vertex fn vs(
-        @builtin(vertex_index) vertexIndex : u32
-      ) -> @builtin(position) vec4f {
-        let pos = array(
-          vec2f(-1.0, -1.0),
-          vec2f(1.0, 1.0),
-          vec2f(-1.0, 1.0) ,
-          vec2f(-1.0, -1.0),
-          vec2f(1.0, 1.0),
-          vec2f(1.0, -1.0)
-        );
-
+      @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
+        let pos = array(vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(-1.0, 1.0) , vec2f(-1.0, -1.0), vec2f(1.0, 1.0), vec2f(1.0, -1.0));
         return vec4f(pos[vertexIndex], 0.0, 1.0);
       }
 
@@ -145,28 +124,31 @@ export async function setupOpenSimplex2Renderer(
         // Calculate center in world coordinates
         let centerX = (data.width / 2.0) / data.scale * data.zoom + data.x / data.scale;
         let centerY = (data.height / 2.0) / data.scale * data.zoom + data.y / data.scale;
-        
+
         // Convert pixel to world coordinates
         let baseX = coord.x / data.scale * data.zoom + data.x / data.scale;
         let baseY = coord.y / data.scale * data.zoom + data.y / data.scale;
-        
+
         // Translate to origin (relative to center)
         let relX = baseX - centerX;
         let relY = baseY - centerY;
-        
+
         // Apply rotation around center
         let cos_r = cos(data.rotation);
         let sin_r = sin(data.rotation);
         let rotX = relX * cos_r - relY * sin_r;
         let rotY = relX * sin_r + relY * cos_r;
-        
+
         // Translate back
         let x = rotX + centerX;
         let y = rotY + centerY;
-        
-        let n = openSimplex3d(x, y, data.z);
-        
-          return vec4<f32>(n, n, n, 1.0);
+
+        // Animate by adding small z offset into coordinates
+        let t = data.z * 0.001;
+        let n = snoise2(vec2f(x + t, y + t));
+        // remap from roughly [-1,1] to [0,1]
+        let v = n * 0.5 + 0.5;
+        return vec4f(v, v, v, 1.0);
       }
     `,
   });

@@ -37,7 +37,7 @@
             <option value="simplex">OpenSimplex</option>
             <option value="opensimplex2">OpenSimplex2</option>
             <option value="opensimplex2s">OpenSimplex2S</option>
-            <option value="fastnoiselite">FastNoiseLite</option>
+            <option value="perlin">Perlin</option>
             <option value="ripple">Ripple</option>
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
@@ -78,7 +78,7 @@ import { makeController3d } from "./lib/controller3d";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer";
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
-import { setupFastNoiseLiteRenderer } from "./renderer/setupFastNoiseLiteRenderer";
+import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
@@ -244,8 +244,8 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "fastnoiselite" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("fastnoiselite");
+  "perlin" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+>("perlin");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -253,7 +253,7 @@ let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 const availableModes = [
   "opensimplex2",
   "opensimplex2s",
-  "fastnoiselite",
+  "perlin",
   "simplex",
   "ripple",
   "mandelbrot",
@@ -345,10 +345,9 @@ const initializeCanvas = async () => {
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "fastnoiselite") {
-    // For now FastNoiseLite mode aliases to the OpenSimplex2 renderer implementation.
-    // This provides immediate parity; a fuller FNL port can replace this later.
-    renderer = await setupFastNoiseLiteRenderer(canvas.value, {
+  } else if (shaderMode.value === "perlin") {
+    // Perlin renderer (copied from OpenSimplex variant) — useful for debugging.
+    renderer = await setupPerlinRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

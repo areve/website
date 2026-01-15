@@ -112,8 +112,13 @@ export async function setupJuliaRenderer(
         let cIm = 0.355 + cos(data.z) / 200.0;
 
         let n = julia(cRe, cIm, r0, i0);
-        let color = vec3f(n, pow(n, 0.5), 1.0 - n);
-        return vec4f(color, 1.0);
+        // original palette was vivid; desaturate and slightly dim to be less lurid
+        let raw = vec3f(n, pow(n, 0.5), 1.0 - n);
+        let gray = vec3f(n, n, n);
+        // blend 60% toward gray to reduce saturation, then slightly reduce brightness
+        let desat = raw + (gray - raw) * 0.6;
+        let color = desat * 0.95;
+        return vec4f(clamp(color, vec3f(0.0, 0.0, 0.0), vec3f(1.0, 1.0, 1.0)), 1.0);
       }
     `,
   });

@@ -114,14 +114,14 @@ export async function setupPerlinRenderer(
         Z = Z & 255;
 
         // Calculate hashed gradients and dot products for each corner (inlined hash->grad)
-        let d000 = dot(grad(noise(X, Y, Z)), vec3<f32>(fx, fy, fz));
-        let d001 = dot(grad(noise(X, Y, (Z + 1) & 255)), vec3<f32>(fx, fy, fz - 1.0));
-        let d010 = dot(grad(noise(X, (Y + 1) & 255, Z)), vec3<f32>(fx, fy - 1.0, fz));
-        let d011 = dot(grad(noise(X, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx, fy - 1.0, fz - 1.0));
-        let d100 = dot(grad(noise((X + 1) & 255, Y, Z)), vec3<f32>(fx - 1.0, fy, fz));
-        let d101 = dot(grad(noise((X + 1) & 255, Y, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy, fz - 1.0));
-        let d110 = dot(grad(noise((X + 1) & 255, (Y + 1) & 255, Z)), vec3<f32>(fx - 1.0, fy - 1.0, fz));
-        let d111 = dot(grad(noise((X + 1) & 255, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
+        let n000 = dot(grad(noise(X, Y, Z)), vec3<f32>(fx, fy, fz));
+        let n001 = dot(grad(noise(X, Y, (Z + 1) & 255)), vec3<f32>(fx, fy, fz - 1.0));
+        let n010 = dot(grad(noise(X, (Y + 1) & 255, Z)), vec3<f32>(fx, fy - 1.0, fz));
+        let n011 = dot(grad(noise(X, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx, fy - 1.0, fz - 1.0));
+        let n100 = dot(grad(noise((X + 1) & 255, Y, Z)), vec3<f32>(fx - 1.0, fy, fz));
+        let n101 = dot(grad(noise((X + 1) & 255, Y, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy, fz - 1.0));
+        let n110 = dot(grad(noise((X + 1) & 255, (Y + 1) & 255, Z)), vec3<f32>(fx - 1.0, fy - 1.0, fz));
+        let n111 = dot(grad(noise((X + 1) & 255, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
 
         // Compute the fade curve value for fx, fy, fz
         let u = smootherstep(fx);
@@ -129,12 +129,12 @@ export async function setupPerlinRenderer(
         let w = smootherstep(fz);
 
         // Interpolate: u inner, w mid, v outer (matches reference implementation)
-        let ix0 = lerp(d000, d100, u);
-        let ix1 = lerp(d010, d110, u);
+        let ix0 = lerp(n000, n100, u);
+        let ix1 = lerp(n010, n110, u);
         let iy0 = lerp(ix0, ix1, v);
 
-        let jx0 = lerp(d001, d101, u);
-        let jx1 = lerp(d011, d111, u);
+        let jx0 = lerp(n001, n101, u);
+        let jx1 = lerp(n011, n111, u);
         let jy0 = lerp(jx0, jx1, v);
 
         let value = lerp(iy0, jy0, w);

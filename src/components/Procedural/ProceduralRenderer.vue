@@ -38,6 +38,7 @@
             <option value="opensimplex2">OpenSimplex2</option>
             <option value="opensimplex2s">OpenSimplex2S</option>
             <option value="perlin">Perlin</option>
+            <option value="value">Value</option>
             <option value="ripple">Ripple</option>
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
@@ -79,6 +80,7 @@ import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer";
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
 import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
+import { setupValueRenderer } from "./renderer/setupValueRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
@@ -244,7 +246,7 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+  "perlin" | "value" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
 >("perlin");
 
 let frameId: number = 0;
@@ -348,6 +350,13 @@ const initializeCanvas = async () => {
   } else if (shaderMode.value === "perlin") {
     // Perlin renderer (copied from OpenSimplex variant) — useful for debugging.
     renderer = await setupPerlinRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+  } else if (shaderMode.value === "value") {
+    renderer = await setupValueRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

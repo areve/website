@@ -53,9 +53,13 @@
         <button @click="handleToggleFullscreen" type="button">
           Fullscreen
         </button>
-        <button v-if="shaderMode === 'mountains3d'" @click="toggleControllerMode" type="button">
-          {{ controllerMode === '2d' ? 'Use 3D Controller' : 'Use 2D Controller' }}
-        </button>
+        <label v-if="shaderMode === 'mountains3d'" class="mode-select">
+          Controller:
+          <select v-model="controllerMode" @change="setControllerMode(controllerMode)">
+            <option value="2d">2D Controller (texture)</option>
+            <option value="3d">3D Controller (camera)</option>
+          </select>
+        </label>
             <!-- Close button: hides controls overlay -->
             <button class="controls-close" type="button" @click.stop="hideControls" aria-label="Hide controls">✕</button>
       </div>
@@ -95,9 +99,13 @@ const controller3d = makeController3d();
 const controllerMode = ref<'2d' | '3d'>('2d');
 
 function toggleControllerMode() {
+  // Convenience: toggle to the other mode
+  setControllerMode(controllerMode.value === '2d' ? '3d' : '2d');
+}
+
+function setControllerMode(mode: '2d' | '3d') {
   if (!canvas.value) return;
-  // Swap mounted controller on the canvas
-  if (controllerMode.value === '2d') {
+  if (mode === '3d') {
     controller.value.unmount();
     controller3d.value.mount(canvas.value);
     controllerMode.value = '3d';
@@ -210,7 +218,7 @@ function resetRotation() {
   _rotationAnim = requestAnimationFrame(step);
 }
 // Controls visibility
-const controlsVisible = ref(false);
+const controlsVisible = ref(true);
 
 function hideControls() {
   controlsVisible.value = false;

@@ -39,6 +39,7 @@
             <option value="opensimplex2s">OpenSimplex2S</option>
             <option value="perlin">Perlin</option>
             <option value="value">Value</option>
+            <option value="julia">Julia</option>
             <option value="valuecubic">Value Cubic</option>
             <option value="newton">Newton Raphson</option>
             <option value="ripple">Ripple</option>
@@ -86,6 +87,7 @@ import { setupValueRenderer } from "./renderer/setupValueRenderer";
 import { setupValueCubicRenderer } from "./renderer/setupValueCubicRenderer";
 import { setupNewtonRenderer } from "./renderer/setupNewtonRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
+import { setupJuliaRenderer } from "./renderer/setupJuliaRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
@@ -250,7 +252,7 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "valuecubic" | "newton" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
 >("newton");
 
 let frameId: number = 0;
@@ -354,6 +356,13 @@ const initializeCanvas = async () => {
   } else if (shaderMode.value === "perlin") {
     // Perlin renderer (copied from OpenSimplex variant) — useful for debugging.
     renderer = await setupPerlinRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+  } else if (shaderMode.value === "julia") {
+    renderer = await setupJuliaRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

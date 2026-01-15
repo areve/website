@@ -81,7 +81,7 @@ export async function setupSierpinskiRenderer(
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
         let w = screenToWorld(coord);
         // choose a scaling factor controlling fractal frequency
-        let freq = 64.0; // adjust for detail
+        let freq = 25.0; // adjust for detail
 
         // Convert to positive integer grid coordinates
         let fx = abs(w.x) * freq;

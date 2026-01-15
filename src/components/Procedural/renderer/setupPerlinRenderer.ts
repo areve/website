@@ -115,19 +115,12 @@ export async function setupPerlinRenderer(
 
         // Calculate hashed gradients and dot products for each corner (integer hash)
         let d000 = dot(grad(hash3(X, Y, Z)), vec3<f32>(fx, fy, fz));
-
         let d001 = dot(grad(hash3(X, Y, (Z + 1) & 255)), vec3<f32>(fx, fy, fz - 1.0));
-
         let d010 = dot(grad(hash3(X, (Y + 1) & 255, Z)), vec3<f32>(fx, fy - 1.0, fz));
-
         let d011 = dot(grad(hash3(X, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx, fy - 1.0, fz - 1.0));
-
         let d100 = dot(grad(hash3((X + 1) & 255, Y, Z)), vec3<f32>(fx - 1.0, fy, fz));
-
         let d101 = dot(grad(hash3((X + 1) & 255, Y, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy, fz - 1.0));
-
         let d110 = dot(grad(hash3((X + 1) & 255, (Y + 1) & 255, Z)), vec3<f32>(fx - 1.0, fy - 1.0, fz));
-
         let d111 = dot(grad(hash3((X + 1) & 255, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
 
         // Compute the fade curve value for fx, fy, fz

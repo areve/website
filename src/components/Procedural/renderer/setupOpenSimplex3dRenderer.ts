@@ -279,6 +279,8 @@ export async function setupOpenSimplex3dRenderer(
     format: "depth24plus",
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
+  // Do not override or restore controller3d state here — keep controller3d's
+  // own state intact so camera rotation and pan are preserved across switches.
 
   let lastTime = 0;
 
@@ -290,6 +292,9 @@ export async function setupOpenSimplex3dRenderer(
     // Normalize controller: accept either a ref-like `{ value: T }` or a raw object
     const candidate = activeController ?? controller;
     const ctrl = candidate && typeof candidate === 'object' && 'value' in candidate ? candidate.value : candidate;
+
+    // Do not save/restore controller3d state here; the 3D controller maintains
+    // its own position/yaw/pitch and should not be overwritten by the renderer.
 
     // Update controller logic if available
     if (ctrl?.update) {
@@ -305,8 +310,19 @@ export async function setupOpenSimplex3dRenderer(
     let camera: CameraState;
     let fov = Math.PI / 4;
 
-    if (ctrl?.position) {
-      // 3D controller available -> use it for camera
+    // Prefer the explicit 3D controller passed into the renderer if available.
+    // This preserves camera orientation even when the app switches to a 2D
+    // controller for texture manipulation (matches Mountains3D behavior).
+    if (controller3d && (controller3d as any).value) {
+      const c = (controller3d as any).value;
+      camera = {
+        position: c.position ?? [0, 80, 80],
+        yaw: c.yaw ?? 0,
+        pitch: c.pitch ?? -0.6,
+      };
+      fov = c.fov ?? Math.PI / 4;
+    } else if (ctrl?.position) {
+      // 3D controller available as active controller
       camera = {
         position: ctrl.position,
         yaw: ctrl.yaw ?? 0,
@@ -314,7 +330,7 @@ export async function setupOpenSimplex3dRenderer(
       };
       fov = ctrl.fov ?? Math.PI / 4;
     } else {
-      // Use a fixed overhead camera for 2D controller mode so the mesh stays still
+      // Use a fixed overhead camera when no 3D controller is available
       camera = { position: [0, 80, 80], yaw: 0, pitch: -Math.PI / 4 };
       fov = Math.PI / 4;
     }

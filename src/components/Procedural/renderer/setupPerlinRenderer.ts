@@ -189,7 +189,8 @@ export async function setupPerlinRenderer(
         let y = rotY + centerY;
 
         let n = perlin3d(x, y, data.z);
-        return vec4<f32>(n, n, n, 1.0);
+        let m = clamp(n * 0.5 + 0.5, 0.0, 1.0);
+        return vec4<f32>(m, m, m, 1.0);
       }
     `,
   });

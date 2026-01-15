@@ -136,7 +136,6 @@ export async function setupValueCubicRenderer(
           plane[kz] = cubic_interp(col[0], col[1], col[2], col[3], fy);
         }
 
-        // Match FastNoiseLite normalization
         return cubic_interp(plane[0], plane[1], plane[2], plane[3], fz) * (1.0 / (1.5 * 1.5));
       }
 

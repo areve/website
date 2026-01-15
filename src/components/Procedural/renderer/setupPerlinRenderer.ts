@@ -63,7 +63,6 @@ export async function setupPerlinRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
-      // Helpers matching FastNoiseLite semantics
       fn _fnlFastFloor(f: f32) -> i32 {
         if (f >= 0.0) {
           return i32(f);
@@ -80,12 +79,10 @@ export async function setupPerlinRenderer(
 
       fn _fnlHash3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
         var hash: i32 = seed ^ xPrimed ^ yPrimed ^ zPrimed;
-        // multiplier from FastNoiseLite.h (0x27d4eb2d == 668265261)
         hash = hash * 668265261;
         return hash;
       }
 
-      // Small gradient table based on FastNoiseLite gradients (12 base gradients repeated)
       const G0 = vec3<f32>(1.0, 1.0, 0.0);
       const G1 = vec3<f32>(-1.0, 1.0, 0.0);
       const G2 = vec3<f32>(1.0, -1.0, 0.0);

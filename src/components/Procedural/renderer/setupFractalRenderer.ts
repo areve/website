@@ -6,7 +6,7 @@ export async function setupFractalRenderer(
     width: options.width,
     height: options.height,
     seed: options.seed ?? 1337,
-    scale: options.scale ?? 8,
+    scale: options.scale ?? 1,
     x: 0,
     y: 0,
     z: 0,

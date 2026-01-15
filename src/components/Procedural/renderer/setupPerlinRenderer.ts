@@ -114,37 +114,21 @@ export async function setupPerlinRenderer(
         Z = Z & 255;
 
         // Calculate hashed gradients and dot products for each corner (integer hash)
-        let h000 = noise(X, Y, Z);
-        let g000 = grad(h000);
-        let d000 = dot(g000, vec3<f32>(fx, fy, fz));
+        let d000 = dot(grad(hash3(X, Y, Z)), vec3<f32>(fx, fy, fz));
 
-        let h001 = noise(X, Y, (Z + 1) & 255);
-        let g001 = grad(h001);
-        let d001 = dot(g001, vec3<f32>(fx, fy, fz - 1.0));
+        let d001 = dot(grad(hash3(X, Y, (Z + 1) & 255)), vec3<f32>(fx, fy, fz - 1.0));
 
-        let h010 = noise(X, (Y + 1) & 255, Z);
-        let g010 = grad(h010);
-        let d010 = dot(g010, vec3<f32>(fx, fy - 1.0, fz));
+        let d010 = dot(grad(hash3(X, (Y + 1) & 255, Z)), vec3<f32>(fx, fy - 1.0, fz));
 
-        let h011 = noise(X, (Y + 1) & 255, (Z + 1) & 255);
-        let g011 = grad(h011);
-        let d011 = dot(g011, vec3<f32>(fx, fy - 1.0, fz - 1.0));
+        let d011 = dot(grad(hash3(X, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx, fy - 1.0, fz - 1.0));
 
-        let h100 = noise((X + 1) & 255, Y, Z);
-        let g100 = grad(h100);
-        let d100 = dot(g100, vec3<f32>(fx - 1.0, fy, fz));
+        let d100 = dot(grad(hash3((X + 1) & 255, Y, Z)), vec3<f32>(fx - 1.0, fy, fz));
 
-        let h101 = noise((X + 1) & 255, Y, (Z + 1) & 255);
-        let g101 = grad(h101);
-        let d101 = dot(g101, vec3<f32>(fx - 1.0, fy, fz - 1.0));
+        let d101 = dot(grad(hash3((X + 1) & 255, Y, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy, fz - 1.0));
 
-        let h110 = noise((X + 1) & 255, (Y + 1) & 255, Z);
-        let g110 = grad(h110);
-        let d110 = dot(g110, vec3<f32>(fx - 1.0, fy - 1.0, fz));
+        let d110 = dot(grad(hash3((X + 1) & 255, (Y + 1) & 255, Z)), vec3<f32>(fx - 1.0, fy - 1.0, fz));
 
-        let h111 = noise((X + 1) & 255, (Y + 1) & 255, (Z + 1) & 255);
-        let g111 = grad(h111);
-        let d111 = dot(g111, vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
+        let d111 = dot(grad(hash3((X + 1) & 255, (Y + 1) & 255, (Z + 1) & 255)), vec3<f32>(fx - 1.0, fy - 1.0, fz - 1.0));
 
         // Compute the fade curve value for fx, fy, fz
         let u = smootherstep(fx);

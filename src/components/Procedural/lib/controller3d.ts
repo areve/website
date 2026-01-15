@@ -81,6 +81,11 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       start: { x: 0, y: 0 },
       current: { x: 0, y: 0 },
     },
+    rightDragging: {
+      isRightDragging: false,
+      start: { x: 0, y: 0 },
+      current: { x: 0, y: 0 },
+    },
     touchRotate: {
       isRotating: false,
       lastAngle: 0,
@@ -106,23 +111,29 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       bindElement = element;
       bindGlobalElement.addEventListener("keydown", onKeyDown);
       bindGlobalElement.addEventListener("keyup", onKeyUp);
-      bindElement.addEventListener("mousedown", onMouseDown);      bindElement.addEventListener("dblclick", onDoubleClick);      bindGlobalElement.addEventListener("mousemove", onMouseMove);
+      bindElement.addEventListener("mousedown", onMouseDown);
+      bindElement.addEventListener("dblclick", onDoubleClick);
+      bindGlobalElement.addEventListener("mousemove", onMouseMove);
       bindGlobalElement.addEventListener("mouseup", onMouseUp);
       bindElement.addEventListener("touchstart", onTouchStart);
       bindGlobalElement.addEventListener("touchmove", onTouchMove);
       bindGlobalElement.addEventListener("touchend", onTouchEnd);
       bindElement.addEventListener("wheel", onWheel);
+      bindElement.addEventListener("contextmenu", preventContextMenu);
     },
     unmount() {
       if (!bindElement || !bindGlobalElement) return; // Guard against unmounting before mounting
       bindGlobalElement.removeEventListener("keydown", onKeyDown);
       bindGlobalElement.removeEventListener("keyup", onKeyUp);
-      bindElement.removeEventListener("mousedown", onMouseDown);      bindElement.removeEventListener("dblclick", onDoubleClick);      bindGlobalElement.removeEventListener("mousemove", onMouseMove);
+      bindElement.removeEventListener("mousedown", onMouseDown);
+      bindElement.removeEventListener("dblclick", onDoubleClick);
+      bindGlobalElement.removeEventListener("mousemove", onMouseMove);
       bindGlobalElement.removeEventListener("mouseup", onMouseUp);
       bindElement.removeEventListener("touchstart", onTouchStart);
       bindGlobalElement.removeEventListener("touchmove", onTouchMove);
       bindGlobalElement.removeEventListener("touchend", onTouchEnd);
       bindElement.removeEventListener("wheel", onWheel);
+      bindElement.removeEventListener("contextmenu", preventContextMenu);
     },
     update(deltaTime: number) {
       // Update zoom with acceleration/deceleration
@@ -263,6 +274,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     ctrl.yaw += deltaAngle;
   }
 
+  function preventContextMenu(e: Event) {
+    e.preventDefault();
+  }
+
   function updateSpeed(
     options: { accel: number; decel: number; maxSpeed: number },
     state: { speed: number; increasing: boolean; decreasing: boolean },
@@ -337,19 +352,34 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   }
 
   function onMouseDown(e: MouseEvent) {
-    states.dragging.isDragging = true;
-    states.dragging.start = { x: e.clientX, y: e.clientY };
-    states.dragging.current = { x: e.clientX, y: e.clientY };
+    if (e.button === 2) {
+      states.rightDragging.isRightDragging = true;
+      states.rightDragging.start = { x: e.clientX, y: e.clientY };
+      states.rightDragging.current = { x: e.clientX, y: e.clientY };
+    } else {
+      states.dragging.isDragging = true;
+      states.dragging.start = { x: e.clientX, y: e.clientY };
+      states.dragging.current = { x: e.clientX, y: e.clientY };
+    }
   }
 
   function onMouseMove(e: MouseEvent) {
     if (states.dragging.isDragging) {
       states.dragging.current = { x: e.clientX, y: e.clientY };
     }
+    if (states.rightDragging.isRightDragging) {
+      states.rightDragging.current = { x: e.clientX, y: e.clientY };
+      const deltaX = states.rightDragging.start.x - states.rightDragging.current.x;
+      // Sensitivity chosen to give a sensible rotation rate
+      const sensitivity = 0.005;
+      rotateAroundLook(deltaX * sensitivity);
+      states.rightDragging.start = { ...states.rightDragging.current };
+    }
   }
 
   function onMouseUp() {
     states.dragging.isDragging = false;
+    states.rightDragging.isRightDragging = false;
   }
 
   function onDoubleClick(event: MouseEvent) {

@@ -39,6 +39,7 @@
             <option value="opensimplex2s">OpenSimplex2S</option>
             <option value="perlin">Perlin</option>
             <option value="value">Value</option>
+            <option value="valuecubic">Value Cubic</option>
             <option value="ripple">Ripple</option>
             <option value="mandelbrot">Mandelbrot</option>
             <option value="worley">Worley</option>
@@ -81,6 +82,7 @@ import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer"
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
 import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
 import { setupValueRenderer } from "./renderer/setupValueRenderer";
+import { setupValueCubicRenderer } from "./renderer/setupValueCubicRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
@@ -246,8 +248,8 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("perlin");
+  "perlin" | "value" | "valuecubic" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+>("value");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -350,6 +352,13 @@ const initializeCanvas = async () => {
   } else if (shaderMode.value === "perlin") {
     // Perlin renderer (copied from OpenSimplex variant) — useful for debugging.
     renderer = await setupPerlinRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+  } else if (shaderMode.value === "valuecubic") {
+    renderer = await setupValueCubicRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

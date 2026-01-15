@@ -43,6 +43,7 @@
             <option value="julia">Julia</option>
               <option value="lorenz">Lorenz</option>
               <option value="sierpinski">Sierpinski</option>
+              <option value="trigonometry">Trigonometry</option>
             <option value="valuecubic">Value Cubic</option>
             <option value="newton">Newton Raphson</option>
             <option value="ripple">Ripple</option>
@@ -94,6 +95,7 @@ import { setupJuliaRenderer } from "./renderer/setupJuliaRenderer";
 import { setupLorenzRenderer } from "./renderer/setupLorenzRenderer";
 import { setupSierpinskiRenderer } from "./renderer/setupSierpinskiRenderer";
 import { setupFractalRenderer } from "./renderer/setupFractalRenderer";
+import { setupTrigonometryRenderer } from "./renderer/setupTrigonometryRenderer";
 import { setupRippleRenderer } from "./renderer/setupRippleRenderer";
 import { setupWorleyRenderer } from "./renderer/setupWorleyRenderer";
 import { setupMountainsRenderer } from "./renderer/setupMountainsRenderer";
@@ -258,7 +260,7 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
+  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "trigonometry" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
 >("fractal");
 
 let frameId: number = 0;
@@ -267,6 +269,7 @@ let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 const availableModes = [
   "opensimplex2",
   "sierpinski",
+  "trigonometry",
   "fractal",
   "opensimplex2s",
   "perlin",
@@ -385,6 +388,13 @@ const initializeCanvas = async () => {
     if (canvas.value) controller.value.mount(canvas.value);
   } else if (shaderMode.value === "fractal") {
     renderer = await setupFractalRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+  } else if (shaderMode.value === "trigonometry") {
+    renderer = await setupTrigonometryRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

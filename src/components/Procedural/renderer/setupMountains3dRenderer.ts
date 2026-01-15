@@ -253,9 +253,10 @@ export async function setupMountains3dRenderer(
 
       fn applyTextureTransform(px: f32, pz: f32) -> vec2f {
         // Map mesh coordinates [-50,50] to pixel coordinates [0, canvasWidth/Height]
-        // Use canvasWidth scale for both X and Z to preserve square texture aspect
-        let pixelX = (px + 50.0) * (matrices.canvasWidth / 100.0);
-        let pixelZ = (pz + 50.0) * (matrices.canvasWidth / 100.0);
+        // Use fixed scale (based on windowed canvas size) to keep texture scale consistent
+        // Adjust by canvas size difference to keep texture centered
+        let pixelX = (px + 50.0) * (500.0 / 100.0) + (matrices.canvasWidth - 500.0) / 2.0;
+        let pixelZ = (pz + 50.0) * (500.0 / 100.0) + (matrices.canvasHeight - 500.0) / 2.0;
         
         // 2D-style center-based transform: match OpenSimplex2D/Mountains
         let texScale: f32 = 8.0;
@@ -500,6 +501,7 @@ export async function setupMountains3dRenderer(
     matrixData[37] = controller2d?.value?.rotation ?? 0; // textureRotation (from 2D controller)
     matrixData[38] = options.width;
     matrixData[39] = options.height;
+
     device.queue.writeBuffer(matrixBuffer, 0, matrixData);
 
     // Render

@@ -63,10 +63,7 @@ export async function setupValueCubicRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
-      fn _fnlFastFloor(f: f32) -> i32 {
-        if (f >= 0.0) { return i32(f); } else { return i32(f) - 1; }
-      }
-      fn _fnlLerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
+      fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + (b - a) * t; }
 
       fn cubic_interp(p0: f32, p1: f32, p2: f32, p3: f32, t: f32) -> f32 {
         let a = -0.5 * p0 + 1.5 * p1 - 1.5 * p2 + 0.5 * p3;
@@ -80,23 +77,24 @@ export async function setupValueCubicRenderer(
       const PRIME_Y: i32 = 1136930381;
       const PRIME_Z: i32 = 1720413743;
 
-      fn _fnlHash3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
-        var hash: i32 = seed ^ xPrimed ^ yPrimed ^ zPrimed;
-        hash = hash * 668265261;
-        return hash;
+      fn hash3(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
+        let seed_u: u32 = u32(seed);
+        let n: u32 = seed_u + u32(xPrimed) * 374761393u + u32(yPrimed) * 668265263u + u32(zPrimed) * 1440662683u;
+        let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
+        return bitcast<i32>(m);
       }
 
       fn _fnlValCoord3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> f32 {
-        var hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed);
+        var hash = hash3(seed, xPrimed, yPrimed, zPrimed);
         hash = hash * hash;
         hash = hash ^ (hash << 19);
         return f32(hash) * (1.0 / 2147483648.0);
       }
 
       fn value_cubic3d(x: f32, y: f32, z: f32) -> f32 {
-        let ix = _fnlFastFloor(x);
-        let iy = _fnlFastFloor(y);
-        let iz = _fnlFastFloor(z);
+        let ix = i32(floor(x));
+        let iy = i32(floor(y));
+        let iz = i32(floor(z));
 
         let fx = x - f32(ix);
         let fy = y - f32(iy);

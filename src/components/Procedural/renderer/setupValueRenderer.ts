@@ -63,33 +63,32 @@ export async function setupValueRenderer(
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
 
-      fn _fnlFastFloor(f: f32) -> i32 {
-        if (f >= 0.0) { return i32(f); } else { return i32(f) - 1; }
-      }
+      // inlined at call sites for performance
       fn _fnlInterpHermite(t: f32) -> f32 { return t * t * (3.0 - 2.0 * t); }
-      fn _fnlLerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
+      fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
 
       const PRIME_X: i32 = 501125321;
       const PRIME_Y: i32 = 1136930381;
       const PRIME_Z: i32 = 1720413743;
 
-      fn _fnlHash3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
-        var hash: i32 = seed ^ xPrimed ^ yPrimed ^ zPrimed;
-        hash = hash * 668265261;
-        return hash;
+      fn hash3(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> i32 {
+        let seed_u: u32 = u32(seed);
+        let n: u32 = seed_u + u32(xPrimed) * 374761393u + u32(yPrimed) * 668265263u + u32(zPrimed) * 1440662683u;
+        let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
+        return bitcast<i32>(m);
       }
 
       fn _fnlValCoord3D(seed: i32, xPrimed: i32, yPrimed: i32, zPrimed: i32) -> f32 {
-        var hash = _fnlHash3D(seed, xPrimed, yPrimed, zPrimed);
+        var hash = hash3(seed, xPrimed, yPrimed, zPrimed);
         hash = hash * hash;
         hash = hash ^ (hash << 19);
         return f32(hash) * (1.0 / 2147483648.0);
       }
 
       fn value3d(x: f32, y: f32, z: f32) -> f32 {
-        let x0 = _fnlFastFloor(x);
-        let y0 = _fnlFastFloor(y);
-        let z0 = _fnlFastFloor(z);
+        let x0 = i32(floor(x));
+        let y0 = i32(floor(y));
+        let z0 = i32(floor(z));
 
         let xs = _fnlInterpHermite(x - f32(x0));
         let ys = _fnlInterpHermite(y - f32(y0));
@@ -102,15 +101,15 @@ export async function setupValueRenderer(
         let y1 = yp + PRIME_Y;
         let z1 = zp + PRIME_Z;
 
-        let xf00 = _fnlLerp(_fnlValCoord3D(i32(data.seed), xp, yp, zp), _fnlValCoord3D(i32(data.seed), x1, yp, zp), xs);
-        let xf10 = _fnlLerp(_fnlValCoord3D(i32(data.seed), xp, y1, zp), _fnlValCoord3D(i32(data.seed), x1, y1, zp), xs);
-        let xf01 = _fnlLerp(_fnlValCoord3D(i32(data.seed), xp, yp, z1), _fnlValCoord3D(i32(data.seed), x1, yp, z1), xs);
-        let xf11 = _fnlLerp(_fnlValCoord3D(i32(data.seed), xp, y1, z1), _fnlValCoord3D(i32(data.seed), x1, y1, z1), xs);
+        let xf00 = lerp(_fnlValCoord3D(i32(data.seed), xp, yp, zp), _fnlValCoord3D(i32(data.seed), x1, yp, zp), xs);
+        let xf10 = lerp(_fnlValCoord3D(i32(data.seed), xp, y1, zp), _fnlValCoord3D(i32(data.seed), x1, y1, zp), xs);
+        let xf01 = lerp(_fnlValCoord3D(i32(data.seed), xp, yp, z1), _fnlValCoord3D(i32(data.seed), x1, yp, z1), xs);
+        let xf11 = lerp(_fnlValCoord3D(i32(data.seed), xp, y1, z1), _fnlValCoord3D(i32(data.seed), x1, y1, z1), xs);
 
-        let yf0 = _fnlLerp(xf00, xf10, ys);
-        let yf1 = _fnlLerp(xf01, xf11, ys);
+        let yf0 = lerp(xf00, xf10, ys);
+        let yf1 = lerp(xf01, xf11, ys);
 
-        return _fnlLerp(yf0, yf1, zs);
+        return lerp(yf0, yf1, zs);
       }
 
       @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {

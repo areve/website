@@ -90,22 +90,14 @@ export async function setupPerlinRenderer(
       const G10 = vec3<f32>(0.0, 1.0, -1.0);
       const G11 = vec3<f32>(0.0, -1.0, -1.0);
 
-      fn _fnlGradFromHash(h: i32) -> vec3<f32> {
-        let idx = u32((h ^ (h >> 15)) & 63);
-        // map idx into 12-entry set
+      const GRAD_TABLE: array<vec3<f32>, 12> = array<vec3<f32>, 12>(
+        G0, G1, G2, G3, G4, G5, G6, G7, G8, G9, G10, G11
+      );
+
+      fn gradFromHash(h: i32) -> vec3<f32> {
+        let idx = u32(h ^ (h >> 15)) & 63u;
         let sel = idx % 12u;
-        if (sel == 0u) { return G0; }
-        if (sel == 1u) { return G1; }
-        if (sel == 2u) { return G2; }
-        if (sel == 3u) { return G3; }
-        if (sel == 4u) { return G4; }
-        if (sel == 5u) { return G5; }
-        if (sel == 6u) { return G6; }
-        if (sel == 7u) { return G7; }
-        if (sel == 8u) { return G8; }
-        if (sel == 9u) { return G9; }
-        if (sel == 10u) { return G10; }
-        return G11;
+        return GRAD_TABLE[sel];
       }
 
       fn perlin3d(x: f32, y: f32, z: f32) -> f32 {
@@ -134,14 +126,14 @@ export async function setupPerlinRenderer(
         let n110 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32(Z), 0.0))) & 0xff;
         let n111 = bitcast<i32>(noise(vec4<f32>(f32((X + 1) & 255), f32((Y + 1) & 255), f32((Z + 1) & 255), 0.0))) & 0xff;
 
-        let g000 = _fnlGradFromHash(n000);
-        let g100 = _fnlGradFromHash(n100);
-        let g010 = _fnlGradFromHash(n010);
-        let g110 = _fnlGradFromHash(n110);
-        let g001 = _fnlGradFromHash(n001);
-        let g101 = _fnlGradFromHash(n101);
-        let g011 = _fnlGradFromHash(n011);
-        let g111 = _fnlGradFromHash(n111);
+        let g000 = gradFromHash(n000);
+        let g100 = gradFromHash(n100);
+        let g010 = gradFromHash(n010);
+        let g110 = gradFromHash(n110);
+        let g001 = gradFromHash(n001);
+        let g101 = gradFromHash(n101);
+        let g011 = gradFromHash(n011);
+        let g111 = gradFromHash(n111);
 
         // Calculate noise contributions from each of the eight corners (dot products)
         let n000f = dot(g000, vec3<f32>(fx, fy, fz));

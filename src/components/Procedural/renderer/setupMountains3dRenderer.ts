@@ -1,4 +1,4 @@
-import { createPerspectiveMatrix, createViewMatrix, multiplyMatrices } from "../lib/matrix";
+import { createPerspectiveMatrix, createViewMatrix } from "../lib/matrix";
 
 interface CameraState {
   position: [number, number, number];
@@ -127,19 +127,23 @@ export async function setupMountains3dRenderer(
         @location(1) worldXZ: vec2f,
       }
 
-      fn noise(coord: vec4<f32>) -> f32 {
+      fn noise(coord: vec4<f32>) -> u32 {
         let n: u32 = bitcast<u32>(matrices.seed) +
           bitcast<u32>(coord.x * 374761393.0) +
           bitcast<u32>(coord.y * 668265263.0) +
           bitcast<u32>(coord.z * 1440662683.0) +
           bitcast<u32>(coord.w * 3865785317.0);
-        let m: u32 = (n ^ (n >> 13)) * 1274126177;
-        return f32(m) / f32(0xffffffff);
+        let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
+        return m;
       }
       
       const skew3d: f32 = 1.0 / 3.0;
       const unskew3d: f32 = 1.0 / 6.0;
       const rSquared3d: f32 = 3.0 / 4.0;
+
+      // Hoisted lighting constants
+      const sunDirConst: vec3f = normalize(vec3f(0.6, 0.8, 0.2));
+      const ambientConst: f32 = 0.35;
 
       fn vertexContribution(
         ix: i32, iy: i32, iz: i32,
@@ -159,7 +163,7 @@ export async function setupMountains3dRenderer(
           return 0.0;
         }
 
-        let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
+        let h: i32 = i32(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
         let u: i32 = (h & 0xf) - 8;
         let v: i32 = ((h >> 4) & 0xf) - 8;
         let w: i32 = ((h >> 8) & 0xf) - 8;
@@ -408,11 +412,9 @@ export async function setupMountains3dRenderer(
         let px = vec3f(worldX + dx, hx, worldZ);
         let pz = vec3f(worldX, hz, worldZ + dz);
         let n = normalize(cross(pz - p, px - p));
-        // Sun direction (fixed for now): slightly from above and one side
-        let sunDir = normalize(vec3f(0.6, 0.8, 0.2));
-        let ambient: f32 = 0.35;
-        let diffuse = max(dot(n, sunDir), 0.0);
-        let lighting = clamp(ambient + diffuse, 0.0, 1.2);
+        // Lighting: use hoisted constants
+        let diffuse = max(dot(n, sunDirConst), 0.0);
+        let lighting = clamp(ambientConst + diffuse, 0.0, 1.2);
         let litColor = color * lighting;
         
         return vec4f(litColor, 1.0);
@@ -466,10 +468,12 @@ export async function setupMountains3dRenderer(
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
+  // Reuse a single Float32Array for uniform updates to avoid per-frame allocations
+  const matrixData = new Float32Array(48); // 192 bytes / 4 bytes per float
+
   let lastTime = 0;
 
   const render = (time: DOMHighResTimeStamp) => {
-    const deltaTime = lastTime ? time - lastTime : 0;
     lastTime = time;
 
     // Camera: use `controller3d` if provided, otherwise fall back to fixed camera
@@ -496,8 +500,7 @@ export async function setupMountains3dRenderer(
       viewMatrix = createViewMatrix(camera);
     }
 
-    // Update uniform buffer with matrices and noise parameters
-    const matrixData = new Float32Array(48); // 192 bytes / 4 bytes per float
+    // Update uniform buffer with matrices and noise parameters (reuse matrixData)
     matrixData.set(projMatrix, 0);
     matrixData.set(viewMatrix, 16);
     matrixData[32] = 123456; // seed

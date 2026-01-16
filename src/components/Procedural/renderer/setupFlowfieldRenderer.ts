@@ -45,7 +45,7 @@ export async function setupFlowfieldRenderer(
   });
 
   // --- GPU-driven particle system ---
-  const PARTICLE_COUNT = 400;
+  const PARTICLE_COUNT = 4000;
   const PARTICLE_SPEED = 5.0;
   const EPS = 0.25;
   const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
@@ -394,12 +394,28 @@ export async function setupFlowfieldRenderer(
     usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
   });
 
+  // offscreen background texture so composite shader can sample both bg and accumulation
+  const bgTexture = device.createTexture({
+    size: { width: options.width, height: options.height, depthOrArrayLayers: 1 },
+    format: presentationFormat,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+  });
+
   const linearSampler = device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
 
   // clear accTextureA to black initially
   {
     const enc = device.createCommandEncoder();
     const rpd: GPURenderPassDescriptor = { colorAttachments: [{ view: accTextureA.createView(), clearValue: [0,0,0,0], loadOp: 'clear', storeOp: 'store' }] };
+    const rp = enc.beginRenderPass(rpd);
+    rp.end();
+    device.queue.submit([enc.finish()]);
+  }
+
+  // clear bgTexture to black initially
+  {
+    const enc = device.createCommandEncoder();
+    const rpd: GPURenderPassDescriptor = { colorAttachments: [{ view: bgTexture.createView(), clearValue: [0,0,0,1], loadOp: 'clear', storeOp: 'store' }] };
     const rp = enc.beginRenderPass(rpd);
     rp.end();
     device.queue.submit([enc.finish()]);
@@ -421,8 +437,8 @@ export async function setupFlowfieldRenderer(
       // Separate fade for color vs alpha:
       // - color (RGB) fades slower so bright highlights persist longer
       // - alpha fades faster so the darker lingering trail becomes more transparent
-      let fadeRGB = 0.999;
-      let fadeA = 0.999;
+      let fadeRGB = 0.995;
+      let fadeA = 0.92;
       return vec4f(prev.xyz * fadeRGB, prev.w * fadeA);
     }
   `;
@@ -436,16 +452,26 @@ export async function setupFlowfieldRenderer(
   });
 
   // composite pipeline: draw accumulation texture over swapchain (alpha blend)
+  // composite shader: sample background and accumulation, multiply them and output to swapchain
   const compositeWgsl = /* wgsl */ `${commonWgsl}
     @group(0) @binding(1) var samp2: sampler;
-    @group(0) @binding(2) var accTex: texture_2d<f32>;
+    @group(0) @binding(2) var bgTex: texture_2d<f32>;
+    @group(0) @binding(3) var accTex: texture_2d<f32>;
     @vertex fn vs3(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
       let pos = array(vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(-1.0,1.0), vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(1.0,-1.0));
       return vec4f(pos[vertexIndex], 0.0, 1.0);
     }
     @fragment fn fs3(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
       let uv = coord.xy / vec2f(data.width, data.height);
-      return textureSample(accTex, samp2, uv);
+      let bg = textureSample(bgTex, samp2, uv);
+      let acc = textureSample(accTex, samp2, uv);
+      // Screen blend (Photoshop 'Screen'):
+      // out = 1 - (1 - bg) * (1 - src)
+      // use accumulation color modulated by its alpha as the source strength
+      let src = acc.rgb * acc.a;
+      let one = vec3f(1.0, 1.0, 1.0);
+      let outRgb = one - (one - bg.rgb) * (one - src);
+      return vec4f(outRgb, 1.0);
     }
   `;
 
@@ -453,7 +479,7 @@ export async function setupFlowfieldRenderer(
   const compositePipeline = device.createRenderPipeline({
     layout: 'auto',
     vertex: { module: compositeModule, entryPoint: 'vs3' },
-    fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'one', dstFactor: 'one', operation: 'max' }, alpha: { srcFactor: 'one', dstFactor: 'one', operation: 'max' } } }] },
+    fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat }] },
     primitive: { topology: 'triangle-list' },
   });
 
@@ -462,8 +488,8 @@ export async function setupFlowfieldRenderer(
   // so the pipeline reflection may omit binding 0. Create bind groups with only sampler (1) and texture (2).
   let accBindA = device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureA.createView() } ] });
   let accBindB = device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureB.createView() } ] });
-  let compositeBindA = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureA.createView() } ] });
-  let compositeBindB = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureB.createView() } ] });
+  let compositeBindA = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: bgTexture.createView() }, { binding: 3, resource: accTextureA.createView() } ] });
+  let compositeBindB = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: bgTexture.createView() }, { binding: 3, resource: accTextureB.createView() } ] });
 
   // Now create compute and render bind groups that reference the canonical `dataBuffer`
   const computeBindGroupA = device.createBindGroup({
@@ -577,20 +603,21 @@ export async function setupFlowfieldRenderer(
       accPass.draw(6, PARTICLE_COUNT);
       accPass.end();
 
-      // render background to swapchain
-      const swapView = context.getCurrentTexture().createView();
-      renderPassDescriptor.colorAttachments[0].view = swapView;
+      // render background into offscreen bgTexture (so composite shader can sample it)
+      const bgView = bgTexture.createView();
+      renderPassDescriptor.colorAttachments[0].view = bgView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bindGroup);
       pass.draw(6);
       pass.end();
 
-      // composite accumulation onto swapchain (load existing background)
-      const compDesc: GPURenderPassDescriptor = { colorAttachments: [{ view: swapView, loadOp: 'load', storeOp: 'store', clearValue: [0,0,0,0] }] };
+      // composite accumulation onto swapchain (sample bgTexture + accumulation and write multiplied result)
+      const swapView = context.getCurrentTexture().createView();
+      const compDesc: GPURenderPassDescriptor = { colorAttachments: [{ view: swapView, loadOp: 'clear', storeOp: 'store', clearValue: [0,0,0,1] }] };
       const compPass = encoder.beginRenderPass(compDesc);
       compPass.setPipeline(compositePipeline);
-      // composite should sample the newly-written accumulation (dst)
+      // composite should sample the bgTexture and the newly-written accumulation (dst)
       if (ping) {
         compPass.setBindGroup(0, compositeBindB);
       } else {

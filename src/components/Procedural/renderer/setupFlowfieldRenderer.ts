@@ -196,34 +196,8 @@ export async function setupFlowfieldRenderer(
         let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;
 
 
-        // Angle test: mark as "flat" when the normal is within 5° of vertical (Z axis)
-        // cos(5°) ≈ 0.9961947
-        let flatDotThreshold: f32 = 0.9961946981;
-        let dotZ = abs(normal.z);
-        let isFlatAngle = dotZ > flatDotThreshold;
-
-        // Also consider slope-magnitude based flatness as a fallback (in case angle test misses)
-        // tightened slope threshold to avoid mid-slope detections
-        let flatSlopeThreshold: f32 = 0.12;
-        let isFlatSlope = slopeMag < flatSlopeThreshold;
-
-        // Use midline 0.5: treat >0.5 as peak, <=0.5 as valley, combined with flat test
-        let isPeak = (n > 0.5) && (isFlatAngle || isFlatSlope);
-        let isValley = (n <= 0.5) && (isFlatAngle || isFlatSlope);
-
-        // Overlay markers: blue for peak, yellow for valley
-        var overlay = vec3f(0.0, 0.0, 0.0);
-        if (isPeak) {
-          overlay = vec3f(0.0, 0.0, 1.0);
-        } else if (isValley) {
-          overlay = vec3f(1.0, 1.0, 0.0);
-        }
-        var overlayStrength: f32 = 0.0;
-        if (overlay.x + overlay.y + overlay.z > 0.0) {
-          overlayStrength = 0.9;
-        }
-        let out = lit * (1.0 - overlayStrength) + overlay * overlayStrength;
-        return vec4<f32>(out, 1.0);
+        // Return the lit color directly (remove debug peak/trough overlay markers)
+        return vec4<f32>(lit, 1.0);
       }
     `,
   });

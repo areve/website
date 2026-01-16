@@ -138,12 +138,42 @@ export async function setupFlowfieldRenderer(
         return vec4f(pos[vertexIndex], 0.0, 1.0);
       }
 
+      fn hsv_to_rgb(h: f32, s: f32, v: f32) -> vec3f {
+        let c = v * s;
+        let hp = h * 6.0;
+        let x = c * (1.0 - abs(fract(hp) * 2.0 - 1.0));
+        if (hp < 1.0) {
+          return vec3f(c, x, 0.0) + (v - c);
+        } else if (hp < 2.0) {
+          return vec3f(x, c, 0.0) + (v - c);
+        } else if (hp < 3.0) {
+          return vec3f(0.0, c, x) + (v - c);
+        } else if (hp < 4.0) {
+          return vec3f(0.0, x, c) + (v - c);
+        } else if (hp < 5.0) {
+          return vec3f(x, 0.0, c) + (v - c);
+        }
+        return vec3f(c, 0.0, x) + (v - c);
+      }
+
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let n = openSimplex3d(
-          coord.x / data.scale * data.zoom + data.x / data.scale, 
-          coord.y / data.scale * data.zoom + data.y / data.scale, 
-          data.z);
-        return vec4<f32>(n, n, n, 1.0);
+        // Map pixel -> world coordinates using same transform as other renderers
+        let x = coord.x / data.scale * data.zoom + data.x / data.scale;
+        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
+
+        // Sample height and finite-difference neighbors
+        let n = openSimplex3d(x, y, data.z);
+        let eps: f32 = 1.0;
+        let nx = openSimplex3d(x + eps, y, data.z);
+        let ny = openSimplex3d(x, y + eps, data.z);
+        let dx = nx - n;
+        let dy = ny - n;
+
+        // Angle of incline: atan2(dy, dx) in [-PI,PI]
+        let angle = atan2(dy, dx);
+        let hue = fract((angle + 3.14159265359) / 6.28318530718);
+        let col = hsv_to_rgb(hue, 0.95, 0.9);
+        return vec4<f32>(col, 1.0);
       }
     `,
   });

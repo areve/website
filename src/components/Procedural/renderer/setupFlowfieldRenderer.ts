@@ -45,7 +45,7 @@ export async function setupFlowfieldRenderer(
   });
 
   // --- GPU-driven particle system ---
-  const PARTICLE_COUNT = 4000;
+  const PARTICLE_COUNT = 5000;
   const PARTICLE_SPEED = 5.0;
   const EPS = 0.25;
   const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
@@ -257,14 +257,44 @@ export async function setupFlowfieldRenderer(
     fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
       let idx = i32(gid.x);
       if (idx >= ${PARTICLE_COUNT}i) { return; }
-      // seed by noise-based pseudorandom values so particle distribution follows noise
-      let rx = openSimplex3d(f32(idx) * 0.127 + data.x, data.y, data.z);
-      let ry = openSimplex3d(data.x, f32(idx) * 0.271 + data.y, data.z);
-      let sx = rx * data.width;
-      let sy = ry * data.height;
-      let nx = sx / data.scale * data.zoom + data.x / data.scale;
-      let ny = sy / data.scale * data.zoom + data.y / data.scale;
-      let life = 1.0 + openSimplex3d(f32(idx) * 0.73 + data.x, f32(idx) * 0.19 + data.y, data.z) * 4.0;
+      // grid-based seeding that includes edges: map col/row to [0,width] and [0,height]
+      var cols = i32(floor(sqrt(f32(${PARTICLE_COUNT}))));
+      if (cols < 1) { cols = 1; }
+      let rows = i32(ceil(f32(${PARTICLE_COUNT}) / f32(cols)));
+      let col = idx % cols;
+      let row = idx / cols;
+      let denomCols = f32(max(cols - 1, 1));
+      let denomRows = f32(max(rows - 1, 1));
+      var u: f32;
+      var v: f32;
+      if (cols > 1) {
+        u = f32(col) / denomCols;
+      } else {
+        u = 0.5;
+      }
+      if (rows > 1) {
+        v = f32(row) / denomRows;
+      } else {
+        v = 0.5;
+      }
+      let sx = u * data.width;
+      let sy = v * data.height;
+      // jitter up to roughly half a cell so particles can appear near edges
+      let cellW = data.width / f32(cols);
+      let cellH = data.height / f32(rows);
+      let jitterX = cellW * 0.5;
+      let jitterY = cellH * 0.5;
+      let jx = (openSimplex3d(f32(col) * 0.21 + data.x, f32(row) * 0.37 + data.y, data.z) - 0.5) * jitterX;
+      let jy = (openSimplex3d(f32(col) * 0.53 + data.x, f32(row) * 0.79 + data.y, data.z) - 0.5) * jitterY;
+      var px = sx + jx;
+      var py = sy + jy;
+      // clamp into view so jitter doesn't push particles off-canvas
+      px = clamp(px, 0.0, data.width);
+      py = clamp(py, 0.0, data.height);
+      let nx = px / data.scale * data.zoom + data.x / data.scale;
+      let ny = py / data.scale * data.zoom + data.y / data.scale;
+      // lifetime in seconds (randomized by noise)
+      let life = 1.0 + abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z)) * 3.0;
       particlesOut[idx] = vec3<f32>(nx, ny, life);
     }
 
@@ -310,14 +340,33 @@ export async function setupFlowfieldRenderer(
       }
 
       if (needRespawn) {
-        // respawn using noise-based seeding within the current view so p appear after pan/zoom
-        let rx = openSimplex3d(f32(idx) * 0.127 + data.x, data.y, data.z);
-        let ry = openSimplex3d(data.x, f32(idx) * 0.271 + data.y, data.z);
-        let sx = rx * data.width;
-        let sy = ry * data.height;
-        nx = sx / data.scale * data.zoom + data.x / data.scale;
-        ny = sy / data.scale * data.zoom + data.y / data.scale;
-        life = 1.0 + openSimplex3d(f32(idx) * 0.73 + data.x, f32(idx) * 0.19 + data.y, data.z) * 4.0;
+        // respawn on the grid with jitter so particles appear across the whole view including edges
+        var cols = i32(floor(sqrt(f32(${PARTICLE_COUNT}))));
+        if (cols < 1) { cols = 1; }
+        let rows = i32(ceil(f32(${PARTICLE_COUNT}) / f32(cols)));
+        let col = idx % cols;
+        let row = idx / cols;
+        let denomCols = f32(max(cols - 1, 1));
+        let denomRows = f32(max(rows - 1, 1));
+        var u: f32;
+        var v: f32;
+        if (cols > 1) { u = f32(col) / denomCols; } else { u = 0.5; }
+        if (rows > 1) { v = f32(row) / denomRows; } else { v = 0.5; }
+        let sx = u * data.width;
+        let sy = v * data.height;
+        let cellW = data.width / f32(cols);
+        let cellH = data.height / f32(rows);
+        let jitterX = cellW * 0.5;
+        let jitterY = cellH * 0.5;
+        let jx = (openSimplex3d(f32(col) * 0.21 + data.x, f32(row) * 0.37 + data.y, data.z) - 0.5) * jitterX;
+        let jy = (openSimplex3d(f32(col) * 0.53 + data.x, f32(row) * 0.79 + data.y, data.z) - 0.5) * jitterY;
+        var px = sx + jx;
+        var py = sy + jy;
+        px = clamp(px, 0.0, data.width);
+        py = clamp(py, 0.0, data.height);
+        nx = px / data.scale * data.zoom + data.x / data.scale;
+        ny = py / data.scale * data.zoom + data.y / data.scale;
+        life = 1.0 + abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z)) * 3.0;
       }
 
       particlesOut[idx] = vec3<f32>(nx, ny, life);

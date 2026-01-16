@@ -74,10 +74,6 @@ export async function setupFlowfieldRenderer(
       const skew3d: f32 = 1.0 / 3.0;
       const unskew3d: f32 = 1.0 / 6.0;
       const rSquared3d: f32 = 3.0 / 4.0;
-      // Lighting constants for sun shading
-      const sunDirConst: vec3f = normalize(vec3f(0.6, 0.8, 0.2));
-      const ambientConst: f32 = 0.0; // remove ambient so lighting and shadows are clearer
-      const slopeScale: f32 = 20.0; // amplify gradient magnitude for lighting influence
 
       fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
         let sx: f32 = x;
@@ -142,64 +138,12 @@ export async function setupFlowfieldRenderer(
         return vec4f(pos[vertexIndex], 0.0, 1.0);
       }
 
-      // (no HSV mapping; we'll render lighting only)
-
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        // Map pixel -> world coordinates using same transform as other renderers
-        let x = coord.x / data.scale * data.zoom + data.x / data.scale;
-        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
-
-        // Sample height and finite-difference neighbors
-        let n = openSimplex3d(x, y, data.z);
-        let eps: f32 = 0.25; // smaller step for finer gradient
-        let nx = openSimplex3d(x + eps, y, data.z);
-        let ny = openSimplex3d(x, y + eps, data.z);
-        let dx = nx - n;
-        let dy = ny - n;
-        // convert to derivative (per unit) so slopeScale behaves predictably
-        let derx = dx / eps;
-        let dery = dy / eps;
-
-        // Compute approximate surface normal from height field: (-dz/dx, 1, -dz/dy)
-        let normal = normalize(vec3f(-derx, 1.0, -dery));
-        // For this view we remove shadows and focus on height + markers.
-        // Compute simple slope magnitude for use in flat detection only.
-        let rawSlope = length(vec2f(derx, dery));
-        let slopeMag = clamp(rawSlope * slopeScale, 0.0, 1.0);
-        // Use the raw height as the base color (white ramp) and ignore sun shadows
-        let heightColor = vec3f(n);
-        let lit = heightColor; // no shading
-
-        // Detect flat local extrema (peaks/valleys) and overlay colored dots
-        // Increase flat threshold to make dots larger and more tolerant
-        let flatThreshold: f32 = 0.18;
-        let isFlat = rawSlope < flatThreshold;
-        // Use 3-sample extrema detection (nx, left, up) as requested — cheaper and sufficient.
-        let n_left = openSimplex3d(x - eps, y, data.z);
-        let n_up = openSimplex3d(x, y - eps, data.z);
-        // average of the three neighbor samples (excluding center)
-        let avgNeighbors = (nx + n_left + n_up) / 3.0;
-        // require small contrast and midline check so peaks are truly bright and valleys truly dark
-        let contrast: f32 = 0.01;
-        let peakMidline: f32 = 0.55;
-        let valleyMidline: f32 = 0.45;
-        let isPeak = isFlat && (n > avgNeighbors) && ((n - avgNeighbors) > contrast) && (n > peakMidline);
-        let isValley = isFlat && (n < avgNeighbors) && ((avgNeighbors - n) > contrast) && (n < valleyMidline);
-
-        var overlay = vec3f(0.0);
-        if (isFlat && isPeak) {
-          overlay = vec3f(0.0, 0.0, 1.0); // peak => blue (swapped)
-        } else if (isFlat && isValley) {
-          overlay = vec3f(1.0, 1.0, 0.0); // valley => yellow (swapped)
-        }
-
-        // Blend overlay if present (slightly less than full to keep context)
-        var overlayStrength: f32 = 0.0;
-        if (overlay.x + overlay.y + overlay.z > 0.0) {
-          overlayStrength = 0.75;
-        }
-        let out = lit * (1.0 - overlayStrength) + overlay * overlayStrength;
-        return vec4<f32>(out, 1.0);
+        let n = openSimplex3d(
+          coord.x / data.scale * data.zoom + data.x / data.scale, 
+          coord.y / data.scale * data.zoom + data.y / data.scale, 
+          data.z);
+        return vec4<f32>(n, n, n, 1.0);
       }
     `,
   });

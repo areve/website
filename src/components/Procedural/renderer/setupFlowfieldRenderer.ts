@@ -244,7 +244,10 @@ export async function setupFlowfieldRenderer(
     @group(0) @binding(1) var<storage, read> particlesIn: array<vec2<f32>>;
     @group(0) @binding(2) var<storage, read_write> particlesOut: array<vec2<f32>>;
 
-    // helper to compute normalized flow at a world position (module-scope)
+    // helper to compute flow vector at a world position (module-scope)
+    // returns the raw flow (negative gradient). Do NOT normalize —
+    // this keeps particle speed proportional to slope and avoids
+    // numerical jitter when the gradient magnitude is very small.
     fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
       let eps_local: f32 = params.eps;
       let n_xp = openSimplex3d(wx + eps_local, wy, data.z);
@@ -258,11 +261,7 @@ export async function setupFlowfieldRenderer(
         let ry = fx;
         fx = rx; fy = ry;
       }
-      let l = length(vec2<f32>(fx, fy));
-      if (l > 1e-6) {
-        return vec2<f32>(fx / l, fy / l);
-      }
-      return vec2<f32>(0.0, 0.0);
+      return vec2<f32>(fx, fy);
     }
 
     @compute @workgroup_size(64)
@@ -276,14 +275,23 @@ export async function setupFlowfieldRenderer(
       let dt: f32 = params.dt;
       let maxStep: f32 = params.maxStep;
 
+      // integrate using vector RK2: f1 = flow(pos), mid = pos + 0.5*dt*speed*f1,
+      // f2 = flow(mid), newPos = pos + dt*speed*f2
       let rawStep = speed * dt;
-      let step = min(rawStep, maxStep);
       let f1 = sampleFlow(pos.x, pos.y);
-      let mx = pos.x + f1.x * (step * 0.5);
-      let my = pos.y + f1.y * (step * 0.5);
+      let mx = pos.x + f1.x * (rawStep * 0.5);
+      let my = pos.y + f1.y * (rawStep * 0.5);
       let f2 = sampleFlow(mx, my);
-      var nx = pos.x + f2.x * step;
-      var ny = pos.y + f2.y * step;
+      var nx = pos.x + f2.x * rawStep;
+      var ny = pos.y + f2.y * rawStep;
+      // clamp displacement magnitude to avoid overshoot/oscillation
+      let disp = vec2<f32>(nx - pos.x, ny - pos.y);
+      let dispLen = length(disp);
+      if (dispLen > maxStep && dispLen > 1e-6) {
+        let scale = maxStep / dispLen;
+        nx = pos.x + disp.x * scale;
+        ny = pos.y + disp.y * scale;
+      }
 
       // wrap if out of reasonable bounds -> re-seed inside view
       // map to pixel then check

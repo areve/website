@@ -54,8 +54,9 @@ export async function setupFlowfieldRenderer(
   const PARTICLE_COUNT = 5000;
   const PARTICLE_SPEED = 2.5;
   // epsilon used for centered finite-difference sampling of the noise field
-  // (used to approximate derivatives / gradient of the noise). 
-  const EPS = 0.25;
+  // (used to approximate derivatives / gradient of the noise). Renamed to
+  // DERIV_EPS for clarity.
+  const DERIV_EPS = 0.25;
   const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
   // Toggle whether the background shader is rendered under the particles.
   // Set to `false` for a plain black background.
@@ -140,6 +141,11 @@ export async function setupFlowfieldRenderer(
       return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
     }
 
+    // ensure we never divide by zero when using data.scale in shaders
+    fn safeScale() -> f32 {
+      return max(data.scale, 1e-6);
+    }
+
     fn vertexContribution(ix: i32, iy: i32, iz: i32, fx: f32, fy: f32, fz: f32, cx: i32, cy: i32, cz: i32) -> f32 {
       let dx: f32 = fx - f32(cx);
       let dy: f32 = fy - f32(cy);
@@ -199,15 +205,16 @@ export async function setupFlowfieldRenderer(
 
     @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
       // map fragment position to world coordinates used by the noise function
-      let x = coord.x / data.scale * data.zoom + data.x / data.scale;
-      let y = coord.y / data.scale * data.zoom + data.y / data.scale;
+      let scl = safeScale();
+      let x = coord.x / scl * data.zoom + data.x / scl;
+      let y = coord.y / scl * data.zoom + data.y / scl;
 
       // Sample height and use centered finite differences for derivatives.
       // Rotate the sampling coordinates around the view center by data.rotate
       // so panning works as expected when the field is rotated.
       let eps: f32 = 0.25;
-      let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
-      let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
+      let cx = data.x / scl + (data.width * 0.5) / scl * data.zoom;
+      let cy = data.y / scl + (data.height * 0.5) / scl * data.zoom;
       let theta = data.rotate;
       let c = cos(theta);
       let s = sin(theta);
@@ -293,49 +300,21 @@ export async function setupFlowfieldRenderer(
     fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
       let idx = i32(gid.x);
       if (idx >= ${PARTICLE_COUNT}i) { return; }
-      // grid-based seeding that includes edges: map col/row to [0,width] and [0,height]
-      var cols = i32(floor(sqrt(f32(${PARTICLE_COUNT}))));
-      if (cols < 1) { cols = 1; }
-      let rows = i32(ceil(f32(${PARTICLE_COUNT}) / f32(cols)));
-      let col = idx % cols;
-      let row = idx / cols;
-      let denomCols = f32(max(cols - 1, 1));
-      let denomRows = f32(max(rows - 1, 1));
-      var u: f32;
-      var v: f32;
-      if (cols > 1) {
-        u = f32(col) / denomCols;
-      } else {
-        u = 0.5;
-      }
-      if (rows > 1) {
-        v = f32(row) / denomRows;
-      } else {
-        v = 0.5;
-      }
-      let sx = u * data.width;
-      let sy = v * data.height;
-      // jitter up to roughly half a cell so particles can appear near edges
-      let cellW = data.width / f32(cols);
-      let cellH = data.height / f32(rows);
-      let jitterX = cellW * 0.5;
-      let jitterY = cellH * 0.5;
-      let jx = (openSimplex3d(f32(col) * 0.21 + data.x, f32(row) * 0.37 + data.y, data.z) - 0.5) * jitterX;
-      let jy = (openSimplex3d(f32(col) * 0.53 + data.x, f32(row) * 0.79 + data.y, data.z) - 0.5) * jitterY;
-      var px = sx + jx;
-      var py = sy + jy;
-      // clamp into view so jitter doesn't push particles off-canvas
-      px = clamp(px, 0.0, data.width);
-      py = clamp(py, 0.0, data.height);
-      var nx = px / data.scale * data.zoom + data.x / data.scale;
-      var ny = py / data.scale * data.zoom + data.y / data.scale;
-      // rotate initial world position into the rotated sampling frame so seeds align with rotated field
-      // keep seed positions in world coordinates; sampling rotation is handled in sampleFlow/fragment
-      // lifetime in seconds (randomized by noise) but stagger initial activation
-      // Set initial life negative to indicate a spawn delay; particles with
-      // negative life will count up towards 0 and only activate when >= 0.
-      let spawnSpread: f32 = 6.0; // seconds over which particles appear at start
-      let rand = abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z));
+      // uniform-random seeding (deterministic per-index via noise)
+      let idf = f32(idx);
+      let rx = openSimplex3d(idf * 0.618 + data.seed, data.x, data.z);
+      let ry = openSimplex3d(idf * 1.357 + data.seed, data.y, data.z);
+      var px = clamp(rx, 0.0, 1.0) * data.width;
+      var py = clamp(ry, 0.0, 1.0) * data.height;
+      // guard against non-finite values
+      if (px != px) { px = 0.0; }
+      if (py != py) { py = 0.0; }
+      let scl = safeScale();
+      var nx = px / scl * data.zoom + data.x / scl;
+      var ny = py / scl * data.zoom + data.y / scl;
+      // stagger initial activation with per-index noise
+      let spawnSpread: f32 = 6.0;
+      let rand = abs(openSimplex3d(idf * 0.93 + data.seed, idf * 0.31 + data.seed, data.z));
       let delay = rand * spawnSpread;
       let life = -delay;
       particlesOut[idx] = vec3<f32>(nx, ny, life);
@@ -386,8 +365,9 @@ export async function setupFlowfieldRenderer(
       }
 
       // map to pixel then check bounds
-      let pixx = (nx - data.x / data.scale) * data.scale / data.zoom;
-      let pixy = (ny - data.y / data.scale) * data.scale / data.zoom;
+      let scl = safeScale();
+      let pixx = (nx - data.x / scl) * scl / data.zoom;
+      let pixy = (ny - data.y / scl) * scl / data.zoom;
       var needRespawn = false;
       if (life <= 0.0) { needRespawn = true; }
       if (pixx < -10.0 || pixy < -10.0 || pixx > data.width + 10.0 || pixy > data.height + 10.0) {
@@ -395,34 +375,19 @@ export async function setupFlowfieldRenderer(
       }
 
       if (needRespawn) {
-        // respawn on the grid with jitter so particles appear across the whole view including edges
-        var cols = i32(floor(sqrt(f32(${PARTICLE_COUNT}))));
-        if (cols < 1) { cols = 1; }
-        let rows = i32(ceil(f32(${PARTICLE_COUNT}) / f32(cols)));
-        let col = idx % cols;
-        let row = idx / cols;
-        let denomCols = f32(max(cols - 1, 1));
-        let denomRows = f32(max(rows - 1, 1));
-        var u: f32;
-        var v: f32;
-        if (cols > 1) { u = f32(col) / denomCols; } else { u = 0.5; }
-        if (rows > 1) { v = f32(row) / denomRows; } else { v = 0.5; }
-        let sx = u * data.width;
-        let sy = v * data.height;
-        let cellW = data.width / f32(cols);
-        let cellH = data.height / f32(rows);
-        let jitterX = cellW * 0.5;
-        let jitterY = cellH * 0.5;
-        let jx = (openSimplex3d(f32(col) * 0.21 + data.x, f32(row) * 0.37 + data.y, data.z) - 0.5) * jitterX;
-        let jy = (openSimplex3d(f32(col) * 0.53 + data.x, f32(row) * 0.79 + data.y, data.z) - 0.5) * jitterY;
-        var px = sx + jx;
-        var py = sy + jy;
-        px = clamp(px, 0.0, data.width);
-        py = clamp(py, 0.0, data.height);
-        nx = px / data.scale * data.zoom + data.x / data.scale;
-        ny = py / data.scale * data.zoom + data.y / data.scale;
+        // uniform-random respawn: deterministic per-index noise
+        let idf = f32(idx);
+        let rx = openSimplex3d(idf * 0.618 + data.seed, data.x, data.z);
+        let ry = openSimplex3d(idf * 1.357 + data.seed, data.y, data.z);
+        var px = clamp(rx, 0.0, 1.0) * data.width;
+        var py = clamp(ry, 0.0, 1.0) * data.height;
+        if (px != px) { px = 0.0; }
+        if (py != py) { py = 0.0; }
+        let scl = safeScale();
+        nx = px / scl * data.zoom + data.x / scl;
+        ny = py / scl * data.zoom + data.y / scl;
         // keep respawn positions in world coordinates; sampleFlow will handle rotation
-        life = 1.0 + abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z)) * 3.0;
+        life = 1.0 + abs(openSimplex3d(idf * 0.93 + data.seed, idf * 0.31 + data.seed, data.z)) * 3.0;
       }
 
       particlesOut[idx] = vec3<f32>(nx, ny, life);
@@ -460,9 +425,10 @@ export async function setupFlowfieldRenderer(
         vec2f(1.0, -1.0)
       );
       let p = particles[iIndex];
-      let px = (p.x - data.x / data.scale) * data.scale / data.zoom;
+      let scl = safeScale();
+      let px = (p.x - data.x / scl) * scl / data.zoom;
       let ndcx = (px / data.width) * 2.0 - 1.0;
-      let py = (p.y - data.y / data.scale) * data.scale / data.zoom;
+      let py = (p.y - data.y / scl) * scl / data.zoom;
       let ndcy = -((py / data.height) * 2.0 - 1.0);
       let halfX = f32(${PARTICLE_PIXEL_SIZE}) / data.width;
       let halfY = f32(${PARTICLE_PIXEL_SIZE}) / data.height;
@@ -691,8 +657,10 @@ export async function setupFlowfieldRenderer(
     colorAttachments: [colorAttachment],
   };
 
-  return {
+  const api = {
     async init() {
+      // ensure uniforms are initialized before running the GPU init so data.scale/etc are valid
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       // seed particles on the GPU once at startup
       const encoder = device.createCommandEncoder();
       const cpass = encoder.beginComputePass();
@@ -703,6 +671,249 @@ export async function setupFlowfieldRenderer(
       cpass.dispatchWorkgroups(workgroups);
       cpass.end();
       device.queue.submit([encoder.finish()]);
+      await device.queue.onSubmittedWorkDone();
+
+      // copy seeded A->B so both buffers contain a useful initial state
+      try {
+        const encCopy = device.createCommandEncoder();
+        encCopy.copyBufferToBuffer(particleBufferA, 0, particleBufferB, 0, particleBufferSize);
+        device.queue.submit([encCopy.finish()]);
+        await device.queue.onSubmittedWorkDone();
+      } catch (e) {
+        console.warn('seed copy A->B failed', e);
+      }
+
+      // robust debug helper: read back seed distribution and report non-finite samples
+      async function debugSeedStatsFor(buf: GPUBuffer, name: string) {
+        try {
+          console.log(`debugSeedStats: sharedData.scale=${sharedData.scale}, width=${sharedData.width}, height=${sharedData.height}`);
+          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+          const enc = device.createCommandEncoder();
+          enc.copyBufferToBuffer(buf, 0, read, 0, particleBufferSize);
+          device.queue.submit([enc.finish()]);
+          await read.mapAsync(GPUMapMode.READ);
+          const data = new Float32Array(read.getMappedRange().slice(0));
+          let minY = Number.POSITIVE_INFINITY;
+          let maxY = Number.NEGATIVE_INFINITY;
+          let sum = 0;
+          let firstNonFiniteIndex = -1;
+          const samples: number[] = [];
+          let bottomCount = 0;
+          for (let i = 0; i < data.length; i += 3) {
+            const worldY = data[i + 1];
+            samples.push(worldY);
+            if (!Number.isFinite(worldY) && firstNonFiniteIndex === -1) firstNonFiniteIndex = i / 3;
+            const pixY = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            if (Number.isFinite(pixY)) {
+              minY = Math.min(minY, pixY);
+              maxY = Math.max(maxY, pixY);
+              sum += pixY;
+              if (pixY >= sharedData.height * 0.75) bottomCount++;
+            }
+          }
+          const avg = sum / (data.length / 3);
+          const bottomPct = (bottomCount / (data.length / 3)) * 100.0;
+          // compute how many seeds are visible in the current view and how many are in the bottom quarter
+          let visibleCount = 0;
+          let visibleBottom = 0;
+          for (let i = 0; i < data.length; i += 3) {
+            const worldY = data[i + 1];
+            const pixY = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            if (Number.isFinite(pixY) && pixY >= 0 && pixY <= sharedData.height) {
+              visibleCount++;
+              if (pixY >= sharedData.height * 0.75) visibleBottom++;
+            }
+          }
+          const visiblePct = (visibleCount / (data.length / 3)) * 100.0;
+          const bottomPctVisible = visibleCount > 0 ? (visibleBottom / visibleCount) * 100.0 : 0.0;
+          // compute 10 histogram buckets across the canvas height to see vertical distribution
+          const buckets = new Array<number>(10).fill(0);
+          for (let i = 0; i < data.length; i += 3) {
+            const worldY = data[i + 1];
+            const pixY = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            if (!Number.isFinite(pixY)) continue;
+            const t = Math.max(0, Math.min(sharedData.height, pixY));
+            const b = Math.floor((t / sharedData.height) * buckets.length);
+            buckets[Math.min(buckets.length - 1, b)]++;
+          }
+          const bucketPct = buckets.map(c => ((c / (data.length / 3)) * 100.0).toFixed(1));
+          console.log(`Seed stats (${name}): minY=${isFinite(minY) ? minY.toFixed(2) : 'NaN'}, maxY=${isFinite(maxY) ? maxY.toFixed(2) : 'NaN'}, avgY=${isFinite(avg) ? avg.toFixed(2) : 'NaN'}, bottom25%=${bottomPct.toFixed(1)}%, visible%=${visiblePct.toFixed(1)}%, bottomOfVisible%=${bottomPctVisible.toFixed(1)}%, buckets%=[${bucketPct.join(', ')}]`);
+          if (firstNonFiniteIndex >= 0) {
+            console.warn(`Found non-finite worldY at particle index ${firstNonFiniteIndex}. Sample values:`, samples.slice(firstNonFiniteIndex, firstNonFiniteIndex + 6));
+          }
+          if (isFinite(maxY) && maxY < sharedData.height * 0.98) {
+            console.warn(`Coverage: seeds do not reach bottom edge (maxY=${maxY.toFixed(2)} < height*0.98=${(sharedData.height*0.98).toFixed(2)})`);
+          }
+          read.unmap();
+          read.destroy?.();
+          return { minY, maxY, avg };
+        } catch (e) {
+          console.warn('debugSeedStats failed', e);
+          return null;
+        }
+      }
+      // expose a helper for quick debugging from the host
+      (this as any).debugSeedStats = async () => {
+        await debugSeedStatsFor(particleBufferA, 'A');
+        await debugSeedStatsFor(particleBufferB, 'B');
+      };
+
+      // reveal seeds immediately (useful for debugging visual coverage)
+      (this as any).revealSeeds = async () => {
+        try {
+          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+          const enc = device.createCommandEncoder();
+          enc.copyBufferToBuffer(particleBufferA, 0, read, 0, particleBufferSize);
+          device.queue.submit([enc.finish()]);
+          await read.mapAsync(GPUMapMode.READ);
+          const data = new Float32Array(read.getMappedRange().slice(0));
+          // ensure positive life values for immediate visibility
+          for (let i = 0; i < data.length; i += 3) {
+            // x=data[i], y=data[i+1], life=data[i+2]
+            data[i + 2] = Math.max(0.5, Math.abs(data[i + 2]));
+          }
+          // write back to both buffers so next frame shows particles regardless of ping
+          device.queue.writeBuffer(particleBufferA, 0, data.buffer, data.byteOffset, data.byteLength);
+          device.queue.writeBuffer(particleBufferB, 0, data.buffer, data.byteOffset, data.byteLength);
+          read.unmap();
+          read.destroy?.();
+          console.log('revealSeeds: activated particles for immediate visibility');
+        } catch (e) {
+          console.warn('revealSeeds failed', e);
+        }
+      };
+
+      // draw an on-screen overlay (DOM canvas) showing seed pixel positions for visual debugging
+      (this as any).showSeedOverlay = async (opts?: { clear?: boolean }) => {
+        const id = 'flowfield-seed-overlay';
+        let overlay = document.getElementById(id) as HTMLCanvasElement | null;
+        // Always update the overlay size/position to match the canvas at draw time
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        if (!overlay) {
+          overlay = document.createElement('canvas');
+          overlay.id = id;
+          overlay.style.position = 'fixed';
+          overlay.style.pointerEvents = 'none';
+          document.body.appendChild(overlay);
+        }
+        overlay.style.left = rect.left + 'px';
+        overlay.style.top = rect.top + 'px';
+        overlay.style.width = rect.width + 'px';
+        overlay.style.height = rect.height + 'px';
+        // set backing store size in device pixels so drawn points align perfectly
+        overlay.width = Math.max(1, Math.round(rect.width * dpr));
+        overlay.height = Math.max(1, Math.round(rect.height * dpr));
+
+        const ctx = overlay.getContext('2d')!;
+        if (opts?.clear) { ctx.clearRect(0, 0, overlay.width, overlay.height); return; }
+        // read particle positions and draw
+        try {
+          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+          const enc = device.createCommandEncoder();
+          enc.copyBufferToBuffer(particleBufferA, 0, read, 0, particleBufferSize);
+          device.queue.submit([enc.finish()]);
+          await read.mapAsync(GPUMapMode.READ);
+          const data = new Float32Array(read.getMappedRange().slice(0));
+          ctx.clearRect(0, 0, overlay.width, overlay.height);
+          // account for CSS/device pixel scaling between canvas internal buffer and displayed size
+          const scaleX = overlay.width / canvas.width;
+          const scaleY = overlay.height / canvas.height;
+          // draw a faint bottom-25% guide
+          ctx.strokeStyle = 'rgba(0,255,0,0.6)';
+          ctx.lineWidth = Math.max(1, Math.round(1 * dpr));
+          const bottomY = Math.round(overlay.height * 0.75);
+          ctx.beginPath(); ctx.moveTo(0, bottomY); ctx.lineTo(overlay.width, bottomY); ctx.stroke();
+          ctx.fillStyle = 'rgba(255,0,0,0.9)';
+          for (let i = 0; i < data.length; i += 3) {
+            const worldX = data[i + 0];
+            const worldY = data[i + 1];
+            const px = (worldX - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            const py = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
+            const drawX = Math.round(px * scaleX);
+            const drawY = Math.round(py * scaleY);
+            // draw small rect for visibility (scale size for DPR)
+            const size = Math.max(1, Math.round(2 * dpr));
+            ctx.fillRect(drawX - Math.floor(size/2), drawY - Math.floor(size/2), size, size);
+          }
+          read.unmap();
+          read.destroy?.();
+          console.log('showSeedOverlay: drawn (fixed positioning + DPR-aware scaling)');
+        } catch (e) {
+          console.warn('showSeedOverlay failed', e);
+        }
+      };
+
+      // call debug automatically so a log appears in the console after init
+      (this as any).debugSeedStats();
+
+      // helper: force uniform seeds across the visible canvas for testing/debugging
+      (this as any).forceUniformSeeds = async () => {
+        try {
+          const out = new Float32Array(particleBufferSize / 4);
+          const cols = Math.ceil(Math.sqrt(PARTICLE_COUNT));
+          const rows = Math.ceil(PARTICLE_COUNT / cols);
+          let ptr = 0;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              if (ptr >= PARTICLE_COUNT) break;
+              const u = c / Math.max(1, cols - 1);
+              const v = r / Math.max(1, rows - 1);
+              const sx = u * sharedData.width;
+              const sy = v * sharedData.height;
+              // add small random jitter
+              const jx = (Math.random() - 0.5) * (sharedData.width / cols) * 0.45;
+              const jy = (Math.random() - 0.5) * (sharedData.height / rows) * 0.45;
+              const px = Math.min(sharedData.width, Math.max(0, sx + jx));
+              const py = Math.min(sharedData.height, Math.max(0, sy + jy));
+              const scl = Math.max(1e-6, sharedData.scale);
+              const nx = px / scl * sharedData.zoom + sharedData.x / scl;
+              const ny = py / scl * sharedData.zoom + sharedData.y / scl;
+              // life positive so visible
+              out[ptr * 3 + 0] = nx;
+              out[ptr * 3 + 1] = ny;
+              out[ptr * 3 + 2] = 2.0;
+              ptr++;
+            }
+          }
+          // write to both buffers
+          device.queue.writeBuffer(particleBufferA, 0, out.buffer, out.byteOffset, ptr * 3 * 4);
+          device.queue.writeBuffer(particleBufferB, 0, out.buffer, out.byteOffset, ptr * 3 * 4);
+          console.log('forceUniformSeeds: wrote', ptr, 'particles');
+        } catch (e) {
+          console.warn('forceUniformSeeds failed', e);
+        }
+      };
+
+      // helper: dump a few seed samples (pixel coords) to aid diagnosis
+      (this as any).dumpSeedSamples = async (count = 10) => {
+        try {
+          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
+          const enc = device.createCommandEncoder();
+          enc.copyBufferToBuffer(particleBufferA, 0, read, 0, particleBufferSize);
+          device.queue.submit([enc.finish()]);
+          await read.mapAsync(GPUMapMode.READ);
+          const data = new Float32Array(read.getMappedRange().slice(0));
+          const samples: Array<{i:number, px:number, py:number, life:number}> = [];
+          for (let i = 0; i < Math.min(count, PARTICLE_COUNT); i++) {
+            const wx = data[i*3+0];
+            const wy = data[i*3+1];
+            const life = data[i*3+2];
+            const px_correct = (wx - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            const py_correct = (wy - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            const px_swapped = (wx - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            const py_swapped = (wy - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
+            samples.push({i, px_correct, py_correct, px_swapped, py_swapped, life});
+          }
+          console.log('seed samples:', samples.slice(0, count));
+          read.unmap();
+          read.destroy?.();
+        } catch (e) {
+          console.warn('dumpSeedSamples failed', e);
+        }
+      };
+
       return device.queue.onSubmittedWorkDone();
     },
     async update(
@@ -724,7 +935,7 @@ export async function setupFlowfieldRenderer(
       lastFrameTime = now;
 
       // write compute params: dt, speed, eps, maxStep, rotateAngle
-      const maxStep = EPS * 0.6;
+      const maxStep = DERIV_EPS * 0.6;
       // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
       if (data && typeof (data as any).rotation === 'number') {
         rotateState = (data as any).rotation;
@@ -735,7 +946,7 @@ export async function setupFlowfieldRenderer(
       sharedData.rotate = rotateState;
       // write sharedData again so fragment pipelines/readers see the updated rotation this frame
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
-      const paramsArray = new Float32Array([dt, PARTICLE_SPEED, EPS, maxStep, rotateState]);
+      const paramsArray = new Float32Array([dt, PARTICLE_SPEED, DERIV_EPS, maxStep, rotateState]);
       device.queue.writeBuffer(paramsBuffer, 0, paramsArray.buffer, paramsArray.byteOffset, paramsArray.byteLength);
 
       // build a single command encoder with compute then render passes
@@ -810,6 +1021,8 @@ export async function setupFlowfieldRenderer(
       return device.queue.onSubmittedWorkDone();
 
       
-    },
+    }
   };
+  (window as any).flowfieldRenderer = api;
+  return api;
 }

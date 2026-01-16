@@ -190,7 +190,8 @@ export async function setupFlowfieldRenderer(
         // Map saturation from surface angle: flat (normal.z ~= 1.0) -> 0, vertical (normal.z ~= 0.0) -> 1
         // Increase sensitivity so steeper faces get stronger tint.
         let sat: f32 = clamp((1.0 - normal.z) * angleSaturationScale, 0.0, 1.0);
-        let tintRGB = hsv2rgb(vec3f(hue, sat, 1.0));
+        // Set HSV value (brightness) to the height so valleys are 0 and peaks are 1
+        let tintRGB = hsv2rgb(vec3f(hue, sat, n));
         let tintWeight: f32 = sat * tintStrength;
         let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;
 

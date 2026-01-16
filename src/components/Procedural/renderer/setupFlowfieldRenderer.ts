@@ -74,6 +74,10 @@ export async function setupFlowfieldRenderer(
       const skew3d: f32 = 1.0 / 3.0;
       const unskew3d: f32 = 1.0 / 6.0;
       const rSquared3d: f32 = 3.0 / 4.0;
+      // Lighting constants (used for subtle height shading)
+      const sunDirConst: vec3f = normalize(vec3f(0.0, 0.0, 1.0));
+      const ambientConst: f32 = 0.35;
+      const diffuseScale: f32 = 0.65;
 
       fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
         let sx: f32 = x;
@@ -139,11 +143,58 @@ export async function setupFlowfieldRenderer(
       }
 
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let n = openSimplex3d(
-          coord.x / data.scale * data.zoom + data.x / data.scale, 
-          coord.y / data.scale * data.zoom + data.y / data.scale, 
-          data.z);
-        return vec4<f32>(n, n, n, 1.0);
+        // map fragment position to world coordinates used by the noise function
+        let x = coord.x / data.scale * data.zoom + data.x / data.scale;
+        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
+
+        // Sample height and use centered finite differences for derivatives
+        let eps: f32 = 0.25;
+        let n = openSimplex3d(x, y, data.z);
+        let nxp = openSimplex3d(x + eps, y, data.z);
+        let nxm = openSimplex3d(x - eps, y, data.z);
+        let nyp = openSimplex3d(x, y + eps, data.z);
+        let nym = openSimplex3d(x, y - eps, data.z);
+        let derx = (nxp - nxm) / (2.0 * eps);
+        let dery = (nyp - nym) / (2.0 * eps);
+
+        // Compute surface normal with Z as the up axis so we can test angle vs Z.
+        // normal = (-dz/dx, -dz/dy, 1)
+        let normal = normalize(vec3f(-derx, -dery, 1.0));
+
+        // Use the raw height as the base color (white ramp) — show raw heights so peaks are white
+        let heightColor = vec3f(n);
+        let lit = heightColor; // no shading here to keep white peaks/black troughs visible
+
+
+        // Angle test: mark as "flat" when the normal is within 5° of vertical (Z axis)
+        // cos(5°) ≈ 0.9961947
+        let flatDotThreshold: f32 = 0.9961946981;
+        let dotZ = abs(normal.z);
+        let isFlatAngle = dotZ > flatDotThreshold;
+
+        // Also consider slope-magnitude based flatness as a fallback (in case angle test misses)
+        let rawSlope = length(vec2f(derx, dery));
+        // tightened slope threshold to avoid mid-slope detections
+        let flatSlopeThreshold: f32 = 0.12;
+        let isFlatSlope = rawSlope < flatSlopeThreshold;
+
+        // Use midline 0.5: treat >0.5 as peak, <=0.5 as valley, combined with flat test
+        let isPeak = (n > 0.5) && (isFlatAngle || isFlatSlope);
+        let isValley = (n <= 0.5) && (isFlatAngle || isFlatSlope);
+
+        // Overlay markers: blue for peak, yellow for valley
+        var overlay = vec3f(0.0, 0.0, 0.0);
+        if (isPeak) {
+          overlay = vec3f(0.0, 0.0, 1.0);
+        } else if (isValley) {
+          overlay = vec3f(1.0, 1.0, 0.0);
+        }
+        var overlayStrength: f32 = 0.0;
+        if (overlay.x + overlay.y + overlay.z > 0.0) {
+          overlayStrength = 0.9;
+        }
+        let out = lit * (1.0 - overlayStrength) + overlay * overlayStrength;
+        return vec4<f32>(out, 1.0);
       }
     `,
   });

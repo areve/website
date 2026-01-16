@@ -62,7 +62,7 @@ export async function setupFlowfieldRenderer(
     return [wx, wy];
   }
 
-  const particleBufferSize = PARTICLE_COUNT * 2 * 4; // 2 floats per particle
+  const particleBufferSize = PARTICLE_COUNT * 3 * 4; // 3 floats per particle (x,y,life)
   const particleBufferA = device.createBuffer({
     size: particleBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -230,8 +230,8 @@ export async function setupFlowfieldRenderer(
     struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateFlag: f32 };
     @group(0) @binding(3) var<uniform> params: Params;
 
-    @group(0) @binding(1) var<storage, read> particlesIn: array<vec2<f32>>;
-    @group(0) @binding(2) var<storage, read_write> particlesOut: array<vec2<f32>>;
+    @group(0) @binding(1) var<storage, read> particlesIn: array<vec3<f32>>;
+    @group(0) @binding(2) var<storage, read_write> particlesOut: array<vec3<f32>>;
 
     // helper to compute flow vector at a world position (module-scope)
     // returns the raw flow (negative gradient). Do NOT normalize —
@@ -253,65 +253,74 @@ export async function setupFlowfieldRenderer(
       return vec2<f32>(fx, fy);
     }
 
-      @compute @workgroup_size(64)
-      fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
-        let idx = i32(gid.x);
-        if (idx >= ${PARTICLE_COUNT}i) { return; }
-        var s: u32 = u32(idx) ^ bitcast<u32>(data.seed);
-        s = s * 1664525u + 1013904223u;
-        s = s ^ (s >> 13u);
-        let rx = f32(s & 0xffffu) / 65535.0;
-        s = s * 1664525u + 1013904223u;
-        let ry = f32((s >> 16) & 0xffffu) / 65535.0;
-        let sx = rx * data.width;
-        let sy = ry * data.height;
-        let nx = sx / data.scale * data.zoom + data.x / data.scale;
-        let ny = sy / data.scale * data.zoom + data.y / data.scale;
-        particlesOut[idx] = vec2<f32>(nx, ny);
-      }
+    @compute @workgroup_size(64)
+    fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
+      let idx = i32(gid.x);
+      if (idx >= ${PARTICLE_COUNT}i) { return; }
+      // seed by noise-based pseudorandom values so particle distribution follows noise
+      let rx = openSimplex3d(f32(idx) * 0.127 + data.x, data.y, data.z);
+      let ry = openSimplex3d(data.x, f32(idx) * 0.271 + data.y, data.z);
+      let sx = rx * data.width;
+      let sy = ry * data.height;
+      let nx = sx / data.scale * data.zoom + data.x / data.scale;
+      let ny = sy / data.scale * data.zoom + data.y / data.scale;
+      let life = 1.0 + openSimplex3d(f32(idx) * 0.73 + data.x, f32(idx) * 0.19 + data.y, data.z) * 4.0;
+      particlesOut[idx] = vec3<f32>(nx, ny, life);
+    }
 
     @compute @workgroup_size(64)
     fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
       let idx = i32(gid.x);
       if (idx >= ${PARTICLE_COUNT}i) { return; }
-      let pos = particlesIn[idx];
+      let p = particlesIn[idx];
+      var px0 = p.x;
+      var py0 = p.y;
+      var life = p.z;
+      // decrement life
+      let dt: f32 = params.dt;
+      life = life - dt;
+
       // sample flow at pos (RK2)
       let eps: f32 = params.eps;
       let speed: f32 = params.speed;
-      let dt: f32 = params.dt;
       let maxStep: f32 = params.maxStep;
-
-      // integrate using vector RK2: f1 = flow(pos), mid = pos + 0.5*dt*speed*f1,
-      // f2 = flow(mid), newPos = pos + dt*speed*f2
       let rawStep = speed * dt;
-      let f1 = sampleFlow(pos.x, pos.y);
-      let mx = pos.x + f1.x * (rawStep * 0.5);
-      let my = pos.y + f1.y * (rawStep * 0.5);
+      let f1 = sampleFlow(px0, py0);
+      let mx = px0 + f1.x * (rawStep * 0.5);
+      let my = py0 + f1.y * (rawStep * 0.5);
       let f2 = sampleFlow(mx, my);
-      var nx = pos.x + f2.x * rawStep;
-      var ny = pos.y + f2.y * rawStep;
+      var nx = px0 + f2.x * rawStep;
+      var ny = py0 + f2.y * rawStep;
       // clamp displacement magnitude to avoid overshoot/oscillation
-      let disp = vec2<f32>(nx - pos.x, ny - pos.y);
+      let disp = vec2<f32>(nx - px0, ny - py0);
       let dispLen = length(disp);
       if (dispLen > maxStep && dispLen > 1e-6) {
         let scale = maxStep / dispLen;
-        nx = pos.x + disp.x * scale;
-        ny = pos.y + disp.y * scale;
+        nx = px0 + disp.x * scale;
+        ny = py0 + disp.y * scale;
       }
 
-      // wrap if out of reasonable bounds -> re-seed inside view
-      // map to pixel then check
-      let px = (nx - data.x / data.scale) * data.scale / data.zoom;
-      let py = (ny - data.y / data.scale) * data.scale / data.zoom;
-      if (px < -10.0 || py < -10.0 || px > data.width + 10.0 || py > data.height + 10.0) {
-        // respawn inside screen in pixel coords
-        let sx = f32((idx * 977) % i32(data.width)); // cheap pseudo-random-ish
-        let sy = f32(((idx * 1931) / 7) % i32(data.height));
+      // map to pixel then check bounds
+      let pixx = (nx - data.x / data.scale) * data.scale / data.zoom;
+      let pixy = (ny - data.y / data.scale) * data.scale / data.zoom;
+      var needRespawn = false;
+      if (life <= 0.0) { needRespawn = true; }
+      if (pixx < -10.0 || pixy < -10.0 || pixx > data.width + 10.0 || pixy > data.height + 10.0) {
+        needRespawn = true;
+      }
+
+      if (needRespawn) {
+        // respawn using noise-based seeding within the current view so p appear after pan/zoom
+        let rx = openSimplex3d(f32(idx) * 0.127 + data.x, data.y, data.z);
+        let ry = openSimplex3d(data.x, f32(idx) * 0.271 + data.y, data.z);
+        let sx = rx * data.width;
+        let sy = ry * data.height;
         nx = sx / data.scale * data.zoom + data.x / data.scale;
         ny = sy / data.scale * data.zoom + data.y / data.scale;
+        life = 1.0 + openSimplex3d(f32(idx) * 0.73 + data.x, f32(idx) * 0.19 + data.y, data.z) * 4.0;
       }
 
-      particlesOut[idx] = vec2<f32>(nx, ny);
+      particlesOut[idx] = vec3<f32>(nx, ny, life);
     }
   `;
 
@@ -328,9 +337,14 @@ export async function setupFlowfieldRenderer(
 
   const particleWgsl = /* wgsl */ `${commonWgsl}
 
-    @group(0) @binding(1) var<storage, read> particles: array<vec2<f32>>;
+    @group(0) @binding(1) var<storage, read> particles: array<vec3<f32>>;
 
-    @vertex fn vs(@builtin(vertex_index) vIndex: u32, @builtin(instance_index) iIndex: u32) -> @builtin(position) vec4f {
+    struct VSOut {
+      @builtin(position) pos: vec4f,
+      @location(0) life: f32,
+    };
+
+    @vertex fn vs(@builtin(vertex_index) vIndex: u32, @builtin(instance_index) iIndex: u32) -> VSOut {
       // 6 vertices per quad (two triangles)
       let corner = array<vec2f, 6>(
         vec2f(-1.0, -1.0),
@@ -348,11 +362,15 @@ export async function setupFlowfieldRenderer(
       let halfX = f32(${PARTICLE_PIXEL_SIZE}) / data.width;
       let halfY = f32(${PARTICLE_PIXEL_SIZE}) / data.height;
       let pos = vec2f(ndcx + corner[vIndex].x * halfX, ndcy + corner[vIndex].y * halfY);
-      return vec4f(pos, 0.0, 1.0);
+      var out: VSOut;
+      out.pos = vec4f(pos, 0.0, 1.0);
+      out.life = p.z;
+      return out;
     }
-
-    @fragment fn fs() -> @location(0) vec4f {
-      return vec4f(1.0, 1.0, 1.0, 0.30);
+    @fragment fn fs(@location(0) life: f32) -> @location(0) vec4f {
+      // fade particle alpha by remaining life (assume life ~ up to 3.0s for normalization)
+      let alpha = 0.30 * clamp(life / 3.0, 0.0, 1.0);
+      return vec4f(1.0, 1.0, 1.0, alpha);
     }
   `;
 
@@ -519,6 +537,17 @@ export async function setupFlowfieldRenderer(
     ],
   });
 
+  // create an init bind group matching the computeInitPipeline's layout
+  // The 'init' entry in the compute shader only references binding 0 (data) and binding 2 (particlesOut),
+  // so create the bind group with only those entries to match pipeline reflection.
+  const computeInitBindGroup = device.createBindGroup({
+    layout: computeInitPipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: dataBuffer } },
+      { binding: 2, resource: { buffer: particleBufferA } },
+    ],
+  });
+
   const particleRenderBindA = device.createBindGroup({
     layout: particlePipeline.getBindGroupLayout(0),
     entries: [
@@ -553,8 +582,8 @@ export async function setupFlowfieldRenderer(
       const encoder = device.createCommandEncoder();
       const cpass = encoder.beginComputePass();
       cpass.setPipeline(computeInitPipeline);
-      // write into particleBufferA via computeBindGroupB (bindGroupB maps particlesOut->A)
-      cpass.setBindGroup(0, computeBindGroupB);
+      // write into particleBufferA via the init bind group
+      cpass.setBindGroup(0, computeInitBindGroup);
       const workgroups = Math.ceil(PARTICLE_COUNT / 64);
       cpass.dispatchWorkgroups(workgroups);
       cpass.end();

@@ -11,7 +11,7 @@ export async function setupFlowfieldRenderer(
     width: options.width,
     height: options.height,
     seed: options.seed ?? 12345,
-    scale: options.scale ?? 8,
+    scale: options.scale ?? 100,
     x: 0,
     y: 0,
     z: 0,
@@ -192,7 +192,7 @@ export async function setupFlowfieldRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.001;
+      sharedData.z = time * 0.0001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "our encoder" });

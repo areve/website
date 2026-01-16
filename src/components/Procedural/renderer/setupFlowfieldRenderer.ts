@@ -683,7 +683,7 @@ export async function setupFlowfieldRenderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.0001;
+      sharedData.z = time * 0.0005;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
 
       // --- GPU particle integration via compute shader ---

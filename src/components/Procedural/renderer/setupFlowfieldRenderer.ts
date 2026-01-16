@@ -62,17 +62,7 @@ export async function setupFlowfieldRenderer(
     return [wx, wy];
   }
 
-  // initial particle positions in world space
-  const particleArray = new Float32Array(PARTICLE_COUNT * 2);
-  for (let i = 0; i < PARTICLE_COUNT; i++) {
-    const sx = Math.random() * options.width;
-    const sy = Math.random() * options.height;
-    const [wx, wy] = pixelToWorld(sx, sy);
-    particleArray[i * 2 + 0] = wx;
-    particleArray[i * 2 + 1] = wy;
-  }
-
-  const particleBufferSize = particleArray.byteLength;
+  const particleBufferSize = PARTICLE_COUNT * 2 * 4; // 2 floats per particle
   const particleBufferA = device.createBuffer({
     size: particleBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
@@ -81,7 +71,6 @@ export async function setupFlowfieldRenderer(
     size: particleBufferSize,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
   });
-  device.queue.writeBuffer(particleBufferA, 0, particleArray.buffer, particleArray.byteOffset, particleArray.byteLength);
 
   // params buffer for compute (dt, speed, eps, maxStep, rotateFlag)
   const paramsBuffer = device.createBuffer({
@@ -264,6 +253,23 @@ export async function setupFlowfieldRenderer(
       return vec2<f32>(fx, fy);
     }
 
+      @compute @workgroup_size(64)
+      fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
+        let idx = i32(gid.x);
+        if (idx >= ${PARTICLE_COUNT}i) { return; }
+        var s: u32 = u32(idx) ^ bitcast<u32>(data.seed);
+        s = s * 1664525u + 1013904223u;
+        s = s ^ (s >> 13u);
+        let rx = f32(s & 0xffffu) / 65535.0;
+        s = s * 1664525u + 1013904223u;
+        let ry = f32((s >> 16) & 0xffffu) / 65535.0;
+        let sx = rx * data.width;
+        let sy = ry * data.height;
+        let nx = sx / data.scale * data.zoom + data.x / data.scale;
+        let ny = sy / data.scale * data.zoom + data.y / data.scale;
+        particlesOut[idx] = vec2<f32>(nx, ny);
+      }
+
     @compute @workgroup_size(64)
     fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
       let idx = i32(gid.x);
@@ -311,6 +317,7 @@ export async function setupFlowfieldRenderer(
 
   const computeModule = device.createShaderModule({ code: computeWgsl });
   const computePipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'cs' } });
+  const computeInitPipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'init' } });
 
   // compute bind groups (created later after `dataBuffer` is available)
 
@@ -541,7 +548,19 @@ export async function setupFlowfieldRenderer(
   };
 
   return {
-    async init() {},
+    async init() {
+      // seed particles on the GPU once at startup
+      const encoder = device.createCommandEncoder();
+      const cpass = encoder.beginComputePass();
+      cpass.setPipeline(computeInitPipeline);
+      // write into particleBufferA via computeBindGroupB (bindGroupB maps particlesOut->A)
+      cpass.setBindGroup(0, computeBindGroupB);
+      const workgroups = Math.ceil(PARTICLE_COUNT / 64);
+      cpass.dispatchWorkgroups(workgroups);
+      cpass.end();
+      device.queue.submit([encoder.finish()]);
+      return device.queue.onSubmittedWorkDone();
+    },
     async update(
       time: DOMHighResTimeStamp,
       data?: {

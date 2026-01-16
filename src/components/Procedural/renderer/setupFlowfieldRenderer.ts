@@ -76,6 +76,8 @@ export async function setupFlowfieldRenderer(
       const rSquared3d: f32 = 3.0 / 4.0;
       // Tinting: HSV helper and tint parameters
       const slopeSaturationScale: f32 = 6.0;
+      // Scale applied to the angle-derived saturation so tint reacts more strongly
+      const angleSaturationScale: f32 = 4.0;
       const tintStrength: f32 = 0.75;
       const PI: f32 = 3.141592653589793;
 
@@ -185,7 +187,9 @@ export async function setupFlowfieldRenderer(
         let slopeMag = length(vec2f(derx, dery));
         let heading: f32 = atan2(derx, dery);
         let hue: f32 = fract(heading / (2.0 * PI) + 1.0);
-        let sat: f32 = clamp(slopeMag * slopeSaturationScale, 0.0, 1.0);
+        // Map saturation from surface angle: flat (normal.z ~= 1.0) -> 0, vertical (normal.z ~= 0.0) -> 1
+        // Increase sensitivity so steeper faces get stronger tint.
+        let sat: f32 = clamp((1.0 - normal.z) * angleSaturationScale, 0.0, 1.0);
         let tintRGB = hsv2rgb(vec3f(hue, sat, 1.0));
         let tintWeight: f32 = sat * tintStrength;
         let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;

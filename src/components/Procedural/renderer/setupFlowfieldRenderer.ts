@@ -214,8 +214,11 @@ export async function setupFlowfieldRenderer(
       let nxm = openSimplex3d(rx - eps, ry, data.z);
       let nyp = openSimplex3d(rx, ry + eps, data.z);
       let nym = openSimplex3d(rx, ry - eps, data.z);
-      let derx = (nxp - nxm) / (2.0 * eps);
-      let dery = (nyp - nym) / (2.0 * eps);
+      let derx_r = (nxp - nxm) / (2.0 * eps);
+      let dery_r = (nyp - nym) / (2.0 * eps);
+      // rotate derivatives back into world coordinates
+      let derx = derx_r * c + dery_r * s;
+      let dery = -derx_r * s + dery_r * c;
 
       // Compute surface normal with Z as the up axis so we can test angle vs Z.
       // normal = (-dz/dx, -dz/dy, 1)
@@ -271,8 +274,11 @@ export async function setupFlowfieldRenderer(
       let n_xm = openSimplex3d(rx - eps_local, ry, data.z);
       let n_yp = openSimplex3d(rx, ry + eps_local, data.z);
       let n_ym = openSimplex3d(rx, ry - eps_local, data.z);
-      var fx = -(n_xp - n_xm) / (2.0 * eps_local);
-      var fy = -(n_yp - n_ym) / (2.0 * eps_local);
+      var fx_r = -(n_xp - n_xm) / (2.0 * eps_local);
+      var fy_r = -(n_yp - n_ym) / (2.0 * eps_local);
+      // rotate gradient back into world coordinates (inverse rotation = R^T)
+      let fx = fx_r * c + fy_r * s;
+      let fy = -fx_r * s + fy_r * c;
       return vec2<f32>(fx, fy);
     }
 
@@ -314,8 +320,20 @@ export async function setupFlowfieldRenderer(
       // clamp into view so jitter doesn't push particles off-canvas
       px = clamp(px, 0.0, data.width);
       py = clamp(py, 0.0, data.height);
-      let nx = px / data.scale * data.zoom + data.x / data.scale;
-      let ny = py / data.scale * data.zoom + data.y / data.scale;
+      var nx = px / data.scale * data.zoom + data.x / data.scale;
+      var ny = py / data.scale * data.zoom + data.y / data.scale;
+      // rotate initial world position into the rotated sampling frame so seeds align with rotated field
+      let theta = data.rotate;
+      let c = cos(theta);
+      let s = sin(theta);
+      let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
+      let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
+      let wx = nx - cx;
+      let wy = ny - cy;
+      let wwx = wx * c + wy * s; // R^T * (nx - cx)
+      let wwy = -wx * s + wy * c;
+      nx = wwx + cx;
+      ny = wwy + cy;
       // lifetime in seconds (randomized by noise)
       let life = 1.0 + abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z)) * 3.0;
       particlesOut[idx] = vec3<f32>(nx, ny, life);
@@ -389,6 +407,18 @@ export async function setupFlowfieldRenderer(
         py = clamp(py, 0.0, data.height);
         nx = px / data.scale * data.zoom + data.x / data.scale;
         ny = py / data.scale * data.zoom + data.y / data.scale;
+        // rotate respawned world position into the rotated sampling frame so respawns align with rotated field
+        let theta2 = data.rotate;
+        let c2 = cos(theta2);
+        let s2 = sin(theta2);
+        let cx2 = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
+        let cy2 = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
+        let wx2 = nx - cx2;
+        let wy2 = ny - cy2;
+        let wwx2 = wx2 * c2 + wy2 * s2;
+        let wwy2 = -wx2 * s2 + wy2 * c2;
+        nx = wwx2 + cx2;
+        ny = wwy2 + cy2;
         life = 1.0 + abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z)) * 3.0;
       }
 

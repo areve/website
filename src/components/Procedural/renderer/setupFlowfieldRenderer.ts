@@ -16,7 +16,9 @@ export async function setupFlowfieldRenderer(
     y: 0,
     z: 0,
     zoom: 1,
+    rotate: 0.0,
     asBuffer() {
+      // pad to vec4 boundaries so WGSL uniform layout matches expectation
       return new Float32Array([
         this.width,
         this.height,
@@ -26,6 +28,10 @@ export async function setupFlowfieldRenderer(
         this.y,
         this.z,
         this.zoom,
+        this.rotate,
+        0.0,
+        0.0,
+        0.0,
       ]);
     },
   };
@@ -80,6 +86,7 @@ export async function setupFlowfieldRenderer(
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
+  let rotateState = 0.0;
 
   // shared WGSL snippets used by both fragment and compute shaders
   const commonWgsl = /* wgsl */ `
@@ -91,7 +98,8 @@ export async function setupFlowfieldRenderer(
       x: f32,
       y: f32,
       z: f32,
-      zoom: f32
+      zoom: f32,
+      rotate: f32,
     };
 
     @group(0) @binding(0) var<uniform> data: Uniforms;
@@ -189,13 +197,23 @@ export async function setupFlowfieldRenderer(
       let x = coord.x / data.scale * data.zoom + data.x / data.scale;
       let y = coord.y / data.scale * data.zoom + data.y / data.scale;
 
-      // Sample height and use centered finite differences for derivatives
+      // Sample height and use centered finite differences for derivatives.
+      // Rotate the sampling coordinates around the view center by data.rotate
+      // so panning works as expected when the field is rotated.
       let eps: f32 = 0.25;
-      let n = openSimplex3d(x, y, data.z);
-      let nxp = openSimplex3d(x + eps, y, data.z);
-      let nxm = openSimplex3d(x - eps, y, data.z);
-      let nyp = openSimplex3d(x, y + eps, data.z);
-      let nym = openSimplex3d(x, y - eps, data.z);
+      let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
+      let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
+      let theta = data.rotate;
+      let c = cos(theta);
+      let s = sin(theta);
+      let rx = (x - cx) * c - (y - cy) * s + cx;
+      let ry = (x - cx) * s + (y - cy) * c + cy;
+
+      let n = openSimplex3d(rx, ry, data.z);
+      let nxp = openSimplex3d(rx + eps, ry, data.z);
+      let nxm = openSimplex3d(rx - eps, ry, data.z);
+      let nyp = openSimplex3d(rx, ry + eps, data.z);
+      let nym = openSimplex3d(rx, ry - eps, data.z);
       let derx = (nxp - nxm) / (2.0 * eps);
       let dery = (nyp - nym) / (2.0 * eps);
 
@@ -227,7 +245,7 @@ export async function setupFlowfieldRenderer(
   // --- Compute shader for GPU particle integration ---
   const computeWgsl = /* wgsl */ `${commonWgsl}
 
-    struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateFlag: f32 };
+    struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateAngle: f32 };
     @group(0) @binding(3) var<uniform> params: Params;
 
     @group(0) @binding(1) var<storage, read> particlesIn: array<vec3<f32>>;
@@ -239,17 +257,22 @@ export async function setupFlowfieldRenderer(
     // numerical jitter when the gradient magnitude is very small.
     fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
       let eps_local: f32 = params.eps;
-      let n_xp = openSimplex3d(wx + eps_local, wy, data.z);
-      let n_xm = openSimplex3d(wx - eps_local, wy, data.z);
-      let n_yp = openSimplex3d(wx, wy + eps_local, data.z);
-      let n_ym = openSimplex3d(wx, wy - eps_local, data.z);
+      // rotate sampling coordinates around view center so the field rotates
+      // consistently with the fragment background and panning remains intuitive
+      let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
+      let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
+      let theta = params.rotateAngle;
+      let c = cos(theta);
+      let s = sin(theta);
+      let rx = (wx - cx) * c - (wy - cy) * s + cx;
+      let ry = (wx - cx) * s + (wy - cy) * c + cy;
+
+      let n_xp = openSimplex3d(rx + eps_local, ry, data.z);
+      let n_xm = openSimplex3d(rx - eps_local, ry, data.z);
+      let n_yp = openSimplex3d(rx, ry + eps_local, data.z);
+      let n_ym = openSimplex3d(rx, ry - eps_local, data.z);
       var fx = -(n_xp - n_xm) / (2.0 * eps_local);
       var fy = -(n_yp - n_ym) / (2.0 * eps_local);
-      if (params.rotateFlag > 0.5) {
-        let rx = -fy;
-        let ry = fx;
-        fx = rx; fy = ry;
-      }
       return vec2<f32>(fx, fy);
     }
 
@@ -644,6 +667,8 @@ export async function setupFlowfieldRenderer(
       data?: {
         x?: number;
         y?: number;
+        rotate?: boolean | number;
+        rotation?: number;
       }
     ) {
       Object.assign(sharedData, data);
@@ -655,9 +680,19 @@ export async function setupFlowfieldRenderer(
       const dt = Math.max(0.001, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
-      // write compute params: dt, speed, eps, maxStep, rotateFlag
+      // write compute params: dt, speed, eps, maxStep, rotateAngle
       const maxStep = EPS * 0.6;
-      const paramsArray = new Float32Array([dt, PARTICLE_SPEED, EPS, maxStep, ROTATE_FLOW_90]);
+      // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
+      if (data && typeof (data as any).rotation === 'number') {
+        rotateState = (data as any).rotation;
+      } else if (data && typeof (data as any).rotate !== 'undefined') {
+        rotateState = (data as any).rotate ? Math.PI / 2.0 : 0.0;
+      }
+      // ensure the uniform shared data exposes the same rotate value for fragment shaders
+      sharedData.rotate = rotateState;
+      // write sharedData again so fragment pipelines/readers see the updated rotation this frame
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
+      const paramsArray = new Float32Array([dt, PARTICLE_SPEED, EPS, maxStep, rotateState]);
       device.queue.writeBuffer(paramsBuffer, 0, paramsArray.buffer, paramsArray.byteOffset, paramsArray.byteLength);
 
       // build a single command encoder with compute then render passes

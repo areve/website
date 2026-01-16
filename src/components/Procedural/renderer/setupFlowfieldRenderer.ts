@@ -57,7 +57,6 @@ export async function setupFlowfieldRenderer(
   // (used to approximate derivatives / gradient of the noise). Renamed to
   // DERIV_EPS for clarity.
   const DERIV_EPS = 0.25;
-  const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
   // Toggle whether the background shader is rendered under the particles.
   // Set to `false` for a plain black background.
   const SHOW_BACKGROUND_SHADER = false;
@@ -684,236 +683,8 @@ export async function setupFlowfieldRenderer(
         console.warn('seed copy A->B failed', e);
       }
 
-      // robust debug helper: read back seed distribution and report non-finite samples
-      async function debugSeedStatsFor(buf: GPUBuffer, name: string) {
-        try {
-          console.log(`debugSeedStats: sharedData.scale=${sharedData.scale}, width=${sharedData.width}, height=${sharedData.height}`);
-          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
-          const enc = device.createCommandEncoder();
-          enc.copyBufferToBuffer(buf, 0, read, 0, particleBufferSize);
-          device.queue.submit([enc.finish()]);
-          await read.mapAsync(GPUMapMode.READ);
-          const data = new Float32Array(read.getMappedRange().slice(0));
-          let minY = Number.POSITIVE_INFINITY;
-          let maxY = Number.NEGATIVE_INFINITY;
-          let sum = 0;
-          let firstNonFiniteIndex = -1;
-          const samples: number[] = [];
-          let bottomCount = 0;
-          for (let i = 0; i < data.length; i += 3) {
-            const worldY = data[i + 1];
-            samples.push(worldY);
-            if (!Number.isFinite(worldY) && firstNonFiniteIndex === -1) firstNonFiniteIndex = i / 3;
-            const pixY = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            if (Number.isFinite(pixY)) {
-              minY = Math.min(minY, pixY);
-              maxY = Math.max(maxY, pixY);
-              sum += pixY;
-              if (pixY >= sharedData.height * 0.75) bottomCount++;
-            }
-          }
-          const avg = sum / (data.length / 3);
-          const bottomPct = (bottomCount / (data.length / 3)) * 100.0;
-          // compute how many seeds are visible in the current view and how many are in the bottom quarter
-          let visibleCount = 0;
-          let visibleBottom = 0;
-          for (let i = 0; i < data.length; i += 3) {
-            const worldY = data[i + 1];
-            const pixY = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            if (Number.isFinite(pixY) && pixY >= 0 && pixY <= sharedData.height) {
-              visibleCount++;
-              if (pixY >= sharedData.height * 0.75) visibleBottom++;
-            }
-          }
-          const visiblePct = (visibleCount / (data.length / 3)) * 100.0;
-          const bottomPctVisible = visibleCount > 0 ? (visibleBottom / visibleCount) * 100.0 : 0.0;
-          // compute 10 histogram buckets across the canvas height to see vertical distribution
-          const buckets = new Array<number>(10).fill(0);
-          for (let i = 0; i < data.length; i += 3) {
-            const worldY = data[i + 1];
-            const pixY = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            if (!Number.isFinite(pixY)) continue;
-            const t = Math.max(0, Math.min(sharedData.height, pixY));
-            const b = Math.floor((t / sharedData.height) * buckets.length);
-            buckets[Math.min(buckets.length - 1, b)]++;
-          }
-          const bucketPct = buckets.map(c => ((c / (data.length / 3)) * 100.0).toFixed(1));
-          console.log(`Seed stats (${name}): minY=${isFinite(minY) ? minY.toFixed(2) : 'NaN'}, maxY=${isFinite(maxY) ? maxY.toFixed(2) : 'NaN'}, avgY=${isFinite(avg) ? avg.toFixed(2) : 'NaN'}, bottom25%=${bottomPct.toFixed(1)}%, visible%=${visiblePct.toFixed(1)}%, bottomOfVisible%=${bottomPctVisible.toFixed(1)}%, buckets%=[${bucketPct.join(', ')}]`);
-          if (firstNonFiniteIndex >= 0) {
-            console.warn(`Found non-finite worldY at particle index ${firstNonFiniteIndex}. Sample values:`, samples.slice(firstNonFiniteIndex, firstNonFiniteIndex + 6));
-          }
-          if (isFinite(maxY) && maxY < sharedData.height * 0.98) {
-            console.warn(`Coverage: seeds do not reach bottom edge (maxY=${maxY.toFixed(2)} < height*0.98=${(sharedData.height*0.98).toFixed(2)})`);
-          }
-          read.unmap();
-          read.destroy?.();
-          return { minY, maxY, avg };
-        } catch (e) {
-          console.warn('debugSeedStats failed', e);
-          return null;
-        }
-      }
-      // expose a helper for quick debugging from the host
-      (this as any).debugSeedStats = async () => {
-        await debugSeedStatsFor(particleBufferA, 'A');
-        await debugSeedStatsFor(particleBufferB, 'B');
-      };
 
-      // reveal seeds immediately (useful for debugging visual coverage)
-      (this as any).revealSeeds = async () => {
-        try {
-          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
-          const enc = device.createCommandEncoder();
-          enc.copyBufferToBuffer(particleBufferA, 0, read, 0, particleBufferSize);
-          device.queue.submit([enc.finish()]);
-          await read.mapAsync(GPUMapMode.READ);
-          const data = new Float32Array(read.getMappedRange().slice(0));
-          // ensure positive life values for immediate visibility
-          for (let i = 0; i < data.length; i += 3) {
-            // x=data[i], y=data[i+1], life=data[i+2]
-            data[i + 2] = Math.max(0.5, Math.abs(data[i + 2]));
-          }
-          // write back to both buffers so next frame shows particles regardless of ping
-          device.queue.writeBuffer(particleBufferA, 0, data.buffer, data.byteOffset, data.byteLength);
-          device.queue.writeBuffer(particleBufferB, 0, data.buffer, data.byteOffset, data.byteLength);
-          read.unmap();
-          read.destroy?.();
-          console.log('revealSeeds: activated particles for immediate visibility');
-        } catch (e) {
-          console.warn('revealSeeds failed', e);
-        }
-      };
 
-      // draw an on-screen overlay (DOM canvas) showing seed pixel positions for visual debugging
-      (this as any).showSeedOverlay = async (opts?: { clear?: boolean }) => {
-        const id = 'flowfield-seed-overlay';
-        let overlay = document.getElementById(id) as HTMLCanvasElement | null;
-        // Always update the overlay size/position to match the canvas at draw time
-        const rect = canvas.getBoundingClientRect();
-        const dpr = window.devicePixelRatio || 1;
-        if (!overlay) {
-          overlay = document.createElement('canvas');
-          overlay.id = id;
-          overlay.style.position = 'fixed';
-          overlay.style.pointerEvents = 'none';
-          document.body.appendChild(overlay);
-        }
-        overlay.style.left = rect.left + 'px';
-        overlay.style.top = rect.top + 'px';
-        overlay.style.width = rect.width + 'px';
-        overlay.style.height = rect.height + 'px';
-        // set backing store size in device pixels so drawn points align perfectly
-        overlay.width = Math.max(1, Math.round(rect.width * dpr));
-        overlay.height = Math.max(1, Math.round(rect.height * dpr));
-
-        const ctx = overlay.getContext('2d')!;
-        if (opts?.clear) { ctx.clearRect(0, 0, overlay.width, overlay.height); return; }
-        // read particle positions and draw
-        try {
-          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
-          const enc = device.createCommandEncoder();
-          enc.copyBufferToBuffer(particleBufferA, 0, read, 0, particleBufferSize);
-          device.queue.submit([enc.finish()]);
-          await read.mapAsync(GPUMapMode.READ);
-          const data = new Float32Array(read.getMappedRange().slice(0));
-          ctx.clearRect(0, 0, overlay.width, overlay.height);
-          // account for CSS/device pixel scaling between canvas internal buffer and displayed size
-          const scaleX = overlay.width / canvas.width;
-          const scaleY = overlay.height / canvas.height;
-          // draw a faint bottom-25% guide
-          ctx.strokeStyle = 'rgba(0,255,0,0.6)';
-          ctx.lineWidth = Math.max(1, Math.round(1 * dpr));
-          const bottomY = Math.round(overlay.height * 0.75);
-          ctx.beginPath(); ctx.moveTo(0, bottomY); ctx.lineTo(overlay.width, bottomY); ctx.stroke();
-          ctx.fillStyle = 'rgba(255,0,0,0.9)';
-          for (let i = 0; i < data.length; i += 3) {
-            const worldX = data[i + 0];
-            const worldY = data[i + 1];
-            const px = (worldX - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            const py = (worldY - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
-            const drawX = Math.round(px * scaleX);
-            const drawY = Math.round(py * scaleY);
-            // draw small rect for visibility (scale size for DPR)
-            const size = Math.max(1, Math.round(2 * dpr));
-            ctx.fillRect(drawX - Math.floor(size/2), drawY - Math.floor(size/2), size, size);
-          }
-          read.unmap();
-          read.destroy?.();
-          console.log('showSeedOverlay: drawn (fixed positioning + DPR-aware scaling)');
-        } catch (e) {
-          console.warn('showSeedOverlay failed', e);
-        }
-      };
-
-      // call debug automatically so a log appears in the console after init
-      (this as any).debugSeedStats();
-
-      // helper: force uniform seeds across the visible canvas for testing/debugging
-      (this as any).forceUniformSeeds = async () => {
-        try {
-          const out = new Float32Array(particleBufferSize / 4);
-          const cols = Math.ceil(Math.sqrt(PARTICLE_COUNT));
-          const rows = Math.ceil(PARTICLE_COUNT / cols);
-          let ptr = 0;
-          for (let r = 0; r < rows; r++) {
-            for (let c = 0; c < cols; c++) {
-              if (ptr >= PARTICLE_COUNT) break;
-              const u = c / Math.max(1, cols - 1);
-              const v = r / Math.max(1, rows - 1);
-              const sx = u * sharedData.width;
-              const sy = v * sharedData.height;
-              // add small random jitter
-              const jx = (Math.random() - 0.5) * (sharedData.width / cols) * 0.45;
-              const jy = (Math.random() - 0.5) * (sharedData.height / rows) * 0.45;
-              const px = Math.min(sharedData.width, Math.max(0, sx + jx));
-              const py = Math.min(sharedData.height, Math.max(0, sy + jy));
-              const scl = Math.max(1e-6, sharedData.scale);
-              const nx = px / scl * sharedData.zoom + sharedData.x / scl;
-              const ny = py / scl * sharedData.zoom + sharedData.y / scl;
-              // life positive so visible
-              out[ptr * 3 + 0] = nx;
-              out[ptr * 3 + 1] = ny;
-              out[ptr * 3 + 2] = 2.0;
-              ptr++;
-            }
-          }
-          // write to both buffers
-          device.queue.writeBuffer(particleBufferA, 0, out.buffer, out.byteOffset, ptr * 3 * 4);
-          device.queue.writeBuffer(particleBufferB, 0, out.buffer, out.byteOffset, ptr * 3 * 4);
-          console.log('forceUniformSeeds: wrote', ptr, 'particles');
-        } catch (e) {
-          console.warn('forceUniformSeeds failed', e);
-        }
-      };
-
-      // helper: dump a few seed samples (pixel coords) to aid diagnosis
-      (this as any).dumpSeedSamples = async (count = 10) => {
-        try {
-          const read = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ });
-          const enc = device.createCommandEncoder();
-          enc.copyBufferToBuffer(particleBufferA, 0, read, 0, particleBufferSize);
-          device.queue.submit([enc.finish()]);
-          await read.mapAsync(GPUMapMode.READ);
-          const data = new Float32Array(read.getMappedRange().slice(0));
-          const samples: Array<{i:number, px:number, py:number, life:number}> = [];
-          for (let i = 0; i < Math.min(count, PARTICLE_COUNT); i++) {
-            const wx = data[i*3+0];
-            const wy = data[i*3+1];
-            const life = data[i*3+2];
-            const px_correct = (wx - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            const py_correct = (wy - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            const px_swapped = (wx - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            const py_swapped = (wy - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
-            samples.push({i, px_correct, py_correct, px_swapped, py_swapped, life});
-          }
-          console.log('seed samples:', samples.slice(0, count));
-          read.unmap();
-          read.destroy?.();
-        } catch (e) {
-          console.warn('dumpSeedSamples failed', e);
-        }
-      };
 
       return device.queue.onSubmittedWorkDone();
     },
@@ -994,7 +765,7 @@ export async function setupFlowfieldRenderer(
 
       // render background into offscreen bgTexture (so composite shader can sample it)
       const bgView = bgTexture.createView();
-      renderPassDescriptor.colorAttachments[0].view = bgView;
+      (renderPassDescriptor as any).colorAttachments[0].view = bgView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       if (SHOW_BACKGROUND_SHADER) {
         pass.setPipeline(pipeline);
@@ -1026,6 +797,5 @@ export async function setupFlowfieldRenderer(
       
     }
   };
-  (window as any).flowfieldRenderer = api;
   return api;
 }

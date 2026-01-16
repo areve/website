@@ -74,6 +74,24 @@ export async function setupFlowfieldRenderer(
       const skew3d: f32 = 1.0 / 3.0;
       const unskew3d: f32 = 1.0 / 6.0;
       const rSquared3d: f32 = 3.0 / 4.0;
+      // Tinting: HSV helper and tint parameters
+      const slopeSaturationScale: f32 = 6.0;
+      const tintStrength: f32 = 0.75;
+      const PI: f32 = 3.141592653589793;
+
+      fn hsv2rgb(hsv: vec3f) -> vec3f {
+        let h = hsv.x;
+        let s = hsv.y;
+        let v = hsv.z;
+        let hue = (((h * 360.0) % 360.0) + 360.0) % 360.0;
+        let sector = floor(hue / 60.0);
+        let sectorFloat = hue / 60.0 - sector;
+        let x = v * (1.0 - s);
+        let y = v * (1.0 - s * sectorFloat);
+        let z = v * (1.0 - s * (1.0 - sectorFloat));
+        let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
+        return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
+      }
       // Lighting constants (used for subtle height shading)
       const sunDirConst: vec3f = normalize(vec3f(0.0, 0.0, 1.0));
       const ambientConst: f32 = 0.35;
@@ -161,9 +179,16 @@ export async function setupFlowfieldRenderer(
         // normal = (-dz/dx, -dz/dy, 1)
         let normal = normalize(vec3f(-derx, -dery, 1.0));
 
-        // Use the raw height as the base color (white ramp) — show raw heights so peaks are white
+        // Use the raw height as the base color (white ramp)
         let heightColor = vec3f(n);
-        let lit = heightColor; // no shading here to keep white peaks/black troughs visible
+        // compute slope magnitude and heading to tint by facing direction
+        let slopeMag = length(vec2f(derx, dery));
+        let heading: f32 = atan2(derx, dery);
+        let hue: f32 = fract(heading / (2.0 * PI) + 1.0);
+        let sat: f32 = clamp(slopeMag * slopeSaturationScale, 0.0, 1.0);
+        let tintRGB = hsv2rgb(vec3f(hue, sat, 1.0));
+        let tintWeight: f32 = sat * tintStrength;
+        let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;
 
 
         // Angle test: mark as "flat" when the normal is within 5° of vertical (Z axis)
@@ -173,10 +198,9 @@ export async function setupFlowfieldRenderer(
         let isFlatAngle = dotZ > flatDotThreshold;
 
         // Also consider slope-magnitude based flatness as a fallback (in case angle test misses)
-        let rawSlope = length(vec2f(derx, dery));
         // tightened slope threshold to avoid mid-slope detections
         let flatSlopeThreshold: f32 = 0.12;
-        let isFlatSlope = rawSlope < flatSlopeThreshold;
+        let isFlatSlope = slopeMag < flatSlopeThreshold;
 
         // Use midline 0.5: treat >0.5 as peak, <=0.5 as valley, combined with flat test
         let isPeak = (n > 0.5) && (isFlatAngle || isFlatSlope);

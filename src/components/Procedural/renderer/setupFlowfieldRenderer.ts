@@ -315,18 +315,33 @@ export async function setupFlowfieldRenderer(
   // compute bind groups (created later after `dataBuffer` is available)
 
   // Particle render pipeline (points)
+  // Render each particle as an instanced quad (two triangles) so we can control pixel size.
+  // Increase `PARTICLE_PIXEL_SIZE` to make dots larger (user requested ~5x).
+  const PARTICLE_PIXEL_SIZE = 5.0;
+
   const particleWgsl = /* wgsl */ `${commonWgsl}
 
     @group(0) @binding(1) var<storage, read> particles: array<vec2<f32>>;
 
-    @vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
-      let p = particles[vi];
+    @vertex fn vs(@builtin(vertex_index) vIndex: u32, @builtin(instance_index) iIndex: u32) -> @builtin(position) vec4f {
+      // 6 vertices per quad (two triangles)
+      let corner = array<vec2f, 6>(
+        vec2f(-1.0, -1.0),
+        vec2f(1.0, 1.0),
+        vec2f(-1.0, 1.0),
+        vec2f(-1.0, -1.0),
+        vec2f(1.0, 1.0),
+        vec2f(1.0, -1.0)
+      );
+      let p = particles[iIndex];
       let px = (p.x - data.x / data.scale) * data.scale / data.zoom;
       let ndcx = (px / data.width) * 2.0 - 1.0;
       let py = (p.y - data.y / data.scale) * data.scale / data.zoom;
-      // flip Y to match canvas coordinate space
       let ndcy = -((py / data.height) * 2.0 - 1.0);
-      return vec4f(ndcx, ndcy, 0.0, 1.0);
+      let halfX = f32(${PARTICLE_PIXEL_SIZE}) / data.width;
+      let halfY = f32(${PARTICLE_PIXEL_SIZE}) / data.height;
+      let pos = vec2f(ndcx + corner[vIndex].x * halfX, ndcy + corner[vIndex].y * halfY);
+      return vec4f(pos, 0.0, 1.0);
     }
 
     @fragment fn fs() -> @location(0) vec4f {
@@ -339,7 +354,7 @@ export async function setupFlowfieldRenderer(
     layout: 'auto',
     vertex: { module: particleModule, entryPoint: 'vs', buffers: [] },
     fragment: { module: particleModule, entryPoint: 'fs', targets: [{ format: presentationFormat }] },
-    primitive: { topology: 'point-list' },
+    primitive: { topology: 'triangle-list' },
   });
 
   // particle render bind groups will be created after `dataBuffer` is available
@@ -465,7 +480,8 @@ export async function setupFlowfieldRenderer(
       } else {
         pass.setBindGroup(0, particleRenderBindB);
       }
-      pass.draw(PARTICLE_COUNT);
+      // draw 6 vertices per particle, instanced PARTICLE_COUNT times
+      pass.draw(6, PARTICLE_COUNT);
       pass.end();
 
       const commandBuffer = encoder.finish();

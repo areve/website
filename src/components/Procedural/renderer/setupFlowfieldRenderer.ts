@@ -326,8 +326,13 @@ export async function setupFlowfieldRenderer(
       var ny = py / data.scale * data.zoom + data.y / data.scale;
       // rotate initial world position into the rotated sampling frame so seeds align with rotated field
       // keep seed positions in world coordinates; sampling rotation is handled in sampleFlow/fragment
-      // lifetime in seconds (randomized by noise)
-      let life = 1.0 + abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z)) * 3.0;
+      // lifetime in seconds (randomized by noise) but stagger initial activation
+      // Set initial life negative to indicate a spawn delay; particles with
+      // negative life will count up towards 0 and only activate when >= 0.
+      let spawnSpread: f32 = 6.0; // seconds over which particles appear at start
+      let rand = abs(openSimplex3d(f32(col) * 0.93 + data.x, f32(row) * 0.31 + data.y, data.z));
+      let delay = rand * spawnSpread;
+      let life = -delay;
       particlesOut[idx] = vec3<f32>(nx, ny, life);
     }
 
@@ -339,9 +344,21 @@ export async function setupFlowfieldRenderer(
       var px0 = p.x;
       var py0 = p.y;
       var life = p.z;
-      // decrement life
       let dt: f32 = params.dt;
-      life = life - dt;
+      // Interpret life: positive => remaining life; negative => time-until-activation.
+      if (life <= 0.0) {
+        // sleeping: count up towards activation
+        life = life + dt;
+        if (life < 0.0) {
+          particlesOut[idx] = vec3<f32>(px0, py0, life);
+          return;
+        }
+        // crossed zero: activate with randomized lifetime
+        life = 1.0 + abs(openSimplex3d(f32(idx) * 0.17 + data.x, f32(idx) * 0.29 + data.y, data.z)) * 3.0;
+      } else {
+        // active particle: decrement life
+        life = life - dt;
+      }
 
       // sample flow at pos (RK2)
       let eps: f32 = params.eps;

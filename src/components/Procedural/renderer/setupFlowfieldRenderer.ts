@@ -302,10 +302,11 @@ export async function setupFlowfieldRenderer(
       if (idx >= ${PARTICLE_COUNT}i) { return; }
       // uniform-random seeding (deterministic per-index via noise)
       let idf = f32(idx);
-      let rx = openSimplex3d(idf * 0.618 + data.seed, data.x, data.z);
-      let ry = openSimplex3d(idf * 1.357 + data.seed, data.y, data.z);
-      var px = clamp(rx, 0.0, 1.0) * data.width;
-      var py = clamp(ry, 0.0, 1.0) * data.height;
+      // use uniform noise (previously openSimplex) to get unbiased per-index u/v in [0,1]
+      let rx = noise(vec4f(idf * 0.618, idf * 1.731, data.seed, 0.0));
+      let ry = noise(vec4f(idf * 1.357, idf * 0.271, data.seed, 1.0));
+      var px = rx * data.width;
+      var py = ry * data.height;
       // guard against non-finite values
       if (px != px) { px = 0.0; }
       if (py != py) { py = 0.0; }
@@ -314,7 +315,7 @@ export async function setupFlowfieldRenderer(
       var ny = py / scl * data.zoom + data.y / scl;
       // stagger initial activation with per-index noise
       let spawnSpread: f32 = 6.0;
-      let rand = abs(openSimplex3d(idf * 0.93 + data.seed, idf * 0.31 + data.seed, data.z));
+      let rand = noise(vec4f(idf * 0.93, idf * 0.31, data.seed, 2.0));
       let delay = rand * spawnSpread;
       let life = -delay;
       particlesOut[idx] = vec3<f32>(nx, ny, life);
@@ -377,17 +378,17 @@ export async function setupFlowfieldRenderer(
       if (needRespawn) {
         // uniform-random respawn: deterministic per-index noise
         let idf = f32(idx);
-        let rx = openSimplex3d(idf * 0.618 + data.seed, data.x, data.z);
-        let ry = openSimplex3d(idf * 1.357 + data.seed, data.y, data.z);
-        var px = clamp(rx, 0.0, 1.0) * data.width;
-        var py = clamp(ry, 0.0, 1.0) * data.height;
+        let rx = noise(vec4f(idf * 0.618, idf * 1.731, data.seed, 0.0));
+        let ry = noise(vec4f(idf * 1.357, idf * 0.271, data.seed, 1.0));
+        var px = rx * data.width;
+        var py = ry * data.height;
         if (px != px) { px = 0.0; }
         if (py != py) { py = 0.0; }
         let scl = safeScale();
         nx = px / scl * data.zoom + data.x / scl;
         ny = py / scl * data.zoom + data.y / scl;
         // keep respawn positions in world coordinates; sampleFlow will handle rotation
-        life = 1.0 + abs(openSimplex3d(idf * 0.93 + data.seed, idf * 0.31 + data.seed, data.z)) * 3.0;
+        life = 1.0 + noise(vec4f(idf * 0.93, idf * 0.31, data.seed, 2.0)) * 3.0;
       }
 
       particlesOut[idx] = vec3<f32>(nx, ny, life);
@@ -938,9 +939,11 @@ export async function setupFlowfieldRenderer(
       const maxStep = DERIV_EPS * 0.6;
       // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
       if (data && typeof (data as any).rotation === 'number') {
-        rotateState = (data as any).rotation;
+        // invert sign so positive rotation in the UI rotates the field the intuitive way
+        rotateState = -(data as any).rotation;
       } else if (data && typeof (data as any).rotate !== 'undefined') {
-        rotateState = (data as any).rotate ? Math.PI / 2.0 : 0.0;
+        // boolean 90deg toggle: true -> -90deg to match UI expectation
+        rotateState = (data as any).rotate ? -Math.PI / 2.0 : 0.0;
       }
       // ensure the uniform shared data exposes the same rotate value for fragment shaders
       sharedData.rotate = rotateState;

@@ -53,6 +53,8 @@ export async function setupFlowfieldRenderer(
   // --- GPU-driven particle system ---
   const PARTICLE_COUNT = 5000;
   const PARTICLE_SPEED = 2.5;
+  // epsilon used for centered finite-difference sampling of the noise field
+  // (used to approximate derivatives / gradient of the noise). 
   const EPS = 0.25;
   const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
   // Toggle whether the background shader is rendered under the particles.

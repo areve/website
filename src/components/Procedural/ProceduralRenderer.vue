@@ -51,6 +51,7 @@
             <option value="worley">Worley</option>
             <option value="mountains">Mountains</option>
             <option value="opensimplex3d">OpenSimplex 3D</option>
+            <option value="flowfield">Flow Field</option>
             <option value="mountains3d">Mountains 3D</option>
           </select>
         </label>
@@ -88,6 +89,7 @@ import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer"
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
 import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
 import { setupValueRenderer } from "./renderer/setupValueRenderer";
+import { setupFlowfieldRenderer } from "./renderer/setupFlowfieldRenderer";
 import { setupValueCubicRenderer } from "./renderer/setupValueCubicRenderer";
 import { setupNewtonRenderer } from "./renderer/setupNewtonRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
@@ -260,8 +262,8 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "trigonometry" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d"
->("mountains3d");
+  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "trigonometry" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d" | "flowfield"
+  >("flowfield");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -280,6 +282,7 @@ const availableModes = [
   "mountains",
   "opensimplex3d",
   "mountains3d",
+  "flowfield",
 ] as const;
 
 const handleChangeMode = async () => {
@@ -416,6 +419,13 @@ const initializeCanvas = async () => {
     if (canvas.value) controller.value.mount(canvas.value);
   } else if (shaderMode.value === "value") {
     renderer = await setupValueRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+  } else if (shaderMode.value === "flowfield") {
+    renderer = await setupFlowfieldRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,

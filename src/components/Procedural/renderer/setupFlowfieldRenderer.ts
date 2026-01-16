@@ -345,7 +345,7 @@ export async function setupFlowfieldRenderer(
     }
 
     @fragment fn fs() -> @location(0) vec4f {
-      return vec4f(1.0, 1.0, 1.0, 1.0);
+      return vec4f(1.0, 1.0, 1.0, 0.12);
     }
   `;
 
@@ -353,8 +353,9 @@ export async function setupFlowfieldRenderer(
   const particlePipeline = device.createRenderPipeline({
     layout: 'auto',
     vertex: { module: particleModule, entryPoint: 'vs', buffers: [] },
-    fragment: { module: particleModule, entryPoint: 'fs', targets: [{ format: presentationFormat }] },
+    fragment: { module: particleModule, entryPoint: 'fs', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } }] },
     primitive: { topology: 'triangle-list' },
+    multisample: { count: 1 },
   });
 
   // particle render bind groups will be created after `dataBuffer` is available
@@ -380,6 +381,86 @@ export async function setupFlowfieldRenderer(
     layout: pipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
+
+  // --- accumulation textures for particle trails (ping-pong) ---
+  const accTextureA = device.createTexture({
+    size: { width: options.width, height: options.height, depthOrArrayLayers: 1 },
+    format: presentationFormat,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+  });
+  const accTextureB = device.createTexture({
+    size: { width: options.width, height: options.height, depthOrArrayLayers: 1 },
+    format: presentationFormat,
+    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
+  });
+
+  const linearSampler = device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
+
+  // clear accTextureA to black initially
+  {
+    const enc = device.createCommandEncoder();
+    const rpd: GPURenderPassDescriptor = { colorAttachments: [{ view: accTextureA.createView(), clearValue: [0,0,0,0], loadOp: 'clear', storeOp: 'store' }] };
+    const rp = enc.beginRenderPass(rpd);
+    rp.end();
+    device.queue.submit([enc.finish()]);
+  }
+
+  // fade pass shader: samples previous accumulation and multiplies by fade factor
+  const accFadeWgsl = /* wgsl */ `${commonWgsl}
+    @group(0) @binding(1) var samp: sampler;
+    @group(0) @binding(2) var prevTex: texture_2d<f32>;
+
+    @vertex fn vs2(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
+      let pos = array(vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(-1.0,1.0), vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(1.0,-1.0));
+      return vec4f(pos[vertexIndex], 0.0, 1.0);
+    }
+
+    @fragment fn fs2(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
+      let uv = coord.xy / vec2f(data.width, data.height);
+      let prev = textureSample(prevTex, samp, uv);
+      // fade factor controls trail length (0.95 ~ slow decay)
+          let fade = 0.98;
+      return vec4f(prev.xyz * fade, prev.w * fade);
+    }
+  `;
+
+  const accFadeModule = device.createShaderModule({ code: accFadeWgsl });
+  const accFadePipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: accFadeModule, entryPoint: 'vs2' },
+    fragment: { module: accFadeModule, entryPoint: 'fs2', targets: [{ format: presentationFormat }] },
+    primitive: { topology: 'triangle-list' },
+  });
+
+  // composite pipeline: draw accumulation texture over swapchain (alpha blend)
+  const compositeWgsl = /* wgsl */ `${commonWgsl}
+    @group(0) @binding(1) var samp2: sampler;
+    @group(0) @binding(2) var accTex: texture_2d<f32>;
+    @vertex fn vs3(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
+      let pos = array(vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(-1.0,1.0), vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(1.0,-1.0));
+      return vec4f(pos[vertexIndex], 0.0, 1.0);
+    }
+    @fragment fn fs3(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
+      let uv = coord.xy / vec2f(data.width, data.height);
+      return textureSample(accTex, samp2, uv);
+    }
+  `;
+
+  const compositeModule = device.createShaderModule({ code: compositeWgsl });
+  const compositePipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module: compositeModule, entryPoint: 'vs3' },
+    fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } }] },
+    primitive: { topology: 'triangle-list' },
+  });
+
+  // bind groups for accumulation sampling/composite (we'll select correct views per frame)
+  // Note: `accFadeWgsl` and `compositeWgsl` don't reference `data` in their fragment entry points,
+  // so the pipeline reflection may omit binding 0. Create bind groups with only sampler (1) and texture (2).
+  let accBindA = device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureA.createView() } ] });
+  let accBindB = device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureB.createView() } ] });
+  let compositeBindA = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureA.createView() } ] });
+  let compositeBindB = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureB.createView() } ] });
 
   // Now create compute and render bind groups that reference the canonical `dataBuffer`
   const computeBindGroupA = device.createBindGroup({
@@ -467,22 +548,53 @@ export async function setupFlowfieldRenderer(
       const workgroups = Math.ceil(PARTICLE_COUNT / 64);
       cpass.dispatchWorkgroups(workgroups);
       cpass.end();
+      // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
+      // choose which acc textures are src/dst based on accPing
+      const accSrcView = ping ? accTextureA.createView() : accTextureB.createView();
+      const accDstView = ping ? accTextureB.createView() : accTextureA.createView();
 
-      // render background then particles
+      const accPassDesc: GPURenderPassDescriptor = { colorAttachments: [{ view: accDstView, clearValue: [0,0,0,0], loadOp: 'clear', storeOp: 'store' }] };
+      const accPass = encoder.beginRenderPass(accPassDesc);
+      // fade previous accumulation into dst
+      if (ping) {
+        accPass.setPipeline(accFadePipeline);
+        accPass.setBindGroup(0, accBindA);
+      } else {
+        accPass.setPipeline(accFadePipeline);
+        accPass.setBindGroup(0, accBindB);
+      }
+      accPass.draw(6);
+      // draw particles additively (semi-transparent) onto accumulation
+      accPass.setPipeline(particlePipeline);
+      if (ping) {
+        accPass.setBindGroup(0, particleRenderBindA);
+      } else {
+        accPass.setBindGroup(0, particleRenderBindB);
+      }
+      accPass.draw(6, PARTICLE_COUNT);
+      accPass.end();
+
+      // render background to swapchain
+      const swapView = context.getCurrentTexture().createView();
+      renderPassDescriptor.colorAttachments[0].view = swapView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bindGroup);
       pass.draw(6);
-
-      pass.setPipeline(particlePipeline);
-      if (ping) {
-        pass.setBindGroup(0, particleRenderBindA);
-      } else {
-        pass.setBindGroup(0, particleRenderBindB);
-      }
-      // draw 6 vertices per particle, instanced PARTICLE_COUNT times
-      pass.draw(6, PARTICLE_COUNT);
       pass.end();
+
+      // composite accumulation onto swapchain (load existing background)
+      const compDesc: GPURenderPassDescriptor = { colorAttachments: [{ view: swapView, loadOp: 'load', storeOp: 'store', clearValue: [0,0,0,0] }] };
+      const compPass = encoder.beginRenderPass(compDesc);
+      compPass.setPipeline(compositePipeline);
+      // composite should sample the newly-written accumulation (dst)
+      if (ping) {
+        compPass.setBindGroup(0, compositeBindB);
+      } else {
+        compPass.setBindGroup(0, compositeBindA);
+      }
+      compPass.draw(6);
+      compPass.end();
 
       const commandBuffer = encoder.finish();
       device.queue.submit([commandBuffer]);

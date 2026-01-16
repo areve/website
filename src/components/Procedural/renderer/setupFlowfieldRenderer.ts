@@ -52,7 +52,7 @@ export async function setupFlowfieldRenderer(
 
   // --- GPU-driven particle system ---
   const PARTICLE_COUNT = 5000;
-  const PARTICLE_SPEED = 5.0;
+  const PARTICLE_SPEED = 2.5;
   const EPS = 0.25;
   const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
 

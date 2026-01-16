@@ -55,6 +55,9 @@ export async function setupFlowfieldRenderer(
   const PARTICLE_SPEED = 2.5;
   const EPS = 0.25;
   const ROTATE_FLOW_90 = 0.0; // 0.0 = false, 1.0 = true (passed to GPU)
+  // Toggle whether the background shader is rendered under the particles.
+  // Set to `false` for a plain black background.
+  const SHOW_BACKGROUND_SHADER = false;
 
   function worldToPixel(wx: number, wy: number) {
     const px = (wx - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
@@ -767,9 +770,12 @@ export async function setupFlowfieldRenderer(
       const bgView = bgTexture.createView();
       renderPassDescriptor.colorAttachments[0].view = bgView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
-      pass.setPipeline(pipeline);
-      pass.setBindGroup(0, bindGroup);
-      pass.draw(6);
+      if (SHOW_BACKGROUND_SHADER) {
+        pass.setPipeline(pipeline);
+        pass.setBindGroup(0, bindGroup);
+        pass.draw(6);
+      }
+      // when SHOW_BACKGROUND_SHADER is false we simply clear the bgTexture to black
       pass.end();
 
       // composite accumulation onto swapchain (sample bgTexture + accumulation and write multiplied result)

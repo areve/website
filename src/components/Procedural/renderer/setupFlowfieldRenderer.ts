@@ -92,166 +92,8 @@ export async function setupFlowfieldRenderer(
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
 
-  const module = device.createShaderModule({
-    label: "flowfield shader",
-    code: /* wgsl */ `      
-    
-      struct Uniforms {
-        width: f32,
-        height: f32,
-        seed: f32,
-        scale: f32,
-        x: f32,
-        y: f32,
-        z: f32,
-        zoom: f32
-      };
-
-      @group(0) @binding(0) var<uniform> data: Uniforms;
-      
-      fn noise(coord: vec4<f32>) -> f32 {
-        let n: u32 = bitcast<u32>(data.seed) +
-          bitcast<u32>(coord.x * 374761393.0) +
-          bitcast<u32>(coord.y * 668265263.0) +
-          bitcast<u32>(coord.z * 1440662683.0) +
-          bitcast<u32>(coord.w * 3865785317.0);
-        let m: u32 = (n ^ (n >> 13)) * 1274126177;
-        return f32(m) / f32(0xffffffff);
-      }
-      
-      const skew3d: f32 = 1.0 / 3.0;
-      const unskew3d: f32 = 1.0 / 6.0;
-      const rSquared3d: f32 = 3.0 / 4.0;
-      // Tinting: HSV helper and tint parameters
-      const slopeSaturationScale: f32 = 6.0;
-      // Scale applied to the angle-derived saturation so tint reacts more strongly
-      const angleSaturationScale: f32 = 4.0;
-      const tintStrength: f32 = 0.75;
-      const PI: f32 = 3.141592653589793;
-
-      fn hsv2rgb(hsv: vec3f) -> vec3f {
-        let h = hsv.x;
-        let s = hsv.y;
-        let v = hsv.z;
-        let hue = (((h * 360.0) % 360.0) + 360.0) % 360.0;
-        let sector = floor(hue / 60.0);
-        let sectorFloat = hue / 60.0 - sector;
-        let x = v * (1.0 - s);
-        let y = v * (1.0 - s * sectorFloat);
-        let z = v * (1.0 - s * (1.0 - sectorFloat));
-        let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
-        return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
-      }
-      // Lighting constants (used for subtle height shading)
-      const sunDirConst: vec3f = normalize(vec3f(0.0, 0.0, 1.0));
-      const ambientConst: f32 = 0.35;
-      const diffuseScale: f32 = 0.65;
-
-      fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
-        let sx: f32 = x;
-        let sy: f32 = y;
-        let sz: f32 = z;
-        let skew: f32 = (sx + sy + sz) * skew3d;
-        let ix: i32 = i32(floor(sx + skew));
-        let iy: i32 = i32(floor(sy + skew));
-        let iz: i32 = i32(floor(sz + skew));
-        let fx: f32 = sx + skew - f32(ix);
-        let fy: f32 = sy + skew - f32(iy);
-        let fz: f32 = sz + skew - f32(iz);
-
-        return 0.5 + 
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
-          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1) ;
-      }
-
-      fn vertexContribution(
-        ix: i32, iy: i32, iz: i32,
-        fx: f32, fy: f32, fz: f32,
-        cx: i32, cy: i32, cz: i32
-      ) -> f32 {
-        let dx: f32 = fx - f32(cx);
-        let dy: f32 = fy - f32(cy);
-        let dz: f32 = fz - f32(cz);
-        let skewedOffset: f32 = (dx + dy + dz) * unskew3d;
-        let dxs: f32 = dx - skewedOffset;
-        let dys: f32 = dy - skewedOffset;
-        let dzs: f32 = dz - skewedOffset;
-
-        let a: f32 = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
-        if (a < 0.0) {
-          return 0.0;
-        }
-
-        let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
-        let u: i32 = (h & 0xf) - 8;
-        let v: i32 = ((h >> 4) & 0xf) - 8;
-        let w: i32 = ((h >> 8) & 0xf) - 8;
-        return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
-      }
-
-      @vertex fn vs(
-        @builtin(vertex_index) vertexIndex : u32
-      ) -> @builtin(position) vec4f {
-        let pos = array(
-          vec2f(-1.0, -1.0),
-          vec2f(1.0, 1.0),
-          vec2f(-1.0, 1.0) ,
-          vec2f(-1.0, -1.0),
-          vec2f(1.0, 1.0),
-          vec2f(1.0, -1.0)
-        );
-
-        return vec4f(pos[vertexIndex], 0.0, 1.0);
-      }
-
-      @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        // map fragment position to world coordinates used by the noise function
-        let x = coord.x / data.scale * data.zoom + data.x / data.scale;
-        let y = coord.y / data.scale * data.zoom + data.y / data.scale;
-
-        // Sample height and use centered finite differences for derivatives
-        let eps: f32 = 0.25;
-        let n = openSimplex3d(x, y, data.z);
-        let nxp = openSimplex3d(x + eps, y, data.z);
-        let nxm = openSimplex3d(x - eps, y, data.z);
-        let nyp = openSimplex3d(x, y + eps, data.z);
-        let nym = openSimplex3d(x, y - eps, data.z);
-        let derx = (nxp - nxm) / (2.0 * eps);
-        let dery = (nyp - nym) / (2.0 * eps);
-
-        // Compute surface normal with Z as the up axis so we can test angle vs Z.
-        // normal = (-dz/dx, -dz/dy, 1)
-        let normal = normalize(vec3f(-derx, -dery, 1.0));
-
-        // Use the raw height as the base color (white ramp)
-        let heightColor = vec3f(n);
-        // compute slope magnitude and heading to tint by facing direction
-        let slopeMag = length(vec2f(derx, dery));
-        let heading: f32 = atan2(derx, dery);
-        let hue: f32 = fract(heading / (2.0 * PI) + 1.0);
-        // Map saturation from surface angle: flat (normal.z ~= 1.0) -> 0, vertical (normal.z ~= 0.0) -> 1
-        // Increase sensitivity so steeper faces get stronger tint.
-        let sat: f32 = clamp((1.0 - normal.z) * angleSaturationScale, 0.0, 1.0);
-        // Set HSV value (brightness) to the height so valleys are 0 and peaks are 1
-        let tintRGB = hsv2rgb(vec3f(hue, sat, n));
-        let tintWeight: f32 = sat * tintStrength;
-        let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;
-
-
-        // Return the lit color directly (remove debug peak/trough overlay markers)
-        return vec4<f32>(lit, 1.0);
-      }
-    `,
-  });
-
-  // --- Compute shader for GPU particle integration ---
-  const computeWgsl = /* wgsl */ `
+  // shared WGSL snippets used by both fragment and compute shaders
+  const commonWgsl = /* wgsl */ `
     struct Uniforms {
       width: f32,
       height: f32,
@@ -260,30 +102,41 @@ export async function setupFlowfieldRenderer(
       x: f32,
       y: f32,
       z: f32,
-      zoom: f32,
+      zoom: f32
     };
+
     @group(0) @binding(0) var<uniform> data: Uniforms;
 
-    struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateFlag: f32 };
-    @group(0) @binding(3) var<uniform> params: Params;
-
-    @group(0) @binding(1) var<storage, read> particlesIn: array<vec2<f32>>;
-    @group(0) @binding(2) var<storage, read_write> particlesOut: array<vec2<f32>>;
-
-    // noise() and openSimplex3d() copied from fragment shader (kept local to compute shader)
     fn noise(coord: vec4<f32>) -> f32 {
       let n: u32 = bitcast<u32>(data.seed) +
         bitcast<u32>(coord.x * 374761393.0) +
         bitcast<u32>(coord.y * 668265263.0) +
         bitcast<u32>(coord.z * 1440662683.0) +
         bitcast<u32>(coord.w * 3865785317.0);
-      let m: u32 = (n ^ (n >> 13)) * 1274126177u;
+      let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
       return f32(m) / f32(0xffffffffu);
     }
 
     const skew3d: f32 = 1.0 / 3.0;
     const unskew3d: f32 = 1.0 / 6.0;
     const rSquared3d: f32 = 3.0 / 4.0;
+    const angleSaturationScale: f32 = 4.0;
+    const tintStrength: f32 = 0.75;
+    const PI: f32 = 3.141592653589793;
+
+    fn hsv2rgb(hsv: vec3f) -> vec3f {
+      let h = hsv.x;
+      let s = hsv.y;
+      let v = hsv.z;
+      let hue = (((h * 360.0) % 360.0) + 360.0) % 360.0;
+      let sector = floor(hue / 60.0);
+      let sectorFloat = hue / 60.0 - sector;
+      let x = v * (1.0 - s);
+      let y = v * (1.0 - s * sectorFloat);
+      let z = v * (1.0 - s * (1.0 - sectorFloat));
+      let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
+      return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
+    }
 
     fn vertexContribution(ix: i32, iy: i32, iz: i32, fx: f32, fy: f32, fz: f32, cx: i32, cy: i32, cz: i32) -> f32 {
       let dx: f32 = fx - f32(cx);
@@ -323,6 +176,73 @@ export async function setupFlowfieldRenderer(
         vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
         vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1);
     }
+  `;
+
+  const fragmentWgsl = /* wgsl */ `${commonWgsl}
+
+    @vertex fn vs(
+      @builtin(vertex_index) vertexIndex : u32
+    ) -> @builtin(position) vec4f {
+      let pos = array(
+        vec2f(-1.0, -1.0),
+        vec2f(1.0, 1.0),
+        vec2f(-1.0, 1.0) ,
+        vec2f(-1.0, -1.0),
+        vec2f(1.0, 1.0),
+        vec2f(1.0, -1.0)
+      );
+
+      return vec4f(pos[vertexIndex], 0.0, 1.0);
+    }
+
+    @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
+      // map fragment position to world coordinates used by the noise function
+      let x = coord.x / data.scale * data.zoom + data.x / data.scale;
+      let y = coord.y / data.scale * data.zoom + data.y / data.scale;
+
+      // Sample height and use centered finite differences for derivatives
+      let eps: f32 = 0.25;
+      let n = openSimplex3d(x, y, data.z);
+      let nxp = openSimplex3d(x + eps, y, data.z);
+      let nxm = openSimplex3d(x - eps, y, data.z);
+      let nyp = openSimplex3d(x, y + eps, data.z);
+      let nym = openSimplex3d(x, y - eps, data.z);
+      let derx = (nxp - nxm) / (2.0 * eps);
+      let dery = (nyp - nym) / (2.0 * eps);
+
+      // Compute surface normal with Z as the up axis so we can test angle vs Z.
+      // normal = (-dz/dx, -dz/dy, 1)
+      let normal = normalize(vec3f(-derx, -dery, 1.0));
+
+      // Use the raw height as the base color (white ramp)
+      let heightColor = vec3f(n);
+      // compute slope magnitude and heading to tint by facing direction
+      let slopeMag = length(vec2f(derx, dery));
+      let heading: f32 = atan2(derx, dery);
+      let hue: f32 = fract(heading / (2.0 * PI) + 1.0);
+      // Map saturation from surface angle: flat (normal.z ~= 1.0) -> 0, vertical (normal.z ~= 0.0) -> 1
+      // Increase sensitivity so steeper faces get stronger tint.
+      let sat: f32 = clamp((1.0 - normal.z) * angleSaturationScale, 0.0, 1.0);
+      // Set HSV value (brightness) to the height so valleys are 0 and peaks are 1
+      let tintRGB = hsv2rgb(vec3f(hue, sat, n));
+      let tintWeight: f32 = sat * tintStrength;
+      let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;
+
+      // Return the lit color directly (remove debug peak/trough overlay markers)
+      return vec4<f32>(lit, 1.0);
+    }
+  `;
+
+  const module = device.createShaderModule({ label: "flowfield shader", code: fragmentWgsl });
+
+  // --- Compute shader for GPU particle integration ---
+  const computeWgsl = /* wgsl */ `${commonWgsl}
+
+    struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateFlag: f32 };
+    @group(0) @binding(3) var<uniform> params: Params;
+
+    @group(0) @binding(1) var<storage, read> particlesIn: array<vec2<f32>>;
+    @group(0) @binding(2) var<storage, read_write> particlesOut: array<vec2<f32>>;
 
     // helper to compute normalized flow at a world position (module-scope)
     fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
@@ -387,9 +307,8 @@ export async function setupFlowfieldRenderer(
   // compute bind groups (created later after `dataBuffer` is available)
 
   // Particle render pipeline (points)
-  const particleWgsl = /* wgsl */ `
-    struct Uniforms { width: f32, height: f32, seed: f32, scale: f32, x: f32, y: f32, z: f32, zoom: f32 };
-    @group(0) @binding(0) var<uniform> data: Uniforms;
+  const particleWgsl = /* wgsl */ `${commonWgsl}
+
     @group(0) @binding(1) var<storage, read> particles: array<vec2<f32>>;
 
     @vertex fn vs(@builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {

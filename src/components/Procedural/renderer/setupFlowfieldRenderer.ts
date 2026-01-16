@@ -1,6 +1,11 @@
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
-  options: { width: number; height: number; seed?: number; scale?: number }
+  options: {
+    width: number;
+    height: number;
+    seed?: number;
+    scale?: number;
+  }
 ) {
   const sharedData = {
     width: options.width,
@@ -11,7 +16,6 @@ export async function setupFlowfieldRenderer(
     y: 0,
     z: 0,
     zoom: 1,
-    rotation: 0,
     asBuffer() {
       return new Float32Array([
         this.width,
@@ -22,7 +26,6 @@ export async function setupFlowfieldRenderer(
         this.y,
         this.z,
         this.zoom,
-        this.rotation,
       ]);
     },
   };
@@ -36,11 +39,15 @@ export async function setupFlowfieldRenderer(
 
   const context = canvas.getContext("webgpu")!;
   const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({ device, format: presentationFormat });
+  context.configure({
+    device,
+    format: presentationFormat,
+  });
 
   const module = device.createShaderModule({
     label: "flowfield shader",
-    code: /* wgsl */ `
+    code: /* wgsl */ `      
+    
       struct Uniforms {
         width: f32,
         height: f32,
@@ -49,52 +56,76 @@ export async function setupFlowfieldRenderer(
         x: f32,
         y: f32,
         z: f32,
-        zoom: f32,
-        rotation: f32,
+        zoom: f32
       };
 
       @group(0) @binding(0) var<uniform> data: Uniforms;
-
-      fn smootherstep(t: f32) -> f32 { return t * t * t * (t * (t * 6.0 - 15.0) + 10.0); }
-      fn lerp(a: f32, b: f32, t: f32) -> f32 { return a + t * (b - a); }
-
-      fn noise(coord: vec3<f32>) -> f32 {
+      
+      fn noise(coord: vec4<f32>) -> f32 {
         let n: u32 = bitcast<u32>(data.seed) +
           bitcast<u32>(coord.x * 374761393.0) +
           bitcast<u32>(coord.y * 668265263.0) +
-          bitcast<u32>(coord.z * 1440662683.0);
-        let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
-        return f32(m) / f32(0xffffffffu);
+          bitcast<u32>(coord.z * 1440662683.0) +
+          bitcast<u32>(coord.w * 3865785317.0);
+        let m: u32 = (n ^ (n >> 13)) * 1274126177;
+        return f32(m) / f32(0xffffffff);
+      }
+      
+      const skew3d: f32 = 1.0 / 3.0;
+      const unskew3d: f32 = 1.0 / 6.0;
+      const rSquared3d: f32 = 3.0 / 4.0;
+
+      fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
+        let sx: f32 = x;
+        let sy: f32 = y;
+        let sz: f32 = z;
+        let skew: f32 = (sx + sy + sz) * skew3d;
+        let ix: i32 = i32(floor(sx + skew));
+        let iy: i32 = i32(floor(sy + skew));
+        let iz: i32 = i32(floor(sz + skew));
+        let fx: f32 = sx + skew - f32(ix);
+        let fy: f32 = sy + skew - f32(iy);
+        let fz: f32 = sz + skew - f32(iz);
+
+        return 0.5 + 
+          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
+          vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1) ;
       }
 
-      fn value3d(x: f32, y: f32, z: f32) -> f32 {
-        let x0 = i32(floor(x));
-        let y0 = i32(floor(y));
-        let z0 = i32(floor(z));
+      fn vertexContribution(
+        ix: i32, iy: i32, iz: i32,
+        fx: f32, fy: f32, fz: f32,
+        cx: i32, cy: i32, cz: i32
+      ) -> f32 {
+        let dx: f32 = fx - f32(cx);
+        let dy: f32 = fy - f32(cy);
+        let dz: f32 = fz - f32(cz);
+        let skewedOffset: f32 = (dx + dy + dz) * unskew3d;
+        let dxs: f32 = dx - skewedOffset;
+        let dys: f32 = dy - skewedOffset;
+        let dzs: f32 = dz - skewedOffset;
 
-        let xs = smootherstep(x - f32(x0));
-        let ys = smootherstep(y - f32(y0));
-        let zs = smootherstep(z - f32(z0));
+        let a: f32 = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
+        if (a < 0.0) {
+          return 0.0;
+        }
 
-        let xp = x0 * 1;
-        let yp = y0 * 1;
-        let zp = z0 * 1;
-        let x1 = xp + 1;
-        let y1 = yp + 1;
-        let z1 = zp + 1;
-
-        let xf00 = lerp(noise(vec3f(f32(xp), f32(yp), f32(zp))), noise(vec3f(f32(x1), f32(yp), f32(zp))), xs);
-        let xf10 = lerp(noise(vec3f(f32(xp), f32(y1), f32(zp))), noise(vec3f(f32(x1), f32(y1), f32(zp))), xs);
-        let xf01 = lerp(noise(vec3f(f32(xp), f32(yp), f32(z1))), noise(vec3f(f32(x1), f32(yp), f32(z1))), xs);
-        let xf11 = lerp(noise(vec3f(f32(xp), f32(y1), f32(z1))), noise(vec3f(f32(x1), f32(y1), f32(z1))), xs);
-
-        let yf0 = lerp(xf00, xf10, ys);
-        let yf1 = lerp(xf01, xf11, ys);
-
-        return lerp(yf0, yf1, zs);
+        let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
+        let u: i32 = (h & 0xf) - 8;
+        let v: i32 = ((h >> 4) & 0xf) - 8;
+        let w: i32 = ((h >> 8) & 0xf) - 8;
+        return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
       }
 
-      @vertex fn vs(@builtin(vertex_index) vertexIndex : u32) -> @builtin(position) vec4f {
+      @vertex fn vs(
+        @builtin(vertex_index) vertexIndex : u32
+      ) -> @builtin(position) vec4f {
         let pos = array(
           vec2f(-1.0, -1.0),
           vec2f(1.0, 1.0),
@@ -103,59 +134,30 @@ export async function setupFlowfieldRenderer(
           vec2f(1.0, 1.0),
           vec2f(1.0, -1.0)
         );
+
         return vec4f(pos[vertexIndex], 0.0, 1.0);
       }
 
-      // Simple HSV->RGB for hue-only mapping
-      fn hsv_to_rgb(h: f32, s: f32, v: f32) -> vec3f {
-        let c = v * s;
-        let hp = h * 6.0;
-        let x = c * (1.0 - abs(fract(hp) * 2.0 - 1.0));
-        if (hp < 1.0) {
-          return vec3f(c, x, 0.0) + (v - c);
-        } else if (hp < 2.0) {
-          return vec3f(x, c, 0.0) + (v - c);
-        } else if (hp < 3.0) {
-          return vec3f(0.0, c, x) + (v - c);
-        } else if (hp < 4.0) {
-          return vec3f(0.0, x, c) + (v - c);
-        } else if (hp < 5.0) {
-          return vec3f(x, 0.0, c) + (v - c);
-        }
-        return vec3f(c, 0.0, x) + (v - c);
-      }
-
       @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-        let centerX = (data.width / 2.0) / data.scale * data.zoom + data.x / data.scale;
-        let centerY = (data.height / 2.0) / data.scale * data.zoom + data.y / data.scale;
-        let baseX = coord.x / data.scale * data.zoom + data.x / data.scale;
-        let baseY = coord.y / data.scale * data.zoom + data.y / data.scale;
-        let relX = baseX - centerX;
-        let relY = baseY - centerY;
-        let cos_r = cos(data.rotation);
-        let sin_r = sin(data.rotation);
-        let rotX = relX * cos_r - relY * sin_r;
-        let rotY = relX * sin_r + relY * cos_r;
-        let x = rotX + centerX;
-        let y = rotY + centerY;
-
-        let n = value3d(x, y, data.z);
-        let angle = n * 6.28318530718; // 2*PI
-        // small offset to create visible streaking when animated
-        let dir = vec2f(cos(angle), sin(angle));
-        // color by hue from angle
-        let hue = (angle / 6.28318530718) % 1.0;
-        let col = hsv_to_rgb(hue, 0.9, 0.8);
-        return vec4f(col, 1.0);
+        let n = openSimplex3d(
+          coord.x / data.scale * data.zoom + data.x / data.scale, 
+          coord.y / data.scale * data.zoom + data.y / data.scale, 
+          data.z);
+        return vec4<f32>(n, n, n, 1.0);
       }
     `,
   });
 
   const pipeline = device.createRenderPipeline({
-    label: "flowfield pipeline",
+    label: "our hardcoded red line pipeline",
     layout: "auto",
-    vertex: { module },
-    fragment: { module, targets: [{ format: presentationFormat }] },
+    vertex: {
+      module,
+    },
+    fragment: {
+      module,
+      targets: [{ format: presentationFormat }],
+    },
   });
 
   const dataBuffer = device.createBuffer({
@@ -176,18 +178,24 @@ export async function setupFlowfieldRenderer(
   };
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
-    label: "flowfield renderPass",
+    label: "our basic canvas renderPass",
     colorAttachments: [colorAttachment],
   };
 
   return {
     async init() {},
-    async update(time: DOMHighResTimeStamp, data?: { x?: number; y?: number }) {
+    async update(
+      time: DOMHighResTimeStamp,
+      data?: {
+        x?: number;
+        y?: number;
+      }
+    ) {
       Object.assign(sharedData, data);
       sharedData.z = time * 0.001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
-      const encoder = device.createCommandEncoder({ label: "flowfield encoder" });
+      const encoder = device.createCommandEncoder({ label: "our encoder" });
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bindGroup);
@@ -199,5 +207,3 @@ export async function setupFlowfieldRenderer(
     },
   };
 }
-
-function fail(msg: string) { throw new Error(msg); }

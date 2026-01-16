@@ -345,7 +345,7 @@ export async function setupFlowfieldRenderer(
     }
 
     @fragment fn fs() -> @location(0) vec4f {
-      return vec4f(1.0, 1.0, 1.0, 0.12);
+      return vec4f(1.0, 1.0, 1.0, 0.30);
     }
   `;
 
@@ -418,9 +418,12 @@ export async function setupFlowfieldRenderer(
     @fragment fn fs2(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
       let uv = coord.xy / vec2f(data.width, data.height);
       let prev = textureSample(prevTex, samp, uv);
-      // fade factor controls trail length (0.95 ~ slow decay)
-          let fade = 0.98;
-      return vec4f(prev.xyz * fade, prev.w * fade);
+      // Separate fade for color vs alpha:
+      // - color (RGB) fades slower so bright highlights persist longer
+      // - alpha fades faster so the darker lingering trail becomes more transparent
+      let fadeRGB = 0.999;
+      let fadeA = 0.999;
+      return vec4f(prev.xyz * fadeRGB, prev.w * fadeA);
     }
   `;
 
@@ -450,7 +453,7 @@ export async function setupFlowfieldRenderer(
   const compositePipeline = device.createRenderPipeline({
     layout: 'auto',
     vertex: { module: compositeModule, entryPoint: 'vs3' },
-    fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } }] },
+    fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'one', dstFactor: 'one', operation: 'max' }, alpha: { srcFactor: 'one', dstFactor: 'one', operation: 'max' } } }] },
     primitive: { topology: 'triangle-list' },
   });
 

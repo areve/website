@@ -4,7 +4,7 @@ import fragmentWgslRaw from "../Flowfield/wgsl/fragment.wgsl?raw";
 export function setupBackgroundThings(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  buffers: { dataBuffer: GPUBuffer }
+  dataBuffer: GPUBuffer
 ) {
   const commonWgsl = commonWgslRaw;
   const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
@@ -19,7 +19,7 @@ export function setupBackgroundThings(
 
   const bindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }],
+    entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
 
   return { pipeline, bindGroup };

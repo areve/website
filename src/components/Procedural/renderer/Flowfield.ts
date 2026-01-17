@@ -57,7 +57,7 @@ export async function setupFlowfieldRenderer(
 
   const webGpu = await setupWebGpu(canvas);
   const { device, context, presentationFormat } = webGpu;
-  const buffers = setupBuffers(device, sharedData);
+  const { dataBuffer } = setupShared(device, sharedData);
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
@@ -68,7 +68,7 @@ export async function setupFlowfieldRenderer(
     presentationFormat,
     config.particleCount,
     config.particlePixelSize,
-    { dataBuffer: buffers.dataBuffer }
+    dataBuffer
   );
 
   const accumulation = setupAccumulationThings(
@@ -76,12 +76,14 @@ export async function setupFlowfieldRenderer(
     presentationFormat,
     options.width,
     options.height,
-    { dataBuffer: buffers.dataBuffer }
+    dataBuffer
   );
 
-  const background = setupBackgroundThings(device, presentationFormat, {
-    dataBuffer: buffers.dataBuffer,
-  });
+  const background = setupBackgroundThings(
+    device,
+    presentationFormat,
+    dataBuffer
+  );
 
   clearTextureToBlack(device, accumulation.textures.accumulationA);
   clearTextureToBlack(device, accumulation.textures.background);
@@ -89,7 +91,7 @@ export async function setupFlowfieldRenderer(
 
   const api = {
     async init() {
-      device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       const encoder = device.createCommandEncoder();
       const computePass = encoder.beginComputePass();
       computePass.setPipeline(particleThings.pipelines.computeInit);
@@ -98,7 +100,11 @@ export async function setupFlowfieldRenderer(
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
-      await copyBuffer(device, particleThings.buffers.particleBufferA, particleThings.buffers.particleBufferB);
+      await copyBuffer(
+        device,
+        particleThings.buffers.particleBufferA,
+        particleThings.buffers.particleBufferB
+      );
       return device.queue.onSubmittedWorkDone();
     },
     async update(
@@ -112,7 +118,7 @@ export async function setupFlowfieldRenderer(
     ) {
       Object.assign(sharedData, data);
       sharedData.z = time * 0.0005;
-      device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
 
       // --- GPU particle integration via compute shader ---
       const now = performance.now();
@@ -132,7 +138,7 @@ export async function setupFlowfieldRenderer(
       // ensure the uniform shared data exposes the same rotate value for fragment shaders
       sharedData.rotate = rotateState;
       // write sharedData again so fragment pipelines/readers see the updated rotation this frame
-      device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       const paramsArray = new Float32Array([
         deltaTime,
         config.particleSpeed,
@@ -156,7 +162,12 @@ export async function setupFlowfieldRenderer(
 
       const computePass = encoder.beginComputePass();
       computePass.setPipeline(particleThings.pipelines.compute);
-      computePass.setBindGroup(0, ping ? particleThings.bindGroups.computeA : particleThings.bindGroups.computeB);
+      computePass.setBindGroup(
+        0,
+        ping
+          ? particleThings.bindGroups.computeA
+          : particleThings.bindGroups.computeB
+      );
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
@@ -177,11 +188,21 @@ export async function setupFlowfieldRenderer(
       const accumulationPass = encoder.beginRenderPass(accumulationPassDesc);
       // fade previous accumulation into dst
       accumulationPass.setPipeline(accumulation.pipelines.accumulationFade);
-      accumulationPass.setBindGroup(0, ping ? accumulation.bindGroups.accumulationA : accumulation.bindGroups.accumulationB);
+      accumulationPass.setBindGroup(
+        0,
+        ping
+          ? accumulation.bindGroups.accumulationA
+          : accumulation.bindGroups.accumulationB
+      );
       accumulationPass.draw(6);
       // draw particles additively (semi-transparent) onto accumulation
       accumulationPass.setPipeline(particleThings.pipelines.particle);
-      accumulationPass.setBindGroup(0, ping ? particleThings.bindGroups.particleRenderA : particleThings.bindGroups.particleRenderB);
+      accumulationPass.setBindGroup(
+        0,
+        ping
+          ? particleThings.bindGroups.particleRenderA
+          : particleThings.bindGroups.particleRenderB
+      );
       accumulationPass.draw(6, config.particleCount);
       accumulationPass.end();
 
@@ -212,7 +233,12 @@ export async function setupFlowfieldRenderer(
       const compPass = encoder.beginRenderPass(compDesc);
       compPass.setPipeline(accumulation.pipelines.composite);
       // composite should sample the bgTexture and the newly-written accumulation (dst)
-      compPass.setBindGroup(0, ping ? accumulation.bindGroups.compositeB : accumulation.bindGroups.compositeA);
+      compPass.setBindGroup(
+        0,
+        ping
+          ? accumulation.bindGroups.compositeB
+          : accumulation.bindGroups.compositeA
+      );
       compPass.draw(6);
       compPass.end();
 
@@ -235,7 +261,7 @@ async function setupWebGpu(canvasEl: HTMLCanvasElement) {
   return { device, context, presentationFormat };
 }
 
-function setupBuffers(device: GPUDevice, sharedData: any) {
+function setupShared(device: GPUDevice, sharedData: any) {
   const dataBuffer = device.createBuffer({
     size: sharedData.asBuffer().byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -260,7 +286,11 @@ function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
   device.queue.submit([commandEncoder.finish()]);
 }
 
-async function copyBuffer(device: GPUDevice, bufferA: GPUBuffer, bufferB: GPUBuffer) {
+async function copyBuffer(
+  device: GPUDevice,
+  bufferA: GPUBuffer,
+  bufferB: GPUBuffer
+) {
   try {
     const encoder = device.createCommandEncoder();
     encoder.copyBufferToBuffer(bufferA, 0, bufferB, 0, bufferA.size);

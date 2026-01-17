@@ -7,7 +7,7 @@ export function setupAccumulationThings(
   presentationFormat: GPUTextureFormat,
   width: number,
   height: number,
-  buffers: { dataBuffer: GPUBuffer }
+  dataBuffer: GPUBuffer
 ) {
   // textures + sampler
   const accumulationA = device.createTexture({
@@ -69,7 +69,7 @@ export function setupAccumulationThings(
   const accumulationA_bg = device.createBindGroup({
     layout: accumulationFade.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: sampler },
       { binding: 2, resource: accumulationA.createView() },
     ],
@@ -77,7 +77,7 @@ export function setupAccumulationThings(
   const accumulationB_bg = device.createBindGroup({
     layout: accumulationFade.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: sampler },
       { binding: 2, resource: accumulationB.createView() },
     ],
@@ -86,7 +86,7 @@ export function setupAccumulationThings(
   const compositeA = device.createBindGroup({
     layout: composite.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: sampler },
       { binding: 2, resource: background.createView() },
       { binding: 3, resource: accumulationA.createView() },
@@ -95,7 +95,7 @@ export function setupAccumulationThings(
   const compositeB = device.createBindGroup({
     layout: composite.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: sampler },
       { binding: 2, resource: background.createView() },
       { binding: 3, resource: accumulationB.createView() },

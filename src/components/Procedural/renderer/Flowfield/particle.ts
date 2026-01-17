@@ -7,7 +7,7 @@ export function setupParticleThings(
   presentationFormat: GPUTextureFormat,
   particleCount: number,
   particlePixelSize: number,
-  buffers: { dataBuffer: GPUBuffer }
+  dataBuffer: GPUBuffer
 ) {
   const commonWgsl = commonWgslRaw;
 
@@ -64,7 +64,7 @@ export function setupParticleThings(
   const computeA = device.createBindGroup({
     layout: compute.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: { buffer: particleBufferA } },
       { binding: 2, resource: { buffer: particleBufferB } },
       { binding: 3, resource: { buffer: paramsBuffer } },
@@ -73,7 +73,7 @@ export function setupParticleThings(
   const computeB = device.createBindGroup({
     layout: compute.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: { buffer: particleBufferB } },
       { binding: 2, resource: { buffer: particleBufferA } },
       { binding: 3, resource: { buffer: paramsBuffer } },
@@ -83,7 +83,7 @@ export function setupParticleThings(
   const computeInitBind = device.createBindGroup({
     layout: computeInit.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 2, resource: { buffer: particleBufferA } },
     ],
   });
@@ -91,14 +91,14 @@ export function setupParticleThings(
   const particleRenderA = device.createBindGroup({
     layout: particle.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: { buffer: particleBufferB } },
     ],
   });
   const particleRenderB = device.createBindGroup({
     layout: particle.getBindGroupLayout(0),
     entries: [
-      { binding: 0, resource: { buffer: buffers.dataBuffer } },
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: { buffer: particleBufferA } },
     ],
   });

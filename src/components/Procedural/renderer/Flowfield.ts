@@ -128,8 +128,7 @@ export async function setupFlowfieldRenderer(
         rotateState,
         sharedData,
         dataBuffer,
-        device,
-        config
+        device
       );
       accumulationDoStuff(ping, encoder, accumulation, particle);
       backgroundDoStuff(encoder, renderPassDescriptor, background);

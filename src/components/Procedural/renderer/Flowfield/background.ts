@@ -41,3 +41,28 @@ export function setupBackgroundResources(
 
   return { pipeline, bindGroup, texture };
 }
+
+export function backgroundDoStuff(
+  encoder: GPUCommandEncoder,
+  renderPassDescriptor: GPURenderPassDescriptor,
+  background: { pipeline: any; bindGroup: any; texture: any },
+  config: {
+    particleSpeed?: 2.5;
+    workgroupSize?: 64;
+    workgroups?: number;
+    eps?: 0.25;
+    showBackgroundShader: any;
+  }
+) {
+  // render background into offscreen bgTexture (so composite shader can sample it)
+  const backgroundView = background.texture.createView();
+  (renderPassDescriptor as any).colorAttachments[0].view = backgroundView;
+  const pass = encoder.beginRenderPass(renderPassDescriptor);
+  if (config.showBackgroundShader) {
+    pass.setPipeline(background.pipeline);
+    pass.setBindGroup(0, background.bindGroup);
+    pass.draw(6);
+  }
+  // when SHOW_BACKGROUND_SHADER is false we simply clear the bgTexture to black
+  pass.end();
+}

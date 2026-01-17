@@ -72,3 +72,57 @@ export function setupAccumulationResources(
     bindGroupB,
   };
 }
+
+export function accumulationDoStuff(
+  ping: boolean,
+  encoder: GPUCommandEncoder,
+  accumulation: {
+    pipeline: GPURenderPipeline;
+    textureA: GPUTexture;
+    textureB: GPUTexture;
+    bindGroupA: GPUBindGroup;
+    bindGroupB: GPUBindGroup;
+  },
+  particle: {
+    pipelines: { particle: GPURenderPipeline };
+    bindGroups: {
+      particleRenderA: GPUBindGroup;
+      particleRenderB: GPUBindGroup;
+    };
+    config: { particleCount: number };
+  }
+) {
+  // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
+  // choose which acc textures are src/dst based on accPing
+  const accumulationDstView = ping
+    ? accumulation.textureB.createView()
+    : accumulation.textureA.createView();
+  const accumulationPassDesc: GPURenderPassDescriptor = {
+    colorAttachments: [
+      {
+        view: accumulationDstView,
+        clearValue: [0, 0, 0, 0],
+        loadOp: "clear",
+        storeOp: "store",
+      },
+    ],
+  };
+  const accumulationPass = encoder.beginRenderPass(accumulationPassDesc);
+  // fade previous accumulation into dst
+  accumulationPass.setPipeline(accumulation.pipeline);
+  accumulationPass.setBindGroup(
+    0,
+    ping ? accumulation.bindGroupA : accumulation.bindGroupB
+  );
+  accumulationPass.draw(6);
+  // draw particles additively (semi-transparent) onto accumulation
+  accumulationPass.setPipeline(particle.pipelines.particle);
+  accumulationPass.setBindGroup(
+    0,
+    ping
+      ? particle.bindGroups.particleRenderA
+      : particle.bindGroups.particleRenderB
+  );
+  accumulationPass.draw(6, particle.config.particleCount);
+  accumulationPass.end();
+}

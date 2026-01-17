@@ -129,3 +129,34 @@ export function setupParticleResources(
     buffers: { particleBufferA, particleBufferB, paramsBuffer },
   };
 }
+
+export function particleDoStuff(
+  ping: boolean,
+  encoder: GPUCommandEncoder,
+  particle: {
+    config?: { particleCount: number; particlePixelSize: number };
+    pipelines: any;
+    bindGroups: any;
+    buffers?: {
+      particleBufferA: GPUBuffer;
+      particleBufferB: GPUBuffer;
+      paramsBuffer: GPUBuffer;
+    };
+  },
+  config: {
+    particleSpeed?: 2.5;
+    workgroupSize?: 64;
+    workgroups: any;
+    eps?: 0.25;
+    showBackgroundShader?: true;
+  }
+) {
+  const computePass = encoder.beginComputePass();
+  computePass.setPipeline(particle.pipelines.compute);
+  computePass.setBindGroup(
+    0,
+    ping ? particle.bindGroups.computeA : particle.bindGroups.computeB
+  );
+  computePass.dispatchWorkgroups(config.workgroups);
+  computePass.end();
+}

@@ -1,3 +1,7 @@
+import noiseWgsl from './Flowfield/wgsl/noise.wgsl?raw';
+import hsv2rgbWgsl from './Flowfield/wgsl/hsv2rgb.wgsl?raw';
+import openSimplex3dWgsl from './Flowfield/wgsl/openSimplex3d.wgsl?raw';
+
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
   options: {
@@ -96,15 +100,7 @@ export async function setupFlowfieldRenderer(
 
     @group(0) @binding(0) var<uniform> data: Uniforms;
 
-    fn noise(coord: vec4<f32>) -> f32 {
-      let n: u32 = bitcast<u32>(data.seed) +
-        bitcast<u32>(coord.x * 374761393.0) +
-        bitcast<u32>(coord.y * 668265263.0) +
-        bitcast<u32>(coord.z * 1440662683.0) +
-        bitcast<u32>(coord.w * 3865785317.0);
-      let m: u32 = (n ^ (n >> 13u)) * 1274126177u;
-      return f32(m) / f32(0xffffffffu);
-    }
+    ${noiseWgsl}
 
     const skew3d: f32 = 1.0 / 3.0;
     const unskew3d: f32 = 1.0 / 6.0;
@@ -113,19 +109,7 @@ export async function setupFlowfieldRenderer(
     const tintStrength: f32 = 0.75;
     const PI: f32 = 3.141592653589793;
 
-    fn hsv2rgb(hsv: vec3f) -> vec3f {
-      let h = hsv.x;
-      let s = hsv.y;
-      let v = hsv.z;
-      let hue = (((h * 360.0) % 360.0) + 360.0) % 360.0;
-      let sector = floor(hue / 60.0);
-      let sectorFloat = hue / 60.0 - sector;
-      let x = v * (1.0 - s);
-      let y = v * (1.0 - s * sectorFloat);
-      let z = v * (1.0 - s * (1.0 - sectorFloat));
-      let rgb = array<f32, 10>(x, x, z, v, v, y, x, x, z, v);
-      return vec3f(rgb[u32(sector) + 4], rgb[u32(sector) + 2], rgb[u32(sector)]);
-    }
+    ${hsv2rgbWgsl}
 
     // ensure we never divide by zero when using data.scale in shaders
     fn safeScale() -> f32 {
@@ -149,27 +133,7 @@ export async function setupFlowfieldRenderer(
       return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
     }
 
-    fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
-      let sx: f32 = x;
-      let sy: f32 = y;
-      let sz: f32 = z;
-      let skew: f32 = (sx + sy + sz) * skew3d;
-      let ix: i32 = i32(floor(sx + skew));
-      let iy: i32 = i32(floor(sy + skew));
-      let iz: i32 = i32(floor(sz + skew));
-      let fx: f32 = sx + skew - f32(ix);
-      let fy: f32 = sy + skew - f32(iy);
-      let fz: f32 = sz + skew - f32(iz);
-      return 0.5 +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 0) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 0) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 0) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 0) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 0, 0, 1) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 1, 0, 1) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 0, 1, 1) +
-        vertexContribution(ix, iy, iz, fx, fy, fz, 1, 1, 1);
-    }
+    ${openSimplex3dWgsl}
   `;
 
   const fragmentWgsl = /* wgsl */ `${commonWgsl}

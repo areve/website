@@ -167,9 +167,6 @@ export async function setupFlowfieldRenderer(
       computePass.end();
       // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
       // choose which acc textures are src/dst based on accPing
-      const accumulationSrcView = ping
-        ? textures.accumulationA.createView()
-        : textures.accumulationB.createView();
       const accumulationDstView = ping
         ? textures.accumulationB.createView()
         : textures.accumulationA.createView();

@@ -7,14 +7,32 @@ export function setupParticleThings(
   presentationFormat: GPUTextureFormat,
   particleCount: number,
   particlePixelSize: number,
-  buffers: {
-    particleBufferA: GPUBuffer;
-    particleBufferB: GPUBuffer;
-    paramsBuffer: GPUBuffer;
-    dataBuffer: GPUBuffer;
-  }
+  buffers: { dataBuffer: GPUBuffer }
 ) {
   const commonWgsl = commonWgslRaw;
+
+  // create particle-specific buffers here
+  const particleBufferSize = particleCount * 3 * 4;
+  const particleBufferA = device.createBuffer({
+    size: particleBufferSize,
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.VERTEX |
+      GPUBufferUsage.COPY_DST |
+      GPUBufferUsage.COPY_SRC,
+  });
+  const particleBufferB = device.createBuffer({
+    size: particleBufferSize,
+    usage:
+      GPUBufferUsage.STORAGE |
+      GPUBufferUsage.VERTEX |
+      GPUBufferUsage.COPY_DST |
+      GPUBufferUsage.COPY_SRC,
+  });
+  const paramsBuffer = device.createBuffer({
+    size: 5 * 4,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
 
   const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{particleCount\}i/g, `${particleCount}i`)}`;
   const computeModule = device.createShaderModule({ code: computeWgsl });
@@ -47,18 +65,18 @@ export function setupParticleThings(
     layout: compute.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: { buffer: buffers.particleBufferA } },
-      { binding: 2, resource: { buffer: buffers.particleBufferB } },
-      { binding: 3, resource: { buffer: buffers.paramsBuffer } },
+      { binding: 1, resource: { buffer: particleBufferA } },
+      { binding: 2, resource: { buffer: particleBufferB } },
+      { binding: 3, resource: { buffer: paramsBuffer } },
     ],
   });
   const computeB = device.createBindGroup({
     layout: compute.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: { buffer: buffers.particleBufferB } },
-      { binding: 2, resource: { buffer: buffers.particleBufferA } },
-      { binding: 3, resource: { buffer: buffers.paramsBuffer } },
+      { binding: 1, resource: { buffer: particleBufferB } },
+      { binding: 2, resource: { buffer: particleBufferA } },
+      { binding: 3, resource: { buffer: paramsBuffer } },
     ],
   });
 
@@ -66,7 +84,7 @@ export function setupParticleThings(
     layout: computeInit.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 2, resource: { buffer: buffers.particleBufferA } },
+      { binding: 2, resource: { buffer: particleBufferA } },
     ],
   });
 
@@ -74,19 +92,20 @@ export function setupParticleThings(
     layout: particle.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: { buffer: buffers.particleBufferB } },
+      { binding: 1, resource: { buffer: particleBufferB } },
     ],
   });
   const particleRenderB = device.createBindGroup({
     layout: particle.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: { buffer: buffers.particleBufferA } },
+      { binding: 1, resource: { buffer: particleBufferA } },
     ],
   });
 
   return {
     pipelines: { compute, computeInit, particle },
     bindGroups: { computeA, computeB, computeInit: computeInitBind, particleRenderA, particleRenderB },
+    buffers: { particleBufferA, particleBufferB, paramsBuffer },
   };
 }

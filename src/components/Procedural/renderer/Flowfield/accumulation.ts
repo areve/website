@@ -7,12 +7,7 @@ export function setupAccumulationThings(
   presentationFormat: GPUTextureFormat,
   width: number,
   height: number,
-  buffers: {
-    particleBufferA: GPUBuffer;
-    particleBufferB: GPUBuffer;
-    paramsBuffer: GPUBuffer;
-    dataBuffer: GPUBuffer;
-  }
+  buffers: { dataBuffer: GPUBuffer }
 ) {
   // textures + sampler
   const accumulationA = device.createTexture({

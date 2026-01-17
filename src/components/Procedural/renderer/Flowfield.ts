@@ -21,7 +21,7 @@ export async function setupFlowfieldRenderer(
       workgroupSize,
       workgroups: Math.ceil(particleCount / workgroupSize),
       eps: 0.25,
-      showBackgroundShader: false,
+      showBackgroundShader: true,
     } as const;
   })();
 
@@ -57,7 +57,7 @@ export async function setupFlowfieldRenderer(
 
   const webGpu = await setupWebGpu(canvas);
   const { device, context, presentationFormat } = webGpu;
-  const buffers = setupBuffers(device, sharedData, config.particleCount);
+  const buffers = setupBuffers(device, sharedData);
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
@@ -68,7 +68,7 @@ export async function setupFlowfieldRenderer(
     presentationFormat,
     config.particleCount,
     config.particlePixelSize,
-    buffers
+    { dataBuffer: buffers.dataBuffer }
   );
 
   const accumulation = setupAccumulationThings(
@@ -76,10 +76,12 @@ export async function setupFlowfieldRenderer(
     presentationFormat,
     options.width,
     options.height,
-    buffers
+    { dataBuffer: buffers.dataBuffer }
   );
 
-  const background = setupBackgroundThings(device, presentationFormat, buffers);
+  const background = setupBackgroundThings(device, presentationFormat, {
+    dataBuffer: buffers.dataBuffer,
+  });
 
   clearTextureToBlack(device, accumulation.textures.accumulationA);
   clearTextureToBlack(device, accumulation.textures.background);
@@ -96,11 +98,7 @@ export async function setupFlowfieldRenderer(
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
-      await copyBuffer(
-        device,
-        buffers.particleBufferA,
-        buffers.particleBufferB
-      );
+      await copyBuffer(device, particleThings.buffers.particleBufferA, particleThings.buffers.particleBufferB);
       return device.queue.onSubmittedWorkDone();
     },
     async update(
@@ -143,7 +141,7 @@ export async function setupFlowfieldRenderer(
         rotateState,
       ]);
       device.queue.writeBuffer(
-        buffers.paramsBuffer,
+        particleThings.buffers.paramsBuffer,
         0,
         paramsArray.buffer,
         paramsArray.byteOffset,
@@ -237,45 +235,13 @@ async function setupWebGpu(canvasEl: HTMLCanvasElement) {
   return { device, context, presentationFormat };
 }
 
-function setupBuffers(
-  device: GPUDevice,
-  sharedData: any,
-  particleCount: number
-) {
-  const particleBufferSize = particleCount * 3 * 4; // 3 floats per particle (x,y,life)
-  const particleBufferA = device.createBuffer({
-    size: particleBufferSize,
-    usage:
-      GPUBufferUsage.STORAGE |
-      GPUBufferUsage.VERTEX |
-      GPUBufferUsage.COPY_DST |
-      GPUBufferUsage.COPY_SRC,
-  });
-  const particleBufferB = device.createBuffer({
-    size: particleBufferSize,
-    usage:
-      GPUBufferUsage.STORAGE |
-      GPUBufferUsage.VERTEX |
-      GPUBufferUsage.COPY_DST |
-      GPUBufferUsage.COPY_SRC,
-  });
-  const paramsBuffer = device.createBuffer({
-    size: 5 * 4,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
+function setupBuffers(device: GPUDevice, sharedData: any) {
   const dataBuffer = device.createBuffer({
     size: sharedData.asBuffer().byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  return {
-    particleBufferA,
-    particleBufferB,
-    paramsBuffer,
-    dataBuffer,
-  };
+  return { dataBuffer };
 }
-
- 
 
 function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
   const commandEncoder = device.createCommandEncoder();
@@ -294,11 +260,7 @@ function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
   device.queue.submit([commandEncoder.finish()]);
 }
 
-async function copyBuffer(
-  device: GPUDevice,
-  bufferA: GPUBuffer,
-  bufferB: GPUBuffer
-) {
+async function copyBuffer(device: GPUDevice, bufferA: GPUBuffer, bufferB: GPUBuffer) {
   try {
     const encoder = device.createCommandEncoder();
     encoder.copyBufferToBuffer(bufferA, 0, bufferB, 0, bufferA.size);

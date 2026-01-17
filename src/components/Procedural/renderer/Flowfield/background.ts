@@ -1,7 +1,7 @@
 import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
 import fragmentWgslRaw from "../Flowfield/wgsl/fragment.wgsl?raw";
 
-export function setupBackgroundThings(
+export function setupBackgroundResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
   dataBuffer: GPUBuffer

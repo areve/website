@@ -2,7 +2,7 @@ import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
 import computeWgslRaw from "../Flowfield/wgsl/compute.wgsl?raw";
 import particleWgslRaw from "../Flowfield/wgsl/particle.wgsl?raw";
 
-export function setupParticleThings(
+export function setupParticleResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
   particleCount: number,

@@ -2,7 +2,7 @@ import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
 import accFadeWgslRaw from "../../lib/wgsl/accFade.wgsl?raw";
 import compositeWgslRaw from "../../lib/wgsl/composite.wgsl?raw";
 
-export function setupAccumulationThings(
+export function setupAccumulationResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
   width: number,

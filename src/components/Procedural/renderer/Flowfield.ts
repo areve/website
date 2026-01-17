@@ -1,6 +1,6 @@
-import { setupAccumulationThings } from "./Flowfield/accumulation";
-import { setupParticleThings } from "./Flowfield/particle";
-import { setupBackgroundThings } from "./Flowfield/background";
+import { setupAccumulationResources } from "./Flowfield/accumulation";
+import { setupParticleResources } from "./Flowfield/particle";
+import { setupBackgroundResources } from "./Flowfield/background";
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -63,7 +63,7 @@ export async function setupFlowfieldRenderer(
   let lastFrameTime = performance.now();
   let rotateState = 0.0;
 
-  const particleThings = setupParticleThings(
+  const particleThings = setupParticleResources(
     device,
     presentationFormat,
     config.particleCount,
@@ -71,7 +71,7 @@ export async function setupFlowfieldRenderer(
     dataBuffer
   );
 
-  const accumulation = setupAccumulationThings(
+  const accumulation = setupAccumulationResources(
     device,
     presentationFormat,
     options.width,
@@ -79,7 +79,7 @@ export async function setupFlowfieldRenderer(
     dataBuffer
   );
 
-  const background = setupBackgroundThings(
+  const background = setupBackgroundResources(
     device,
     presentationFormat,
     dataBuffer

@@ -1,6 +1,4 @@
-import noiseWgsl from '../lib/wgsl/noise.wgsl?raw';
-import hsv2rgbWgsl from '../lib/wgsl/hsv2rgb.wgsl?raw';
-import openSimplex3dWgsl from '../lib/wgsl/openSimplex3d.wgsl?raw';
+import commonWgslRaw from '../lib/wgsl/common.wgsl?raw';
 import fragmentWgslRaw from './Flowfield/wgsl/fragment.wgsl?raw';
 import computeWgslRaw from './Flowfield/wgsl/compute.wgsl?raw';
 import particleWgslRaw from './Flowfield/wgsl/particle.wgsl?raw';
@@ -60,13 +58,10 @@ export async function setupFlowfieldRenderer(
   // --- GPU-driven particle system ---
   const PARTICLE_COUNT = 5000;
   const PARTICLE_SPEED = 2.5;
+  const PARTICLE_PIXEL_SIZE = 5.0;
   const WORKGROUP_SIZE = 64;
   const WORKGROUPS = Math.ceil(PARTICLE_COUNT / WORKGROUP_SIZE);
-  // epsilon used for centered finite-difference sampling of the noise field
-  // (used to approximate derivatives / gradient of the noise).
   const EPS = 0.25;
-  // Toggle whether the background shader is rendered under the particles.
-  // Set to `false` for a plain black background.
   const SHOW_BACKGROUND_SHADER = false;
 
   const particleBufferSize = PARTICLE_COUNT * 3 * 4; // 3 floats per particle (x,y,life)
@@ -89,37 +84,8 @@ export async function setupFlowfieldRenderer(
   let lastFrameTime = performance.now();
   let rotateState = 0.0;
 
-  // shared WGSL snippets used by both fragment and compute shaders
-  const commonWgsl = /* wgsl */ `
-    ${noiseWgsl}
-    ${hsv2rgbWgsl}
-
-    struct Uniforms {
-      width: f32,
-      height: f32,
-      seed: u32,
-      scale: f32,
-      x: f32,
-      y: f32,
-      z: f32,
-      zoom: f32,
-      rotate: f32,
-    };
-
-    @group(0) @binding(0) var<uniform> data: Uniforms;
-
-    const angleSaturationScale: f32 = 4.0;
-    const tintStrength: f32 = 0.75;
-    const PI: f32 = 3.141592653589793;
-
-    // ensure we never divide by zero when using data.scale in shaders
-    fn safeScale() -> f32 {
-      return max(data.scale, 1e-6);
-    }
-
-    ${openSimplex3dWgsl}
-  `;
-
+  // shared WGSL common snippets (moved to file for reuse)
+  const commonWgsl = commonWgslRaw;
 
   const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
 
@@ -134,8 +100,7 @@ export async function setupFlowfieldRenderer(
 
   // Particle render pipeline (points)
   // Render each particle as an instanced quad (two triangles) so we can control pixel size.
-  // Increase `PARTICLE_PIXEL_SIZE` to make dots larger (user requested ~5x).
-  const PARTICLE_PIXEL_SIZE = 5.0;
+  // `PARTICLE_PIXEL_SIZE` declared with other particle constants above.
 
   const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{PARTICLE_PIXEL_SIZE\}/g, `${PARTICLE_PIXEL_SIZE}`)}`;
 
@@ -275,61 +240,34 @@ export async function setupFlowfieldRenderer(
     primitive: { topology: 'triangle-list' },
   });
 
-  // bind groups for accumulation sampling/composite (we'll select correct views per frame)
-  // Note: `accFadeWgsl` and `compositeWgsl` don't reference `data` in their fragment entry points,
-  // so the pipeline reflection may omit binding 0. Create bind groups with only sampler (1) and texture (2).
-  let accBindA = device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureA.createView() } ] });
-  let accBindB = device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: accTextureB.createView() } ] });
-  let compositeBindA = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: bgTexture.createView() }, { binding: 3, resource: accTextureA.createView() } ] });
-  let compositeBindB = device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: bgTexture.createView() }, { binding: 3, resource: accTextureB.createView() } ] });
+  // bind-group factories to reduce duplication
+  function makeAccBind(view: GPUTextureView) {
+    return device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: view } ] });
+  }
+  const accBindA = makeAccBind(accTextureA.createView());
+  const accBindB = makeAccBind(accTextureB.createView());
 
-  // Now create compute and render bind groups that reference the canonical `dataBuffer`
-  const computeBindGroupA = device.createBindGroup({
-    layout: computePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: { buffer: particleBufferA } },
-      { binding: 2, resource: { buffer: particleBufferB } },
-      { binding: 3, resource: { buffer: paramsBuffer } },
-    ],
-  });
+  function makeCompositeBind(bgView: GPUTextureView, accView: GPUTextureView) {
+    return device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: bgView }, { binding: 3, resource: accView } ] });
+  }
+  const compositeBindA = makeCompositeBind(bgTexture.createView(), accTextureA.createView());
+  const compositeBindB = makeCompositeBind(bgTexture.createView(), accTextureB.createView());
 
-  const computeBindGroupB = device.createBindGroup({
-    layout: computePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: { buffer: particleBufferB } },
-      { binding: 2, resource: { buffer: particleBufferA } },
-      { binding: 3, resource: { buffer: paramsBuffer } },
-    ],
-  });
+  // compute bind-group factory
+  function makeComputeBind(particlesIn: GPUBuffer, particlesOut: GPUBuffer) {
+    return device.createBindGroup({ layout: computePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: { buffer: particlesIn } }, { binding: 2, resource: { buffer: particlesOut } }, { binding: 3, resource: { buffer: paramsBuffer } } ] });
+  }
+  const computeBindGroupA = makeComputeBind(particleBufferA, particleBufferB);
+  const computeBindGroupB = makeComputeBind(particleBufferB, particleBufferA);
 
-  // create an init bind group matching the computeInitPipeline's layout
-  // The 'init' entry in the compute shader only references binding 0 (data) and binding 2 (particlesOut),
-  // so create the bind group with only those entries to match pipeline reflection.
-  const computeInitBindGroup = device.createBindGroup({
-    layout: computeInitPipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 2, resource: { buffer: particleBufferA } },
-    ],
-  });
+  // init bind-group factory (init shader only writes into particlesOut)
+  function makeInitBind(particlesOut: GPUBuffer) { return device.createBindGroup({ layout: computeInitPipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 2, resource: { buffer: particlesOut } } ] }); }
+  const computeInitBindGroup = makeInitBind(particleBufferA);
 
-  const particleRenderBindA = device.createBindGroup({
-    layout: particlePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: { buffer: particleBufferB } },
-    ],
-  });
+  function makeParticleRenderBind(particlesBuffer: GPUBuffer) { return device.createBindGroup({ layout: particlePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: { buffer: particlesBuffer } } ] }); }
 
-  const particleRenderBindB = device.createBindGroup({
-    layout: particlePipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: { buffer: particleBufferA } },
-    ],
-  });
+  const particleRenderBindA = makeParticleRenderBind(particleBufferB);
+  const particleRenderBindB = makeParticleRenderBind(particleBufferA);
 
   const colorAttachment: GPURenderPassColorAttachment = {
     view: undefined! as GPUTextureView,

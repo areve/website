@@ -1,5 +1,5 @@
-import commonWgsl from "../../lib/wgsl/common.wgsl?raw";
-import compositeWgslRaw from "../../lib/wgsl/composite.wgsl?raw";
+import commonWgsl from "./wgsl/common.wgsl?raw";
+import compositeWgslRaw from "./wgsl/composite.wgsl?raw";
 
 export function setupCompositeResources(
   device: GPUDevice,

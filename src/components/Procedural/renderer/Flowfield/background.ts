@@ -1,4 +1,4 @@
-import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
+import commonWgslRaw from "./wgsl/common.wgsl?raw";
 import fragmentWgslRaw from "../Flowfield/wgsl/fragment.wgsl?raw";
 import { clearTextureToBlack } from "./texture";
 

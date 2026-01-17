@@ -5,20 +5,6 @@ import particleWgslRaw from "./Flowfield/wgsl/particle.wgsl?raw";
 import accFadeWgslRaw from "../lib/wgsl/accFade.wgsl?raw";
 import compositeWgslRaw from "../lib/wgsl/composite.wgsl?raw";
 
-const config = (() => {
-  const particleCount = 5000;
-  const workgroupSize = 64;
-  return {
-    particleCount,
-    particleSpeed: 2.5,
-    particlePixelSize: 5.0,
-    workgroupSize,
-    workgroups: Math.ceil(particleCount / workgroupSize),
-    eps: 0.25,
-    showBackgroundShader: false,
-  } as const;
-})();
-
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
   options: {
@@ -28,6 +14,20 @@ export async function setupFlowfieldRenderer(
     scale?: number;
   }
 ) {
+  const config = (() => {
+    const particleCount = 5000;
+    const workgroupSize = 64;
+    return {
+      particleCount,
+      particleSpeed: 2.5,
+      particlePixelSize: 5.0,
+      workgroupSize,
+      workgroups: Math.ceil(particleCount / workgroupSize),
+      eps: 0.25,
+      showBackgroundShader: false,
+    } as const;
+  })();
+
   const sharedData = {
     width: options.width,
     height: options.height,
@@ -58,14 +58,10 @@ export async function setupFlowfieldRenderer(
   canvas.width = options.width;
   canvas.height = options.height;
 
+  const { device, context, presentationFormat } = await setupDeviceAndContext(
+    canvas
+  );
   const {
-    //
-    device,
-    context,
-    presentationFormat,
-  } = await setupDeviceAndContext(canvas);
-  const {
-    //
     particleBufferSize,
     particleBufferA,
     particleBufferB,
@@ -134,17 +130,7 @@ export async function setupFlowfieldRenderer(
     }
   );
 
-  const colorAttachment: GPURenderPassColorAttachment = {
-    view: undefined! as GPUTextureView,
-    clearValue: [0.0, 0.0, 0.0, 1],
-    loadOp: "clear",
-    storeOp: "store",
-  };
-
-  const renderPassDescriptor: GPURenderPassDescriptor = {
-    label: "our basic canvas renderPass",
-    colorAttachments: [colorAttachment],
-  };
+  const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const api = {
     async init() {
@@ -157,22 +143,7 @@ export async function setupFlowfieldRenderer(
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
-
-      try {
-        const encCopy = device.createCommandEncoder();
-        encCopy.copyBufferToBuffer(
-          particleBufferA,
-          0,
-          particleBufferB,
-          0,
-          particleBufferSize
-        );
-        device.queue.submit([encCopy.finish()]);
-        await device.queue.onSubmittedWorkDone();
-      } catch (e) {
-        console.warn("seed copy A->B failed", e);
-      }
-
+      await copyBuffer(device, particleBufferA, particleBufferB);
       return device.queue.onSubmittedWorkDone();
     },
     async update(
@@ -461,7 +432,14 @@ export function setupPipelines(
 
 function setupBindGroups(
   device: GPUDevice,
-  pipelines: any,
+  pipelines: {
+    pipeline: GPURenderPipeline;
+    accFadePipeline: GPURenderPipeline;
+    compositePipeline: GPURenderPipeline;
+    computePipeline: GPUComputePipeline;
+    computeInitPipeline: GPUComputePipeline;
+    particlePipeline: GPURenderPipeline;
+  },
   buffers: any,
   textures: any
 ) {
@@ -619,4 +597,34 @@ function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
   const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
   renderPass.end();
   device.queue.submit([commandEncoder.finish()]);
+}
+
+async function copyBuffer(
+  device: GPUDevice,
+  bufferA: GPUBuffer,
+  bufferB: GPUBuffer
+) {
+  try {
+    const encoder = device.createCommandEncoder();
+    encoder.copyBufferToBuffer(bufferA, 0, bufferB, 0, bufferA.size);
+    device.queue.submit([encoder.finish()]);
+    await device.queue.onSubmittedWorkDone();
+  } catch (e) {
+    console.warn("seed copy A->B failed", e);
+  }
+}
+
+function setupColorAttachments() {
+  const colorAttachment: GPURenderPassColorAttachment = {
+    view: undefined! as GPUTextureView,
+    clearValue: [0.0, 0.0, 0.0, 1],
+    loadOp: "clear",
+    storeOp: "store",
+  };
+
+  const renderPassDescriptor: GPURenderPassDescriptor = {
+    label: "our basic canvas renderPass",
+    colorAttachments: [colorAttachment],
+  };
+  return { colorAttachment, renderPassDescriptor };
 }

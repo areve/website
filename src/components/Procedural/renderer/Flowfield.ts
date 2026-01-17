@@ -1,6 +1,9 @@
 import noiseWgsl from './Flowfield/wgsl/noise.wgsl?raw';
 import hsv2rgbWgsl from './Flowfield/wgsl/hsv2rgb.wgsl?raw';
 import openSimplex3dWgsl from './Flowfield/wgsl/openSimplex3d.wgsl?raw';
+import fragmentWgslRaw from './Flowfield/wgsl/fragment.wgsl?raw';
+import computeWgslRaw from './Flowfield/wgsl/compute.wgsl?raw';
+import particleWgslRaw from './Flowfield/wgsl/particle.wgsl?raw';
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -86,6 +89,9 @@ export async function setupFlowfieldRenderer(
 
   // shared WGSL snippets used by both fragment and compute shaders
   const commonWgsl = /* wgsl */ `
+    ${noiseWgsl}
+    ${hsv2rgbWgsl}
+
     struct Uniforms {
       width: f32,
       height: f32,
@@ -100,13 +106,9 @@ export async function setupFlowfieldRenderer(
 
     @group(0) @binding(0) var<uniform> data: Uniforms;
 
-    ${noiseWgsl}
-
     const angleSaturationScale: f32 = 4.0;
     const tintStrength: f32 = 0.75;
     const PI: f32 = 3.141592653589793;
-
-    ${hsv2rgbWgsl}
 
     // ensure we never divide by zero when using data.scale in shaders
     fn safeScale() -> f32 {
@@ -116,275 +118,26 @@ export async function setupFlowfieldRenderer(
     ${openSimplex3dWgsl}
   `;
 
-  const fragmentWgsl = /* wgsl */ `${commonWgsl}
 
-    @vertex fn vs(
-      @builtin(vertex_index) vertexIndex : u32
-    ) -> @builtin(position) vec4f {
-      let pos = array(
-        vec2f(-1.0, -1.0),
-        vec2f(1.0, 1.0),
-        vec2f(-1.0, 1.0) ,
-        vec2f(-1.0, -1.0),
-        vec2f(1.0, 1.0),
-        vec2f(1.0, -1.0)
-      );
-
-      return vec4f(pos[vertexIndex], 0.0, 1.0);
-    }
-
-    @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-      // map fragment position to world coordinates used by the noise function
-      let scl = safeScale();
-      let x = coord.x / scl * data.zoom + data.x / scl;
-      let y = coord.y / scl * data.zoom + data.y / scl;
-
-      // Sample height and use centered finite differences for derivatives.
-      // Rotate the sampling coordinates around the view center by data.rotate
-      // so panning works as expected when the field is rotated.
-      let eps: f32 = 0.25;
-      let cx = data.x / scl + (data.width * 0.5) / scl * data.zoom;
-      let cy = data.y / scl + (data.height * 0.5) / scl * data.zoom;
-      let theta = data.rotate;
-      let c = cos(theta);
-      let s = sin(theta);
-      // rotate sampling coords by -theta (R^T)
-      let rx = (x - cx) * c + (y - cy) * s + cx;
-      let ry = -(x - cx) * s + (y - cy) * c + cy;
-
-      let n = openSimplex3d(rx, ry, data.z);
-      let nxp = openSimplex3d(rx + eps, ry, data.z);
-      let nxm = openSimplex3d(rx - eps, ry, data.z);
-      let nyp = openSimplex3d(rx, ry + eps, data.z);
-      let nym = openSimplex3d(rx, ry - eps, data.z);
-      let derx_r = (nxp - nxm) / (2.0 * eps);
-      let dery_r = (nyp - nym) / (2.0 * eps);
-      // rotate derivatives back into world coordinates using R
-      let derx = derx_r * c - dery_r * s;
-      let dery = derx_r * s + dery_r * c;
-
-      // Compute surface normal with Z as the up axis so we can test angle vs Z.
-      // normal = (-dz/dx, -dz/dy, 1)
-      let normal = normalize(vec3f(-derx, -dery, 1.0));
-
-      // Use the raw height as the base color (white ramp)
-      let heightColor = vec3f(n);
-      // compute slope magnitude and heading to tint by facing direction
-      let slopeMag = length(vec2f(derx, dery));
-      let heading: f32 = atan2(derx, dery);
-      let hue: f32 = fract(heading / (2.0 * PI) + 1.0);
-      // Map saturation from surface angle: flat (normal.z ~= 1.0) -> 0, vertical (normal.z ~= 0.0) -> 1
-      // Increase sensitivity so steeper faces get stronger tint.
-      let sat: f32 = clamp((1.0 - normal.z) * angleSaturationScale, 0.0, 1.0);
-      // Set HSV value (brightness) to the height so valleys are 0 and peaks are 1
-      let tintRGB = hsv2rgb(vec3f(hue, sat, n));
-      let tintWeight: f32 = sat * tintStrength;
-      let lit = heightColor * (1.0 - tintWeight) + tintRGB * tintWeight;
-
-      // Return the lit color directly (remove debug peak/trough overlay markers)
-      return vec4<f32>(lit, 1.0);
-    }
-  `;
+  const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
 
   const module = device.createShaderModule({ label: "flowfield shader", code: fragmentWgsl });
 
-  // --- Compute shader for GPU particle integration ---
-  const computeWgsl = /* wgsl */ `${commonWgsl}
-
-    struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateAngle: f32 };
-    @group(0) @binding(3) var<uniform> params: Params;
-
-    @group(0) @binding(1) var<storage, read> particlesIn: array<vec3<f32>>;
-    @group(0) @binding(2) var<storage, read_write> particlesOut: array<vec3<f32>>;
-
-    // helper to compute flow vector at a world position (module-scope)
-    // returns the raw flow (negative gradient). Do NOT normalize —
-    // this keeps particle speed proportional to slope and avoids
-    // numerical jitter when the gradient magnitude is very small.
-    fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
-      let eps_local: f32 = params.eps;
-      // rotate sampling coordinates around view center so the field rotates
-      // consistently with the fragment background and panning remains intuitive
-      let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
-      let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
-      let theta = params.rotateAngle;
-      let c = cos(theta);
-      let s = sin(theta);
-      // rotate sampling coords by -theta (R^T)
-      let rx = (wx - cx) * c + (wy - cy) * s + cx;
-      let ry = -(wx - cx) * s + (wy - cy) * c + cy;
-
-      let n_xp = openSimplex3d(rx + eps_local, ry, data.z);
-      let n_xm = openSimplex3d(rx - eps_local, ry, data.z);
-      let n_yp = openSimplex3d(rx, ry + eps_local, data.z);
-      let n_ym = openSimplex3d(rx, ry - eps_local, data.z);
-      var fx_r = -(n_xp - n_xm) / (2.0 * eps_local);
-      var fy_r = -(n_yp - n_ym) / (2.0 * eps_local);
-      // rotate gradient back into world coordinates using R
-      let fx = fx_r * c - fy_r * s;
-      let fy = fx_r * s + fy_r * c;
-      return vec2<f32>(fx, fy);
-    }
-
-    @compute @workgroup_size(64)
-    fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let idx = i32(gid.x);
-      if (idx >= ${PARTICLE_COUNT}i) { return; }
-      // uniform-random seeding (deterministic per-index via noise)
-      let idf = f32(idx);
-      // use uniform noise (previously openSimplex) to get unbiased per-index u/v in [0,1]
-      let rx = noise(vec4f(idf * 0.618, idf * 1.731, f32(data.seed), 0.0));
-      let ry = noise(vec4f(idf * 1.357, idf * 0.271, f32(data.seed), 1.0));
-      var px = rx * data.width;
-      var py = ry * data.height;
-      // guard against non-finite values
-      if (px != px) { px = 0.0; }
-      if (py != py) { py = 0.0; }
-      let scl = safeScale();
-      var nx = px / scl * data.zoom + data.x / scl;
-      var ny = py / scl * data.zoom + data.y / scl;
-      // stagger initial activation with per-index noise
-      let spawnSpread: f32 = 6.0;
-      let rand = noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0));
-      let delay = rand * spawnSpread;
-      let life = -delay;
-      particlesOut[idx] = vec3<f32>(nx, ny, life);
-    }
-
-    @compute @workgroup_size(64)
-    fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let idx = i32(gid.x);
-      if (idx >= ${PARTICLE_COUNT}i) { return; }
-      let p = particlesIn[idx];
-      var px0 = p.x;
-      var py0 = p.y;
-      var life = p.z;
-      let dt: f32 = params.dt;
-      // Interpret life: positive => remaining life; negative => time-until-activation.
-      if (life <= 0.0) {
-        // sleeping: count up towards activation
-        life = life + dt;
-        if (life < 0.0) {
-          particlesOut[idx] = vec3<f32>(px0, py0, life);
-          return;
-        }
-        // crossed zero: activate with randomized lifetime
-        life = 1.0 + abs(openSimplex3d(f32(idx) * 0.17 + data.x, f32(idx) * 0.29 + data.y, data.z)) * 3.0;
-      } else {
-        // active particle: decrement life
-        life = life - dt;
-      }
-
-      // sample flow at pos (RK2)
-      let eps: f32 = params.eps;
-      let speed: f32 = params.speed;
-      let maxStep: f32 = params.maxStep;
-      let rawStep = speed * dt;
-      let f1 = sampleFlow(px0, py0);
-      let mx = px0 + f1.x * (rawStep * 0.5);
-      let my = py0 + f1.y * (rawStep * 0.5);
-      let f2 = sampleFlow(mx, my);
-      var nx = px0 + f2.x * rawStep;
-      var ny = py0 + f2.y * rawStep;
-      // clamp displacement magnitude to avoid overshoot/oscillation
-      let disp = vec2<f32>(nx - px0, ny - py0);
-      let dispLen = length(disp);
-      if (dispLen > maxStep && dispLen > 1e-6) {
-        let scale = maxStep / dispLen;
-        nx = px0 + disp.x * scale;
-        ny = py0 + disp.y * scale;
-      }
-
-      // map to pixel then check bounds
-      let scl = safeScale();
-      let pixx = (nx - data.x / scl) * scl / data.zoom;
-      let pixy = (ny - data.y / scl) * scl / data.zoom;
-      var needRespawn = false;
-      if (life <= 0.0) { needRespawn = true; }
-      if (pixx < -10.0 || pixy < -10.0 || pixx > data.width + 10.0 || pixy > data.height + 10.0) {
-        needRespawn = true;
-      }
-
-      if (needRespawn) {
-        // uniform-random respawn: deterministic per-index noise
-        let idf = f32(idx);
-        let rx = noise(vec4f(idf * 0.618, idf * 1.731, f32(data.seed), 0.0));
-        let ry = noise(vec4f(idf * 1.357, idf * 0.271, f32(data.seed), 1.0));
-        var px = rx * data.width;
-        var py = ry * data.height;
-        if (px != px) { px = 0.0; }
-        if (py != py) { py = 0.0; }
-        let scl = safeScale();
-        nx = px / scl * data.zoom + data.x / scl;
-        ny = py / scl * data.zoom + data.y / scl;
-        // keep respawn positions in world coordinates; sampleFlow will handle rotation
-        life = 1.0 + noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0)) * 3.0;
-      }
-
-      particlesOut[idx] = vec3<f32>(nx, ny, life);
-    }
-  `;
+  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{PARTICLE_COUNT\}i/g, `${PARTICLE_COUNT}i`)}`;
 
   const computeModule = device.createShaderModule({ code: computeWgsl });
   const computePipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'cs' } });
   const computeInitPipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'init' } });
 
-  // compute bind groups (created later after `dataBuffer` is available)
 
   // Particle render pipeline (points)
   // Render each particle as an instanced quad (two triangles) so we can control pixel size.
   // Increase `PARTICLE_PIXEL_SIZE` to make dots larger (user requested ~5x).
   const PARTICLE_PIXEL_SIZE = 5.0;
 
-  const particleWgsl = /* wgsl */ `${commonWgsl}
-    @group(0) @binding(1) var<storage, read> particles: array<vec3<f32>>;
+  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{PARTICLE_PIXEL_SIZE\}/g, `${PARTICLE_PIXEL_SIZE}`)}`;
 
-    struct VSOut {
-      @builtin(position) pos: vec4f,
-      @location(0) life: f32,
-      @location(1) hueRand: f32,
-    };
-
-    @vertex fn vs(@builtin(vertex_index) vIndex: u32, @builtin(instance_index) iIndex: u32) -> VSOut {
-      // 6 vertices per quad (two triangles)
-      let corner = array<vec2f, 6>(
-        vec2f(-1.0, -1.0),
-        vec2f(1.0, 1.0),
-        vec2f(-1.0, 1.0),
-        vec2f(-1.0, -1.0),
-        vec2f(1.0, 1.0),
-        vec2f(1.0, -1.0)
-      );
-      let p = particles[iIndex];
-      let scl = safeScale();
-      let px = (p.x - data.x / scl) * scl / data.zoom;
-      let ndcx = (px / data.width) * 2.0 - 1.0;
-      let py = (p.y - data.y / scl) * scl / data.zoom;
-      let ndcy = -((py / data.height) * 2.0 - 1.0);
-      let halfX = f32(${PARTICLE_PIXEL_SIZE}) / data.width;
-      let halfY = f32(${PARTICLE_PIXEL_SIZE}) / data.height;
-      let pos = vec2f(ndcx + corner[vIndex].x * halfX, ndcy + corner[vIndex].y * halfY);
-      var out: VSOut;
-      out.pos = vec4f(pos, 0.0, 1.0);
-      out.life = p.z;
-      // derive a small per-particle pseudo-random hue from world position/time so
-      // dots have subtle color variation without changing buffer layout.
-      // scale coords to decorrelate patterns and keep value in [0,1].
-      out.hueRand = noise(vec4f(p.x * 12.989, p.y * 78.233, data.z, 0.0));
-      return out;
-    }
-    @fragment fn fs(@location(0) life: f32, @location(1) hueRand: f32) -> @location(0) vec4f {
-      // fade particle alpha by remaining life (assume life ~ up to 3.0s for normalization)
-      let alpha = 0.30 * clamp(life / 3.0, 0.0, 1.0);
-      // small hue tint blended toward a saturated color so variation is subtle
-      let jitterAmt: f32 = 0.4;
-      let hue = fract(hueRand) * 0.6 + 0.75;
-      let tint = hsv2rgb(vec3f(hue, 0.8, 1.0));
-      let base = vec3f(1.0, 1.0, 1.0);
-      let col = base * (1.0 - jitterAmt) + tint * jitterAmt;
-      return vec4f(col, alpha);
-    }
-  `;
+  // compute bind groups (created later after `dataBuffer` is available`);
 
   const particleModule = device.createShaderModule({ code: particleWgsl });
   const particlePipeline = device.createRenderPipeline({

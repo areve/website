@@ -5,6 +5,7 @@ import { setupShared as setupSharedResources } from "./Flowfield/shared";
 import { copyBuffer } from "./Flowfield/buffer";
 import { clearTextureToBlack } from "./Flowfield/texture";
 import { setupWebGpu } from "./Flowfield/webgpu";
+import { setupCompositeResources } from "./Flowfield/composite";
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -26,6 +27,14 @@ export async function setupFlowfieldRenderer(
   let lastFrameTime = performance.now();
   let rotateState = 0.0;
 
+  const background = setupBackgroundResources(
+    device,
+    presentationFormat,
+    options.width,
+    options.height,
+    dataBuffer
+  );
+
   const particle = setupParticleResources(
     device,
     presentationFormat,
@@ -40,14 +49,16 @@ export async function setupFlowfieldRenderer(
     dataBuffer
   );
 
-  const background = setupBackgroundResources(
+  const composite = setupCompositeResources(
     device,
     presentationFormat,
-    dataBuffer
+    dataBuffer,
+    background.texture,
+    accumulation.textures.accumulationA,
+    accumulation.textures.accumulationB,
+    accumulation.textures.sampler,
   );
 
-  clearTextureToBlack(device, accumulation.textures.accumulationA);
-  clearTextureToBlack(device, accumulation.textures.background);
   const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const config = (() => {
@@ -136,9 +147,7 @@ export async function setupFlowfieldRenderer(
       computePass.setPipeline(particle.pipelines.compute);
       computePass.setBindGroup(
         0,
-        ping
-          ? particle.bindGroups.computeA
-          : particle.bindGroups.computeB
+        ping ? particle.bindGroups.computeA : particle.bindGroups.computeB
       );
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
@@ -179,7 +188,7 @@ export async function setupFlowfieldRenderer(
       accumulationPass.end();
 
       // render background into offscreen bgTexture (so composite shader can sample it)
-      const backgroundView = accumulation.textures.background.createView();
+      const backgroundView = background.texture.createView();
       (renderPassDescriptor as any).colorAttachments[0].view = backgroundView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       if (config.showBackgroundShader) {
@@ -203,13 +212,13 @@ export async function setupFlowfieldRenderer(
         ],
       };
       const compPass = encoder.beginRenderPass(compDesc);
-      compPass.setPipeline(accumulation.pipelines.composite);
+      compPass.setPipeline(composite.pipeline);
       // composite should sample the bgTexture and the newly-written accumulation (dst)
       compPass.setBindGroup(
         0,
         ping
-          ? accumulation.bindGroups.compositeB
-          : accumulation.bindGroups.compositeA
+          ? composite.compositeBindGroupB
+          : composite.compositeBindGroupA
       );
       compPass.draw(6);
       compPass.end();

@@ -1,14 +1,20 @@
 import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
 import fragmentWgslRaw from "../Flowfield/wgsl/fragment.wgsl?raw";
+import { clearTextureToBlack } from "./texture";
 
 export function setupBackgroundResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
+  width: number,
+  height: number,
   dataBuffer: GPUBuffer
 ) {
   const commonWgsl = commonWgslRaw;
   const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
-  const module = device.createShaderModule({ label: "flowfield shader", code: fragmentWgsl });
+  const module = device.createShaderModule({
+    label: "flowfield shader",
+    code: fragmentWgsl,
+  });
 
   const pipeline = device.createRenderPipeline({
     label: "background pipeline",
@@ -22,5 +28,16 @@ export function setupBackgroundResources(
     entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
 
-  return { pipeline, bindGroup };
+  const texture = device.createTexture({
+    size: { width, height, depthOrArrayLayers: 1 },
+    format: presentationFormat,
+    usage:
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_SRC,
+  });
+
+  clearTextureToBlack(device, texture);
+
+  return { pipeline, bindGroup, texture };
 }

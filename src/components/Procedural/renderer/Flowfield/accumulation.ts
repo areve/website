@@ -1,6 +1,6 @@
 import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
 import accFadeWgslRaw from "../../lib/wgsl/accFade.wgsl?raw";
-import compositeWgslRaw from "../../lib/wgsl/composite.wgsl?raw";
+import { clearTextureToBlack } from "./texture";
 
 export function setupAccumulationResources(
   device: GPUDevice,
@@ -26,14 +26,7 @@ export function setupAccumulationResources(
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.COPY_SRC,
   });
-  const background = device.createTexture({
-    size: { width, height, depthOrArrayLayers: 1 },
-    format: presentationFormat,
-    usage:
-      GPUTextureUsage.RENDER_ATTACHMENT |
-      GPUTextureUsage.TEXTURE_BINDING |
-      GPUTextureUsage.COPY_SRC,
-  });
+
   const sampler = device.createSampler({
     minFilter: "linear",
     magFilter: "linear",
@@ -48,19 +41,6 @@ export function setupAccumulationResources(
     fragment: {
       module: accFadeModule,
       entryPoint: "fs2",
-      targets: [{ format: presentationFormat }],
-    },
-    primitive: { topology: "triangle-list" },
-  });
-
-  const compositeWgsl = `${commonWgsl}\n${compositeWgslRaw}`;
-  const compositeModule = device.createShaderModule({ code: compositeWgsl });
-  const composite = device.createRenderPipeline({
-    layout: "auto",
-    vertex: { module: compositeModule, entryPoint: "vs3" },
-    fragment: {
-      module: compositeModule,
-      entryPoint: "fs3",
       targets: [{ format: presentationFormat }],
     },
     primitive: { topology: "triangle-list" },
@@ -83,33 +63,14 @@ export function setupAccumulationResources(
     ],
   });
 
-  const compositeA = device.createBindGroup({
-    layout: composite.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: sampler },
-      { binding: 2, resource: background.createView() },
-      { binding: 3, resource: accumulationA.createView() },
-    ],
-  });
-  const compositeB = device.createBindGroup({
-    layout: composite.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: sampler },
-      { binding: 2, resource: background.createView() },
-      { binding: 3, resource: accumulationB.createView() },
-    ],
-  });
+  clearTextureToBlack(device, accumulationA);
 
   return {
-    pipelines: { accumulationFade, composite },
-    textures: { accumulationA, accumulationB, background, sampler },
+    pipelines: { accumulationFade },
+    textures: { accumulationA, accumulationB, sampler },
     bindGroups: {
       accumulationA: accumulationA_bg,
       accumulationB: accumulationB_bg,
-      compositeA,
-      compositeB,
     },
   };
 }

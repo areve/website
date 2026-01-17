@@ -83,13 +83,7 @@ export async function setupFlowfieldRenderer(
   clearTextureToBlack(device, textures.accumulationA);
   clearTextureToBlack(device, textures.background);
 
-  const bindGroups = setupBindGroups(device, pipelines, buffers, {
-    accumulationTextureA: textures.accumulationA,
-    accumulationTextureB: textures.accumulationB,
-    backgroundTexture: textures.background,
-    sampler: textures.sampler,
-  });
-
+  const bindGroups = setupBindGroups(device, pipelines, buffers, textures);
   const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const api = {
@@ -125,7 +119,7 @@ export async function setupFlowfieldRenderer(
 
       // --- GPU particle integration via compute shader ---
       const now = performance.now();
-      const dt = Math.max(0.001, (now - lastFrameTime) / 1000);
+      const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
       // write compute params: dt, speed, eps, maxStep, rotateAngle
@@ -143,7 +137,7 @@ export async function setupFlowfieldRenderer(
       // write sharedData again so fragment pipelines/readers see the updated rotation this frame
       device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
       const paramsArray = new Float32Array([
-        dt,
+        deltaTime,
         config.particleSpeed,
         config.eps,
         maxStep,
@@ -409,9 +403,9 @@ function setupBindGroups(
     dataBuffer: GPUBuffer;
   },
   textures: {
-    accumulationTextureA: GPUTexture;
-    accumulationTextureB: GPUTexture;
-    backgroundTexture: GPUTexture;
+    accumulationA: GPUTexture;
+    accumulationB: GPUTexture;
+    background: GPUTexture;
     sampler: GPUSampler;
   }
 ) {
@@ -425,7 +419,7 @@ function setupBindGroups(
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: textures.sampler },
-      { binding: 2, resource: textures.accumulationTextureA.createView() },
+      { binding: 2, resource: textures.accumulationA.createView() },
     ],
   });
   const accumulationB = device.createBindGroup({
@@ -433,7 +427,7 @@ function setupBindGroups(
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: textures.sampler },
-      { binding: 2, resource: textures.accumulationTextureB.createView() },
+      { binding: 2, resource: textures.accumulationB.createView() },
     ],
   });
 
@@ -442,8 +436,8 @@ function setupBindGroups(
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: textures.sampler },
-      { binding: 2, resource: textures.backgroundTexture.createView() },
-      { binding: 3, resource: textures.accumulationTextureA.createView() },
+      { binding: 2, resource: textures.background.createView() },
+      { binding: 3, resource: textures.accumulationA.createView() },
     ],
   });
   const compositeB = device.createBindGroup({
@@ -451,8 +445,8 @@ function setupBindGroups(
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: textures.sampler },
-      { binding: 2, resource: textures.backgroundTexture.createView() },
-      { binding: 3, resource: textures.accumulationTextureB.createView() },
+      { binding: 2, resource: textures.background.createView() },
+      { binding: 3, resource: textures.accumulationB.createView() },
     ],
   });
 

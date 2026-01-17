@@ -5,6 +5,20 @@ import particleWgslRaw from "./Flowfield/wgsl/particle.wgsl?raw";
 import accFadeWgslRaw from "../lib/wgsl/accFade.wgsl?raw";
 import compositeWgslRaw from "../lib/wgsl/composite.wgsl?raw";
 
+const config = (() => {
+  const particleCount = 5000;
+  const workgroupSize = 64;
+  return {
+    particleCount,
+    particleSpeed: 2.5,
+    particlePixelSize: 5.0,
+    workgroupSize,
+    workgroups: Math.ceil(particleCount / workgroupSize),
+    eps: 0.25,
+    showBackgroundShader: false,
+  } as const;
+})();
+
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
   options: {
@@ -41,27 +55,23 @@ export async function setupFlowfieldRenderer(
     },
   };
 
-  const PARTICLE_COUNT = 5000;
-  const PARTICLE_SPEED = 2.5;
-  const PARTICLE_PIXEL_SIZE = 5.0;
-  const WORKGROUP_SIZE = 64;
-  const WORKGROUPS = Math.ceil(PARTICLE_COUNT / WORKGROUP_SIZE);
-  const EPS = 0.25;
-  const SHOW_BACKGROUND_SHADER = false;
-
   canvas.width = options.width;
   canvas.height = options.height;
 
-  const { device, context, presentationFormat } = await setupDeviceAndContext(
-    canvas
-  );
   const {
+    //
+    device,
+    context,
+    presentationFormat,
+  } = await setupDeviceAndContext(canvas);
+  const {
+    //
     particleBufferSize,
     particleBufferA,
     particleBufferB,
     paramsBuffer,
     dataBuffer,
-  } = setupBuffers(device, sharedData, PARTICLE_COUNT);
+  } = setupBuffers(device, sharedData, config.particleCount);
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
@@ -80,8 +90,8 @@ export async function setupFlowfieldRenderer(
   } = setupPipelines(
     device,
     presentationFormat,
-    PARTICLE_COUNT,
-    PARTICLE_PIXEL_SIZE
+    config.particleCount,
+    config.particlePixelSize
   );
 
   const {
@@ -143,7 +153,7 @@ export async function setupFlowfieldRenderer(
       const computePass = encoder.beginComputePass();
       computePass.setPipeline(computeInitPipeline);
       computePass.setBindGroup(0, computeInitBindGroup);
-      computePass.dispatchWorkgroups(WORKGROUPS);
+      computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
@@ -184,7 +194,7 @@ export async function setupFlowfieldRenderer(
       lastFrameTime = now;
 
       // write compute params: dt, speed, eps, maxStep, rotateAngle
-      const maxStep = EPS * 0.6;
+      const maxStep = config.eps * 0.6;
       // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
       if (data && typeof (data as any).rotation === "number") {
         // invert sign so positive rotation in the UI rotates the field the intuitive way
@@ -199,8 +209,8 @@ export async function setupFlowfieldRenderer(
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       const paramsArray = new Float32Array([
         dt,
-        PARTICLE_SPEED,
-        EPS,
+        config.particleSpeed,
+        config.eps,
         maxStep,
         rotateState,
       ]);
@@ -221,7 +231,7 @@ export async function setupFlowfieldRenderer(
       const computePass = encoder.beginComputePass();
       computePass.setPipeline(computePipeline);
       computePass.setBindGroup(0, ping ? computeBindGroupA : computeBindGroupB);
-      computePass.dispatchWorkgroups(WORKGROUPS);
+      computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
       // choose which acc textures are src/dst based on accPing
@@ -256,14 +266,14 @@ export async function setupFlowfieldRenderer(
         0,
         ping ? particleRenderBindGroupA : particleRenderBindGroupB
       );
-      accumulationPass.draw(6, PARTICLE_COUNT);
+      accumulationPass.draw(6, config.particleCount);
       accumulationPass.end();
 
       // render background into offscreen bgTexture (so composite shader can sample it)
       const bgView = backgroundTexture.createView();
       (renderPassDescriptor as any).colorAttachments[0].view = bgView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
-      if (SHOW_BACKGROUND_SHADER) {
+      if (config.showBackgroundShader) {
         pass.setPipeline(pipeline);
         pass.setBindGroup(0, bindGroup);
         pass.draw(6);

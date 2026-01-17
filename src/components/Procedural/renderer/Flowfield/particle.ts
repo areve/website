@@ -2,15 +2,14 @@ import commonWgslRaw from "../../lib/wgsl/common.wgsl?raw";
 import computeWgslRaw from "../Flowfield/wgsl/compute.wgsl?raw";
 import particleWgslRaw from "../Flowfield/wgsl/particle.wgsl?raw";
 
+const config = {
+  particleCount: 5000,
+  particlePixelSize: 5.0,
+};
+
 export function setupParticleResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  config: {
-
-
-    particleCount: number,
-    particlePixelSize: number,
-  },
   dataBuffer: GPUBuffer
 ) {
   const commonWgsl = commonWgslRaw;
@@ -38,12 +37,24 @@ export function setupParticleResources(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{particleCount\}i/g, `${config.particleCount}i`)}`;
+  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(
+    /\$\{particleCount\}i/g,
+    `${config.particleCount}i`
+  )}`;
   const computeModule = device.createShaderModule({ code: computeWgsl });
-  const compute = device.createComputePipeline({ layout: "auto", compute: { module: computeModule, entryPoint: "cs" } });
-  const computeInit = device.createComputePipeline({ layout: "auto", compute: { module: computeModule, entryPoint: "init" } });
+  const compute = device.createComputePipeline({
+    layout: "auto",
+    compute: { module: computeModule, entryPoint: "cs" },
+  });
+  const computeInit = device.createComputePipeline({
+    layout: "auto",
+    compute: { module: computeModule, entryPoint: "init" },
+  });
 
-  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{particlePixelSize\}/g, `${config.particlePixelSize}`)}`;
+  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(
+    /\$\{particlePixelSize\}/g,
+    `${config.particlePixelSize}`
+  )}`;
   const particleModule = device.createShaderModule({ code: particleWgsl });
   const particle = device.createRenderPipeline({
     layout: "auto",
@@ -109,7 +120,14 @@ export function setupParticleResources(
 
   return {
     pipelines: { compute, computeInit, particle },
-    bindGroups: { computeA, computeB, computeInit: computeInitBind, particleRenderA, particleRenderB },
+    bindGroups: {
+      computeA,
+      computeB,
+      computeInit: computeInitBind,
+      particleRenderA,
+      particleRenderB,
+    },
     buffers: { particleBufferA, particleBufferB, paramsBuffer },
+    config
   };
 }

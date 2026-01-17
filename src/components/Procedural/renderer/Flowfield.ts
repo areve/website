@@ -12,23 +12,7 @@ export async function setupFlowfieldRenderer(
     scale?: number;
   }
 ) {
-  const particleConfig = (() => {
-    return {
-      particleCount: 5000,
-      particlePixelSize: 5.0,
-    } as const;
-  })();
 
-  const config = (() => {
-    const workgroupSize = 64;
-    return {
-      particleSpeed: 2.5,
-      workgroupSize,
-      workgroups: Math.ceil(particleConfig.particleCount / workgroupSize),
-      eps: 0.25,
-      showBackgroundShader: true,
-    } as const;
-  })();
 
   canvas.width = options.width;
   canvas.height = options.height;
@@ -44,7 +28,6 @@ export async function setupFlowfieldRenderer(
   const particle = setupParticleResources(
     device,
     presentationFormat,
-    particleConfig,
     dataBuffer
   );
 
@@ -65,6 +48,17 @@ export async function setupFlowfieldRenderer(
   clearTextureToBlack(device, accumulation.textures.accumulationA);
   clearTextureToBlack(device, accumulation.textures.background);
   const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
+
+  const config = (() => {
+    const workgroupSize = 64;
+    return {
+      particleSpeed: 2.5,
+      workgroupSize,
+      workgroups: Math.ceil(particle.config.particleCount / workgroupSize),
+      eps: 0.25,
+      showBackgroundShader: true,
+    } as const;
+  })();
 
   const api = {
     async init() {
@@ -180,7 +174,7 @@ export async function setupFlowfieldRenderer(
           ? particle.bindGroups.particleRenderA
           : particle.bindGroups.particleRenderB
       );
-      accumulationPass.draw(6, particleConfig.particleCount);
+      accumulationPass.draw(6, particle.config.particleCount);
       accumulationPass.end();
 
       // render background into offscreen bgTexture (so composite shader can sample it)

@@ -23,7 +23,7 @@ export function setupCompositeResources(
     primitive: { topology: "triangle-list" },
   });
 
-  const compositeBindGroupA = device.createBindGroup({
+  const bindGroupA = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: dataBuffer } },
@@ -32,7 +32,7 @@ export function setupCompositeResources(
       { binding: 3, resource: accumulationA.createView() },
     ],
   });
-  const compositeBindGroupB = device.createBindGroup({
+  const bindGroupB = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: dataBuffer } },
@@ -42,5 +42,5 @@ export function setupCompositeResources(
     ],
   });
 
-  return { pipeline, compositeBindGroupA, compositeBindGroupB };
+  return { pipeline, bindGroupA, bindGroupB };
 }

@@ -51,9 +51,9 @@ export async function setupFlowfieldRenderer(
     presentationFormat,
     dataBuffer,
     background.texture,
-    accumulation.textures.accumulationA,
-    accumulation.textures.accumulationB,
-    accumulation.textures.sampler
+    accumulation.textureA,
+    accumulation.textureB,
+    accumulation.sampler
   );
 
   const config = (() => {
@@ -77,7 +77,7 @@ export async function setupFlowfieldRenderer(
       const encoder = device.createCommandEncoder();
       const computePass = encoder.beginComputePass();
       computePass.setPipeline(particle.pipelines.computeInit);
-      computePass.setBindGroup(0, particle.bindGroups.computeInit);
+      computePass.setBindGroup(0, particle.bindGroups.computeInitBindGroup);
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       device.queue.submit([encoder.finish()]);
@@ -153,8 +153,8 @@ export async function setupFlowfieldRenderer(
       // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
       // choose which acc textures are src/dst based on accPing
       const accumulationDstView = ping
-        ? accumulation.textures.accumulationB.createView()
-        : accumulation.textures.accumulationA.createView();
+        ? accumulation.textureB.createView()
+        : accumulation.textureA.createView();
       const accumulationPassDesc: GPURenderPassDescriptor = {
         colorAttachments: [
           {
@@ -167,12 +167,10 @@ export async function setupFlowfieldRenderer(
       };
       const accumulationPass = encoder.beginRenderPass(accumulationPassDesc);
       // fade previous accumulation into dst
-      accumulationPass.setPipeline(accumulation.pipelines.accumulationFade);
+      accumulationPass.setPipeline(accumulation.pipeline);
       accumulationPass.setBindGroup(
         0,
-        ping
-          ? accumulation.bindGroups.accumulationA
-          : accumulation.bindGroups.accumulationB
+        ping ? accumulation.bindGroupA : accumulation.bindGroupB
       );
       accumulationPass.draw(6);
       // draw particles additively (semi-transparent) onto accumulation
@@ -215,7 +213,7 @@ export async function setupFlowfieldRenderer(
       // composite should sample the bgTexture and the newly-written accumulation (dst)
       compPass.setBindGroup(
         0,
-        ping ? composite.compositeBindGroupB : composite.compositeBindGroupA
+        ping ? composite.bindGroupB : composite.bindGroupA
       );
       compPass.draw(6);
       compPass.end();

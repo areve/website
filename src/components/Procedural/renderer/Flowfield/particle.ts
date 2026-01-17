@@ -95,7 +95,7 @@ export function setupParticleResources(
     ],
   });
 
-  const computeInitBind = device.createBindGroup({
+  const computeInitBindGroup = device.createBindGroup({
     layout: computeInit.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: dataBuffer } },
@@ -119,15 +119,15 @@ export function setupParticleResources(
   });
 
   return {
+    config,
     pipelines: { compute, computeInit, particle },
     bindGroups: {
       computeA,
       computeB,
-      computeInit: computeInitBind,
+      computeInitBindGroup,
       particleRenderA,
       particleRenderB,
     },
     buffers: { particleBufferA, particleBufferB, paramsBuffer },
-    config
   };
 }

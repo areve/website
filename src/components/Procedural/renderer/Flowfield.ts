@@ -12,20 +12,23 @@ export async function setupFlowfieldRenderer(
     scale?: number;
   }
 ) {
+  const particleConfig = (() => {
+    return {
+      particleCount: 5000,
+      particlePixelSize: 5.0,
+    } as const;
+  })();
+
   const config = (() => {
-    const particleCount = 5000;
     const workgroupSize = 64;
     return {
-      particleCount,
       particleSpeed: 2.5,
-      particlePixelSize: 5.0,
       workgroupSize,
-      workgroups: Math.ceil(particleCount / workgroupSize),
+      workgroups: Math.ceil(particleConfig.particleCount / workgroupSize),
       eps: 0.25,
       showBackgroundShader: true,
     } as const;
   })();
-
 
   canvas.width = options.width;
   canvas.height = options.height;
@@ -41,8 +44,7 @@ export async function setupFlowfieldRenderer(
   const particleThings = setupParticleResources(
     device,
     presentationFormat,
-    config.particleCount,
-    config.particlePixelSize,
+    particleConfig,
     dataBuffer
   );
 
@@ -178,7 +180,7 @@ export async function setupFlowfieldRenderer(
           ? particleThings.bindGroups.particleRenderA
           : particleThings.bindGroups.particleRenderB
       );
-      accumulationPass.draw(6, config.particleCount);
+      accumulationPass.draw(6, particleConfig.particleCount);
       accumulationPass.end();
 
       // render background into offscreen bgTexture (so composite shader can sample it)
@@ -235,8 +237,6 @@ async function setupWebGpu(canvasEl: HTMLCanvasElement) {
   context.configure({ device, format: presentationFormat });
   return { device, context, presentationFormat };
 }
-
-
 
 function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
   const commandEncoder = device.createCommandEncoder();

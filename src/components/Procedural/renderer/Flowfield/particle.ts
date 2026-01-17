@@ -5,14 +5,18 @@ import particleWgslRaw from "../Flowfield/wgsl/particle.wgsl?raw";
 export function setupParticleResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  particleCount: number,
-  particlePixelSize: number,
+  config: {
+
+
+    particleCount: number,
+    particlePixelSize: number,
+  },
   dataBuffer: GPUBuffer
 ) {
   const commonWgsl = commonWgslRaw;
 
   // create particle-specific buffers here
-  const particleBufferSize = particleCount * 3 * 4;
+  const particleBufferSize = config.particleCount * 3 * 4;
   const particleBufferA = device.createBuffer({
     size: particleBufferSize,
     usage:
@@ -34,12 +38,12 @@ export function setupParticleResources(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
-  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{particleCount\}i/g, `${particleCount}i`)}`;
+  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{particleCount\}i/g, `${config.particleCount}i`)}`;
   const computeModule = device.createShaderModule({ code: computeWgsl });
   const compute = device.createComputePipeline({ layout: "auto", compute: { module: computeModule, entryPoint: "cs" } });
   const computeInit = device.createComputePipeline({ layout: "auto", compute: { module: computeModule, entryPoint: "init" } });
 
-  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{particlePixelSize\}/g, `${particlePixelSize}`)}`;
+  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{particlePixelSize\}/g, `${config.particlePixelSize}`)}`;
   const particleModule = device.createShaderModule({ code: particleWgsl });
   const particle = device.createRenderPipeline({
     layout: "auto",

@@ -31,7 +31,6 @@ export async function setupFlowfieldRenderer(
   const webGpu = await setupWebGpu(canvas);
   const { device, context, presentationFormat } = webGpu;
   const { dataBuffer, sharedData } = setupSharedResources(device, options);
-  const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const background = setupBackgroundResources(
     device,
@@ -114,7 +113,6 @@ export async function setupFlowfieldRenderer(
       lastFrameTime = now;
 
       // build a single command encoder with compute then render passes
-      colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({
         label: "compute+render encoder",
       });
@@ -131,7 +129,7 @@ export async function setupFlowfieldRenderer(
         device
       );
       accumulationDoStuff(ping, encoder, accumulation, particle);
-      backgroundDoStuff(encoder, renderPassDescriptor, background);
+      backgroundDoStuff(encoder, background);
       compositeDoStuff(context, encoder, composite, ping);
 
       const commandBuffer = encoder.finish();
@@ -141,19 +139,4 @@ export async function setupFlowfieldRenderer(
     },
   };
   return api;
-}
-
-function setupColorAttachments() {
-  const colorAttachment: GPURenderPassColorAttachment = {
-    view: undefined! as GPUTextureView,
-    clearValue: [0.0, 0.0, 0.0, 1],
-    loadOp: "clear",
-    storeOp: "store",
-  };
-
-  const renderPassDescriptor: GPURenderPassDescriptor = {
-    label: "our basic canvas renderPass",
-    colorAttachments: [colorAttachment],
-  };
-  return { colorAttachment, renderPassDescriptor };
 }

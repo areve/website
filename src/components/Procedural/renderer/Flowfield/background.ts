@@ -41,24 +41,46 @@ export function setupBackgroundResources(
       GPUTextureUsage.COPY_SRC,
   });
 
+  const colorAttachment: GPURenderPassColorAttachment = {
+    view: undefined! as GPUTextureView,
+    clearValue: [0.0, 0.0, 0.0, 1],
+    loadOp: "clear",
+    storeOp: "store",
+  };
+
+  const renderPassDescriptor: GPURenderPassDescriptor = {
+    label: "our basic canvas renderPass",
+    colorAttachments: [colorAttachment],
+  };
+
   clearTextureToBlack(device, texture);
 
-  return { pipeline, bindGroup, texture };
+  return {
+    pipeline,
+    bindGroup,
+    texture,
+    colorAttachment,
+    renderPassDescriptor,
+  };
 }
 
 export function backgroundDoStuff(
   encoder: GPUCommandEncoder,
-  renderPassDescriptor: GPURenderPassDescriptor,
   background: {
     pipeline: GPURenderPipeline;
     bindGroup: GPUBindGroup;
     texture: GPUTexture;
+    colorAttachment: GPURenderPassColorAttachment;
+    renderPassDescriptor: GPURenderPassDescriptor;
   }
 ) {
   // render background into offscreen bgTexture (so composite shader can sample it)
   const backgroundView = background.texture.createView();
-  (renderPassDescriptor as any).colorAttachments[0].view = backgroundView;
-  const pass = encoder.beginRenderPass(renderPassDescriptor);
+  // the following line did nothing
+  //  colorAttachment.view = context.getCurrentTexture().createView();
+  (background.renderPassDescriptor as any).colorAttachments[0].view =
+    backgroundView;
+  const pass = encoder.beginRenderPass(background.renderPassDescriptor);
   if (config.showBackgroundShader) {
     pass.setPipeline(background.pipeline);
     pass.setBindGroup(0, background.bindGroup);

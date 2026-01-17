@@ -22,10 +22,7 @@ export async function setupFlowfieldRenderer(
   const webGpu = await setupWebGpu(canvas);
   const { device, context, presentationFormat } = webGpu;
   const { dataBuffer, sharedData } = setupSharedResources(device, options);
-
-  let ping = true; // ping-pong flag
-  let lastFrameTime = performance.now();
-  let rotateState = 0.0;
+  const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const background = setupBackgroundResources(
     device,
@@ -56,10 +53,8 @@ export async function setupFlowfieldRenderer(
     background.texture,
     accumulation.textures.accumulationA,
     accumulation.textures.accumulationB,
-    accumulation.textures.sampler,
+    accumulation.textures.sampler
   );
-
-  const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const config = (() => {
     const workgroupSize = 64;
@@ -71,6 +66,10 @@ export async function setupFlowfieldRenderer(
       showBackgroundShader: true,
     } as const;
   })();
+
+  let ping = true; // ping-pong flag
+  let lastFrameTime = performance.now();
+  let rotateState = 0.0;
 
   const api = {
     async init() {
@@ -216,9 +215,7 @@ export async function setupFlowfieldRenderer(
       // composite should sample the bgTexture and the newly-written accumulation (dst)
       compPass.setBindGroup(
         0,
-        ping
-          ? composite.compositeBindGroupB
-          : composite.compositeBindGroupA
+        ping ? composite.compositeBindGroupB : composite.compositeBindGroupA
       );
       compPass.draw(6);
       compPass.end();

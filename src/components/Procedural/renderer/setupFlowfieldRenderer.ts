@@ -54,24 +54,11 @@ export async function setupFlowfieldRenderer(
   const PARTICLE_COUNT = 5000;
   const PARTICLE_SPEED = 2.5;
   // epsilon used for centered finite-difference sampling of the noise field
-  // (used to approximate derivatives / gradient of the noise). Renamed to
-  // DERIV_EPS for clarity.
-  const DERIV_EPS = 0.25;
+  // (used to approximate derivatives / gradient of the noise).
+  const EPS = 0.25;
   // Toggle whether the background shader is rendered under the particles.
   // Set to `false` for a plain black background.
   const SHOW_BACKGROUND_SHADER = false;
-
-  function worldToPixel(wx: number, wy: number) {
-    const px = (wx - sharedData.x / sharedData.scale) * sharedData.scale / sharedData.zoom;
-    const py = (wy - sharedData.y / sharedData.scale) * sharedData.scale / sharedData.zoom;
-    return [px, py];
-  }
-
-  function pixelToWorld(px: number, py: number) {
-    const wx = px / sharedData.scale * sharedData.zoom + sharedData.x / sharedData.scale;
-    const wy = py / sharedData.scale * sharedData.zoom + sharedData.y / sharedData.scale;
-    return [wx, wy];
-  }
 
   const particleBufferSize = PARTICLE_COUNT * 3 * 4; // 3 floats per particle (x,y,life)
   const particleBufferA = device.createBuffer({
@@ -707,7 +694,7 @@ export async function setupFlowfieldRenderer(
       lastFrameTime = now;
 
       // write compute params: dt, speed, eps, maxStep, rotateAngle
-      const maxStep = DERIV_EPS * 0.6;
+      const maxStep = EPS * 0.6;
       // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
       if (data && typeof (data as any).rotation === 'number') {
         // invert sign so positive rotation in the UI rotates the field the intuitive way
@@ -720,7 +707,7 @@ export async function setupFlowfieldRenderer(
       sharedData.rotate = rotateState;
       // write sharedData again so fragment pipelines/readers see the updated rotation this frame
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
-      const paramsArray = new Float32Array([dt, PARTICLE_SPEED, DERIV_EPS, maxStep, rotateState]);
+      const paramsArray = new Float32Array([dt, PARTICLE_SPEED, EPS, maxStep, rotateState]);
       device.queue.writeBuffer(paramsBuffer, 0, paramsArray.buffer, paramsArray.byteOffset, paramsArray.byteLength);
 
       // build a single command encoder with compute then render passes

@@ -22,21 +22,21 @@ export async function setupFlowfieldRenderer(
     zoom: 1,
     rotate: 0.0,
     asBuffer() {
-      // pad to vec4 boundaries so WGSL uniform layout matches expectation
-      return new Float32Array([
-        this.width,
-        this.height,
-        this.seed,
-        this.scale,
-        this.x,
-        this.y,
-        this.z,
-        this.zoom,
-        this.rotate,
-        0.0,
-        0.0,
-        0.0,
-      ]);
+      // Return a Float32Array view over an ArrayBuffer so we can write seed as a u32
+      const buf = new ArrayBuffer(12 * 4);
+      const f32 = new Float32Array(buf);
+      const u32 = new Uint32Array(buf);
+      f32[0] = this.width;
+      f32[1] = this.height;
+      u32[2] = (this.seed as number) >>> 0; // write seed as u32 into same slot
+      f32[3] = this.scale;
+      f32[4] = this.x;
+      f32[5] = this.y;
+      f32[6] = this.z;
+      f32[7] = this.zoom;
+      f32[8] = this.rotate;
+      // remaining slots are already zero-initialized
+      return f32;
     },
   };
 
@@ -89,7 +89,7 @@ export async function setupFlowfieldRenderer(
     struct Uniforms {
       width: f32,
       height: f32,
-      seed: f32,
+      seed: u32,
       scale: f32,
       x: f32,
       y: f32,
@@ -233,8 +233,8 @@ export async function setupFlowfieldRenderer(
       // uniform-random seeding (deterministic per-index via noise)
       let idf = f32(idx);
       // use uniform noise (previously openSimplex) to get unbiased per-index u/v in [0,1]
-      let rx = noise(vec4f(idf * 0.618, idf * 1.731, data.seed, 0.0));
-      let ry = noise(vec4f(idf * 1.357, idf * 0.271, data.seed, 1.0));
+      let rx = noise(vec4f(idf * 0.618, idf * 1.731, f32(data.seed), 0.0));
+      let ry = noise(vec4f(idf * 1.357, idf * 0.271, f32(data.seed), 1.0));
       var px = rx * data.width;
       var py = ry * data.height;
       // guard against non-finite values
@@ -245,7 +245,7 @@ export async function setupFlowfieldRenderer(
       var ny = py / scl * data.zoom + data.y / scl;
       // stagger initial activation with per-index noise
       let spawnSpread: f32 = 6.0;
-      let rand = noise(vec4f(idf * 0.93, idf * 0.31, data.seed, 2.0));
+      let rand = noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0));
       let delay = rand * spawnSpread;
       let life = -delay;
       particlesOut[idx] = vec3<f32>(nx, ny, life);
@@ -308,8 +308,8 @@ export async function setupFlowfieldRenderer(
       if (needRespawn) {
         // uniform-random respawn: deterministic per-index noise
         let idf = f32(idx);
-        let rx = noise(vec4f(idf * 0.618, idf * 1.731, data.seed, 0.0));
-        let ry = noise(vec4f(idf * 1.357, idf * 0.271, data.seed, 1.0));
+        let rx = noise(vec4f(idf * 0.618, idf * 1.731, f32(data.seed), 0.0));
+        let ry = noise(vec4f(idf * 1.357, idf * 0.271, f32(data.seed), 1.0));
         var px = rx * data.width;
         var py = ry * data.height;
         if (px != px) { px = 0.0; }
@@ -318,7 +318,7 @@ export async function setupFlowfieldRenderer(
         nx = px / scl * data.zoom + data.x / scl;
         ny = py / scl * data.zoom + data.y / scl;
         // keep respawn positions in world coordinates; sampleFlow will handle rotation
-        life = 1.0 + noise(vec4f(idf * 0.93, idf * 0.31, data.seed, 2.0)) * 3.0;
+        life = 1.0 + noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0)) * 3.0;
       }
 
       particlesOut[idx] = vec3<f32>(nx, ny, life);

@@ -2,6 +2,10 @@ import commonWgslRaw from "./wgsl/common.wgsl?raw";
 import fragmentWgslRaw from "../Flowfield/wgsl/fragment.wgsl?raw";
 import { clearTextureToBlack } from "./texture";
 
+const config = {
+  showBackgroundShader: true,
+};
+
 export function setupBackgroundResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
@@ -45,13 +49,10 @@ export function setupBackgroundResources(
 export function backgroundDoStuff(
   encoder: GPUCommandEncoder,
   renderPassDescriptor: GPURenderPassDescriptor,
-  background: { pipeline: any; bindGroup: any; texture: any },
-  config: {
-    particleSpeed?: 2.5;
-    workgroupSize?: 64;
-    workgroups?: number;
-    eps?: 0.25;
-    showBackgroundShader: any;
+  background: {
+    pipeline: GPURenderPipeline;
+    bindGroup: GPUBindGroup;
+    texture: GPUTexture;
   }
 ) {
   // render background into offscreen bgTexture (so composite shader can sample it)

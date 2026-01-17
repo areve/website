@@ -3,12 +3,18 @@ import {
   setupAccumulationResources,
 } from "./Flowfield/accumulation";
 import { particleDoStuff, setupParticleResources } from "./Flowfield/particle";
-import { backgroundDoStuff, setupBackgroundResources } from "./Flowfield/background";
+import {
+  backgroundDoStuff,
+  setupBackgroundResources,
+} from "./Flowfield/background";
 import { setupShared as setupSharedResources } from "./Flowfield/shared";
 import { copyBuffer } from "./Flowfield/buffer";
 import { clearTextureToBlack } from "./Flowfield/texture";
 import { setupWebGpu } from "./Flowfield/webgpu";
-import { setupCompositeResources } from "./Flowfield/composite";
+import {
+  compositeDoStuff,
+  setupCompositeResources,
+} from "./Flowfield/composite";
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -60,11 +66,8 @@ export async function setupFlowfieldRenderer(
   );
 
   const config = (() => {
-    const workgroupSize = 64;
     return {
       particleSpeed: 2.5,
-      workgroupSize,
-      workgroups: Math.ceil(particle.config.particleCount / workgroupSize),
       eps: 0.25,
       showBackgroundShader: true,
     } as const;
@@ -81,7 +84,7 @@ export async function setupFlowfieldRenderer(
       const computePass = encoder.beginComputePass();
       computePass.setPipeline(particle.pipelines.computeInit);
       computePass.setBindGroup(0, particle.bindGroups.computeInitBindGroup);
-      computePass.dispatchWorkgroups(config.workgroups);
+      computePass.dispatchWorkgroups(particle.config.workgroups);
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
@@ -110,66 +113,27 @@ export async function setupFlowfieldRenderer(
       const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
-      // write compute params: dt, speed, eps, maxStep, rotateAngle
-      const maxStep = config.eps * 0.6;
-      // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
-      if (data && typeof (data as any).rotation === "number") {
-        // invert sign so positive rotation in the UI rotates the field the intuitive way
-        rotateState = -(data as any).rotation;
-      } else if (data && typeof (data as any).rotate !== "undefined") {
-        // boolean 90deg toggle: true -> -90deg to match UI expectation
-        rotateState = (data as any).rotate ? -Math.PI / 2.0 : 0.0;
-      }
-      // ensure the uniform shared data exposes the same rotate value for fragment shaders
-      sharedData.rotate = rotateState;
-      // write sharedData again so fragment pipelines/readers see the updated rotation this frame
-      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
-      const paramsArray = new Float32Array([
-        deltaTime,
-        config.particleSpeed,
-        config.eps,
-        maxStep,
-        rotateState,
-      ]);
-      device.queue.writeBuffer(
-        particle.buffers.paramsBuffer,
-        0,
-        paramsArray.buffer,
-        paramsArray.byteOffset,
-        paramsArray.byteLength
-      );
-
       // build a single command encoder with compute then render passes
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({
         label: "compute+render encoder",
       });
 
-      particleDoStuff(ping, encoder, particle, config);
-      accumulationDoStuff(ping, encoder, accumulation, particle);
-      backgroundDoStuff(encoder, renderPassDescriptor, background, config);
-
-      // composite accumulation onto swapchain (sample bgTexture + accumulation and write multiplied result)
-      const swapView = context.getCurrentTexture().createView();
-      const compDesc: GPURenderPassDescriptor = {
-        colorAttachments: [
-          {
-            view: swapView,
-            loadOp: "clear",
-            storeOp: "store",
-            clearValue: [0, 0, 0, 1],
-          },
-        ],
-      };
-      const compPass = encoder.beginRenderPass(compDesc);
-      compPass.setPipeline(composite.pipeline);
-      // composite should sample the bgTexture and the newly-written accumulation (dst)
-      compPass.setBindGroup(
-        0,
-        ping ? composite.bindGroupB : composite.bindGroupA
+      particleDoStuff(
+        ping,
+        encoder,
+        particle,
+        deltaTime,
+        data,
+        rotateState,
+        sharedData,
+        dataBuffer,
+        device,
+        config
       );
-      compPass.draw(6);
-      compPass.end();
+      accumulationDoStuff(ping, encoder, accumulation, particle);
+      backgroundDoStuff(encoder, renderPassDescriptor, background);
+      compositeDoStuff(context, encoder, composite, ping);
 
       const commandBuffer = encoder.finish();
       device.queue.submit([commandBuffer]);

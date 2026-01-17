@@ -2,9 +2,14 @@ import commonWgsl from "./wgsl/common.wgsl?raw";
 import computeWgsl from "../Flowfield/wgsl/compute.wgsl?raw";
 import particleWgslRaw from "../Flowfield/wgsl/particle.wgsl?raw";
 
+const workgroupSize = 64;
+const particleCount = 5000;
 const config = {
-  particleCount: 5000,
+  particleCount,
   particlePixelSize: 5.0,
+  workgroups: Math.ceil(particleCount / workgroupSize),
+  eps: 0.25,
+  particleSpeed: 2.5,
 };
 
 export function setupParticleResources(
@@ -134,23 +139,69 @@ export function particleDoStuff(
   ping: boolean,
   encoder: GPUCommandEncoder,
   particle: {
-    config?: { particleCount: number; particlePixelSize: number };
     pipelines: any;
     bindGroups: any;
-    buffers?: {
+    buffers: {
       particleBufferA: GPUBuffer;
       particleBufferB: GPUBuffer;
       paramsBuffer: GPUBuffer;
     };
+    config: {
+      particleCount: number;
+      eps: any;
+      particleSpeed: number;
+      workgroups: number;
+    };
   },
-  config: {
-    particleSpeed?: 2.5;
-    workgroupSize?: 64;
-    workgroups: any;
-    eps?: 0.25;
-    showBackgroundShader?: true;
-  }
+  deltaTime: number,
+  data:
+    | { x?: number; y?: number; rotate?: boolean | number; rotation?: number }
+    | undefined,
+  rotateState: number,
+  sharedData: {
+    width?: number;
+    height?: number;
+    seed?: number;
+    scale?: number;
+    x?: number;
+    y?: number;
+    z?: number;
+    zoom?: number;
+    rotate: any;
+    asBuffer: any;
+  },
+  dataBuffer: GPUBuffer,
+  device: GPUDevice
 ) {
+  // write compute params: dt, speed, eps, maxStep, rotateAngle
+  const maxStep = config.eps * 0.6;
+  // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
+  if (data && typeof (data as any).rotation === "number") {
+    // invert sign so positive rotation in the UI rotates the field the intuitive way
+    rotateState = -(data as any).rotation;
+  } else if (data && typeof (data as any).rotate !== "undefined") {
+    // boolean 90deg toggle: true -> -90deg to match UI expectation
+    rotateState = (data as any).rotate ? -Math.PI / 2.0 : 0.0;
+  }
+  // ensure the uniform shared data exposes the same rotate value for fragment shaders
+  sharedData.rotate = rotateState;
+  // write sharedData again so fragment pipelines/readers see the updated rotation this frame
+  device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
+  const paramsArray = new Float32Array([
+    deltaTime,
+    config.particleSpeed,
+    config.eps,
+    maxStep,
+    rotateState,
+  ]);
+  device.queue.writeBuffer(
+    particle.buffers.paramsBuffer,
+    0,
+    paramsArray.buffer,
+    paramsArray.byteOffset,
+    paramsArray.byteLength
+  );
+
   const computePass = encoder.beginComputePass();
   computePass.setPipeline(particle.pipelines.compute);
   computePass.setBindGroup(

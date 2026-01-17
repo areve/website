@@ -44,3 +44,33 @@ export function setupCompositeResources(
 
   return { pipeline, bindGroupA, bindGroupB };
 }
+
+export function compositeDoStuff(
+  context: GPUCanvasContext,
+  encoder: GPUCommandEncoder,
+  composite: {
+    pipeline: GPURenderPipeline;
+    bindGroupA: GPUBindGroup;
+    bindGroupB: GPUBindGroup;
+  },
+  ping: boolean
+) {
+  // composite accumulation onto swapchain (sample bgTexture + accumulation and write multiplied result)
+  const swapView = context.getCurrentTexture().createView();
+  const compDesc: GPURenderPassDescriptor = {
+    colorAttachments: [
+      {
+        view: swapView,
+        loadOp: "clear",
+        storeOp: "store",
+        clearValue: [0, 0, 0, 1],
+      },
+    ],
+  };
+  const compPass = encoder.beginRenderPass(compDesc);
+  compPass.setPipeline(composite.pipeline);
+  // composite should sample the bgTexture and the newly-written accumulation (dst)
+  compPass.setBindGroup(0, ping ? composite.bindGroupB : composite.bindGroupA);
+  compPass.draw(6);
+  compPass.end();
+}

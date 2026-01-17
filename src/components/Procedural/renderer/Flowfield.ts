@@ -58,92 +58,56 @@ export async function setupFlowfieldRenderer(
   canvas.width = options.width;
   canvas.height = options.height;
 
-  const { device, context, presentationFormat } = await setupDeviceAndContext(
-    canvas
-  );
-  const {
-    particleBufferSize,
-    particleBufferA,
-    particleBufferB,
-    paramsBuffer,
-    dataBuffer,
-  } = setupBuffers(device, sharedData, config.particleCount);
+  const webGpu = await setupWebGpu(canvas);
+  const { device, context, presentationFormat } = webGpu;
+  const buffers = setupBuffers(device, sharedData, config.particleCount);
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
   let rotateState = 0.0;
 
-  const {
-    module,
-    computeModule,
-    computePipeline,
-    computeInitPipeline,
-    particleModule,
-    particlePipeline,
-    pipeline,
-    accFadePipeline,
-    compositePipeline,
-  } = setupPipelines(
+  const pipelines = setupPipelines(
     device,
     presentationFormat,
     config.particleCount,
     config.particlePixelSize
   );
 
-  const {
-    accumulationTextureA,
-    accumulationTextureB,
-    backgroundTexture,
-    linearSampler,
-  } = setupTextures(device, options.width, options.height, presentationFormat);
-
-  clearTextureToBlack(device, accumulationTextureA);
-  clearTextureToBlack(device, backgroundTexture);
-
-  const {
-    bindGroup,
-    accumulationBindGroupA,
-    accumulationBindGroupB,
-    compositeBindGroupA,
-    compositeBindGroupB,
-    computeBindGroupA,
-    computeBindGroupB,
-    computeInitBindGroup,
-    particleRenderBindGroupA,
-    particleRenderBindGroupB,
-  } = setupBindGroups(
+  const textures = setupTextures(
     device,
-    {
-      pipeline,
-      accFadePipeline,
-      compositePipeline,
-      computePipeline,
-      computeInitPipeline,
-      particlePipeline,
-    },
-    { dataBuffer, particleBufferA, particleBufferB, paramsBuffer },
-    {
-      accumulationTextureA,
-      accumulationTextureB,
-      backgroundTexture,
-      linearSampler,
-    }
+    options.width,
+    options.height,
+    presentationFormat
   );
+
+  clearTextureToBlack(device, textures.accumulationA);
+  clearTextureToBlack(device, textures.background);
+
+  const bindGroups = setupBindGroups(device, pipelines, buffers, {
+    accumulationTextureA: textures.accumulationA,
+    accumulationTextureB: textures.accumulationB,
+    backgroundTexture: textures.background,
+    sampler: textures.sampler,
+  });
 
   const { colorAttachment, renderPassDescriptor } = setupColorAttachments();
 
   const api = {
     async init() {
-      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
       const encoder = device.createCommandEncoder();
       const computePass = encoder.beginComputePass();
-      computePass.setPipeline(computeInitPipeline);
-      computePass.setBindGroup(0, computeInitBindGroup);
+      computePass.setPipeline(pipelines.computeInit);
+      computePass.setBindGroup(0, bindGroups.computeInit);
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
-      await copyBuffer(device, particleBufferA, particleBufferB);
+      await copyBuffer(
+        device,
+        buffers.particleBufferA,
+        buffers.particleBufferB
+      );
       return device.queue.onSubmittedWorkDone();
     },
     async update(
@@ -157,7 +121,7 @@ export async function setupFlowfieldRenderer(
     ) {
       Object.assign(sharedData, data);
       sharedData.z = time * 0.0005;
-      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
 
       // --- GPU particle integration via compute shader ---
       const now = performance.now();
@@ -177,7 +141,7 @@ export async function setupFlowfieldRenderer(
       // ensure the uniform shared data exposes the same rotate value for fragment shaders
       sharedData.rotate = rotateState;
       // write sharedData again so fragment pipelines/readers see the updated rotation this frame
-      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
+      device.queue.writeBuffer(buffers.dataBuffer, 0, sharedData.asBuffer());
       const paramsArray = new Float32Array([
         dt,
         config.particleSpeed,
@@ -186,7 +150,7 @@ export async function setupFlowfieldRenderer(
         rotateState,
       ]);
       device.queue.writeBuffer(
-        paramsBuffer,
+        buffers.paramsBuffer,
         0,
         paramsArray.buffer,
         paramsArray.byteOffset,
@@ -200,20 +164,22 @@ export async function setupFlowfieldRenderer(
       });
 
       const computePass = encoder.beginComputePass();
-      computePass.setPipeline(computePipeline);
-      computePass.setBindGroup(0, ping ? computeBindGroupA : computeBindGroupB);
+      computePass.setPipeline(pipelines.compute);
+      computePass.setBindGroup(
+        0,
+        ping ? bindGroups.computeA : bindGroups.computeB
+      );
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
       // choose which acc textures are src/dst based on accPing
       const accumulationSrcView = ping
-        ? accumulationTextureA.createView()
-        : accumulationTextureB.createView();
+        ? textures.accumulationA.createView()
+        : textures.accumulationB.createView();
       const accumulationDstView = ping
-        ? accumulationTextureB.createView()
-        : accumulationTextureA.createView();
-
-      const accPassDesc: GPURenderPassDescriptor = {
+        ? textures.accumulationB.createView()
+        : textures.accumulationA.createView();
+      const accumulationPassDesc: GPURenderPassDescriptor = {
         colorAttachments: [
           {
             view: accumulationDstView,
@@ -223,30 +189,30 @@ export async function setupFlowfieldRenderer(
           },
         ],
       };
-      const accumulationPass = encoder.beginRenderPass(accPassDesc);
+      const accumulationPass = encoder.beginRenderPass(accumulationPassDesc);
       // fade previous accumulation into dst
-      accumulationPass.setPipeline(accFadePipeline);
+      accumulationPass.setPipeline(pipelines.accumulationFade);
       accumulationPass.setBindGroup(
         0,
-        ping ? accumulationBindGroupA : accumulationBindGroupB
+        ping ? bindGroups.accumulationA : bindGroups.accumulationB
       );
       accumulationPass.draw(6);
       // draw particles additively (semi-transparent) onto accumulation
-      accumulationPass.setPipeline(particlePipeline);
+      accumulationPass.setPipeline(pipelines.particle);
       accumulationPass.setBindGroup(
         0,
-        ping ? particleRenderBindGroupA : particleRenderBindGroupB
+        ping ? bindGroups.particleRenderA : bindGroups.particleRenderB
       );
       accumulationPass.draw(6, config.particleCount);
       accumulationPass.end();
 
       // render background into offscreen bgTexture (so composite shader can sample it)
-      const bgView = backgroundTexture.createView();
-      (renderPassDescriptor as any).colorAttachments[0].view = bgView;
+      const backgroundView = textures.background.createView();
+      (renderPassDescriptor as any).colorAttachments[0].view = backgroundView;
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       if (config.showBackgroundShader) {
-        pass.setPipeline(pipeline);
-        pass.setBindGroup(0, bindGroup);
+        pass.setPipeline(pipelines.pipeline);
+        pass.setBindGroup(0, bindGroups.bindGroup);
         pass.draw(6);
       }
       // when SHOW_BACKGROUND_SHADER is false we simply clear the bgTexture to black
@@ -265,11 +231,11 @@ export async function setupFlowfieldRenderer(
         ],
       };
       const compPass = encoder.beginRenderPass(compDesc);
-      compPass.setPipeline(compositePipeline);
+      compPass.setPipeline(pipelines.composite);
       // composite should sample the bgTexture and the newly-written accumulation (dst)
       compPass.setBindGroup(
         0,
-        ping ? compositeBindGroupB : compositeBindGroupA
+        ping ? bindGroups.compositeB : bindGroups.compositeA
       );
       compPass.draw(6);
       compPass.end();
@@ -283,7 +249,7 @@ export async function setupFlowfieldRenderer(
   return api;
 }
 
-async function setupDeviceAndContext(canvasEl: HTMLCanvasElement) {
+async function setupWebGpu(canvasEl: HTMLCanvasElement) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice()!;
   if (!device) throw new Error("need a browser that supports WebGPU");
@@ -324,7 +290,6 @@ function setupBuffers(
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   return {
-    particleBufferSize,
     particleBufferA,
     particleBufferB,
     paramsBuffer,
@@ -335,8 +300,8 @@ function setupBuffers(
 export function setupPipelines(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
-  PARTICLE_COUNT: number,
-  PARTICLE_PIXEL_SIZE: number
+  particleCount: number,
+  particlePixelSize: number
 ) {
   const commonWgsl = commonWgslRaw;
   const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
@@ -346,25 +311,25 @@ export function setupPipelines(
   });
 
   const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(
-    /\$\{PARTICLE_COUNT\}i/g,
-    `${PARTICLE_COUNT}i`
+    /\$\{particleCount\}i/g,
+    `${particleCount}i`
   )}`;
   const computeModule = device.createShaderModule({ code: computeWgsl });
-  const computePipeline = device.createComputePipeline({
+  const compute = device.createComputePipeline({
     layout: "auto",
     compute: { module: computeModule, entryPoint: "cs" },
   });
-  const computeInitPipeline = device.createComputePipeline({
+  const computeInit = device.createComputePipeline({
     layout: "auto",
     compute: { module: computeModule, entryPoint: "init" },
   });
 
   const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(
-    /\$\{PARTICLE_PIXEL_SIZE\}/g,
-    `${PARTICLE_PIXEL_SIZE}`
+    /\$\{particlePixelSize\}/g,
+    `${particlePixelSize}`
   )}`;
   const particleModule = device.createShaderModule({ code: particleWgsl });
-  const particlePipeline = device.createRenderPipeline({
+  const particle = device.createRenderPipeline({
     layout: "auto",
     vertex: { module: particleModule, entryPoint: "vs", buffers: [] },
     fragment: {
@@ -393,7 +358,7 @@ export function setupPipelines(
 
   const accFadeWgsl = `${commonWgsl}\n${accFadeWgslRaw}`;
   const accFadeModule = device.createShaderModule({ code: accFadeWgsl });
-  const accFadePipeline = device.createRenderPipeline({
+  const accumulationFade = device.createRenderPipeline({
     layout: "auto",
     vertex: { module: accFadeModule, entryPoint: "vs2" },
     fragment: {
@@ -406,7 +371,7 @@ export function setupPipelines(
 
   const compositeWgsl = `${commonWgsl}\n${compositeWgslRaw}`;
   const compositeModule = device.createShaderModule({ code: compositeWgsl });
-  const compositePipeline = device.createRenderPipeline({
+  const composite = device.createRenderPipeline({
     layout: "auto",
     vertex: { module: compositeModule, entryPoint: "vs3" },
     fragment: {
@@ -418,15 +383,12 @@ export function setupPipelines(
   });
 
   return {
-    module,
-    computeModule,
-    computePipeline,
-    computeInitPipeline,
-    particleModule,
-    particlePipeline,
+    compute,
+    computeInit,
+    particle,
     pipeline,
-    accFadePipeline,
-    compositePipeline,
+    accumulationFade,
+    composite,
   };
 }
 
@@ -434,58 +396,68 @@ function setupBindGroups(
   device: GPUDevice,
   pipelines: {
     pipeline: GPURenderPipeline;
-    accFadePipeline: GPURenderPipeline;
-    compositePipeline: GPURenderPipeline;
-    computePipeline: GPUComputePipeline;
-    computeInitPipeline: GPUComputePipeline;
-    particlePipeline: GPURenderPipeline;
+    accumulationFade: GPURenderPipeline;
+    composite: GPURenderPipeline;
+    compute: GPUComputePipeline;
+    computeInit: GPUComputePipeline;
+    particle: GPURenderPipeline;
   },
-  buffers: any,
-  textures: any
+  buffers: {
+    particleBufferA: GPUBuffer;
+    particleBufferB: GPUBuffer;
+    paramsBuffer: GPUBuffer;
+    dataBuffer: GPUBuffer;
+  },
+  textures: {
+    accumulationTextureA: GPUTexture;
+    accumulationTextureB: GPUTexture;
+    backgroundTexture: GPUTexture;
+    sampler: GPUSampler;
+  }
 ) {
   const bindGroup = device.createBindGroup({
     layout: pipelines.pipeline.getBindGroupLayout(0),
     entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }],
   });
 
-  const accumulationBindGroupA = device.createBindGroup({
-    layout: pipelines.accFadePipeline.getBindGroupLayout(0),
+  const accumulationA = device.createBindGroup({
+    layout: pipelines.accumulationFade.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: textures.linearSampler },
+      { binding: 1, resource: textures.sampler },
       { binding: 2, resource: textures.accumulationTextureA.createView() },
     ],
   });
-  const accumulationBindGroupB = device.createBindGroup({
-    layout: pipelines.accFadePipeline.getBindGroupLayout(0),
+  const accumulationB = device.createBindGroup({
+    layout: pipelines.accumulationFade.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: textures.linearSampler },
+      { binding: 1, resource: textures.sampler },
       { binding: 2, resource: textures.accumulationTextureB.createView() },
     ],
   });
 
-  const compositeBindGroupA = device.createBindGroup({
-    layout: pipelines.compositePipeline.getBindGroupLayout(0),
+  const compositeA = device.createBindGroup({
+    layout: pipelines.composite.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: textures.linearSampler },
+      { binding: 1, resource: textures.sampler },
       { binding: 2, resource: textures.backgroundTexture.createView() },
       { binding: 3, resource: textures.accumulationTextureA.createView() },
     ],
   });
-  const compositeBindGroupB = device.createBindGroup({
-    layout: pipelines.compositePipeline.getBindGroupLayout(0),
+  const compositeB = device.createBindGroup({
+    layout: pipelines.composite.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
-      { binding: 1, resource: textures.linearSampler },
+      { binding: 1, resource: textures.sampler },
       { binding: 2, resource: textures.backgroundTexture.createView() },
       { binding: 3, resource: textures.accumulationTextureB.createView() },
     ],
   });
 
-  const computeBindGroupA = device.createBindGroup({
-    layout: pipelines.computePipeline.getBindGroupLayout(0),
+  const computeA = device.createBindGroup({
+    layout: pipelines.compute.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: { buffer: buffers.particleBufferA } },
@@ -493,8 +465,8 @@ function setupBindGroups(
       { binding: 3, resource: { buffer: buffers.paramsBuffer } },
     ],
   });
-  const computeBindGroupB = device.createBindGroup({
-    layout: pipelines.computePipeline.getBindGroupLayout(0),
+  const computeB = device.createBindGroup({
+    layout: pipelines.compute.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: { buffer: buffers.particleBufferB } },
@@ -503,23 +475,23 @@ function setupBindGroups(
     ],
   });
 
-  const computeInitBindGroup = device.createBindGroup({
-    layout: pipelines.computeInitPipeline.getBindGroupLayout(0),
+  const computeInit = device.createBindGroup({
+    layout: pipelines.computeInit.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 2, resource: { buffer: buffers.particleBufferA } },
     ],
   });
 
-  const particleRenderBindGroupA = device.createBindGroup({
-    layout: pipelines.particlePipeline.getBindGroupLayout(0),
+  const particleRenderA = device.createBindGroup({
+    layout: pipelines.particle.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: { buffer: buffers.particleBufferB } },
     ],
   });
-  const particleRenderBindGroupB = device.createBindGroup({
-    layout: pipelines.particlePipeline.getBindGroupLayout(0),
+  const particleRenderB = device.createBindGroup({
+    layout: pipelines.particle.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: buffers.dataBuffer } },
       { binding: 1, resource: { buffer: buffers.particleBufferA } },
@@ -528,15 +500,15 @@ function setupBindGroups(
 
   return {
     bindGroup,
-    accumulationBindGroupA,
-    accumulationBindGroupB,
-    compositeBindGroupA,
-    compositeBindGroupB,
-    computeBindGroupA,
-    computeBindGroupB,
-    computeInitBindGroup,
-    particleRenderBindGroupA,
-    particleRenderBindGroupB,
+    accumulationA,
+    accumulationB,
+    compositeA,
+    compositeB,
+    computeA,
+    computeB,
+    computeInit,
+    particleRenderA,
+    particleRenderB,
   };
 }
 
@@ -546,7 +518,7 @@ function setupTextures(
   height: number,
   format: GPUTextureFormat
 ) {
-  const accumulationTextureA = device.createTexture({
+  const accumulationA = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
     format,
     usage:
@@ -554,7 +526,7 @@ function setupTextures(
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.COPY_SRC,
   });
-  const accumulationTextureB = device.createTexture({
+  const accumulationB = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
     format,
     usage:
@@ -562,7 +534,7 @@ function setupTextures(
       GPUTextureUsage.TEXTURE_BINDING |
       GPUTextureUsage.COPY_SRC,
   });
-  const backgroundTexture = device.createTexture({
+  const background = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
     format,
     usage:
@@ -575,10 +547,10 @@ function setupTextures(
     magFilter: "linear",
   });
   return {
-    accumulationTextureA,
-    accumulationTextureB,
-    backgroundTexture,
-    linearSampler: sampler,
+    accumulationA,
+    accumulationB,
+    background,
+    sampler,
   };
 }
 

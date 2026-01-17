@@ -22,8 +22,8 @@ struct VSOut {
   let ndcx = (px / data.width) * 2.0 - 1.0;
   let py = (p.y - data.y / scl) * scl / data.zoom;
   let ndcy = -((py / data.height) * 2.0 - 1.0);
-  let halfX = f32(${PARTICLE_PIXEL_SIZE}) / data.width;
-  let halfY = f32(${PARTICLE_PIXEL_SIZE}) / data.height;
+  let halfX = f32(${particlePixelSize}) / data.width;
+  let halfY = f32(${particlePixelSize}) / data.height;
   let pos = vec2f(ndcx + corner[vIndex].x * halfX, ndcy + corner[vIndex].y * halfY);
   var out: VSOut;
   out.pos = vec4f(pos, 0.0, 1.0);

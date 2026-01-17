@@ -36,7 +36,7 @@ fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
 @compute @workgroup_size(64)
 fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx = i32(gid.x);
-  if (idx >= ${PARTICLE_COUNT}i) { return; }
+  if (idx >= ${particleCount}i) { return; }
   // uniform-random seeding (deterministic per-index via noise)
   let idf = f32(idx);
   // use uniform noise (previously openSimplex) to get unbiased per-index u/v in [0,1]
@@ -61,7 +61,7 @@ fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
 @compute @workgroup_size(64)
 fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx = i32(gid.x);
-  if (idx >= ${PARTICLE_COUNT}i) { return; }
+  if (idx >= ${particleCount}i) { return; }
   let p = particlesIn[idx];
   var px0 = p.x;
   var py0 = p.y;

@@ -1,6 +1,7 @@
 import { setupAccumulationResources } from "./Flowfield/accumulation";
 import { setupParticleResources } from "./Flowfield/particle";
 import { setupBackgroundResources } from "./Flowfield/background";
+import { setupShared as setupSharedResources } from "./Flowfield/shared";
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -25,39 +26,13 @@ export async function setupFlowfieldRenderer(
     } as const;
   })();
 
-  const sharedData = {
-    width: options.width,
-    height: options.height,
-    seed: options.seed ?? 12345,
-    scale: options.scale ?? 100,
-    x: 0,
-    y: 0,
-    z: 0,
-    zoom: 1,
-    rotate: 0.0,
-    asBuffer() {
-      const buf = new ArrayBuffer(12 * 4);
-      const f32 = new Float32Array(buf);
-      const u32 = new Uint32Array(buf);
-      f32[0] = this.width;
-      f32[1] = this.height;
-      u32[2] = (this.seed as number) >>> 0;
-      f32[3] = this.scale;
-      f32[4] = this.x;
-      f32[5] = this.y;
-      f32[6] = this.z;
-      f32[7] = this.zoom;
-      f32[8] = this.rotate;
-      return f32;
-    },
-  };
 
   canvas.width = options.width;
   canvas.height = options.height;
 
   const webGpu = await setupWebGpu(canvas);
   const { device, context, presentationFormat } = webGpu;
-  const { dataBuffer } = setupShared(device, sharedData);
+  const { dataBuffer, sharedData } = setupSharedResources(device, options);
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
@@ -261,13 +236,7 @@ async function setupWebGpu(canvasEl: HTMLCanvasElement) {
   return { device, context, presentationFormat };
 }
 
-function setupShared(device: GPUDevice, sharedData: any) {
-  const dataBuffer = device.createBuffer({
-    size: sharedData.asBuffer().byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-  return { dataBuffer };
-}
+
 
 function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
   const commandEncoder = device.createCommandEncoder();

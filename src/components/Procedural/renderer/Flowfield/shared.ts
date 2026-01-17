@@ -1,6 +1,6 @@
 export function setupShared(
   device: GPUDevice,
-  options: { width: number; height: number; seed: number; scale: number }
+  options: { width: number; height: number; seed?: number; scale?: number }
 ) {
   const sharedData = {
     width: options.width,

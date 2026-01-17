@@ -2,6 +2,9 @@ import { setupAccumulationResources } from "./Flowfield/accumulation";
 import { setupParticleResources } from "./Flowfield/particle";
 import { setupBackgroundResources } from "./Flowfield/background";
 import { setupShared as setupSharedResources } from "./Flowfield/shared";
+import { copyBuffer } from "./Flowfield/buffer";
+import { clearTextureToBlack } from "./Flowfield/texture";
+import { setupWebGpu } from "./Flowfield/webgpu";
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -12,8 +15,6 @@ export async function setupFlowfieldRenderer(
     scale?: number;
   }
 ) {
-
-
   canvas.width = options.width;
   canvas.height = options.height;
 
@@ -220,48 +221,6 @@ export async function setupFlowfieldRenderer(
     },
   };
   return api;
-}
-
-async function setupWebGpu(canvasEl: HTMLCanvasElement) {
-  const adapter = await navigator.gpu?.requestAdapter();
-  const device = await adapter?.requestDevice()!;
-  if (!device) throw new Error("need a browser that supports WebGPU");
-  const context = canvasEl.getContext("webgpu")!;
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({ device, format: presentationFormat });
-  return { device, context, presentationFormat };
-}
-
-function clearTextureToBlack(device: GPUDevice, texture: GPUTexture) {
-  const commandEncoder = device.createCommandEncoder();
-  const renderPassDescriptor: GPURenderPassDescriptor = {
-    colorAttachments: [
-      {
-        view: texture.createView(),
-        clearValue: [0, 0, 0, 0],
-        loadOp: "clear",
-        storeOp: "store",
-      },
-    ],
-  };
-  const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
-  renderPass.end();
-  device.queue.submit([commandEncoder.finish()]);
-}
-
-async function copyBuffer(
-  device: GPUDevice,
-  bufferA: GPUBuffer,
-  bufferB: GPUBuffer
-) {
-  try {
-    const encoder = device.createCommandEncoder();
-    encoder.copyBufferToBuffer(bufferA, 0, bufferB, 0, bufferA.size);
-    device.queue.submit([encoder.finish()]);
-    await device.queue.onSubmittedWorkDone();
-  } catch (e) {
-    console.warn("seed copy A->B failed", e);
-  }
 }
 
 function setupColorAttachments() {

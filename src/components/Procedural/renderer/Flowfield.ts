@@ -2,6 +2,81 @@ import commonWgslRaw from '../lib/wgsl/common.wgsl?raw';
 import fragmentWgslRaw from './Flowfield/wgsl/fragment.wgsl?raw';
 import computeWgslRaw from './Flowfield/wgsl/compute.wgsl?raw';
 import particleWgslRaw from './Flowfield/wgsl/particle.wgsl?raw';
+import accFadeWgslRaw from '../lib/wgsl/accFade.wgsl?raw';
+import compositeWgslRaw from '../lib/wgsl/composite.wgsl?raw';
+
+// Top-level helpers for setup (exported for testability)
+export function setupBuffers(device: GPUDevice, sharedData: any, particleCount: number) {
+  const particleBufferSize = particleCount * 3 * 4; // 3 floats per particle (x,y,life)
+  const particleBufferA = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
+  const particleBufferB = device.createBuffer({ size: particleBufferSize, usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC });
+  const paramsBuffer = device.createBuffer({ size: 5 * 4, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  const dataBuffer = device.createBuffer({ size: sharedData.asBuffer().byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  return { particleBufferSize, particleBufferA, particleBufferB, paramsBuffer, dataBuffer };
+}
+
+export function setupPipelines(
+  device: GPUDevice,
+  presentationFormat: GPUTextureFormat,
+  commonWgslRaw: string,
+  fragmentWgslRaw: string,
+  computeWgslRaw: string,
+  particleWgslRaw: string,
+  accFadeWgslRaw: string,
+  compositeWgslRaw: string,
+  PARTICLE_COUNT: number,
+  PARTICLE_PIXEL_SIZE: number
+) {
+  const commonWgsl = commonWgslRaw;
+  const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
+  const module = device.createShaderModule({ label: "flowfield shader", code: fragmentWgsl });
+
+  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{PARTICLE_COUNT\}i/g, `${PARTICLE_COUNT}i`)}`;
+  const computeModule = device.createShaderModule({ code: computeWgsl });
+  const computePipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'cs' } });
+  const computeInitPipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'init' } });
+
+  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{PARTICLE_PIXEL_SIZE\}/g, `${PARTICLE_PIXEL_SIZE}`)}`;
+  const particleModule = device.createShaderModule({ code: particleWgsl });
+  const particlePipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: particleModule, entryPoint: 'vs', buffers: [] }, fragment: { module: particleModule, entryPoint: 'fs', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } }] }, primitive: { topology: 'triangle-list' }, multisample: { count: 1 } });
+
+  const pipeline = device.createRenderPipeline({ label: "our hardcoded red line pipeline", layout: "auto", vertex: { module }, fragment: { module, targets: [{ format: presentationFormat }] } });
+
+  const accFadeWgsl = `${commonWgsl}\n${accFadeWgslRaw}`;
+  const accFadeModule = device.createShaderModule({ code: accFadeWgsl });
+  const accFadePipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: accFadeModule, entryPoint: 'vs2' }, fragment: { module: accFadeModule, entryPoint: 'fs2', targets: [{ format: presentationFormat }] }, primitive: { topology: 'triangle-list' } });
+
+  const compositeWgsl = `${commonWgsl}\n${compositeWgslRaw}`;
+  const compositeModule = device.createShaderModule({ code: compositeWgsl });
+  const compositePipeline = device.createRenderPipeline({ layout: 'auto', vertex: { module: compositeModule, entryPoint: 'vs3' }, fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat }] }, primitive: { topology: 'triangle-list' } });
+
+  return { module, computeModule, computePipeline, computeInitPipeline, particleModule, particlePipeline, pipeline, accFadePipeline, compositePipeline };
+}
+
+export function setupBindGroups(
+  device: GPUDevice,
+  pipelines: any,
+  buffers: any,
+  textures: any
+) {
+  const bindGroup = device.createBindGroup({ layout: pipelines.pipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }] });
+
+  const accBindA = device.createBindGroup({ layout: pipelines.accFadePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: textures.sampler }, { binding: 2, resource: textures.accA.createView() }] });
+  const accBindB = device.createBindGroup({ layout: pipelines.accFadePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: textures.sampler }, { binding: 2, resource: textures.accB.createView() }] });
+
+  const compositeBindA = device.createBindGroup({ layout: pipelines.compositePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: textures.sampler }, { binding: 2, resource: textures.bg.createView() }, { binding: 3, resource: textures.accA.createView() }] });
+  const compositeBindB = device.createBindGroup({ layout: pipelines.compositePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: textures.sampler }, { binding: 2, resource: textures.bg.createView() }, { binding: 3, resource: textures.accB.createView() }] });
+
+  const computeBindGroupA = device.createBindGroup({ layout: pipelines.computePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: { buffer: buffers.particleBufferA } }, { binding: 2, resource: { buffer: buffers.particleBufferB } }, { binding: 3, resource: { buffer: buffers.paramsBuffer } }] });
+  const computeBindGroupB = device.createBindGroup({ layout: pipelines.computePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: { buffer: buffers.particleBufferB } }, { binding: 2, resource: { buffer: buffers.particleBufferA } }, { binding: 3, resource: { buffer: buffers.paramsBuffer } }] });
+
+  const computeInitBindGroup = device.createBindGroup({ layout: pipelines.computeInitPipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 2, resource: { buffer: buffers.particleBufferA } }] });
+
+  const particleRenderBindA = device.createBindGroup({ layout: pipelines.particlePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: { buffer: buffers.particleBufferB } }] });
+  const particleRenderBindB = device.createBindGroup({ layout: pipelines.particlePipeline.getBindGroupLayout(0), entries: [{ binding: 0, resource: { buffer: buffers.dataBuffer } }, { binding: 1, resource: { buffer: buffers.particleBufferA } }] });
+
+  return { bindGroup, accBindA, accBindB, compositeBindA, compositeBindB, computeBindGroupA, computeBindGroupB, computeInitBindGroup, particleRenderBindA, particleRenderBindB };
+}
 
 export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
@@ -23,37 +98,46 @@ export async function setupFlowfieldRenderer(
     zoom: 1,
     rotate: 0.0,
     asBuffer() {
-      // Return a Float32Array view over an ArrayBuffer so we can write seed as a u32
       const buf = new ArrayBuffer(12 * 4);
       const f32 = new Float32Array(buf);
       const u32 = new Uint32Array(buf);
       f32[0] = this.width;
       f32[1] = this.height;
-      u32[2] = (this.seed as number) >>> 0; // write seed as u32 into same slot
+      u32[2] = (this.seed as number) >>> 0;
       f32[3] = this.scale;
       f32[4] = this.x;
       f32[5] = this.y;
       f32[6] = this.z;
       f32[7] = this.zoom;
       f32[8] = this.rotate;
-      // remaining slots are already zero-initialized
       return f32;
     },
   };
 
-  const adapter = await navigator.gpu?.requestAdapter();
-  const device = await adapter?.requestDevice()!;
-  if (!device) return fail("need a browser that supports WebGPU");
-
   canvas.width = options.width;
   canvas.height = options.height;
 
-  const context = canvas.getContext("webgpu")!;
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({
-    device,
-    format: presentationFormat,
-  });
+  async function setupDeviceAndContext(canvasEl: HTMLCanvasElement) {
+    const adapter = await navigator.gpu?.requestAdapter();
+    const device = await adapter?.requestDevice()!;
+    if (!device) throw new Error("need a browser that supports WebGPU");
+    const context = canvasEl.getContext("webgpu")!;
+    const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
+    context.configure({ device, format: presentationFormat });
+    return { device, context, presentationFormat };
+  }
+
+  let device: GPUDevice;
+  let context: GPUCanvasContext;
+  let presentationFormat: GPUTextureFormat;
+  try {
+    const res = await setupDeviceAndContext(canvas);
+    device = res.device;
+    context = res.context;
+    presentationFormat = res.presentationFormat;
+  } catch (e) {
+    return fail("need a browser that supports WebGPU");
+  }
 
   // --- GPU-driven particle system ---
   const PARTICLE_COUNT = 5000;
@@ -64,101 +148,23 @@ export async function setupFlowfieldRenderer(
   const EPS = 0.25;
   const SHOW_BACKGROUND_SHADER = false;
 
-  const particleBufferSize = PARTICLE_COUNT * 3 * 4; // 3 floats per particle (x,y,life)
-  const particleBufferA = device.createBuffer({
-    size: particleBufferSize,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-  });
-  const particleBufferB = device.createBuffer({
-    size: particleBufferSize,
-    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST | GPUBufferUsage.COPY_SRC,
-  });
-
-  // params buffer for compute (dt, speed, eps, maxStep, rotateFlag)
-  const paramsBuffer = device.createBuffer({
-    size: 5 * 4,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
+  const { particleBufferSize, particleBufferA, particleBufferB, paramsBuffer, dataBuffer } = setupBuffers(device, sharedData, PARTICLE_COUNT);
 
   let ping = true; // ping-pong flag
   let lastFrameTime = performance.now();
   let rotateState = 0.0;
 
-  // shared WGSL common snippets (moved to file for reuse)
-  const commonWgsl = commonWgslRaw;
+  const { module, computeModule, computePipeline, computeInitPipeline, particleModule, particlePipeline, pipeline, accFadePipeline, compositePipeline } = setupPipelines(device, presentationFormat, commonWgslRaw, fragmentWgslRaw, computeWgslRaw, particleWgslRaw, accFadeWgslRaw, compositeWgslRaw, PARTICLE_COUNT, PARTICLE_PIXEL_SIZE);
 
-  const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
-
-  const module = device.createShaderModule({ label: "flowfield shader", code: fragmentWgsl });
-
-  const computeWgsl = `${commonWgsl}\n${computeWgslRaw.replace(/\$\{PARTICLE_COUNT\}i/g, `${PARTICLE_COUNT}i`)}`;
-
-  const computeModule = device.createShaderModule({ code: computeWgsl });
-  const computePipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'cs' } });
-  const computeInitPipeline = device.createComputePipeline({ layout: 'auto', compute: { module: computeModule, entryPoint: 'init' } });
-
-
-  // Particle render pipeline (points)
-  // Render each particle as an instanced quad (two triangles) so we can control pixel size.
-  // `PARTICLE_PIXEL_SIZE` declared with other particle constants above.
-
-  const particleWgsl = `${commonWgsl}\n${particleWgslRaw.replace(/\$\{PARTICLE_PIXEL_SIZE\}/g, `${PARTICLE_PIXEL_SIZE}`)}`;
-
-  // compute bind groups (created later after `dataBuffer` is available`);
-
-  const particleModule = device.createShaderModule({ code: particleWgsl });
-  const particlePipeline = device.createRenderPipeline({
-    layout: 'auto',
-    vertex: { module: particleModule, entryPoint: 'vs', buffers: [] },
-    fragment: { module: particleModule, entryPoint: 'fs', targets: [{ format: presentationFormat, blend: { color: { srcFactor: 'src-alpha', dstFactor: 'one-minus-src-alpha' }, alpha: { srcFactor: 'one', dstFactor: 'one-minus-src-alpha' } } }] },
-    primitive: { topology: 'triangle-list' },
-    multisample: { count: 1 },
-  });
-
-  // particle render bind groups will be created after `dataBuffer` is available
-
-  const pipeline = device.createRenderPipeline({
-    label: "our hardcoded red line pipeline",
-    layout: "auto",
-    vertex: {
-      module,
-    },
-    fragment: {
-      module,
-      targets: [{ format: presentationFormat }],
-    },
-  });
-
-  const dataBuffer = device.createBuffer({
-    size: sharedData.asBuffer().byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
-  });
-
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
-  });
-
-  // --- accumulation textures for particle trails (ping-pong) ---
-  const accTextureA = device.createTexture({
-    size: { width: options.width, height: options.height, depthOrArrayLayers: 1 },
-    format: presentationFormat,
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
-  });
-  const accTextureB = device.createTexture({
-    size: { width: options.width, height: options.height, depthOrArrayLayers: 1 },
-    format: presentationFormat,
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
-  });
-
-  // offscreen background texture so composite shader can sample both bg and accumulation
-  const bgTexture = device.createTexture({
-    size: { width: options.width, height: options.height, depthOrArrayLayers: 1 },
-    format: presentationFormat,
-    usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC,
-  });
-
-  const linearSampler = device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
+  // --- accumulation and background textures (created via helper for readability)
+  function setupTextures(width: number, height: number, format: GPUTextureFormat) {
+    const accA = device.createTexture({ size: { width, height, depthOrArrayLayers: 1 }, format, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC });
+    const accB = device.createTexture({ size: { width, height, depthOrArrayLayers: 1 }, format, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC });
+    const bg = device.createTexture({ size: { width, height, depthOrArrayLayers: 1 }, format, usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_SRC });
+    const sampler = device.createSampler({ minFilter: 'linear', magFilter: 'linear' });
+    return { accA, accB, bg, sampler };
+  }
+  const { accA: accTextureA, accB: accTextureB, bg: bgTexture, sampler: linearSampler } = setupTextures(options.width, options.height, presentationFormat);
 
   // clear accTextureA to black initially
   {
@@ -178,96 +184,9 @@ export async function setupFlowfieldRenderer(
     device.queue.submit([enc.finish()]);
   }
 
-  // fade pass shader: samples previous accumulation and multiplies by fade factor
-  const accFadeWgsl = /* wgsl */ `${commonWgsl}
-    @group(0) @binding(1) var samp: sampler;
-    @group(0) @binding(2) var prevTex: texture_2d<f32>;
+  // pipelines (accumulation & composite) created earlier by `setupPipelines`
 
-    @vertex fn vs2(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-      let pos = array(vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(-1.0,1.0), vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(1.0,-1.0));
-      return vec4f(pos[vertexIndex], 0.0, 1.0);
-    }
-
-    @fragment fn fs2(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-      let uv = coord.xy / vec2f(data.width, data.height);
-      let prev = textureSample(prevTex, samp, uv);
-      // Separate fade for color vs alpha:
-      // - color (RGB) fades slower so bright highlights persist longer
-      // - alpha fades faster so the darker lingering trail becomes more transparent
-      let fadeRGB = 0.995;
-      let fadeA = 0.92;
-      return vec4f(prev.xyz * fadeRGB, prev.w * fadeA);
-    }
-  `;
-
-  const accFadeModule = device.createShaderModule({ code: accFadeWgsl });
-  const accFadePipeline = device.createRenderPipeline({
-    layout: 'auto',
-    vertex: { module: accFadeModule, entryPoint: 'vs2' },
-    fragment: { module: accFadeModule, entryPoint: 'fs2', targets: [{ format: presentationFormat }] },
-    primitive: { topology: 'triangle-list' },
-  });
-
-  // composite pipeline: draw accumulation texture over swapchain (alpha blend)
-  // composite shader: sample background and accumulation, multiply them and output to swapchain
-  const compositeWgsl = /* wgsl */ `${commonWgsl}
-    @group(0) @binding(1) var samp2: sampler;
-    @group(0) @binding(2) var bgTex: texture_2d<f32>;
-    @group(0) @binding(3) var accTex: texture_2d<f32>;
-    @vertex fn vs3(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-      let pos = array(vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(-1.0,1.0), vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(1.0,-1.0));
-      return vec4f(pos[vertexIndex], 0.0, 1.0);
-    }
-    @fragment fn fs3(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-      let uv = coord.xy / vec2f(data.width, data.height);
-      let bg = textureSample(bgTex, samp2, uv);
-      let acc = textureSample(accTex, samp2, uv);
-      // Screen blend (Photoshop 'Screen'):
-      // out = 1 - (1 - bg) * (1 - src)
-      // use accumulation color modulated by its alpha as the source strength
-      let src = acc.rgb * acc.a;
-      let one = vec3f(1.0, 1.0, 1.0);
-      let outRgb = one - (one - bg.rgb) * (one - src);
-      return vec4f(outRgb, 1.0);
-    }
-  `;
-
-  const compositeModule = device.createShaderModule({ code: compositeWgsl });
-  const compositePipeline = device.createRenderPipeline({
-    layout: 'auto',
-    vertex: { module: compositeModule, entryPoint: 'vs3' },
-    fragment: { module: compositeModule, entryPoint: 'fs3', targets: [{ format: presentationFormat }] },
-    primitive: { topology: 'triangle-list' },
-  });
-
-  // bind-group factories to reduce duplication
-  function makeAccBind(view: GPUTextureView) {
-    return device.createBindGroup({ layout: accFadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: view } ] });
-  }
-  const accBindA = makeAccBind(accTextureA.createView());
-  const accBindB = makeAccBind(accTextureB.createView());
-
-  function makeCompositeBind(bgView: GPUTextureView, accView: GPUTextureView) {
-    return device.createBindGroup({ layout: compositePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: linearSampler }, { binding: 2, resource: bgView }, { binding: 3, resource: accView } ] });
-  }
-  const compositeBindA = makeCompositeBind(bgTexture.createView(), accTextureA.createView());
-  const compositeBindB = makeCompositeBind(bgTexture.createView(), accTextureB.createView());
-
-  // compute bind-group factory
-  function makeComputeBind(particlesIn: GPUBuffer, particlesOut: GPUBuffer) {
-    return device.createBindGroup({ layout: computePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: { buffer: particlesIn } }, { binding: 2, resource: { buffer: particlesOut } }, { binding: 3, resource: { buffer: paramsBuffer } } ] });
-  }
-  const computeBindGroupA = makeComputeBind(particleBufferA, particleBufferB);
-  const computeBindGroupB = makeComputeBind(particleBufferB, particleBufferA);
-
-  // init bind-group factory (init shader only writes into particlesOut)
-  function makeInitBind(particlesOut: GPUBuffer) { return device.createBindGroup({ layout: computeInitPipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 2, resource: { buffer: particlesOut } } ] }); }
-  const computeInitBindGroup = makeInitBind(particleBufferA);
-
-  function makeParticleRenderBind(particlesBuffer: GPUBuffer) { return device.createBindGroup({ layout: particlePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: { buffer: dataBuffer } }, { binding: 1, resource: { buffer: particlesBuffer } } ] }); }
-
-  const particleRenderBindA = makeParticleRenderBind(particleBufferB);
-  const particleRenderBindB = makeParticleRenderBind(particleBufferA);
+  const { bindGroup, accBindA, accBindB, compositeBindA, compositeBindB, computeBindGroupA, computeBindGroupB, computeInitBindGroup, particleRenderBindA, particleRenderBindB } = setupBindGroups(device, { pipeline, accFadePipeline, compositePipeline, computePipeline, computeInitPipeline, particlePipeline }, { dataBuffer, particleBufferA, particleBufferB, paramsBuffer }, { accA: accTextureA, accB: accTextureB, bg: bgTexture, sampler: linearSampler });
 
   const colorAttachment: GPURenderPassColorAttachment = {
     view: undefined! as GPUTextureView,
@@ -287,12 +206,12 @@ export async function setupFlowfieldRenderer(
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       // seed particles on the GPU once at startup
       const encoder = device.createCommandEncoder();
-      const cpass = encoder.beginComputePass();
-      cpass.setPipeline(computeInitPipeline);
+      const computePass = encoder.beginComputePass();
+      computePass.setPipeline(computeInitPipeline);
       // write into particleBufferA via the init bind group
-      cpass.setBindGroup(0, computeInitBindGroup);
-      cpass.dispatchWorkgroups(WORKGROUPS);
-      cpass.end();
+      computePass.setBindGroup(0, computeInitBindGroup);
+      computePass.dispatchWorkgroups(WORKGROUPS);
+      computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
 
@@ -305,9 +224,6 @@ export async function setupFlowfieldRenderer(
       } catch (e) {
         console.warn('seed copy A->B failed', e);
       }
-
-
-
 
       return device.queue.onSubmittedWorkDone();
     },
@@ -350,11 +266,11 @@ export async function setupFlowfieldRenderer(
       colorAttachment.view = context.getCurrentTexture().createView();
       const encoder = device.createCommandEncoder({ label: "compute+render encoder" });
 
-      const cpass = encoder.beginComputePass();
-      cpass.setPipeline(computePipeline);
-      cpass.setBindGroup(0, ping ? computeBindGroupA : computeBindGroupB);
-      cpass.dispatchWorkgroups(WORKGROUPS);
-      cpass.end();
+      const computePass = encoder.beginComputePass();
+      computePass.setPipeline(computePipeline);
+      computePass.setBindGroup(0, ping ? computeBindGroupA : computeBindGroupB);
+      computePass.dispatchWorkgroups(WORKGROUPS);
+      computePass.end();
       // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
       // choose which acc textures are src/dst based on accPing
       const accSrcView = ping ? accTextureA.createView() : accTextureB.createView();

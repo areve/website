@@ -1,3 +1,24 @@
+const skew3d: f32 = 1.0 / 3.0;
+const unskew3d: f32 = 1.0 / 6.0;
+const rSquared3d: f32 = 3.0 / 4.0;
+
+fn vertexContribution(ix: i32, iy: i32, iz: i32, fx: f32, fy: f32, fz: f32, cx: i32, cy: i32, cz: i32) -> f32 {
+  let dx: f32 = fx - f32(cx);
+  let dy: f32 = fy - f32(cy);
+  let dz: f32 = fz - f32(cz);
+  let skewedOffset: f32 = (dx + dy + dz) * unskew3d;
+  let dxs: f32 = dx - skewedOffset;
+  let dys: f32 = dy - skewedOffset;
+  let dzs: f32 = dz - skewedOffset;
+  let a: f32 = rSquared3d - dxs * dxs - dys * dys - dzs * dzs;
+  if (a < 0.0) { return 0.0; }
+  let h: i32 = bitcast<i32>(noise(vec4f(f32(ix + cx), f32(iy + cy), f32(iz + cz), 0.0))) & 0xfff;
+  let u: i32 = (h & 0xf) - 8;
+  let v: i32 = ((h >> 4) & 0xf) - 8;
+  let w: i32 = ((h >> 8) & 0xf) - 8;
+  return (a * a * a * a * (f32(u) * dxs + f32(v) * dys + f32(w) * dzs)) / 2.0;
+}
+
 fn openSimplex3d(x: f32, y: f32, z: f32) -> f32 {
   let sx: f32 = x;
   let sy: f32 = y;

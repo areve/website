@@ -1,4 +1,4 @@
-import commonWgslRaw from "./wgsl/common.wgsl?raw";
+import commonWgsl from "./wgsl/common.wgsl?raw";
 import accumulationFadeWgsl from "./wgsl/accumulationFade.wgsl?raw";
 import { clearTextureToBlack } from "./texture";
 
@@ -31,9 +31,8 @@ export function setupAccumulationResources(
     magFilter: "linear",
   });
 
-  const commonWgsl = commonWgslRaw;
-  const fadeWgsl = `${commonWgsl}\n${accumulationFadeWgsl}`;
-  const fadeModule = device.createShaderModule({ code: fadeWgsl });
+  const wgsl = `${commonWgsl}\n${accumulationFadeWgsl}`;
+  const fadeModule = device.createShaderModule({ code: wgsl });
   const pipeline = device.createRenderPipeline({
     layout: "auto",
     vertex: { module: fadeModule, entryPoint: "vs2" },

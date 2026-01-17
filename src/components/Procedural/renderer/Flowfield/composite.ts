@@ -1,5 +1,5 @@
 import commonWgsl from "./wgsl/common.wgsl?raw";
-import compositeWgslRaw from "./wgsl/composite.wgsl?raw";
+import compositeWgsl from "./wgsl/composite.wgsl?raw";
 
 export function setupCompositeResources(
   device: GPUDevice,
@@ -10,8 +10,8 @@ export function setupCompositeResources(
   accumulationB: GPUTexture,
   sampler: GPUSampler
 ) {
-  const compositeWgsl = `${commonWgsl}\n${compositeWgslRaw}`;
-  const compositeModule = device.createShaderModule({ code: compositeWgsl });
+  const wgsl = `${commonWgsl}\n${compositeWgsl}`;
+  const compositeModule = device.createShaderModule({ code: wgsl });
   const pipeline = device.createRenderPipeline({
     layout: "auto",
     vertex: { module: compositeModule, entryPoint: "vs3" },

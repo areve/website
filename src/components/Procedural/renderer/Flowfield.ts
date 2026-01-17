@@ -41,7 +41,7 @@ export async function setupFlowfieldRenderer(
   let lastFrameTime = performance.now();
   let rotateState = 0.0;
 
-  const particleThings = setupParticleResources(
+  const particle = setupParticleResources(
     device,
     presentationFormat,
     particleConfig,
@@ -71,16 +71,16 @@ export async function setupFlowfieldRenderer(
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       const encoder = device.createCommandEncoder();
       const computePass = encoder.beginComputePass();
-      computePass.setPipeline(particleThings.pipelines.computeInit);
-      computePass.setBindGroup(0, particleThings.bindGroups.computeInit);
+      computePass.setPipeline(particle.pipelines.computeInit);
+      computePass.setBindGroup(0, particle.bindGroups.computeInit);
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
       device.queue.submit([encoder.finish()]);
       await device.queue.onSubmittedWorkDone();
       await copyBuffer(
         device,
-        particleThings.buffers.particleBufferA,
-        particleThings.buffers.particleBufferB
+        particle.buffers.particleBufferA,
+        particle.buffers.particleBufferB
       );
       return device.queue.onSubmittedWorkDone();
     },
@@ -124,7 +124,7 @@ export async function setupFlowfieldRenderer(
         rotateState,
       ]);
       device.queue.writeBuffer(
-        particleThings.buffers.paramsBuffer,
+        particle.buffers.paramsBuffer,
         0,
         paramsArray.buffer,
         paramsArray.byteOffset,
@@ -138,12 +138,12 @@ export async function setupFlowfieldRenderer(
       });
 
       const computePass = encoder.beginComputePass();
-      computePass.setPipeline(particleThings.pipelines.compute);
+      computePass.setPipeline(particle.pipelines.compute);
       computePass.setBindGroup(
         0,
         ping
-          ? particleThings.bindGroups.computeA
-          : particleThings.bindGroups.computeB
+          ? particle.bindGroups.computeA
+          : particle.bindGroups.computeB
       );
       computePass.dispatchWorkgroups(config.workgroups);
       computePass.end();
@@ -173,12 +173,12 @@ export async function setupFlowfieldRenderer(
       );
       accumulationPass.draw(6);
       // draw particles additively (semi-transparent) onto accumulation
-      accumulationPass.setPipeline(particleThings.pipelines.particle);
+      accumulationPass.setPipeline(particle.pipelines.particle);
       accumulationPass.setBindGroup(
         0,
         ping
-          ? particleThings.bindGroups.particleRenderA
-          : particleThings.bindGroups.particleRenderB
+          ? particle.bindGroups.particleRenderA
+          : particle.bindGroups.particleRenderB
       );
       accumulationPass.draw(6, particleConfig.particleCount);
       accumulationPass.end();

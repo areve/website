@@ -91,7 +91,7 @@ export function updateAccumulation(
     };
     config: { particleCount: number };
   },
-  ping: boolean,
+  ping: boolean
 ) {
   // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
   // choose which acc textures are src/dst based on accPing
@@ -116,8 +116,7 @@ export function updateAccumulation(
     ping ? accumulation.bindGroupA : accumulation.bindGroupB
   );
   accumulationPass.draw(6);
-  // delegate particle rendering to particle module
-  // note: `renderParticlesIntoPass` is imported from particle module
+
   renderParticlesIntoPass(accumulationPass, particle, ping);
   accumulationPass.end();
 }

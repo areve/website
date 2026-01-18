@@ -171,9 +171,7 @@ export function updateParticles(
   dataBuffer: GPUBuffer,
   ping: boolean
 ) {
-  // write compute params: dt, speed, eps, maxStep, rotateAngle
   const maxStep = config.eps * 0.6;
-  // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
   if (typeof sharedData?.rotation === "number") {
     // invert sign so positive rotation in the UI rotates the field the intuitive way
     rotateState = -sharedData.rotation;
@@ -181,7 +179,6 @@ export function updateParticles(
     // boolean 90deg toggle: true -> -90deg to match UI expectation
     rotateState = sharedData.rotate ? -Math.PI / 2.0 : 0.0;
   }
-  // ensure the uniform shared data exposes the same rotate value for fragment shaders
   sharedData.rotate = rotateState;
   // write sharedData again so fragment pipelines/readers see the updated rotation this frame
   device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
@@ -199,14 +196,25 @@ export function updateParticles(
     paramsArray.byteOffset,
     paramsArray.byteLength
   );
+  dispatchParticleComputePass(encoder, particle, particle.config.workgroups, ping);
+}
 
+function dispatchParticleComputePass(
+  encoder: GPUCommandEncoder,
+  particle: {
+    pipelines: any;
+    bindGroups: any;
+  },
+  workgroups: number,
+  ping: boolean
+) {
   const computePass = encoder.beginComputePass();
   computePass.setPipeline(particle.pipelines.compute);
   computePass.setBindGroup(
     0,
     ping ? particle.bindGroups.computeA : particle.bindGroups.computeB
   );
-  computePass.dispatchWorkgroups(config.workgroups);
+  computePass.dispatchWorkgroups(workgroups);
   computePass.end();
 }
 

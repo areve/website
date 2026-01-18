@@ -46,8 +46,8 @@ export function setupCompositeResources(
 }
 
 export function compositeDoStuff(
-  context: GPUCanvasContext,
   encoder: GPUCommandEncoder,
+  context: GPUCanvasContext,
   composite: {
     pipeline: GPURenderPipeline;
     bindGroupA: GPUBindGroup;

@@ -74,7 +74,6 @@ export function setupAccumulationResources(
 }
 
 export function accumulationDoStuff(
-  ping: boolean,
   encoder: GPUCommandEncoder,
   accumulation: {
     pipeline: GPURenderPipeline;
@@ -90,7 +89,8 @@ export function accumulationDoStuff(
       particleRenderB: GPUBindGroup;
     };
     config: { particleCount: number };
-  }
+  },
+  ping: boolean,
 ) {
   // --- Accumulation pass: fade previous accumulation into target and draw particles onto it ---
   // choose which acc textures are src/dst based on accPing

@@ -136,7 +136,7 @@ export function setupParticleResources(
 }
 
 export function particleDoStuff(
-  ping: boolean,
+  device: GPUDevice,  
   encoder: GPUCommandEncoder,
   particle: {
     pipelines: any;
@@ -154,9 +154,6 @@ export function particleDoStuff(
     };
   },
   deltaTime: number,
-  data:
-    | { x?: number; y?: number; rotate?: boolean | number; rotation?: number }
-    | undefined,
   rotateState: number,
   sharedData: {
     width?: number;
@@ -168,20 +165,21 @@ export function particleDoStuff(
     z?: number;
     zoom?: number;
     rotate: any;
+    rotation?: number
     asBuffer: any;
   },
   dataBuffer: GPUBuffer,
-  device: GPUDevice
+  ping: boolean,
 ) {
   // write compute params: dt, speed, eps, maxStep, rotateAngle
   const maxStep = config.eps * 0.6;
   // accept either numeric `rotation` (radians) or boolean `rotate` (90deg toggle)
-  if (data && typeof (data as any).rotation === "number") {
+  if (typeof sharedData?.rotation === "number") {
     // invert sign so positive rotation in the UI rotates the field the intuitive way
-    rotateState = -(data as any).rotation;
-  } else if (data && typeof (data as any).rotate !== "undefined") {
+    rotateState = -sharedData.rotation;
+  } else if (typeof sharedData?.rotate !== "undefined") {
     // boolean 90deg toggle: true -> -90deg to match UI expectation
-    rotateState = (data as any).rotate ? -Math.PI / 2.0 : 0.0;
+    rotateState = sharedData.rotate ? -Math.PI / 2.0 : 0.0;
   }
   // ensure the uniform shared data exposes the same rotate value for fragment shaders
   sharedData.rotate = rotateState;

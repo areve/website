@@ -118,19 +118,18 @@ export async function setupFlowfieldRenderer(
       });
 
       particleDoStuff(
-        ping,
+        device,
         encoder,
         particle,
         deltaTime,
-        data,
         rotateState,
         sharedData,
         dataBuffer,
-        device
+        ping,
       );
-      accumulationDoStuff(ping, encoder, accumulation, particle);
+      accumulationDoStuff(encoder,  accumulation, particle, ping);
       backgroundDoStuff(encoder, background);
-      compositeDoStuff(context, encoder, composite, ping);
+      compositeDoStuff(encoder, context,  composite, ping);
 
       const commandBuffer = encoder.finish();
       device.queue.submit([commandBuffer]);

@@ -112,11 +112,9 @@ export async function setupFlowfieldRenderer(
       const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
-      // build a single command encoder with compute then render passes
       const encoder = device.createCommandEncoder({
-        label: "compute+render encoder",
+        label: "compute & render encoder",
       });
-
       particleDoStuff(
         device,
         encoder,

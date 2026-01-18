@@ -1,6 +1,7 @@
 import commonWgsl from "./wgsl/common.wgsl?raw";
 import accumulationFadeWgsl from "./wgsl/accumulationFade.wgsl?raw";
 import { clearTextureToBlack } from "./texture";
+import { renderParticlesIntoPass } from "./particle";
 
 export function setupAccumulationResources(
   device: GPUDevice,
@@ -115,14 +116,8 @@ export function updateAccumulation(
     ping ? accumulation.bindGroupA : accumulation.bindGroupB
   );
   accumulationPass.draw(6);
-  // draw particles additively (semi-transparent) onto accumulation
-  accumulationPass.setPipeline(particle.pipelines.particle);
-  accumulationPass.setBindGroup(
-    0,
-    ping
-      ? particle.bindGroups.particleRenderA
-      : particle.bindGroups.particleRenderB
-  );
-  accumulationPass.draw(6, particle.config.particleCount);
+  // delegate particle rendering to particle module
+  // note: `renderParticlesIntoPass` is imported from particle module
+  renderParticlesIntoPass(accumulationPass, particle, ping);
   accumulationPass.end();
 }

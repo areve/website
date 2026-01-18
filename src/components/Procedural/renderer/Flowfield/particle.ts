@@ -135,8 +135,8 @@ export function setupParticleResources(
   };
 }
 
-export function updateAndRenderParticles(
-  device: GPUDevice,  
+export function updateParticles(
+  device: GPUDevice,
   encoder: GPUCommandEncoder,
   particle: {
     pipelines: any;
@@ -165,11 +165,11 @@ export function updateAndRenderParticles(
     z?: number;
     zoom?: number;
     rotate: any;
-    rotation?: number
+    rotation?: number;
     asBuffer: any;
   },
   dataBuffer: GPUBuffer,
-  ping: boolean,
+  ping: boolean
 ) {
   // write compute params: dt, speed, eps, maxStep, rotateAngle
   const maxStep = config.eps * 0.6;
@@ -208,4 +208,28 @@ export function updateAndRenderParticles(
   );
   computePass.dispatchWorkgroups(config.workgroups);
   computePass.end();
+}
+
+export function renderParticlesIntoPass(
+  pass: GPURenderPassEncoder,
+  particle: {
+    pipelines: { particle: GPURenderPipeline };
+    bindGroups: {
+      particleRenderA: GPUBindGroup;
+      particleRenderB: GPUBindGroup;
+    };
+    config: { particleCount: number };
+  },
+  ping: boolean
+) {
+  // draw particles additively (semi-transparent) onto accumulation
+
+  pass.setPipeline(particle.pipelines.particle);
+  pass.setBindGroup(
+    0,
+    ping
+      ? particle.bindGroups.particleRenderA
+      : particle.bindGroups.particleRenderB
+  );
+  pass.draw(6, particle.config.particleCount);
 }

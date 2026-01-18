@@ -2,10 +2,7 @@ import {
   updateAccumulation,
   setupAccumulationResources,
 } from "./Flowfield/accumulation";
-import {
-  updateAndRenderParticles,
-  setupParticleResources,
-} from "./Flowfield/particle";
+import { updateParticles, renderParticlesIntoPass, setupParticleResources } from "./Flowfield/particle";
 import {
   renderBackgroundToTexture,
   setupBackgroundResources,
@@ -116,16 +113,7 @@ export async function setupFlowfieldRenderer(
       const encoder = device.createCommandEncoder({
         label: "compute & render encoder",
       });
-      updateAndRenderParticles(
-        device,
-        encoder,
-        particle,
-        deltaTime,
-        rotateState,
-        sharedData,
-        dataBuffer,
-        ping
-      );
+      updateParticles(device, encoder, particle, deltaTime, rotateState, sharedData, dataBuffer, ping);
       updateAccumulation(encoder, accumulation, particle, ping);
       renderBackgroundToTexture(encoder, background);
       composeToSwapchain(encoder, context, composite, ping);

@@ -135,7 +135,7 @@ export function setupParticleResources(
   };
 }
 
-export function particleDoStuff(
+export function updateAndRenderParticles(
   device: GPUDevice,  
   encoder: GPUCommandEncoder,
   particle: {

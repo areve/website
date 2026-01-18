@@ -64,7 +64,7 @@ export function setupBackgroundResources(
   };
 }
 
-export function backgroundDoStuff(
+export function renderBackgroundToTexture(
   encoder: GPUCommandEncoder,
   background: {
     pipeline: GPURenderPipeline;

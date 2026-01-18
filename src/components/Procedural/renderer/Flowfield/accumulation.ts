@@ -73,7 +73,7 @@ export function setupAccumulationResources(
   };
 }
 
-export function accumulationDoStuff(
+export function updateAccumulation(
   encoder: GPUCommandEncoder,
   accumulation: {
     pipeline: GPURenderPipeline;

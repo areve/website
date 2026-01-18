@@ -45,7 +45,7 @@ export function setupCompositeResources(
   return { pipeline, bindGroupA, bindGroupB };
 }
 
-export function compositeDoStuff(
+export function composeToSwapchain(
   encoder: GPUCommandEncoder,
   context: GPUCanvasContext,
   composite: {

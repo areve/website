@@ -1,18 +1,20 @@
 import {
-  accumulationDoStuff,
+  updateAccumulation,
   setupAccumulationResources,
 } from "./Flowfield/accumulation";
-import { particleDoStuff, setupParticleResources } from "./Flowfield/particle";
 import {
-  backgroundDoStuff,
+  updateAndRenderParticles,
+  setupParticleResources,
+} from "./Flowfield/particle";
+import {
+  renderBackgroundToTexture,
   setupBackgroundResources,
 } from "./Flowfield/background";
 import { setupShared as setupSharedResources } from "./Flowfield/shared";
 import { copyBuffer } from "./Flowfield/buffer";
-import { clearTextureToBlack } from "./Flowfield/texture";
 import { setupWebGpu } from "./Flowfield/webgpu";
 import {
-  compositeDoStuff,
+  composeToSwapchain,
   setupCompositeResources,
 } from "./Flowfield/composite";
 
@@ -103,19 +105,18 @@ export async function setupFlowfieldRenderer(
         rotation?: number;
       }
     ) {
-      Object.assign(sharedData, data);
-      sharedData.z = time * 0.0005;
-      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
-
-      // --- GPU particle integration via compute shader ---
       const now = performance.now();
       const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
+      Object.assign(sharedData, data);
+      sharedData.z = time * 0.0005;
+      device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
+
       const encoder = device.createCommandEncoder({
         label: "compute & render encoder",
       });
-      particleDoStuff(
+      updateAndRenderParticles(
         device,
         encoder,
         particle,
@@ -123,14 +124,13 @@ export async function setupFlowfieldRenderer(
         rotateState,
         sharedData,
         dataBuffer,
-        ping,
+        ping
       );
-      accumulationDoStuff(encoder,  accumulation, particle, ping);
-      backgroundDoStuff(encoder, background);
-      compositeDoStuff(encoder, context,  composite, ping);
+      updateAccumulation(encoder, accumulation, particle, ping);
+      renderBackgroundToTexture(encoder, background);
+      composeToSwapchain(encoder, context, composite, ping);
 
-      const commandBuffer = encoder.finish();
-      device.queue.submit([commandBuffer]);
+      device.queue.submit([encoder.finish()]);
       ping = !ping;
       return device.queue.onSubmittedWorkDone();
     },

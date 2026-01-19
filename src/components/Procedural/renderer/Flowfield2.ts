@@ -21,8 +21,7 @@ export async function setupFlowfield2Renderer(
   canvas.width = options.width;
   canvas.height = options.height;
 
-  const webGpu = await setupWebGpu(canvas);
-  const { device, context, presentationFormat } = webGpu;
+  const { device, context, presentationFormat } = await setupWebGpu(canvas);
   const { dataBuffer, sharedData } = setupSharedResources(device, options);
 
   const background = setupBackgroundResources(

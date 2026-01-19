@@ -15,7 +15,7 @@ export function setupBackgroundResources(
   dataBuffer: GPUBuffer
 ) {
   const module = device.createShaderModule({
-    label: "flowfield2 shader",
+    label: "background shader",
     code: `
       ${commonWgsl}
       ${noiseWgsl}
@@ -24,7 +24,7 @@ export function setupBackgroundResources(
   });
 
   const pipeline = device.createRenderPipeline({
-    label: "flowfield2 pipeline",
+    label: "background pipeline",
     layout: "auto",
     vertex: { module },
     fragment: { module, targets: [{ format: presentationFormat }] },
@@ -43,7 +43,7 @@ export function setupBackgroundResources(
   };
 
   const renderPassDescriptor: GPURenderPassDescriptor = {
-    label: "flowfield2 renderPass",
+    label: "background renderPass",
     colorAttachments: [colorAttachment],
   };
   const texture = device.createTexture({
@@ -55,9 +55,6 @@ export function setupBackgroundResources(
       GPUTextureUsage.COPY_SRC,
   });
 
- 
-
-
   return {
     pipeline,
     bindGroup,
@@ -67,25 +64,6 @@ export function setupBackgroundResources(
   };
 }
 
-export function renderBackground(
-  context: GPUCanvasContext,
-  encoder: GPUCommandEncoder,
-  background: {
-    pipeline: GPURenderPipeline;
-    renderPassDescriptor: GPURenderPassDescriptor;
-    bindGroup: GPUBindGroup;
-    colorAttachment: GPURenderPassColorAttachment;
-  }
-) {
-
-  background.colorAttachment.view = context.getCurrentTexture().createView();
-      
-  const pass = encoder.beginRenderPass(background.renderPassDescriptor);
-  pass.setPipeline(background.pipeline);
-  pass.setBindGroup(0, background.bindGroup);
-  pass.draw(6);
-  pass.end();
-}
 export function renderBackgroundToTexture(
   encoder: GPUCommandEncoder,
   background: {
@@ -96,15 +74,13 @@ export function renderBackgroundToTexture(
   }
 ) {
   const backgroundView = background.texture.createView();
-  (background.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view =
-    backgroundView;
+  (
+    background.renderPassDescriptor
+      .colorAttachments as GPURenderPassColorAttachment[]
+  )[0].view = backgroundView;
   const pass = encoder.beginRenderPass(background.renderPassDescriptor);
-  if (config.showBackgroundShader) {
-    pass.setPipeline(background.pipeline);
-    pass.setBindGroup(0, background.bindGroup);
-    pass.draw(6);
-  }
+  pass.setPipeline(background.pipeline);
+  pass.setBindGroup(0, background.bindGroup);
+  pass.draw(6);
   pass.end();
 }
-
-

@@ -18,11 +18,17 @@ export function setupParticleResources(
       GPUTextureUsage.COPY_SRC,
   });
 
-  // generate random particle positions in pixel space
+  // place particles on a grid across the viewport
   const positions = new Float32Array(NUM_PARTICLES * 2);
+  const cols = Math.ceil(Math.sqrt(NUM_PARTICLES));
+  const rows = Math.ceil(NUM_PARTICLES / cols);
+  const spacingX = width / cols;
+  const spacingY = height / rows;
   for (let i = 0; i < NUM_PARTICLES; i++) {
-    positions[i * 2 + 0] = Math.random() * width;
-    positions[i * 2 + 1] = Math.random() * height;
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    positions[i * 2 + 0] = (col + 0.5) * spacingX;
+    positions[i * 2 + 1] = (row + 0.5) * spacingY;
   }
 
   const posBuffer = device.createBuffer({
@@ -47,7 +53,8 @@ export function setupParticleResources(
     }
 
     @fragment fn fs() -> @location(0) vec4f {
-      return vec4f(1.0, 1.0, 1.0, 1.0);
+      // yellow particles
+      return vec4f(1.0, 1.0, 0.0, 1.0);
     }
   `;
 

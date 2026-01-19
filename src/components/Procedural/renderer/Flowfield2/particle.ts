@@ -48,7 +48,32 @@ export function setupParticleResources(
       let q = quad[vi];
       let size = vec2f(4.0, 4.0); // particle quad size in pixels
       let pixelPos = instancePos + q * size;
-      let ndc = (pixelPos / vec2f(data.width, data.height)) * vec2f(2.0, -2.0) + vec2f(-1.0, 1.0);
+
+      // convert pixel -> world
+      let baseX = pixelPos.x / data.scale * data.zoom + data.x / data.scale;
+      let baseY = pixelPos.y / data.scale * data.zoom + data.y / data.scale;
+
+      // center in world
+      let centerX = (data.width / 2.0) / data.scale * data.zoom + data.x / data.scale;
+      let centerY = (data.height / 2.0) / data.scale * data.zoom + data.y / data.scale;
+
+      // rotate around center in world space
+      let relX = baseX - centerX;
+      let relY = baseY - centerY;
+      let c = cos(data.rotation);
+      let s = sin(data.rotation);
+      // invert rotation sign to match background rotation direction
+      let rotX = relX * c + relY * s;
+      let rotY = -relX * s + relY * c;
+      let worldX = rotX + centerX;
+      let worldY = rotY + centerY;
+
+      // convert world -> pixel
+      let px = (worldX - data.x / data.scale) / data.zoom * data.scale;
+      let py = (worldY - data.y / data.scale) / data.zoom * data.scale;
+
+      // to NDC (flip Y)
+      let ndc = vec2f(px / data.width * 2.0 - 1.0, 1.0 - py / data.height * 2.0);
       return vec4f(ndc, 0.0, 1.0);
     }
 

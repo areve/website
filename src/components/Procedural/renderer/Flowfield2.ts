@@ -5,9 +5,13 @@ import {
   setupBackgroundResources,
 } from "./Flowfield2/background";
 import {
-  presentBackgroundTexture as renderComposite,
+  renderComposite,
   setupCompositeResources,
 } from "./Flowfield2/composite";
+import {
+  renderParticleTexture,
+  setupParticleResources,
+} from "./Flowfield2/particle";
 
 export async function setupFlowfield2Renderer(
   canvas: HTMLCanvasElement,
@@ -32,6 +36,7 @@ export async function setupFlowfield2Renderer(
     dataBuffer
   );
 
+  const particle = setupParticleResources();
   const composite = setupCompositeResources(
     device,
     presentationFormat,
@@ -56,6 +61,7 @@ export async function setupFlowfield2Renderer(
       const encoder = device.createCommandEncoder();
 
       renderBackgroundToTexture(encoder, background);
+      renderParticleTexture(encoder, particle);
       renderComposite(encoder, context, composite);
 
       device.queue.submit([encoder.finish()]);

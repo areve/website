@@ -55,7 +55,7 @@ export function setupCompositeResources(
     blitBindGroup,
   };
 }
-export function presentBackgroundTexture(
+export function renderComposite(
   encoder: GPUCommandEncoder,
   context: GPUCanvasContext,
   composite: {

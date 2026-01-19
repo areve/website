@@ -16,12 +16,21 @@ struct VSOut {
     vec2f(1.0, 1.0),
     vec2f(1.0, -1.0)
   );
-  let p = particles[iIndex];
-  let scl = safeScale();
-  let px = (p.x - data.x / scl) * scl / data.zoom;
-  let ndcx = (px / data.width) * 2.0 - 1.0;
-  let py = (p.y - data.y / scl) * scl / data.zoom;
-  let ndcy = -((py / data.height) * 2.0 - 1.0);
+    let p = particles[iIndex];
+    // rotate particle world coords around the view center so they follow the background
+    let cx = (data.width * 0.5) / data.scale * data.zoom + data.x / data.scale;
+    let cy = (data.height * 0.5) / data.scale * data.zoom + data.y / data.scale;
+    let c = cos(data.rotation);
+    let s = sin(data.rotation);
+    let relX = p.x - cx;
+    let relY = p.y - cy;
+    let rx = relX * c - relY * s + cx;
+    let ry = relX * s + relY * c + cy;
+    // convert rotated world coords back to pixel-space for NDC mapping
+    let pixelX = (rx * data.scale - data.x) / data.zoom;
+    let pixelY = (ry * data.scale - data.y) / data.zoom;
+    let ndcx = (pixelX / data.width) * 2.0 - 1.0;
+    let ndcy = -((pixelY / data.height) * 2.0 - 1.0);
   let halfX = f32(${particlePixelSize}) / data.width;
   let halfY = f32(${particlePixelSize}) / data.height;
   let pos = vec2f(ndcx + corner[vIndex].x * halfX, ndcy + corner[vIndex].y * halfY);

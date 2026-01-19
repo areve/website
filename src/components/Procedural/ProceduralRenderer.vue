@@ -51,6 +51,7 @@
             <option value="worley">Worley</option>
             <option value="mountains">Mountains</option>
             <option value="opensimplex3d">OpenSimplex 3D</option>
+            <option value="flowfield">Flow Field</option>
             <option value="flowfield2">Flow Field 2</option>
             <option value="mountains3d">Mountains 3D</option>
           </select>
@@ -263,7 +264,7 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "trigonometry" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d" | "flowfield2"
+  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "trigonometry" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d" | "flowfield" | "flowfield2"
   >("flowfield2");
 
 let frameId: number = 0;
@@ -283,6 +284,7 @@ const availableModes = [
   "mountains",
   "opensimplex3d",
   "mountains3d",
+  "flowfield",
   "flowfield2",
 ] as const;
 
@@ -425,7 +427,14 @@ const initializeCanvas = async () => {
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "flowfield2") {
+  } else if (shaderMode.value === "flowfield") {
+    renderer = await setupFlowfieldRenderer(canvas.value, {
+      width: newWidth,
+      height: newHeight,
+      seed,
+    });
+    if (canvas.value) controller.value.mount(canvas.value);
+      } else if (shaderMode.value === "flowfield2") {
     renderer = await setupFlowfield2Renderer(canvas.value, {
       width: newWidth,
       height: newHeight,

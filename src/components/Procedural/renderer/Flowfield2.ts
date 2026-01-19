@@ -1,7 +1,3 @@
-import noiseWgsl from "./Flowfield2/noise.wgsl?raw";
-import commonWgsl from "./Flowfield2/common.wgsl?raw";
-import backgroundWgsl from "./Flowfield2/background.wgsl?raw";
-import openSimplexWgsl from "./Flowfield2/openSimplex3d.wgsl?raw";
 import { setupSharedResources } from "./Flowfield2/shared";
 import { setupWebGpu } from "./Flowfield2/webgpu";
 import {
@@ -24,12 +20,6 @@ export async function setupFlowfield2Renderer(
   const webGpu = await setupWebGpu(canvas);
   const { device, context, presentationFormat } = webGpu;
   const { dataBuffer, sharedData } = setupSharedResources(device, options);
-
-  const shaderCode =
-    `${commonWgsl}\n` +
-    `${noiseWgsl}\n` +
-    `${openSimplexWgsl}\n ` +
-    `${backgroundWgsl}`;
 
   const background = setupBackgroundResources(
     device,

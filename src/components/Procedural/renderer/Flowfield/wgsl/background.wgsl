@@ -15,22 +15,24 @@
 
 @fragment fn fs(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
   // map fragment position to world coordinates used by the noise function
-  let scl = safeScale();
-  let x = coord.x / scl * data.zoom + data.x / scl;
-  let y = coord.y / scl * data.zoom + data.y / scl;
+  // use the same center/scale/rotation math as setupOpenSimplexRenderer.ts
+  let baseX = coord.x / data.scale * data.zoom + data.x / data.scale;
+  let baseY = coord.y / data.scale * data.zoom + data.y / data.scale;
 
   // Sample height and use centered finite differences for derivatives.
-  // Rotate the sampling coordinates around the view center by data.rotate
-  // so panning works as expected when the field is rotated.
+  // Rotate the pixel coords around the view center by +theta (R) so the
+  // OpenSimplex sampling matches the standalone renderer.
   let eps: f32 = 0.25;
-  let cx = data.x / scl + (data.width * 0.5) / scl * data.zoom;
-  let cy = data.y / scl + (data.height * 0.5) / scl * data.zoom;
+  let cx = (data.width * 0.5) / data.scale * data.zoom + data.x / data.scale;
+  let cy = (data.height * 0.5) / data.scale * data.zoom + data.y / data.scale;
   let c = cos(data.rotation);
   let s = sin(data.rotation);
-  
-  // rotate sampling coords by -theta (R^T)
-  let rx = (x - cx) * c + (y - cy) * s + cx;
-  let ry = -(x - cx) * s + (y - cy) * c + cy;
+
+  // rotate pixel coords by +theta (R)
+  let relX = baseX - cx;
+  let relY = baseY - cy;
+  let rx = relX * c - relY * s + cx;
+  let ry = relX * s + relY * c + cy;
 
   let n = openSimplex3d(rx, ry, data.z);
   let nxp = openSimplex3d(rx + eps, ry, data.z);
@@ -39,9 +41,9 @@
   let nym = openSimplex3d(rx, ry - eps, data.z);
   let derx_r = (nxp - nxm) / (2.0 * eps);
   let dery_r = (nyp - nym) / (2.0 * eps);
-  // rotate derivatives back into world coordinates using R
-  let derx = derx_r * c - dery_r * s;
-  let dery = derx_r * s + dery_r * c;
+  // rotate derivatives from sampling (rotated) coords back into world coords using R^T
+  let derx = derx_r * c + dery_r * s;
+  let dery = -derx_r * s + dery_r * c;
 
   // Compute surface normal with Z as the up axis so we can test angle vs Z.
   // normal = (-dz/dx, -dz/dy, 1)

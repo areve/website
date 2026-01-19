@@ -4,7 +4,10 @@ import backgroundWgsl from "./Flowfield2/background.wgsl?raw";
 import openSimplexWgsl from "./Flowfield2/openSimplex3d.wgsl?raw";
 import { setupSharedResources } from "./Flowfield2/shared";
 import { setupWebGpu } from "./Flowfield2/webgpu";
-import { setupBackgroundResources } from "./Flowfield2/background";
+import {
+  renderBackground,
+  setupBackgroundResources,
+} from "./Flowfield2/background";
 
 export async function setupFlowfield2Renderer(
   canvas: HTMLCanvasElement,
@@ -45,20 +48,16 @@ export async function setupFlowfield2Renderer(
         y?: number;
       }
     ) {
-      Object.assign(sharedData, data);
       sharedData.z = time * 0.0;
+
+      Object.assign(sharedData, data);
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
-      background.colorAttachment.view = context.getCurrentTexture().createView();
-      const encoder = device.createCommandEncoder({
-        label: "flowfield2 encoder",
-      });
-      const pass = encoder.beginRenderPass(background.renderPassDescriptor);
-      pass.setPipeline(background.pipeline);
-      pass.setBindGroup(0, background.bindGroup);
-      pass.draw(6);
-      pass.end();
-      const commandBuffer = encoder.finish();
-      device.queue.submit([commandBuffer]);
+
+      const encoder = device.createCommandEncoder();
+
+      renderBackground(context, encoder, background);
+
+      device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();
     },
   };

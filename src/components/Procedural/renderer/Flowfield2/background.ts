@@ -77,6 +77,25 @@ export function setupBackgroundResources(
   };
 }
 
+export function renderBackground(
+  context: GPUCanvasContext,
+  encoder: GPUCommandEncoder,
+  background: {
+    pipeline: GPURenderPipeline;
+    renderPassDescriptor: GPURenderPassDescriptor;
+    bindGroup: GPUBindGroup;
+    colorAttachment: GPURenderPassColorAttachment;
+  }
+) {
+
+  background.colorAttachment.view = context.getCurrentTexture().createView();
+      
+  const pass = encoder.beginRenderPass(background.renderPassDescriptor);
+  pass.setPipeline(background.pipeline);
+  pass.setBindGroup(0, background.bindGroup);
+  pass.draw(6);
+  pass.end();
+}
 // export function renderBackgroundToTexture(
 //   encoder: GPUCommandEncoder,
 //   background: {

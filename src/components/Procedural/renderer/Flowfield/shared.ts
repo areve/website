@@ -1,4 +1,4 @@
-export function setupShared(
+export function setupSharedResources(
   device: GPUDevice,
   options: { width: number; height: number; seed?: number; scale?: number }
 ) {

@@ -1,5 +1,7 @@
-import noiseWgsl from './Flowfield2/noise.wgsl?raw';
-import openSimplexWgsl from './Flowfield2/openSimplex3d.wgsl?raw';
+import noiseWgsl from "./Flowfield2/noise.wgsl?raw";
+import openSimplexWgsl from "./Flowfield2/openSimplex3d.wgsl?raw";
+import { setupSharedResources } from "./Flowfield2/shared";
+import { setupWebGpu } from "./Flowfield2/webgpu";
 
 export async function setupFlowfield2Renderer(
   canvas: HTMLCanvasElement,
@@ -10,44 +12,12 @@ export async function setupFlowfield2Renderer(
     scale?: number;
   }
 ) {
-  const sharedData = {
-    width: options.width,
-    height: options.height,
-    seed: options.seed ?? 12345,
-    scale: options.scale ?? 100,
-    x: 0,
-    y: 0,
-    z: 0,
-    zoom: 1,
-    rotation: 0,
-    asBuffer() {
-      return new Float32Array([
-        this.width,
-        this.height,
-        this.seed,
-        this.scale,
-        this.x,
-        this.y,
-        this.z,
-        this.zoom,
-        this.rotation,
-      ]);
-    },
-  };
-
-  const adapter = await navigator.gpu?.requestAdapter();
-  const device = await adapter?.requestDevice()!;
-  if (!device) return fail("need a browser that supports WebGPU");
-
   canvas.width = options.width;
   canvas.height = options.height;
 
-  const context = canvas.getContext("webgpu")!;
-  const presentationFormat = navigator.gpu.getPreferredCanvasFormat();
-  context.configure({
-    device,
-    format: presentationFormat,
-  });
+  const webGpu = await setupWebGpu(canvas);
+  const { device, context, presentationFormat } = webGpu;
+  const { dataBuffer, sharedData } = setupSharedResources(device, options);
 
   const shaderPrelude = `struct Uniforms {
     width: f32,
@@ -109,7 +79,14 @@ export async function setupFlowfield2Renderer(
   }
   `;
 
-  const shaderCode = shaderPrelude + "\n" + noiseWgsl + "\n" + openSimplexWgsl + "\n" + shaderTail;
+  const shaderCode =
+    shaderPrelude +
+    "\n" +
+    noiseWgsl +
+    "\n" +
+    openSimplexWgsl +
+    "\n" +
+    shaderTail;
 
   const module = device.createShaderModule({
     label: "flowfield2 shader",
@@ -126,11 +103,6 @@ export async function setupFlowfield2Renderer(
       module,
       targets: [{ format: presentationFormat }],
     },
-  });
-
-  const dataBuffer = device.createBuffer({
-    size: sharedData.asBuffer().byteLength,
-    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
   const bindGroup = device.createBindGroup({
@@ -160,10 +132,12 @@ export async function setupFlowfield2Renderer(
       }
     ) {
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.000;
+      sharedData.z = time * 0.0;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
       colorAttachment.view = context.getCurrentTexture().createView();
-      const encoder = device.createCommandEncoder({ label: "flowfield2 encoder" });
+      const encoder = device.createCommandEncoder({
+        label: "flowfield2 encoder",
+      });
       const pass = encoder.beginRenderPass(renderPassDescriptor);
       pass.setPipeline(pipeline);
       pass.setBindGroup(0, bindGroup);

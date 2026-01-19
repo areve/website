@@ -11,7 +11,7 @@ import {
   renderBackgroundToTexture,
   setupBackgroundResources,
 } from "./Flowfield/background";
-import { setupShared as setupSharedResources } from "./Flowfield/shared";
+import { setupSharedResources } from "./Flowfield/shared";
 import { copyBuffer } from "./Flowfield/buffer";
 import { setupWebGpu } from "./Flowfield/webgpu";
 import {

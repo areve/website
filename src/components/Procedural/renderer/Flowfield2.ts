@@ -4,7 +4,10 @@ import {
   renderBackgroundToTexture,
   setupBackgroundResources,
 } from "./Flowfield2/background";
-import { presentBackgroundTexture as renderComposite, setupCompositeResources } from "./Flowfield2/composite";
+import {
+  presentBackgroundTexture as renderComposite,
+  setupCompositeResources,
+} from "./Flowfield2/composite";
 
 export async function setupFlowfield2Renderer(
   canvas: HTMLCanvasElement,

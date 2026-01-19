@@ -7,7 +7,6 @@ export function setupCompositeResources(
     texture: GPUTexture;
   }
 ) {
-  // Blit shader: samples the bg texture and writes to the swapchain
   const blitWgsl = /* wgsl */ `
     @group(0) @binding(1) var samp2: sampler;
     @group(0) @binding(2) var bgTex: texture_2d<f32>;

@@ -110,7 +110,7 @@ export async function setupFlowfieldRenderer(
 
       Object.assign(sharedData, data);
       sharedData.z = time * 0.0005;
-      // const rotateState = doRotationStuff(sharedData);
+
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
 
       const encoder = device.createCommandEncoder({
@@ -129,17 +129,3 @@ export async function setupFlowfieldRenderer(
   };
   return api;
 }
-
-// function doRotationStuff(sharedData: { rotate?: any; rotation?: any }) {
-//   let rotateState = 0.0;
-//   if (typeof sharedData?.rotation === "number") {
-//     // invert sign so positive rotation in the UI rotates the field the intuitive way
-//     rotateState = -sharedData.rotation;
-//   } else if (typeof sharedData?.rotate !== "undefined") {
-//     // boolean 90deg toggle: true -> -90deg to match UI expectation
-//     rotateState = sharedData.rotate ? -Math.PI / 2.0 : 0.0;
-//   }
-//   // normalize into a single numeric rotation field for shaders and callers
-//   sharedData.rotation = rotateState;
-//   return rotateState;
-// }

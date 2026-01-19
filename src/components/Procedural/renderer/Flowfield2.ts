@@ -1,9 +1,10 @@
 import { setupSharedResources } from "./Flowfield2/shared";
 import { setupWebGpu } from "./Flowfield2/webgpu";
 import {
-  renderBackground,
+  renderBackgroundToTexture,
   setupBackgroundResources,
 } from "./Flowfield2/background";
+import { presentBackgroundTexture as renderComposite, setupCompositeResources } from "./Flowfield2/composite";
 
 export async function setupFlowfield2Renderer(
   canvas: HTMLCanvasElement,
@@ -29,6 +30,13 @@ export async function setupFlowfield2Renderer(
     dataBuffer
   );
 
+  const composite = setupCompositeResources(
+    device,
+    presentationFormat,
+    dataBuffer,
+    background
+  );
+
   return {
     async init() {},
     async update(
@@ -45,7 +53,8 @@ export async function setupFlowfield2Renderer(
 
       const encoder = device.createCommandEncoder();
 
-      renderBackground(context, encoder, background);
+      renderBackgroundToTexture(encoder, background);
+      renderComposite(encoder, context, composite);
 
       device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();

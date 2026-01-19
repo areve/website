@@ -46,32 +46,22 @@ export function setupBackgroundResources(
     label: "flowfield2 renderPass",
     colorAttachments: [colorAttachment],
   };
-  // const texture = device.createTexture({
-  //   size: { width, height, depthOrArrayLayers: 1 },
-  //   format: presentationFormat,
-  //   usage:
-  //     GPUTextureUsage.RENDER_ATTACHMENT |
-  //     GPUTextureUsage.TEXTURE_BINDING |
-  //     GPUTextureUsage.COPY_SRC,
-  // });
+  const texture = device.createTexture({
+    size: { width, height, depthOrArrayLayers: 1 },
+    format: presentationFormat,
+    usage:
+      GPUTextureUsage.RENDER_ATTACHMENT |
+      GPUTextureUsage.TEXTURE_BINDING |
+      GPUTextureUsage.COPY_SRC,
+  });
 
-  // const colorAttachment: GPURenderPassColorAttachment = {
-  //   view: undefined! as GPUTextureView,
-  //   clearValue: [0.0, 0.0, 0.0, 1],
-  //   loadOp: "clear",
-  //   storeOp: "store",
-  // };
+ 
 
-  // const renderPassDescriptor: GPURenderPassDescriptor = {
-  //   label: "our basic canvas renderPass",
-  //   colorAttachments: [colorAttachment],
-  // };
-
-  // clearTextureToBlack(device, texture);
 
   return {
     pipeline,
     bindGroup,
+    texture,
     colorAttachment,
     renderPassDescriptor,
   };
@@ -96,23 +86,25 @@ export function renderBackground(
   pass.draw(6);
   pass.end();
 }
-// export function renderBackgroundToTexture(
-//   encoder: GPUCommandEncoder,
-//   background: {
-//     pipeline: GPURenderPipeline;
-//     bindGroup: GPUBindGroup;
-//     texture: GPUTexture;
-//     renderPassDescriptor: GPURenderPassDescriptor;
-//   }
-// ) {
-//   const backgroundView = background.texture.createView();
-//   (background.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view =
-//     backgroundView;
-//   const pass = encoder.beginRenderPass(background.renderPassDescriptor);
-//   if (config.showBackgroundShader) {
-//     pass.setPipeline(background.pipeline);
-//     pass.setBindGroup(0, background.bindGroup);
-//     pass.draw(6);
-//   }
-//   pass.end();
-// }
+export function renderBackgroundToTexture(
+  encoder: GPUCommandEncoder,
+  background: {
+    pipeline: GPURenderPipeline;
+    bindGroup: GPUBindGroup;
+    texture: GPUTexture;
+    renderPassDescriptor: GPURenderPassDescriptor;
+  }
+) {
+  const backgroundView = background.texture.createView();
+  (background.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view =
+    backgroundView;
+  const pass = encoder.beginRenderPass(background.renderPassDescriptor);
+  if (config.showBackgroundShader) {
+    pass.setPipeline(background.pipeline);
+    pass.setBindGroup(0, background.bindGroup);
+    pass.draw(6);
+  }
+  pass.end();
+}
+
+

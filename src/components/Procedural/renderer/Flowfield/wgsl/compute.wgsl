@@ -9,28 +9,15 @@ struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32 };
 // this keeps particle speed proportional to slope and avoids
 // numerical jitter when the gradient magnitude is very small.
 fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
+  // Sample the noise field directly at world coords (no rotation/pan transform).
+  // Returns the negative gradient (flow) in world-space.
   let eps_local: f32 = params.eps;
-  // use the same center/scale/rotation math as fragment.wgsl / setupOpenSimplexRenderer
-  let cx = (data.width * 0.5) / data.scale * data.zoom + data.x / data.scale;
-  let cy = (data.height * 0.5) / data.scale * data.zoom + data.y / data.scale;
-  let c = cos(data.rotation);
-  let s = sin(data.rotation);
-
-  // rotate world (pixel) coords by +theta (R) to get sampling coords
-  let relx = wx - cx;
-  let rely = wy - cy;
-  let rx = relx * c - rely * s + cx;
-  let ry = relx * s + rely * c + cy;
-
-  let n_xp = openSimplex3d(rx + eps_local, ry, data.z);
-  let n_xm = openSimplex3d(rx - eps_local, ry, data.z);
-  let n_yp = openSimplex3d(rx, ry + eps_local, data.z);
-  let n_ym = openSimplex3d(rx, ry - eps_local, data.z);
-  let derx_r = (n_xp - n_xm) / (2.0 * eps_local);
-  let dery_r = (n_yp - n_ym) / (2.0 * eps_local);
-  // rotate derivatives from sampling coords back into world coords using R^T
-  let fx = derx_r * c + dery_r * s;
-  let fy = -derx_r * s + dery_r * c;
+  let n_xp = openSimplex3d(wx + eps_local, wy, data.z);
+  let n_xm = openSimplex3d(wx - eps_local, wy, data.z);
+  let n_yp = openSimplex3d(wx, wy + eps_local, data.z);
+  let n_ym = openSimplex3d(wx, wy - eps_local, data.z);
+  let fx = -(n_xp - n_xm) / (2.0 * eps_local);
+  let fy = -(n_yp - n_ym) / (2.0 * eps_local);
   return vec2<f32>(fx, fy);
 }
 

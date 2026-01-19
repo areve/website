@@ -36,12 +36,13 @@ export async function setupFlowfield2Renderer(
     dataBuffer
   );
 
-  const particle = setupParticleResources();
+  const particle = setupParticleResources(device, options.width, options.height, dataBuffer);
   const composite = setupCompositeResources(
     device,
     presentationFormat,
     dataBuffer,
-    background
+    background,
+    particle
   );
 
   return {

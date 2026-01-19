@@ -137,51 +137,15 @@ export function setupParticleResources(
 
 export function updateParticles(
   device: GPUDevice,
-  encoder: GPUCommandEncoder,
   particle: {
-    pipelines: any;
-    bindGroups: any;
     buffers: {
-      particleBufferA: GPUBuffer;
-      particleBufferB: GPUBuffer;
       paramsBuffer: GPUBuffer;
-    };
-    config: {
-      particleCount: number;
-      eps: any;
-      particleSpeed: number;
-      workgroups: number;
     };
   },
   deltaTime: number,
-  rotateState: number,
-  sharedData: {
-    width?: number;
-    height?: number;
-    seed?: number;
-    scale?: number;
-    x?: number;
-    y?: number;
-    z?: number;
-    zoom?: number;
-    rotate: any;
-    rotation?: number;
-    asBuffer: any;
-  },
-  dataBuffer: GPUBuffer,
-  ping: boolean
+  rotateState: number
 ) {
   const maxStep = config.eps * 0.6;
-  if (typeof sharedData?.rotation === "number") {
-    // invert sign so positive rotation in the UI rotates the field the intuitive way
-    rotateState = -sharedData.rotation;
-  } else if (typeof sharedData?.rotate !== "undefined") {
-    // boolean 90deg toggle: true -> -90deg to match UI expectation
-    rotateState = sharedData.rotate ? -Math.PI / 2.0 : 0.0;
-  }
-  sharedData.rotate = rotateState;
-  // write sharedData again so fragment pipelines/readers see the updated rotation this frame
-  device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
   const paramsArray = new Float32Array([
     deltaTime,
     config.particleSpeed,
@@ -196,26 +160,32 @@ export function updateParticles(
     paramsArray.byteOffset,
     paramsArray.byteLength
   );
-  dispatchParticleComputePass(encoder, particle, particle.config.workgroups, ping);
 }
 
-function dispatchParticleComputePass(
+export function dispatchParticleComputePass(
   encoder: GPUCommandEncoder,
   particle: {
-    pipelines: any;
-    bindGroups: any;
+    pipelines: {
+      compute: GPUComputePipeline;
+    };
+    bindGroups: {
+      computeA: GPUBindGroup;
+      computeB: GPUBindGroup;
+    };
+    config: {
+      workgroups: number;
+    };
   },
-  workgroups: number,
   ping: boolean
 ) {
-  const computePass = encoder.beginComputePass();
-  computePass.setPipeline(particle.pipelines.compute);
-  computePass.setBindGroup(
+  const pass = encoder.beginComputePass();
+  pass.setPipeline(particle.pipelines.compute);
+  pass.setBindGroup(
     0,
     ping ? particle.bindGroups.computeA : particle.bindGroups.computeB
   );
-  computePass.dispatchWorkgroups(workgroups);
-  computePass.end();
+  pass.dispatchWorkgroups(particle.config.workgroups);
+  pass.end();
 }
 
 export function renderParticlesIntoPass(
@@ -231,7 +201,6 @@ export function renderParticlesIntoPass(
   ping: boolean
 ) {
   // draw particles additively (semi-transparent) onto accumulation
-
   pass.setPipeline(particle.pipelines.particle);
   pass.setBindGroup(
     0,

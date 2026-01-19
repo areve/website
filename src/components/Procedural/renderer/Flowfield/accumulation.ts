@@ -108,15 +108,15 @@ export function updateAccumulation(
       },
     ],
   };
-  const accumulationPass = encoder.beginRenderPass(accumulationPassDesc);
+  const pass = encoder.beginRenderPass(accumulationPassDesc);
   // fade previous accumulation into dst
-  accumulationPass.setPipeline(accumulation.pipeline);
-  accumulationPass.setBindGroup(
+  pass.setPipeline(accumulation.pipeline);
+  pass.setBindGroup(
     0,
     ping ? accumulation.bindGroupA : accumulation.bindGroupB
   );
-  accumulationPass.draw(6);
+  pass.draw(6);
 
-  renderParticlesIntoPass(accumulationPass, particle, ping);
-  accumulationPass.end();
+  renderParticlesIntoPass(pass, particle, ping);
+  pass.end();
 }

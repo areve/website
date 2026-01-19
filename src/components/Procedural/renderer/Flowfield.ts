@@ -4,8 +4,8 @@ import {
 } from "./Flowfield/accumulation";
 import {
   updateParticles,
-  renderParticlesIntoPass,
   setupParticleResources,
+  dispatchParticleComputePass,
 } from "./Flowfield/particle";
 import {
   renderBackgroundToTexture,
@@ -117,18 +117,12 @@ export async function setupFlowfieldRenderer(
       const encoder = device.createCommandEncoder({
         label: "compute & render encoder",
       });
-      updateParticles(
-        device,
-        encoder,
-        particle,
-        deltaTime,
-        rotateState,
-        sharedData,
-        dataBuffer,
-        ping
-      );
-      updateAccumulation(encoder, accumulation, particle, ping);
       renderBackgroundToTexture(encoder, background);
+      const rotateState = doRotationStuff(sharedData);
+
+      updateParticles(device, particle, deltaTime, rotateState);
+      dispatchParticleComputePass(encoder, particle, ping);
+      updateAccumulation(encoder, accumulation, particle, ping);
       composeToSwapchain(encoder, context, composite, ping);
 
       device.queue.submit([encoder.finish()]);
@@ -137,4 +131,17 @@ export async function setupFlowfieldRenderer(
     },
   };
   return api;
+}
+
+function doRotationStuff(sharedData: { rotate: any; rotation?: any }) {
+  let rotateState = 0.0;
+  if (typeof sharedData?.rotation === "number") {
+    // invert sign so positive rotation in the UI rotates the field the intuitive way
+    rotateState = -sharedData.rotation;
+  } else if (typeof sharedData?.rotate !== "undefined") {
+    // boolean 90deg toggle: true -> -90deg to match UI expectation
+    rotateState = sharedData.rotate ? -Math.PI / 2.0 : 0.0;
+  }
+  sharedData.rotate = rotateState;
+  return rotateState;
 }

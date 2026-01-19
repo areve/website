@@ -10,28 +10,27 @@ struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32 };
 // numerical jitter when the gradient magnitude is very small.
 fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
   let eps_local: f32 = params.eps;
-  // rotate sampling coordinates around view center so the field rotates
-  // consistently with the fragment background and panning remains intuitive
-  let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
-  let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
-  // rotation is stored in the shared `data` uniform so background and
-  // compute shaders use the same rotation value.
-  let theta = data.rotation;
-  let c = cos(theta);
-  let s = sin(theta);
-  // rotate sampling coords by -theta (R^T)
-  let rx = (wx - cx) * c + (wy - cy) * s + cx;
-  let ry = -(wx - cx) * s + (wy - cy) * c + cy;
+  // use the same center/scale/rotation math as fragment.wgsl / setupOpenSimplexRenderer
+  let cx = (data.width * 0.5) / data.scale * data.zoom + data.x / data.scale;
+  let cy = (data.height * 0.5) / data.scale * data.zoom + data.y / data.scale;
+  let c = cos(data.rotation);
+  let s = sin(data.rotation);
+
+  // rotate world (pixel) coords by +theta (R) to get sampling coords
+  let relx = wx - cx;
+  let rely = wy - cy;
+  let rx = relx * c - rely * s + cx;
+  let ry = relx * s + rely * c + cy;
 
   let n_xp = openSimplex3d(rx + eps_local, ry, data.z);
   let n_xm = openSimplex3d(rx - eps_local, ry, data.z);
   let n_yp = openSimplex3d(rx, ry + eps_local, data.z);
   let n_ym = openSimplex3d(rx, ry - eps_local, data.z);
-  var fx_r = -(n_xp - n_xm) / (2.0 * eps_local);
-  var fy_r = -(n_yp - n_ym) / (2.0 * eps_local);
-  // rotate gradient back into world coordinates using R
-  let fx = fx_r * c - fy_r * s;
-  let fy = fx_r * s + fy_r * c;
+  let derx_r = (n_xp - n_xm) / (2.0 * eps_local);
+  let dery_r = (n_yp - n_ym) / (2.0 * eps_local);
+  // rotate derivatives from sampling coords back into world coords using R^T
+  let fx = derx_r * c + dery_r * s;
+  let fy = -derx_r * s + dery_r * c;
   return vec2<f32>(fx, fy);
 }
 
@@ -49,9 +48,9 @@ fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
   // guard against non-finite values
   if (px != px) { px = 0.0; }
   if (py != py) { py = 0.0; }
-  let scl = safeScale();
-  var nx = px / scl * data.zoom + data.x / scl;
-  var ny = py / scl * data.zoom + data.y / scl;
+  // map initial random pixel to world coordinates using data.scale
+  var nx = px / data.scale * data.zoom + data.x / data.scale;
+  var ny = py / data.scale * data.zoom + data.y / data.scale;
   // stagger initial activation with per-index noise
   let spawnSpread: f32 = 6.0;
   let rand = noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0));
@@ -104,10 +103,9 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     ny = py0 + disp.y * scale;
   }
 
-  // map to pixel then check bounds
-  let scl = safeScale();
-  let pixx = (nx - data.x / scl) * scl / data.zoom;
-  let pixy = (ny - data.y / scl) * scl / data.zoom;
+  // map to pixel then check bounds (inverse of world-from-pixel mapping)
+  let pixx = (nx * data.scale - data.x) / data.zoom;
+  let pixy = (ny * data.scale - data.y) / data.zoom;
   var needRespawn = false;
   if (life <= 0.0) { needRespawn = true; }
   if (pixx < -10.0 || pixy < -10.0 || pixx > data.width + 10.0 || pixy > data.height + 10.0) {
@@ -123,9 +121,9 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     var py = ry * data.height;
     if (px != px) { px = 0.0; }
     if (py != py) { py = 0.0; }
-    let scl = safeScale();
-    nx = px / scl * data.zoom + data.x / scl;
-    ny = py / scl * data.zoom + data.y / scl;
+    // map respawn pixel to world coords using data.scale
+    nx = px / data.scale * data.zoom + data.x / data.scale;
+    ny = py / data.scale * data.zoom + data.y / data.scale;
     // keep respawn positions in world coordinates; sampleFlow will handle rotation
     life = 1.0 + noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0)) * 3.0;
   }

@@ -109,7 +109,7 @@ export async function setupFlowfieldRenderer(
       lastFrameTime = now;
 
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.0005;
+      sharedData.z = time * 0.0000;
 
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
 

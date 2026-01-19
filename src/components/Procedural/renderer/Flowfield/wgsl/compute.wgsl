@@ -42,18 +42,10 @@ fn init(@builtin(global_invocation_id) gid: vec3<u32>) {
   // guard against non-finite values
   if (px != px) { px = 0.0; }
   if (py != py) { py = 0.0; }
-  // rotate pixel coords by data.rotation around the pixel center so spawn area
-  // matches the rotated background sampling
-  let theta = data.rotation;
-  let c = cos(theta);
-  let s = sin(theta);
-  let relPx = px - data.width * 0.5;
-  let relPy = py - data.height * 0.5;
-  let rpx = relPx * c - relPy * s + data.width * 0.5;
-  let rpy = relPx * s + relPy * c + data.height * 0.5;
   // map initial random pixel to world coordinates using data.scale
-  var nx = rpx / data.scale * data.zoom + data.x / data.scale;
-  var ny = rpy / data.scale * data.zoom + data.y / data.scale;
+  // (do NOT apply rotation here; sampling transform is applied in sampleFlow)
+  var nx = px / data.scale * data.zoom + data.x / data.scale;
+  var ny = py / data.scale * data.zoom + data.y / data.scale;
   // stagger initial activation with per-index noise
   let spawnSpread: f32 = 6.0;
   let rand = noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0));
@@ -126,17 +118,10 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     var py = ry * data.height;
     if (px != px) { px = 0.0; }
     if (py != py) { py = 0.0; }
-    // rotate respawn pixel coords by data.rotation around the pixel center
-    let theta = data.rotation;
-    let c = cos(theta);
-    let s = sin(theta);
-    let relPx = px - data.width * 0.5;
-    let relPy = py - data.height * 0.5;
-    let rpx = relPx * c - relPy * s + data.width * 0.5;
-    let rpy = relPx * s + relPy * c + data.height * 0.5;
     // map respawn pixel to world coords using data.scale
-    nx = rpx / data.scale * data.zoom + data.x / data.scale;
-    ny = rpy / data.scale * data.zoom + data.y / data.scale;
+    // (rotation handled by shared transform in sampling)
+    nx = px / data.scale * data.zoom + data.x / data.scale;
+    ny = py / data.scale * data.zoom + data.y / data.scale;
     // keep respawn positions in world coordinates; sampleFlow will handle rotation
     life = 1.0 + noise(vec4f(idf * 0.93, idf * 0.31, f32(data.seed), 2.0)) * 3.0;
   }

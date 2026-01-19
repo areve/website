@@ -24,8 +24,9 @@ struct VSOut {
     let s = sin(data.rotation);
     let relX = p.x - cx;
     let relY = p.y - cy;
-    let rx = relX * c - relY * s + cx;
-    let ry = relX * s + relY * c + cy;
+    // invert rotation sign so particle rotation matches the background orientation
+    let rx = relX * c + relY * s + cx;
+    let ry = -relX * s + relY * c + cy;
     // convert rotated world coords back to pixel-space for NDC mapping
     let pixelX = (rx * data.scale - data.x) / data.zoom;
     let pixelY = (ry * data.scale - data.y) / data.zoom;

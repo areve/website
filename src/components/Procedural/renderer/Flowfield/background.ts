@@ -1,5 +1,5 @@
 import commonWgslRaw from "./wgsl/common.wgsl?raw";
-import fragmentWgslRaw from "../Flowfield/wgsl/fragment.wgsl?raw";
+import backgroundWgsl from "../Flowfield/wgsl/background.wgsl?raw";
 import { clearTextureToBlack } from "./texture";
 
 const config = {
@@ -14,7 +14,7 @@ export function setupBackgroundResources(
   dataBuffer: GPUBuffer
 ) {
   const commonWgsl = commonWgslRaw;
-  const fragmentWgsl = `${commonWgsl}\n${fragmentWgslRaw}`;
+  const fragmentWgsl = `${commonWgsl}\n${backgroundWgsl}`;
   const module = device.createShaderModule({
     label: "flowfield shader",
     code: fragmentWgsl,

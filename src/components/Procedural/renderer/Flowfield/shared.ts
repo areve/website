@@ -11,7 +11,7 @@ export function setupShared(
     y: 0,
     z: 0,
     zoom: 1,
-    rotate: 0.0,
+    rotation: 0.0,
     asBuffer() {
       const buf = new ArrayBuffer(12 * 4);
       const f32 = new Float32Array(buf);
@@ -24,7 +24,7 @@ export function setupShared(
       f32[5] = this.y;
       f32[6] = this.z;
       f32[7] = this.zoom;
-      f32[8] = this.rotate;
+      f32[8] = this.rotation;
       return f32;
     },
   };

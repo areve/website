@@ -34,7 +34,7 @@ struct Uniforms {
   y: f32,
   z: f32,
   zoom: f32,
-  rotate: f32,
+  rotation: f32,
 };
 
 @group(0) @binding(0) var<uniform> data: Uniforms;

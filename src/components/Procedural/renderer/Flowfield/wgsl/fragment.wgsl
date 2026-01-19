@@ -25,9 +25,9 @@
   let eps: f32 = 0.25;
   let cx = data.x / scl + (data.width * 0.5) / scl * data.zoom;
   let cy = data.y / scl + (data.height * 0.5) / scl * data.zoom;
-  let theta = data.rotate;
-  let c = cos(theta);
-  let s = sin(theta);
+  let c = cos(data.rotation);
+  let s = sin(data.rotation);
+  
   // rotate sampling coords by -theta (R^T)
   let rx = (x - cx) * c + (y - cy) * s + cx;
   let ry = -(x - cx) * s + (y - cy) * c + cy;

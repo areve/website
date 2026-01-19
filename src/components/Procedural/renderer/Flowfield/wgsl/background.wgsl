@@ -28,11 +28,9 @@
   let c = cos(data.rotation);
   let s = sin(data.rotation);
 
-  // rotate pixel coords by +theta (R)
-  let relX = baseX - cx;
-  let relY = baseY - cy;
-  let rx = relX * c - relY * s + cx;
-  let ry = relX * s + relY * c + cy;
+  // apply precomputed sampling transform (maps world -> rotated sampling coords)
+  let rx = data.a00 * baseX + data.a01 * baseY + data.bx;
+  let ry = data.a10 * baseX + data.a11 * baseY + data.by;
 
   let n = openSimplex3d(rx, ry, data.z);
   let nxp = openSimplex3d(rx + eps, ry, data.z);

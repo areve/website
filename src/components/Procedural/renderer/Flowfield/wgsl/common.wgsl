@@ -35,6 +35,13 @@ struct Uniforms {
   z: f32,
   zoom: f32,
   rotation: f32,
+  // 2x2 sampling transform (maps world -> rotated sampling coords)
+  a00: f32,
+  a01: f32,
+  a10: f32,
+  a11: f32,
+  bx: f32,
+  by: f32,
 };
 
 @group(0) @binding(0) var<uniform> data: Uniforms;

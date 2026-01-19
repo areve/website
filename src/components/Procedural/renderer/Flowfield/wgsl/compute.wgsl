@@ -9,15 +9,22 @@ struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32 };
 // this keeps particle speed proportional to slope and avoids
 // numerical jitter when the gradient magnitude is very small.
 fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
-  // Sample the noise field directly at world coords (no rotation/pan transform).
-  // Returns the negative gradient (flow) in world-space.
+  // Map world coords into the rotated sampling coords (precomputed in JS),
+  // sample the noise there and compute centered finite-difference gradient
+  // in sampling-space, then transform that gradient back to world-space
+  // via A^T (since p = A * world + b).
   let eps_local: f32 = params.eps;
-  let n_xp = openSimplex3d(wx + eps_local, wy, data.z);
-  let n_xm = openSimplex3d(wx - eps_local, wy, data.z);
-  let n_yp = openSimplex3d(wx, wy + eps_local, data.z);
-  let n_ym = openSimplex3d(wx, wy - eps_local, data.z);
-  let fx = -(n_xp - n_xm) / (2.0 * eps_local);
-  let fy = -(n_yp - n_ym) / (2.0 * eps_local);
+  let pxpy = vec2<f32>(data.a00 * wx + data.a01 * wy + data.bx,
+                       data.a10 * wx + data.a11 * wy + data.by);
+  let n_xp = openSimplex3d(pxpy.x + eps_local, pxpy.y, data.z);
+  let n_xm = openSimplex3d(pxpy.x - eps_local, pxpy.y, data.z);
+  let n_yp = openSimplex3d(pxpy.x, pxpy.y + eps_local, data.z);
+  let n_ym = openSimplex3d(pxpy.x, pxpy.y - eps_local, data.z);
+  let fx_p = -(n_xp - n_xm) / (2.0 * eps_local);
+  let fy_p = -(n_yp - n_ym) / (2.0 * eps_local);
+  // grad_world = A^T * grad_p
+  let fx = fx_p * data.a00 + fy_p * data.a10;
+  let fy = fx_p * data.a01 + fy_p * data.a11;
   return vec2<f32>(fx, fy);
 }
 
@@ -99,9 +106,11 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     ny = py0 + disp.y * scale;
   }
 
-  // map to pixel then check bounds (inverse of world-from-pixel mapping)
-  let pixx = (nx * data.scale - data.x) / data.zoom;
-  let pixy = (ny * data.scale - data.y) / data.zoom;
+  // map to rotated sampling pixel coords then check bounds
+  let pix = vec2<f32>(data.a00 * nx + data.a01 * ny + data.bx,
+                      data.a10 * nx + data.a11 * ny + data.by);
+  let pixx = pix.x;
+  let pixy = pix.y;
   var needRespawn = false;
   if (life <= 0.0) { needRespawn = true; }
   if (pixx < -10.0 || pixy < -10.0 || pixx > data.width + 10.0 || pixy > data.height + 10.0) {

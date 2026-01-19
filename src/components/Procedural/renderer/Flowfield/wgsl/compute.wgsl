@@ -1,4 +1,4 @@
-struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32, rotateAngle: f32 };
+struct Params { dt: f32, speed: f32, eps: f32, maxStep: f32 };
 @group(0) @binding(3) var<uniform> params: Params;
 
 @group(0) @binding(1) var<storage, read> particlesIn: array<vec3<f32>>;
@@ -14,7 +14,9 @@ fn sampleFlow(wx: f32, wy: f32) -> vec2<f32> {
   // consistently with the fragment background and panning remains intuitive
   let cx = data.x / data.scale + (data.width * 0.5) / data.scale * data.zoom;
   let cy = data.y / data.scale + (data.height * 0.5) / data.scale * data.zoom;
-  let theta = params.rotateAngle;
+  // rotation is stored in the shared `data` uniform so background and
+  // compute shaders use the same rotation value.
+  let theta = data.rotation;
   let c = cos(theta);
   let s = sin(theta);
   // rotate sampling coords by -theta (R^T)

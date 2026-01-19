@@ -117,7 +117,7 @@ export async function setupFlowfieldRenderer(
         label: "compute & render encoder",
       });
       renderBackgroundToTexture(encoder, background);
-      updateParticles(device, particle, deltaTime, sharedData.rotation);
+      updateParticles(device, particle, deltaTime);
       dispatchParticleComputePass(encoder, particle, ping);
       updateAccumulation(encoder, accumulation, particle, ping);
       composeToSwapchain(encoder, context, composite, ping);

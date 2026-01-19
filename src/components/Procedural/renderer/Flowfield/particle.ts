@@ -36,7 +36,7 @@ export function setupParticleResources(
       GPUBufferUsage.COPY_SRC,
   });
   const paramsBuffer = device.createBuffer({
-    size: 5 * 4,
+    size: 4 * 4,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
 
@@ -142,8 +142,7 @@ export function updateParticles(
       paramsBuffer: GPUBuffer;
     };
   },
-  deltaTime: number,
-  rotateState: number
+  deltaTime: number
 ) {
   const maxStep = config.eps * 0.6;
   const paramsArray = new Float32Array([
@@ -151,7 +150,6 @@ export function updateParticles(
     config.particleSpeed,
     config.eps,
     maxStep,
-    rotateState,
   ]);
   device.queue.writeBuffer(
     particle.buffers.paramsBuffer,

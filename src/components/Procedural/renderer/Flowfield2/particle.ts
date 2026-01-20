@@ -183,6 +183,7 @@ export function renderParticleTexture(
 export function updateParticles(
   encoder: GPUCommandEncoder,
   device: GPUDevice,
+  dataBuffer: GPUBuffer,
   particle: {
     computePipeline: GPUComputePipeline;
     posBuffer: GPUBuffer;
@@ -218,6 +219,7 @@ export function updateParticles(
   const bindGroup = device.createBindGroup({
     layout: particle.computePipeline.getBindGroupLayout(0),
     entries: [
+      { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: normals.texture.createView() },
       { binding: 2, resource: { buffer: particle.posBuffer } },
       { binding: 3, resource: { buffer: particle.lifetimesBuffer } },

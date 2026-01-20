@@ -20,10 +20,6 @@ struct Sim { dt: f32, speed: f32, width: f32, height: f32, maxLife: f32, seed: f
 @group(0) @binding(3) var<storage, read_write> lifetimes: array<f32>;
 @group(0) @binding(4) var<uniform> sim: Sim;
 
-fn hashf(x: f32) -> f32 {
-  return fract(sin(x) * 43758.5453123);
-}
-
 @compute @workgroup_size(64)
 fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx: u32 = gid.x;
@@ -33,8 +29,8 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   // update lifetime
   lifetimes[idx] = lifetimes[idx] - sim.dt;
   if (lifetimes[idx] <= 0.0) {
-    let r1 = hashf(f32(idx) * 12.9898 + sim.seed);
-    let r2 = hashf(f32(idx) * 78.233 + sim.seed + 1.0);
+    let r1 = noise(vec4<f32>(f32(idx), 12.989, 18.111, sim.seed));
+    let r2 = noise(vec4<f32>(f32(idx), 78.233, 99.234, sim.seed + 1.0));
     p = vec2f(r1 * sim.width, r2 * sim.height);
     lifetimes[idx] = sim.maxLife;
     positions[idx] = p;

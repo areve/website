@@ -85,6 +85,7 @@ export async function setupFlowfield2Renderer(
       updateParticles(
         encoder,
         device,
+        dataBuffer,
         particle,
         normals,
         deltaTime

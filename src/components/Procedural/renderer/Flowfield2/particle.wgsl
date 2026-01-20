@@ -38,4 +38,3 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   if (p.y >= sim.height) { p.y = p.y - sim.height; }
   positions[idx] = p;
 }
-// he

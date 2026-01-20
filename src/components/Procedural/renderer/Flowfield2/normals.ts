@@ -10,17 +10,11 @@ export function setupNormalsResources(
   srcTexture: GPUTexture,
   srcSampler: GPUSampler
 ) {
-  const module = device.createShaderModule({
-    code: `${commonWgsl}\n${normalsWgsl}`,
-  });
+  const module = device.createShaderModule({ code: `${commonWgsl}\n${normalsWgsl}` });
   const pipeline = device.createRenderPipeline({
     layout: "auto",
     vertex: { module, entryPoint: "vsNorm" },
-    fragment: {
-      module,
-      entryPoint: "fsNorm",
-      targets: [{ format: presentationFormat }],
-    },
+    fragment: { module, entryPoint: "fsNorm", targets: [{ format: presentationFormat }] },
     primitive: { topology: "triangle-list" },
   });
 
@@ -59,6 +53,8 @@ export function setupNormalsResources(
     bindGroup,
     texture,
     renderPassDescriptor,
+    width,
+    height,
   };
 }
 
@@ -72,10 +68,7 @@ export function renderNormalsToTexture(
   }
 ) {
   const view = normals.texture.createView();
-  (
-    normals.renderPassDescriptor
-      .colorAttachments as GPURenderPassColorAttachment[]
-  )[0].view = view;
+  (normals.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = view;
   const pass = encoder.beginRenderPass(normals.renderPassDescriptor);
   pass.setPipeline(normals.pipeline);
   pass.setBindGroup(0, normals.bindGroup);

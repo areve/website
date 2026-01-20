@@ -160,13 +160,18 @@ export function dispatchParticleCompute(
   },
   normals: {
     texture: GPUTexture;
-    // width: number;
-    // height: number;
+    width: number;
+    height: number;
   },
   deltaTime: number
 ) {
   const particleSpeed = 2000.0;
-  const simArray = new Float32Array([deltaTime, particleSpeed]);
+  const simArray = new Float32Array([
+    deltaTime,
+    particleSpeed,
+    normals.width,
+    normals.height,
+  ]);
   device.queue.writeBuffer(
     particle.simBuffer,
     0,

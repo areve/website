@@ -98,7 +98,7 @@ export function setupParticleResources(
   });
 
   // simulation params uniform
-  const simParams = new Float32Array([0.016, 50.0, width, height]); // dt, speed, width, height
+  const simParams = new Float32Array([0.016, 200.0, width, height]); // dt, speed, width, height
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -125,7 +125,8 @@ export function setupParticleResources(
         let ncol = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
       let nx = ncol.x * 2.0 - 1.0;
       let ny = ncol.y * 2.0 - 1.0;
-      let flow = vec2f(-nx, -ny);
+      // normals encode downhill direction in (nx,ny), use that for flow
+      let flow = vec2f(nx, ny);
       p = p + flow * sim.speed * sim.dt;
       // wrap around
       if (p.x < 0.0) { p.x = p.x + sim.width; }
@@ -192,7 +193,7 @@ export function dispatchParticleCompute(
   dt: number
 ) {
   // update sim params
-  const simArray = new Float32Array([dt, 50.0, background.width ?? 0, background.height ?? 0]);
+  const simArray = new Float32Array([dt, 2000.0, background.width ?? 0, background.height ?? 0]);
   device.queue.writeBuffer(particle.simBuffer, 0, simArray.buffer, simArray.byteOffset, simArray.byteLength);
 
   const bindGroup = device.createBindGroup({

@@ -2,6 +2,7 @@ import { setupSharedResources } from "./Flowfield2/shared";
 import { setupWebGpu } from "./Flowfield2/webgpu";
 import {
   renderBackgroundToTexture,
+  renderNormalsToTexture,
   setupBackgroundResources,
 } from "./Flowfield2/background";
 import {
@@ -62,6 +63,7 @@ export async function setupFlowfield2Renderer(
       const encoder = device.createCommandEncoder();
 
       renderBackgroundToTexture(encoder, background);
+      renderNormalsToTexture(encoder, background);
       renderParticleTexture(encoder, particle);
       renderComposite(encoder, context, composite);
 

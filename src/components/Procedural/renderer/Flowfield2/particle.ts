@@ -1,6 +1,6 @@
 import commonWgsl from "./common.wgsl?raw";
 
-const NUM_PARTICLES = 1000;
+const NUM_PARTICLES = 256;
 
 export function setupParticleResources(
   device: GPUDevice,

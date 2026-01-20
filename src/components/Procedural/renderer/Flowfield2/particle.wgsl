@@ -6,17 +6,9 @@
   let q = quad[vi];
   let size = vec2f(4.0, 4.0);
 
-  // instancePos is stored in WORLD coordinates now. Convert back to screen pixel
-  // coordinates using the same mapping as the background shader so particles
-  // move/rotate/zoom with the background.
-  let center = vec2f((data.width / 2.0) / data.scale * data.zoom + data.x / data.scale,
-                     (data.height / 2.0) / data.scale * data.zoom + data.y / data.scale);
-  let d = instancePos - center;
-  let cos_r = cos(data.rotation);
-  let sin_r = sin(data.rotation);
-  // inverse rotation (world -> screen relative)
-  let dprime = vec2f(d.x * cos_r + d.y * sin_r, -d.x * sin_r + d.y * cos_r);
-  let coord = dprime * (data.scale / data.zoom) + vec2f(data.width / 2.0, data.height / 2.0);
+  // instancePos is stored in WORLD coordinates now. Convert to screen pixel
+  // coordinates using the shared helper so particles move/rotate/zoom with the background.
+  let coord = worldToPixel(instancePos, data.width, data.height);
 
   let pixelPos = coord + q * size;
   let ndc = (pixelPos / vec2f(data.width, data.height)) * vec2f(2.0, -2.0) + vec2f(-1.0, 1.0);
@@ -47,18 +39,7 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     let r1 = noise(vec4<f32>(f32(idx), 12.989, 18.111, sim.seed));
     let r2 = noise(vec4<f32>(f32(idx), 78.233, 99.234, sim.seed + 1.0));
     let spawnPx = vec2f(r1 * sim.width, r2 * sim.height);
-
-    let center = vec2f((sim.width / 2.0) / data.scale * data.zoom + data.x / data.scale,
-                       (sim.height / 2.0) / data.scale * data.zoom + data.y / data.scale);
-    let baseX = spawnPx.x / data.scale * data.zoom + data.x / data.scale;
-    let baseY = spawnPx.y / data.scale * data.zoom + data.y / data.scale;
-    let relX = baseX - center.x;
-    let relY = baseY - center.y;
-    let cos_r_s = cos(data.rotation);
-    let sin_r_s = sin(data.rotation);
-    let rotX = relX * cos_r_s - relY * sin_r_s;
-    let rotY = relX * sin_r_s + relY * cos_r_s;
-    p = vec2f(rotX + center.x, rotY + center.y);
+    p = pixelToWorld(spawnPx, sim.width, sim.height);
 
     lifetimes[idx] = sim.maxLife;
     positions[idx] = p;
@@ -66,14 +47,7 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   }
 
   // Convert world-space particle position into screen UVs to sample the normals
-  let center = vec2f((sim.width / 2.0) / data.scale * data.zoom + data.x / data.scale,
-                     (sim.height / 2.0) / data.scale * data.zoom + data.y / data.scale);
-  let d = p - center;
-  let cos_r = cos(data.rotation);
-  let sin_r = sin(data.rotation);
-  // inverse rotation (world -> screen relative coords)
-  let dprime = vec2f(d.x * cos_r + d.y * sin_r, -d.x * sin_r + d.y * cos_r);
-  let coord = dprime * (data.scale / data.zoom) + vec2f(sim.width / 2.0, sim.height / 2.0);
+  let coord = worldToPixel(p, sim.width, sim.height);
   let uv = coord / vec2f(sim.width, sim.height);
 
   // Bilinear sample the normals texture to avoid sudden nearest-neighbour jumps
@@ -97,22 +71,13 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let flow = vec2f(nx, ny);
 
   // Convert flow (which was in pixel-space units) into world-space units and update
-  let pixelToWorld = (1.0 / data.scale) * data.zoom;
-  p = p + flow * sim.speed * sim.dt * pixelToWorld;
+  let pixelToWorldScale = (1.0 / data.scale) * data.zoom;
+  p = p + flow * sim.speed * sim.dt * pixelToWorldScale;
 
   // Wrap using screen/pixel coordinates so wrapping follows rotation
-  let d2 = p - center;
-  let dprime2 = vec2f(d2.x * cos_r + d2.y * sin_r, -d2.x * sin_r + d2.y * cos_r);
-  var coord2 = dprime2 * (data.scale / data.zoom) + vec2f(sim.width / 2.0, sim.height / 2.0);
-  if (coord2.x < 0.0) { coord2.x = coord2.x + sim.width; }
-  if (coord2.x >= sim.width) { coord2.x = coord2.x - sim.width; }
-  if (coord2.y < 0.0) { coord2.y = coord2.y + sim.height; }
-  if (coord2.y >= sim.height) { coord2.y = coord2.y - sim.height; }
-  // convert back to world-space
-  let worldRel = (coord2 - vec2f(sim.width / 2.0, sim.height / 2.0)) * (data.zoom / data.scale);
-  let relXw = worldRel.x * cos_r - worldRel.y * sin_r;
-  let relYw = worldRel.x * sin_r + worldRel.y * cos_r;
-  p = vec2f(relXw + center.x, relYw + center.y);
+  var coord2 = worldToPixel(p, sim.width, sim.height);
+  coord2 = pixelWrap(coord2, sim.width, sim.height);
+  p = pixelToWorld(coord2, sim.width, sim.height);
 
   positions[idx] = p;
 }

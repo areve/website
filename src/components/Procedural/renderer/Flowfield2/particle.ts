@@ -186,13 +186,12 @@ export function dispatchParticleCompute(
   },
   normals: {
     texture: GPUTexture;
-    sampler: GPUSampler;
-    width?: number;
-    height?: number;
+    width: number;
+    height: number;
   },
   deltaTime: number
 ) {
-  const simArray = new Float32Array([deltaTime, 2000.0, normals.width ?? 0, normals.height ?? 0]);
+  const simArray = new Float32Array([deltaTime, 2000.0, normals.width, normals.height]);
   device.queue.writeBuffer(particle.simBuffer, 0, simArray.buffer, simArray.byteOffset, simArray.byteLength);
 
   const bindGroup = device.createBindGroup({

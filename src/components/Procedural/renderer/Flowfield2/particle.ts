@@ -1,4 +1,5 @@
 import commonWgsl from "./common.wgsl?raw";
+import noiseWgsl from "./noise.wgsl?raw";
 import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
@@ -41,19 +42,38 @@ export function setupParticleResources(
       GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
   });
-  device.queue.writeBuffer(posBuffer, 0, positions.buffer, positions.byteOffset, positions.byteLength);
+  device.queue.writeBuffer(
+    posBuffer,
+    0,
+    positions.buffer,
+    positions.byteOffset,
+    positions.byteLength
+  );
 
   // create lifetimes buffer
   const lifetimes = new Float32Array(config.particleCount);
-  for (let i = 0; i < config.particleCount; i++) lifetimes[i] = Math.random() * config.maxLife;
+  for (let i = 0; i < config.particleCount; i++)
+    lifetimes[i] = Math.random() * config.maxLife;
   const lifetimesBuffer = device.createBuffer({
     size: lifetimes.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(lifetimesBuffer, 0, lifetimes.buffer, lifetimes.byteOffset, lifetimes.byteLength);
+  device.queue.writeBuffer(
+    lifetimesBuffer,
+    0,
+    lifetimes.buffer,
+    lifetimes.byteOffset,
+    lifetimes.byteLength
+  );
 
   // create shader module (common + particle)
-  const module = device.createShaderModule({ code: `${commonWgsl}\n${particleWgsl}` });
+  const module = device.createShaderModule({
+    code: `
+      ${commonWgsl}
+      ${noiseWgsl}
+      ${particleWgsl}
+    `,
+  });
 
   const pipeline = device.createRenderPipeline({
     layout: "auto",
@@ -94,14 +114,30 @@ export function setupParticleResources(
 
   // simulation params uniform (dt, speed, width, height, maxLife, seed)
   const seed = Math.random() * 1000.0;
-  const simParams = new Float32Array([0.016, config.particleSpeed, width, height, config.maxLife, seed]);
+  const simParams = new Float32Array([
+    0.016,
+    config.particleSpeed,
+    width,
+    height,
+    config.maxLife,
+    seed,
+  ]);
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(simBuffer, 0, simParams.buffer, simParams.byteOffset, simParams.byteLength);
+  device.queue.writeBuffer(
+    simBuffer,
+    0,
+    simParams.buffer,
+    simParams.byteOffset,
+    simParams.byteLength
+  );
 
-  const computePipeline = device.createComputePipeline({ layout: "auto", compute: { module, entryPoint: "cs" } });
+  const computePipeline = device.createComputePipeline({
+    layout: "auto",
+    compute: { module, entryPoint: "cs" },
+  });
 
   return {
     texture,
@@ -132,7 +168,10 @@ export function renderParticleTexture(
   }
 ) {
   const view = particle.texture.createView();
-  (particle.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = view;
+  (
+    particle.renderPassDescriptor
+      .colorAttachments as GPURenderPassColorAttachment[]
+  )[0].view = view;
   const pass = encoder.beginRenderPass(particle.renderPassDescriptor);
   pass.setBindGroup(0, particle.bindGroup);
   pass.setPipeline(particle.pipeline);
@@ -160,8 +199,21 @@ export function updateParticles(
   },
   deltaTime: number
 ) {
-  const simArray = new Float32Array([deltaTime, config.particleSpeed, normals.width, normals.height, particle.maxLife, particle.seed]);
-  device.queue.writeBuffer(particle.simBuffer, 0, simArray.buffer, simArray.byteOffset, simArray.byteLength);
+  const simArray = new Float32Array([
+    deltaTime,
+    config.particleSpeed,
+    normals.width,
+    normals.height,
+    particle.maxLife,
+    particle.seed,
+  ]);
+  device.queue.writeBuffer(
+    particle.simBuffer,
+    0,
+    simArray.buffer,
+    simArray.byteOffset,
+    simArray.byteLength
+  );
 
   const bindGroup = device.createBindGroup({
     layout: particle.computePipeline.getBindGroupLayout(0),

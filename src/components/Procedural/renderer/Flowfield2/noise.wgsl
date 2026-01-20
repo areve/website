@@ -7,3 +7,4 @@ fn noise(coord: vec4<f32>) -> f32 {
   let m: u32 = (n ^ (n >> 13)) * 1274126177;
   return f32(m) / f32(0xffffffff);
 }
+  

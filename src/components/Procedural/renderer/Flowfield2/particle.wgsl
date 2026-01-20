@@ -23,6 +23,8 @@ struct Sim { dt: f32, speed: f32, width: f32, height: f32, maxLife: f32, seed: f
 @group(0) @binding(1) var normalsTex: texture_2d<f32>;
 @group(0) @binding(2) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(3) var<storage, read_write> lifetimes: array<f32>;
+// states: 0.0 = waiting to spawn, 1.0 = alive
+@group(0) @binding(5) var<storage, read_write> states: array<f32>;
 @group(0) @binding(4) var<uniform> sim: Sim;
 
 @compute @workgroup_size(64)
@@ -31,17 +33,34 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let count: u32 = arrayLength(&positions);
   if (idx >= count) { return; }
   var p = positions[idx];
-  // update lifetime
+  // update lifetime (counts down whether waiting or alive)
   lifetimes[idx] = lifetimes[idx] - sim.dt;
-  if (lifetimes[idx] <= 0.0) {
-    // spawn uniformly across the VIEWPORT in pixel space then convert to
-    // WORLD coordinates using the same transform as the background
-    let r1 = noise(vec4<f32>(f32(idx), 12.989, 18.111, sim.seed));
-    let r2 = noise(vec4<f32>(f32(idx), 78.233, 99.234, sim.seed + 1.0));
-    let spawnPx = vec2f(r1 * sim.width, r2 * sim.height);
-    p = pixelToWorld(spawnPx, sim.width, sim.height);
+  let state = states[idx];
 
-    lifetimes[idx] = sim.maxLife;
+  // If waiting to spawn
+  if (state < 0.5) {
+    if (lifetimes[idx] <= 0.0) {
+      // spawn uniformly across the VIEWPORT in pixel space then convert to
+      // WORLD coordinates using the shared helper
+      let r1 = noise(vec4<f32>(f32(idx), 12.989, 18.111, sim.seed));
+      let r2 = noise(vec4<f32>(f32(idx), 78.233, 99.234, sim.seed + 1.0));
+      let spawnPx = vec2f(r1 * sim.width, r2 * sim.height);
+      p = pixelToWorld(spawnPx, sim.width, sim.height);
+      lifetimes[idx] = sim.maxLife;
+      states[idx] = 1.0;
+      positions[idx] = p;
+    } else {
+      // still waiting, leave position unchanged
+      positions[idx] = p;
+    }
+    return;
+  }
+
+  // If alive, and lifetime expired -> schedule respawn after random delay
+  if (lifetimes[idx] <= 0.0) {
+    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife;
+    lifetimes[idx] = delay;
+    states[idx] = 0.0;
     positions[idx] = p;
     return;
   }
@@ -74,9 +93,16 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let pixelToWorldScale = (1.0 / data.scale) * data.zoom;
   p = p + flow * sim.speed * sim.dt * pixelToWorldScale;
 
-  // Wrap using screen/pixel coordinates so wrapping follows rotation
+  // If pixel coords fall outside the viewport, mark the particle dead so it
+  // will respawn randomly next frame instead of wrapping.
   var coord2 = worldToPixel(p, sim.width, sim.height);
-  coord2 = pixelWrap(coord2, sim.width, sim.height);
+  if (coord2.x < 0.0 || coord2.x >= sim.width || coord2.y < 0.0 || coord2.y >= sim.height) {
+    // schedule respawn after a random delay in [0, sim.maxLife]
+    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife;
+    lifetimes[idx] = delay;
+    positions[idx] = p;
+    return;
+  }
   p = pixelToWorld(coord2, sim.width, sim.height);
 
   positions[idx] = p;

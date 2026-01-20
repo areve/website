@@ -36,11 +36,3 @@ fn worldToPixel(p: vec2<f32>, width: f32, height: f32) -> vec2<f32> {
   return dprime * (data.scale / data.zoom) + vec2f(width / 2.0, height / 2.0);
 }
 
-fn pixelWrap(coord: vec2<f32>, width: f32, height: f32) -> vec2<f32> {
-  var c = coord;
-  if (c.x < 0.0) { c.x = c.x + width; }
-  if (c.x >= width) { c.x = c.x - width; }
-  if (c.y < 0.0) { c.y = c.y + height; }
-  if (c.y >= height) { c.y = c.y - height; }
-  return c;
-}

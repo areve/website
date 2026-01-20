@@ -25,7 +25,7 @@ export function setupParticleResources(
       GPUTextureUsage.COPY_SRC,
   });
 
-  // place particles on a grid across the viewport (converted to WORLD coords)
+  // place particles offscreen initially; they'll spawn after a randomized delay
   const positions = new Float32Array(config.particleCount * 2);
   const cols = Math.ceil(Math.sqrt(config.particleCount));
   const rows = Math.ceil(config.particleCount / cols);
@@ -43,25 +43,19 @@ export function setupParticleResources(
   const centerX = (width / 2) / scale * zoom + sx / scale;
   const centerY = (height / 2) / scale * zoom + sy / scale;
 
+  // pick an offscreen pixel to map to world-space so particles are invisible until spawn
+  const offPx = -1000;
+  const offPy = -1000;
+  const baseOffX = offPx / scale * zoom + sx / scale;
+  const baseOffY = offPy / scale * zoom + sy / scale;
+  const relOffX = baseOffX - centerX;
+  const relOffY = baseOffY - centerY;
+  const offWorldX = relOffX * cosR - relOffY * sinR + centerX;
+  const offWorldY = relOffX * sinR + relOffY * cosR + centerY;
+
   for (let i = 0; i < config.particleCount; i++) {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const px = (col + 0.5) * spacingX;
-    const py = (row + 0.5) * spacingY;
-
-    // Map the initial pixel position to world coordinates so particles are
-    // initialized in the same coordinate space the background uses.
-    const baseX = px / scale * zoom + sx / scale;
-    const baseY = py / scale * zoom + sy / scale;
-    const relX = baseX - centerX;
-    const relY = baseY - centerY;
-    const rotX = relX * cosR - relY * sinR;
-    const rotY = relX * sinR + relY * cosR;
-    const worldX = rotX + centerX;
-    const worldY = rotY + centerY;
-
-    positions[i * 2 + 0] = worldX;
-    positions[i * 2 + 1] = worldY;
+    positions[i * 2 + 0] = offWorldX;
+    positions[i * 2 + 1] = offWorldY;
   }
 
   const posBuffer = device.createBuffer({
@@ -78,10 +72,14 @@ export function setupParticleResources(
     positions.byteLength
   );
 
-  // create lifetimes buffer
+  // create lifetimes buffer (time-until-spawn while waiting, remaining-life while alive)
   const lifetimes = new Float32Array(config.particleCount);
-  for (let i = 0; i < config.particleCount; i++)
-    lifetimes[i] = Math.random() * config.maxLife;
+  // create states buffer (0 = waiting, 1 = alive)
+  const states = new Float32Array(config.particleCount);
+  for (let i = 0; i < config.particleCount; i++) {
+    lifetimes[i] = Math.random() * config.maxLife; // randomized initial delay
+    states[i] = 0.0; // start waiting
+  }
   const lifetimesBuffer = device.createBuffer({
     size: lifetimes.byteLength,
     usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
@@ -92,6 +90,18 @@ export function setupParticleResources(
     lifetimes.buffer,
     lifetimes.byteOffset,
     lifetimes.byteLength
+  );
+
+  const statesBuffer = device.createBuffer({
+    size: states.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(
+    statesBuffer,
+    0,
+    states.buffer,
+    states.byteOffset,
+    states.byteLength
   );
 
   // create shader module (common + particle)
@@ -173,6 +183,8 @@ export function setupParticleResources(
     posBuffer,
     numParticles: config.particleCount,
     lifetimesBuffer,
+    // expose states buffer for compute bindgroup
+    statesBuffer,
     colorAttachment,
     renderPassDescriptor,
     bindGroup,
@@ -218,6 +230,7 @@ export function updateParticles(
     numParticles: number;
     simBuffer: GPUBuffer;
     lifetimesBuffer: GPUBuffer;
+    statesBuffer: GPUBuffer;
     maxLife: number;
     seed: number;
   },
@@ -252,6 +265,8 @@ export function updateParticles(
       { binding: 2, resource: { buffer: particle.posBuffer } },
       { binding: 3, resource: { buffer: particle.lifetimesBuffer } },
       { binding: 4, resource: { buffer: particle.simBuffer } },
+      // states buffer binding (binding 5)
+      { binding: 5, resource: { buffer: particle.statesBuffer } },
     ],
   });
 

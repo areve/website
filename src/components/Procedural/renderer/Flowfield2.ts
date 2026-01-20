@@ -38,7 +38,12 @@ export async function setupFlowfield2Renderer(
     dataBuffer
   );
 
-  const particle = setupParticleResources(device, options.width, options.height, dataBuffer);
+  const particle = setupParticleResources(
+    device,
+    options.width,
+    options.height,
+    dataBuffer
+  );
   const composite = setupCompositeResources(
     device,
     presentationFormat,
@@ -47,6 +52,7 @@ export async function setupFlowfield2Renderer(
     particle
   );
 
+  let lastFrameTime = performance.now();
   return {
     async init() {},
     async update(
@@ -57,9 +63,8 @@ export async function setupFlowfield2Renderer(
       }
     ) {
       const now = performance.now();
-      if (!(this as any)._lastFrameTime) (this as any)._lastFrameTime = now;
-      const deltaTime = Math.max(0.001, (now - (this as any)._lastFrameTime) / 1000);
-      (this as any)._lastFrameTime = now;
+      const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
+      lastFrameTime = now;
 
       sharedData.z = time * 0.0;
 
@@ -72,7 +77,14 @@ export async function setupFlowfield2Renderer(
       renderNormalsToTexture(encoder, background);
       // compute particle advection using normalsTexture
       await Promise.resolve();
-      dispatchParticleCompute(encoder, device, dataBuffer, particle, background, deltaTime);
+      dispatchParticleCompute(
+        encoder,
+        device,
+        dataBuffer,
+        particle,
+        background,
+        deltaTime
+      );
       renderParticleTexture(encoder, particle);
       renderComposite(encoder, context, composite);
 

@@ -1,4 +1,6 @@
 import commonWgsl from "./common.wgsl?raw";
+import compositeWgsl from "./composite.wgsl?raw";
+
 export function setupCompositeResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
@@ -10,29 +12,10 @@ export function setupCompositeResources(
     texture: GPUTexture;
   }
 ) {
-  // composite shader: sample bg tex and particle tex and overlay particles
-  const compWgsl = /* wgsl */ `
-    @group(0) @binding(1) var samp2: sampler;
-    @group(0) @binding(2) var bgTex: texture_2d<f32>;
-    @group(0) @binding(3) var pTex: texture_2d<f32>;
-
-    @vertex fn vsBlit(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4f {
-      let pos = array(vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(-1.0,1.0), vec2f(-1.0,-1.0), vec2f(1.0,1.0), vec2f(1.0,-1.0));
-      return vec4f(pos[vertexIndex], 0.0, 1.0);
-    }
-
-    @fragment fn fsBlit(@builtin(position) coord: vec4<f32>) -> @location(0) vec4f {
-      let uv = coord.xy / vec2f(data.width, data.height);
-      let bg = textureSample(bgTex, samp2, uv);
-      let p = textureSample(pTex, samp2, uv);
-      // simple alpha overlay: out = bg*(1-a) + p.rgb*a
-      let out = bg.rgb * (1.0 - p.a) + p.rgb * p.a;
-      return vec4f(out, 1.0);
-    }
-  `;
-
-  const blitModule = device.createShaderModule({ code: `${commonWgsl}\n${compWgsl}` });
-  const blitPipeline = device.createRenderPipeline({
+  const blitModule = device.createShaderModule({
+    code: `${commonWgsl}\n${compositeWgsl}`,
+  });
+  const pipeline = device.createRenderPipeline({
     layout: "auto",
     vertex: { module: blitModule, entryPoint: "vsBlit" },
     fragment: {
@@ -43,9 +26,12 @@ export function setupCompositeResources(
     primitive: { topology: "triangle-list" },
   });
 
-  const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
-  const blitBindGroup = device.createBindGroup({
-    layout: blitPipeline.getBindGroupLayout(0),
+  const sampler = device.createSampler({
+    magFilter: "linear",
+    minFilter: "linear",
+  });
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: dataBuffer } },
       { binding: 1, resource: sampler },
@@ -56,32 +42,33 @@ export function setupCompositeResources(
 
   return {
     sampler,
-    blitPipeline,
-    blitBindGroup,
+    pipeline,
+    bindGroup,
   };
 }
+
 export function renderComposite(
   encoder: GPUCommandEncoder,
   context: GPUCanvasContext,
   composite: {
-    blitPipeline: GPURenderPipeline;
-    blitBindGroup: GPUBindGroup;
+    pipeline: GPURenderPipeline;
+    bindGroup: GPUBindGroup;
   }
 ) {
-  const swapView = context.getCurrentTexture().createView();
-  const compDesc: GPURenderPassDescriptor = {
+  const view = context.getCurrentTexture().createView();
+  const descriptor: GPURenderPassDescriptor = {
     colorAttachments: [
       {
-        view: swapView,
+        view,
         loadOp: "clear",
         storeOp: "store",
         clearValue: [0, 0, 0, 1],
       },
     ],
   };
-  const compPass = encoder.beginRenderPass(compDesc);
-  compPass.setPipeline(composite.blitPipeline);
-  compPass.setBindGroup(0, composite.blitBindGroup);
-  compPass.draw(6);
-  compPass.end();
+  const pass = encoder.beginRenderPass(descriptor);
+  pass.setPipeline(composite.pipeline);
+  pass.setBindGroup(0, composite.bindGroup);
+  pass.draw(6);
+  pass.end();
 }

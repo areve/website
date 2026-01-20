@@ -82,11 +82,9 @@ export async function setupFlowfield2Renderer(
 
       renderBackgroundToTexture(encoder, background);
       renderNormalsToTexture(encoder, normals);
-
       dispatchParticleCompute(
         encoder,
         device,
-
         particle,
         normals,
         deltaTime

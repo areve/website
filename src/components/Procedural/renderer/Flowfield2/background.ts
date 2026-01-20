@@ -35,8 +35,6 @@ export function setupBackgroundResources(
     entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
 
-
-  // create the background render target and sampler
   const texture = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
     format: presentationFormat,
@@ -46,7 +44,10 @@ export function setupBackgroundResources(
       GPUTextureUsage.COPY_SRC,
   });
 
-  const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
+  const sampler = device.createSampler({
+    magFilter: "linear",
+    minFilter: "linear",
+  });
   const colorAttachment: GPURenderPassColorAttachment = {
     view: undefined! as GPUTextureView,
     clearValue: [0.0, 0.0, 0.0, 1],
@@ -63,12 +64,10 @@ export function setupBackgroundResources(
     bindGroup,
     texture,
     sampler,
-    colorAttachment,
     renderPassDescriptor,
-    width,
-    height,
   };
 }
+
 export function renderBackgroundToTexture(
   encoder: GPUCommandEncoder,
   background: {
@@ -76,9 +75,6 @@ export function renderBackgroundToTexture(
     bindGroup: GPUBindGroup;
     texture: GPUTexture;
     renderPassDescriptor: GPURenderPassDescriptor;
-    normalsTexture?: GPUTexture;
-    width: number;
-    height: number;
   }
 ) {
   const backgroundView = background.texture.createView();

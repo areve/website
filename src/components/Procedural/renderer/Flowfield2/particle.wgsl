@@ -100,15 +100,19 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let pixelToWorld = (1.0 / data.scale) * data.zoom;
   p = p + flow * sim.speed * sim.dt * pixelToWorld;
 
-  // wrap in world-space extents matching the visible viewport
-  let halfW = (sim.width / 2.0) / data.scale * data.zoom;
-  let halfH = (sim.height / 2.0) / data.scale * data.zoom;
-  let worldW = halfW * 2.0;
-  let worldH = halfH * 2.0;
-  if (p.x < center.x - halfW) { p.x = p.x + worldW; }
-  if (p.x >= center.x + halfW) { p.x = p.x - worldW; }
-  if (p.y < center.y - halfH) { p.y = p.y + worldH; }
-  if (p.y >= center.y + halfH) { p.y = p.y - worldH; }
+  // Wrap using screen/pixel coordinates so wrapping follows rotation
+  let d2 = p - center;
+  let dprime2 = vec2f(d2.x * cos_r + d2.y * sin_r, -d2.x * sin_r + d2.y * cos_r);
+  var coord2 = dprime2 * (data.scale / data.zoom) + vec2f(sim.width / 2.0, sim.height / 2.0);
+  if (coord2.x < 0.0) { coord2.x = coord2.x + sim.width; }
+  if (coord2.x >= sim.width) { coord2.x = coord2.x - sim.width; }
+  if (coord2.y < 0.0) { coord2.y = coord2.y + sim.height; }
+  if (coord2.y >= sim.height) { coord2.y = coord2.y - sim.height; }
+  // convert back to world-space
+  let worldRel = (coord2 - vec2f(sim.width / 2.0, sim.height / 2.0)) * (data.zoom / data.scale);
+  let relXw = worldRel.x * cos_r - worldRel.y * sin_r;
+  let relYw = worldRel.x * sin_r + worldRel.y * cos_r;
+  p = vec2f(relXw + center.x, relYw + center.y);
 
   positions[idx] = p;
 }

@@ -9,7 +9,7 @@ import {
 import {
   renderParticleTexture,
   setupParticleResources,
-  dispatchParticleCompute,
+  updateParticles,
 } from "./Flowfield2/particle";
 
 export async function setupFlowfield2Renderer(
@@ -82,7 +82,7 @@ export async function setupFlowfield2Renderer(
 
       renderBackgroundToTexture(encoder, background);
       renderNormalsToTexture(encoder, normals);
-      dispatchParticleCompute(
+      updateParticles(
         encoder,
         device,
         particle,

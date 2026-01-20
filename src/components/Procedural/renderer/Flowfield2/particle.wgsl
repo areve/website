@@ -14,7 +14,9 @@
   return vec4f(1.0, 1.0, 0.0, 1.0);
 }
 
-struct Sim { dt: f32, speed: f32, width: f32, height: f32 };
+struct Sim { 
+  deltaTime: f32, particleCount: u32, speed: f32, width: f32, height: f32 
+};
 @group(0) @binding(1) var normalsTex: texture_2d<f32>;
 @group(0) @binding(2) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(3) var<uniform> sim: Sim;
@@ -22,7 +24,7 @@ struct Sim { dt: f32, speed: f32, width: f32, height: f32 };
 @compute @workgroup_size(64)
 fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let idx: u32 = gid.x;
-  if (idx >= ${particleCount}u) { return; }
+  if (idx >= sim.particleCount) { return; }
   var p = positions[idx];
   let uv = p / vec2f(sim.width, sim.height);
   let ix = i32(floor(uv.x * sim.width));
@@ -31,7 +33,7 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let nx = ncol.x * 2.0 - 1.0;
   let ny = ncol.y * 2.0 - 1.0;
   let flow = vec2f(nx, ny);
-  p = p + flow * sim.speed * sim.dt;
+  p = p + flow * sim.speed * sim.deltaTime;
   if (p.x < 0.0) { p.x = p.x + sim.width; }
   if (p.x >= sim.width) { p.x = p.x - sim.width; }
   if (p.y < 0.0) { p.y = p.y + sim.height; }

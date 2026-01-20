@@ -3,6 +3,7 @@ import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
   particleCount: 256,
+  particleSpeed: 2000,
 };
 
 export function setupParticleResources(
@@ -50,7 +51,7 @@ export function setupParticleResources(
   const module = device.createShaderModule({
     code: `
       ${commonWgsl}
-      ${particleWgsl.replace("${particleCount}", `${config.particleCount}`)}
+      ${particleWgsl}
     `,
   });
 
@@ -92,7 +93,7 @@ export function setupParticleResources(
   });
 
   // simulation params uniform
-  const simParams = new Float32Array([0.016, 200.0, width, height]); // dt, speed, width, height
+  const simParams = new Float32Array([0.016, config.particleCount, config.particleSpeed, width, height]); // dt, speed, width, height
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
@@ -149,7 +150,7 @@ export function renderParticleTexture(
   pass.end();
 }
 
-export function dispatchParticleCompute(
+export function updateParticles(
   encoder: GPUCommandEncoder,
   device: GPUDevice,
   particle: {
@@ -165,10 +166,10 @@ export function dispatchParticleCompute(
   },
   deltaTime: number
 ) {
-  const particleSpeed = 2000.0;
   const simArray = new Float32Array([
     deltaTime,
-    particleSpeed,
+    config.particleCount,
+    config.particleSpeed,
     normals.width,
     normals.height,
   ]);

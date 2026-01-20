@@ -49,7 +49,8 @@ export async function setupFlowfield2Renderer(
     device,
     options.width,
     options.height,
-    dataBuffer
+    dataBuffer,
+    sharedData
   );
   const composite = setupCompositeResources(
     device,

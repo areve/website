@@ -12,7 +12,9 @@ export function setupParticleResources(
   device: GPUDevice,
   width: number,
   height: number,
-  dataBuffer: GPUBuffer
+  dataBuffer: GPUBuffer,
+  // pass the shared data object so we can initialize particles in world-space
+  sharedData: { width: number; height: number; seed: number; scale: number; x: number; y: number; z: number; zoom: number; rotation: number }
 ) {
   const texture = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
@@ -23,17 +25,43 @@ export function setupParticleResources(
       GPUTextureUsage.COPY_SRC,
   });
 
-  // place particles on a grid across the viewport
+  // place particles on a grid across the viewport (converted to WORLD coords)
   const positions = new Float32Array(config.particleCount * 2);
   const cols = Math.ceil(Math.sqrt(config.particleCount));
   const rows = Math.ceil(config.particleCount / cols);
   const spacingX = width / cols;
   const spacingY = height / rows;
+
+  // Precompute shared transform values for mapping pixel -> world (same math as background.wgsl)
+  const scale = sharedData.scale;
+  const zoom = sharedData.zoom;
+  const sx = sharedData.x;
+  const sy = sharedData.y;
+  const rot = sharedData.rotation;
+  const cosR = Math.cos(rot);
+  const sinR = Math.sin(rot);
+  const centerX = (width / 2) / scale * zoom + sx / scale;
+  const centerY = (height / 2) / scale * zoom + sy / scale;
+
   for (let i = 0; i < config.particleCount; i++) {
     const col = i % cols;
     const row = Math.floor(i / cols);
-    positions[i * 2 + 0] = (col + 0.5) * spacingX;
-    positions[i * 2 + 1] = (row + 0.5) * spacingY;
+    const px = (col + 0.5) * spacingX;
+    const py = (row + 0.5) * spacingY;
+
+    // Map the initial pixel position to world coordinates so particles are
+    // initialized in the same coordinate space the background uses.
+    const baseX = px / scale * zoom + sx / scale;
+    const baseY = py / scale * zoom + sy / scale;
+    const relX = baseX - centerX;
+    const relY = baseY - centerY;
+    const rotX = relX * cosR - relY * sinR;
+    const rotY = relX * sinR + relY * cosR;
+    const worldX = rotX + centerX;
+    const worldY = rotY + centerY;
+
+    positions[i * 2 + 0] = worldX;
+    positions[i * 2 + 1] = worldY;
   }
 
   const posBuffer = device.createBuffer({

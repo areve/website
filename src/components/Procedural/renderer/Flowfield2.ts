@@ -12,6 +12,7 @@ import {
 import {
   renderParticleTexture,
   setupParticleResources,
+  dispatchParticleCompute,
 } from "./Flowfield2/particle";
 
 export async function setupFlowfield2Renderer(
@@ -55,6 +56,11 @@ export async function setupFlowfield2Renderer(
         y?: number;
       }
     ) {
+      const now = performance.now();
+      if (!(this as any)._lastFrameTime) (this as any)._lastFrameTime = now;
+      const deltaTime = Math.max(0.001, (now - (this as any)._lastFrameTime) / 1000);
+      (this as any)._lastFrameTime = now;
+
       sharedData.z = time * 0.0;
 
       Object.assign(sharedData, data);
@@ -64,6 +70,9 @@ export async function setupFlowfield2Renderer(
 
       renderBackgroundToTexture(encoder, background);
       renderNormalsToTexture(encoder, background);
+      // compute particle advection using normalsTexture
+      await Promise.resolve();
+      dispatchParticleCompute(encoder, device, dataBuffer, particle, background, deltaTime);
       renderParticleTexture(encoder, particle);
       renderComposite(encoder, context, composite);
 

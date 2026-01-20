@@ -122,6 +122,7 @@ fn sampleHeight(uv: vec2<f32>) -> f32 {
     normalsPipeline,
     normalsBindGroup,
     normalsTexture,
+    sampler,
     colorAttachment,
     renderPassDescriptor,
     width,

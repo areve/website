@@ -33,7 +33,7 @@ export function setupParticleResources(
 
   const posBuffer = device.createBuffer({
     size: positions.byteLength,
-    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
   });
   device.queue.writeBuffer(posBuffer, 0, positions.buffer, positions.byteOffset, positions.byteLength);
@@ -97,6 +97,48 @@ export function setupParticleResources(
     entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
 
+  // simulation params uniform
+  const simParams = new Float32Array([0.016, 50.0, width, height]); // dt, speed, width, height
+  const simBuffer = device.createBuffer({
+    size: simParams.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(simBuffer, 0, simParams.buffer, simParams.byteOffset, simParams.byteLength);
+
+  // compute shader to advect particles using normals texture
+  const computeWgsl = `
+    ${commonWgsl}
+    struct Sim { dt: f32, speed: f32, width: f32, height: f32 };
+    @group(0) @binding(1) var normalsTex: texture_2d<f32>;
+    @group(0) @binding(2) var<storage, read_write> positions: array<vec2<f32>>;
+    @group(0) @binding(3) var<uniform> sim: Sim;
+
+    @compute @workgroup_size(64)
+    fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
+      let idx: u32 = gid.x;
+      if (idx >= ${NUM_PARTICLES}u) { return; }
+      var p = positions[idx];
+      let uv = p / vec2f(sim.width, sim.height);
+        // sample normals texture via nearest texel in compute shader
+        let ix = i32(floor(uv.x * sim.width));
+        let iy = i32(floor(uv.y * sim.height));
+        let ncol = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
+      let nx = ncol.x * 2.0 - 1.0;
+      let ny = ncol.y * 2.0 - 1.0;
+      let flow = vec2f(-nx, -ny);
+      p = p + flow * sim.speed * sim.dt;
+      // wrap around
+      if (p.x < 0.0) { p.x = p.x + sim.width; }
+      if (p.x >= sim.width) { p.x = p.x - sim.width; }
+      if (p.y < 0.0) { p.y = p.y + sim.height; }
+      if (p.y >= sim.height) { p.y = p.y - sim.height; }
+      positions[idx] = p;
+    }
+  `;
+
+  const computeModule = device.createShaderModule({ code: computeWgsl });
+  const computePipeline = device.createComputePipeline({ layout: "auto", compute: { module: computeModule, entryPoint: "cs" } });
+
   return {
     texture,
     pipeline,
@@ -105,6 +147,8 @@ export function setupParticleResources(
     colorAttachment,
     renderPassDescriptor,
     bindGroup,
+    computePipeline,
+    simBuffer,
   };
 }
 
@@ -126,5 +170,44 @@ export function renderParticleTexture(
   pass.setPipeline(particle.pipeline);
   pass.setVertexBuffer(0, particle.posBuffer);
   pass.draw(6, particle.numParticles);
+  pass.end();
+}
+
+export function dispatchParticleCompute(
+  encoder: GPUCommandEncoder,
+  device: GPUDevice,
+  dataBuffer: GPUBuffer,
+  particle: {
+    computePipeline: GPUComputePipeline;
+    posBuffer: GPUBuffer;
+    numParticles: number;
+    simBuffer: GPUBuffer;
+  },
+  background: {
+    normalsTexture: GPUTexture;
+    sampler: GPUSampler;
+    width?: number;
+    height?: number;
+  },
+  dt: number
+) {
+  // update sim params
+  const simArray = new Float32Array([dt, 50.0, background.width ?? 0, background.height ?? 0]);
+  device.queue.writeBuffer(particle.simBuffer, 0, simArray.buffer, simArray.byteOffset, simArray.byteLength);
+
+  const bindGroup = device.createBindGroup({
+    layout: particle.computePipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 1, resource: background.normalsTexture.createView() },
+      { binding: 2, resource: { buffer: particle.posBuffer } },
+      { binding: 3, resource: { buffer: particle.simBuffer } },
+    ],
+  });
+
+  const pass = encoder.beginComputePass();
+  pass.setPipeline(particle.computePipeline);
+  pass.setBindGroup(0, bindGroup);
+  const groups = Math.ceil(particle.numParticles / 64);
+  pass.dispatchWorkgroups(groups);
   pass.end();
 }

@@ -1,7 +1,9 @@
 import commonWgsl from "./common.wgsl?raw";
+import particleWgsl from "./particle.wgsl?raw";
 
-// console.log(particleWgsl)
-const NUM_PARTICLES = 256;
+const config = {
+  particleCount: 256,
+};
 
 export function setupParticleResources(
   device: GPUDevice,
@@ -20,12 +22,12 @@ export function setupParticleResources(
   });
 
   // place particles on a grid across the viewport
-  const positions = new Float32Array(NUM_PARTICLES * 2);
-  const cols = Math.ceil(Math.sqrt(NUM_PARTICLES));
-  const rows = Math.ceil(NUM_PARTICLES / cols);
+  const positions = new Float32Array(config.particleCount * 2);
+  const cols = Math.ceil(Math.sqrt(config.particleCount));
+  const rows = Math.ceil(config.particleCount / cols);
   const spacingX = width / cols;
   const spacingY = height / rows;
-  for (let i = 0; i < NUM_PARTICLES; i++) {
+  for (let i = 0; i < config.particleCount; i++) {
     const col = i % cols;
     const row = Math.floor(i / cols);
     positions[i * 2 + 0] = (col + 0.5) * spacingX;
@@ -45,28 +47,12 @@ export function setupParticleResources(
     positions.byteOffset,
     positions.byteLength
   );
-
-  const particleWgsl = /* wgsl */ `
-    ${commonWgsl}
-    @vertex fn vs(@location(0) instancePos: vec2<f32>, @builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
-      let quad = array<vec2<f32>, 6>(
-        vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(-0.5, 0.5),
-        vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(0.5, -0.5)
-      );
-      let q = quad[vi];
-      let size = vec2f(4.0, 4.0); // particle quad size in pixels
-      let pixelPos = instancePos + q * size;
-      let ndc = (pixelPos / vec2f(data.width, data.height)) * vec2f(2.0, -2.0) + vec2f(-1.0, 1.0);
-      return vec4f(ndc, 0.0, 1.0);
-    }
-
-    @fragment fn fs() -> @location(0) vec4f {
-      // yellow particles
-      return vec4f(1.0, 1.0, 0.0, 1.0);
-    }
-  `;
-
-  const module = device.createShaderModule({ code: particleWgsl });
+  const module = device.createShaderModule({
+    code: `
+      ${commonWgsl}
+      ${particleWgsl.replace("${particleCount}", `${config.particleCount}`)}
+    `,
+  });
 
   const pipeline = device.createRenderPipeline({
     layout: "auto",
@@ -120,49 +106,16 @@ export function setupParticleResources(
   );
 
   // compute shader to advect particles using normals texture
-  const computeWgsl = `
-    ${commonWgsl}\n
-    struct Sim { dt: f32, speed: f32, width: f32, height: f32 };
-    @group(0) @binding(1) var normalsTex: texture_2d<f32>;
-    @group(0) @binding(2) var<storage, read_write> positions: array<vec2<f32>>;
-    @group(0) @binding(3) var<uniform> sim: Sim;
-
-    @compute @workgroup_size(64)
-    fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
-      let idx: u32 = gid.x;
-      if (idx >= ${NUM_PARTICLES}u) { return; }
-      var p = positions[idx];
-      let uv = p / vec2f(sim.width, sim.height);
-        // sample normals texture via nearest texel in compute shader
-        let ix = i32(floor(uv.x * sim.width));
-        let iy = i32(floor(uv.y * sim.height));
-        let ncol = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
-      let nx = ncol.x * 2.0 - 1.0;
-      let ny = ncol.y * 2.0 - 1.0;
-      // normals encode downhill direction in (nx,ny), use that for flow
-      let flow = vec2f(nx, ny);
-      p = p + flow * sim.speed * sim.dt;
-      // wrap around
-      if (p.x < 0.0) { p.x = p.x + sim.width; }
-      if (p.x >= sim.width) { p.x = p.x - sim.width; }
-      if (p.y < 0.0) { p.y = p.y + sim.height; }
-      if (p.y >= sim.height) { p.y = p.y - sim.height; }
-      positions[idx] = p;
-    }
-      
-  `;
-
-  const computeModule = device.createShaderModule({ code: computeWgsl });
   const computePipeline = device.createComputePipeline({
     layout: "auto",
-    compute: { module: computeModule, entryPoint: "cs" },
+    compute: { module, entryPoint: "cs" },
   });
 
   return {
     texture,
     pipeline,
     posBuffer,
-    numParticles: NUM_PARTICLES,
+    numParticles: config.particleCount,
     colorAttachment,
     renderPassDescriptor,
     bindGroup,
@@ -213,12 +166,7 @@ export function dispatchParticleCompute(
   deltaTime: number
 ) {
   const particleSpeed = 2000.0;
-  const simArray = new Float32Array([
-    deltaTime,
-    particleSpeed,
-    normals.width,
-    normals.height,
-  ]);
+  const simArray = new Float32Array([deltaTime, particleSpeed]);
   device.queue.writeBuffer(
     particle.simBuffer,
     0,

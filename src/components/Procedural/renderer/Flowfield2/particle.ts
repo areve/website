@@ -4,6 +4,7 @@ import particleWgsl from "./particle.wgsl?raw";
 const config = {
   particleCount: 256,
   particleSpeed: 2000,
+  maxLife: 5.0,
 };
 
 export function setupParticleResources(
@@ -12,7 +13,6 @@ export function setupParticleResources(
   height: number,
   dataBuffer: GPUBuffer
 ) {
-  // create offscreen texture for particles
   const texture = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
     format: navigator.gpu.getPreferredCanvasFormat(),
@@ -41,19 +41,19 @@ export function setupParticleResources(
       GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
   });
-  device.queue.writeBuffer(
-    posBuffer,
-    0,
-    positions.buffer,
-    positions.byteOffset,
-    positions.byteLength
-  );
-  const module = device.createShaderModule({
-    code: `
-      ${commonWgsl}
-      ${particleWgsl}
-    `,
+  device.queue.writeBuffer(posBuffer, 0, positions.buffer, positions.byteOffset, positions.byteLength);
+
+  // create lifetimes buffer
+  const lifetimes = new Float32Array(config.particleCount);
+  for (let i = 0; i < config.particleCount; i++) lifetimes[i] = Math.random() * config.maxLife;
+  const lifetimesBuffer = device.createBuffer({
+    size: lifetimes.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
   });
+  device.queue.writeBuffer(lifetimesBuffer, 0, lifetimes.buffer, lifetimes.byteOffset, lifetimes.byteLength);
+
+  // create shader module (common + particle)
+  const module = device.createShaderModule({ code: `${commonWgsl}\n${particleWgsl}` });
 
   const pipeline = device.createRenderPipeline({
     layout: "auto",
@@ -92,36 +92,30 @@ export function setupParticleResources(
     entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
   });
 
-  // simulation params uniform
-  const simParams = new Float32Array([0.016, config.particleCount, config.particleSpeed, width, height]); // dt, speed, width, height
+  // simulation params uniform (dt, speed, width, height, maxLife, seed)
+  const seed = Math.random() * 1000.0;
+  const simParams = new Float32Array([0.016, config.particleSpeed, width, height, config.maxLife, seed]);
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
-  device.queue.writeBuffer(
-    simBuffer,
-    0,
-    simParams.buffer,
-    simParams.byteOffset,
-    simParams.byteLength
-  );
+  device.queue.writeBuffer(simBuffer, 0, simParams.buffer, simParams.byteOffset, simParams.byteLength);
 
-  // compute shader to advect particles using normals texture
-  const computePipeline = device.createComputePipeline({
-    layout: "auto",
-    compute: { module, entryPoint: "cs" },
-  });
+  const computePipeline = device.createComputePipeline({ layout: "auto", compute: { module, entryPoint: "cs" } });
 
   return {
     texture,
     pipeline,
     posBuffer,
     numParticles: config.particleCount,
+    lifetimesBuffer,
     colorAttachment,
     renderPassDescriptor,
     bindGroup,
     computePipeline,
     simBuffer,
+    maxLife: config.maxLife,
+    seed,
   };
 }
 
@@ -138,10 +132,7 @@ export function renderParticleTexture(
   }
 ) {
   const view = particle.texture.createView();
-  (
-    particle.renderPassDescriptor
-      .colorAttachments as GPURenderPassColorAttachment[]
-  )[0].view = view;
+  (particle.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = view;
   const pass = encoder.beginRenderPass(particle.renderPassDescriptor);
   pass.setBindGroup(0, particle.bindGroup);
   pass.setPipeline(particle.pipeline);
@@ -158,6 +149,9 @@ export function updateParticles(
     posBuffer: GPUBuffer;
     numParticles: number;
     simBuffer: GPUBuffer;
+    lifetimesBuffer: GPUBuffer;
+    maxLife: number;
+    seed: number;
   },
   normals: {
     texture: GPUTexture;
@@ -166,27 +160,16 @@ export function updateParticles(
   },
   deltaTime: number
 ) {
-  const simArray = new Float32Array([
-    deltaTime,
-    config.particleCount,
-    config.particleSpeed,
-    normals.width,
-    normals.height,
-  ]);
-  device.queue.writeBuffer(
-    particle.simBuffer,
-    0,
-    simArray.buffer,
-    simArray.byteOffset,
-    simArray.byteLength
-  );
+  const simArray = new Float32Array([deltaTime, config.particleSpeed, normals.width, normals.height, particle.maxLife, particle.seed]);
+  device.queue.writeBuffer(particle.simBuffer, 0, simArray.buffer, simArray.byteOffset, simArray.byteLength);
 
   const bindGroup = device.createBindGroup({
     layout: particle.computePipeline.getBindGroupLayout(0),
     entries: [
       { binding: 1, resource: normals.texture.createView() },
       { binding: 2, resource: { buffer: particle.posBuffer } },
-      { binding: 3, resource: { buffer: particle.simBuffer } },
+      { binding: 3, resource: { buffer: particle.lifetimesBuffer } },
+      { binding: 4, resource: { buffer: particle.simBuffer } },
     ],
   });
 

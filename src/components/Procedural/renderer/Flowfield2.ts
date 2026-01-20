@@ -75,8 +75,7 @@ export async function setupFlowfield2Renderer(
 
       renderBackgroundToTexture(encoder, background);
       renderNormalsToTexture(encoder, background);
-      // compute particle advection using normalsTexture
-      await Promise.resolve();
+
       dispatchParticleCompute(
         encoder,
         device,

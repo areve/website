@@ -1,10 +1,7 @@
 import { setupSharedResources } from "./Flowfield2/shared";
 import { setupWebGpu } from "./Flowfield2/webgpu";
-import {
-  renderBackgroundToTexture,
-  renderNormalsToTexture,
-  setupBackgroundResources,
-} from "./Flowfield2/background";
+import { renderBackgroundToTexture, setupBackgroundResources } from "./Flowfield2/background";
+import { setupNormalsResources, renderNormalsToTexture } from "./Flowfield2/normals";
 import {
   renderComposite,
   setupCompositeResources,
@@ -36,6 +33,16 @@ export async function setupFlowfield2Renderer(
     options.width,
     options.height,
     dataBuffer
+  );
+
+  const normals = setupNormalsResources(
+    device,
+    presentationFormat,
+    options.width,
+    options.height,
+    dataBuffer,
+    background.texture,
+    background.sampler
   );
 
   const particle = setupParticleResources(
@@ -74,14 +81,14 @@ export async function setupFlowfield2Renderer(
       const encoder = device.createCommandEncoder();
 
       renderBackgroundToTexture(encoder, background);
-      renderNormalsToTexture(encoder, background);
+      renderNormalsToTexture(encoder, normals);
 
       dispatchParticleCompute(
         encoder,
         device,
         dataBuffer,
         particle,
-        background,
+        normals,
         deltaTime
       );
       renderParticleTexture(encoder, particle);

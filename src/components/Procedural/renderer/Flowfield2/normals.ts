@@ -34,7 +34,7 @@ fn sampleHeight(uv: vec2<f32>) -> f32 {
   let n = normalize(vec3f(-dx, -dy, 1.0));
   return vec4f(n.x * 0.5 + 0.5, n.y * 0.5 + 0.5, n.z * 0.5 + 0.5, 1.0);
 }
-`;
+  `;
 
   const module = device.createShaderModule({ code: `${commonWgsl}\n${normalsWgsl}` });
   const pipeline = device.createRenderPipeline({
@@ -44,7 +44,7 @@ fn sampleHeight(uv: vec2<f32>) -> f32 {
     primitive: { topology: "triangle-list" },
   });
 
-  const normalsTexture = device.createTexture({
+  const texture = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
     format: presentationFormat,
     usage:
@@ -77,7 +77,7 @@ fn sampleHeight(uv: vec2<f32>) -> f32 {
   return {
     pipeline,
     bindGroup,
-    normalsTexture,
+    texture,
     renderPassDescriptor,
     width,
     height,
@@ -89,11 +89,11 @@ export function renderNormalsToTexture(
   normals: {
     pipeline: GPURenderPipeline;
     bindGroup: GPUBindGroup;
-    normalsTexture: GPUTexture;
+    texture: GPUTexture;
     renderPassDescriptor: GPURenderPassDescriptor;
   }
 ) {
-  const view = normals.normalsTexture.createView();
+  const view = normals.texture.createView();
   (normals.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = view;
   const pass = encoder.beginRenderPass(normals.renderPassDescriptor);
   pass.setPipeline(normals.pipeline);

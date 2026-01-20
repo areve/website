@@ -162,6 +162,7 @@ export function renderParticleTexture(
     numParticles: number;
     renderPassDescriptor: GPURenderPassDescriptor;
     colorAttachment: GPURenderPassColorAttachment;
+    bindGroup: GPUBindGroup;
   }
 ) {
   const view = particle.texture.createView();
@@ -177,29 +178,27 @@ export function renderParticleTexture(
 export function dispatchParticleCompute(
   encoder: GPUCommandEncoder,
   device: GPUDevice,
-  dataBuffer: GPUBuffer,
   particle: {
     computePipeline: GPUComputePipeline;
     posBuffer: GPUBuffer;
     numParticles: number;
     simBuffer: GPUBuffer;
   },
-  background: {
-    normalsTexture: GPUTexture;
+  normals: {
+    texture: GPUTexture;
     sampler: GPUSampler;
     width?: number;
     height?: number;
   },
-  dt: number
+  deltaTime: number
 ) {
-  // update sim params
-  const simArray = new Float32Array([dt, 2000.0, background.width ?? 0, background.height ?? 0]);
+  const simArray = new Float32Array([deltaTime, 2000.0, normals.width ?? 0, normals.height ?? 0]);
   device.queue.writeBuffer(particle.simBuffer, 0, simArray.buffer, simArray.byteOffset, simArray.byteLength);
 
   const bindGroup = device.createBindGroup({
     layout: particle.computePipeline.getBindGroupLayout(0),
     entries: [
-      { binding: 1, resource: background.normalsTexture.createView() },
+      { binding: 1, resource: normals.texture.createView() },
       { binding: 2, resource: { buffer: particle.posBuffer } },
       { binding: 3, resource: { buffer: particle.simBuffer } },
     ],

@@ -92,24 +92,3 @@ export function renderBackgroundToTexture(
   pass.draw(6);
   pass.end();
 }
-
-export function renderNormalsToTexture(
-  encoder: GPUCommandEncoder,
-  background: {
-    normalsTexture: GPUTexture;
-    normalsPipeline: GPURenderPipeline;
-    normalsBindGroup: GPUBindGroup;
-    renderPassDescriptor: GPURenderPassDescriptor;
-    width: number;
-    height: number;
-  }
-) {
-  const view = background.normalsTexture.createView();
-  (background.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = view;
-  const pass = encoder.beginRenderPass(background.renderPassDescriptor);
-  pass.setPipeline(background.normalsPipeline);
-  pass.setBindGroup(0, background.normalsBindGroup);
-  pass.draw(6);
-  pass.end();
-}
-

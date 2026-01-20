@@ -76,16 +76,29 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let coord = dprime * (data.scale / data.zoom) + vec2f(sim.width / 2.0, sim.height / 2.0);
   let uv = coord / vec2f(sim.width, sim.height);
 
-  // safe integer sample coordinates
-  let ix = i32(clamp(floor(uv.x * sim.width), 0.0, sim.width - 1.0));
-  let iy = i32(clamp(floor(uv.y * sim.height), 0.0, sim.height - 1.0));
-  let ncol = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
+  // Bilinear sample the normals texture to avoid sudden nearest-neighbour jumps
+  let tx = uv.x * sim.width;
+  let ty = uv.y * sim.height;
+  let fx = fract(tx);
+  let fy = fract(ty);
+  let ix0 = i32(clamp(floor(tx), 0.0, sim.width - 1.0));
+  let iy0 = i32(clamp(floor(ty), 0.0, sim.height - 1.0));
+  let ix1 = i32(clamp(floor(tx) + 1.0, 0.0, sim.width - 1.0));
+  let iy1 = i32(clamp(floor(ty) + 1.0, 0.0, sim.height - 1.0));
+  let c00 = textureLoad(normalsTex, vec2<i32>(ix0, iy0), 0).xyz;
+  let c10 = textureLoad(normalsTex, vec2<i32>(ix1, iy0), 0).xyz;
+  let c01 = textureLoad(normalsTex, vec2<i32>(ix0, iy1), 0).xyz;
+  let c11 = textureLoad(normalsTex, vec2<i32>(ix1, iy1), 0).xyz;
+  let col0 = c00 * (1.0 - fx) + c10 * fx;
+  let col1 = c01 * (1.0 - fx) + c11 * fx;
+  let ncol = col0 * (1.0 - fy) + col1 * fy;
   let nx = ncol.x * 2.0 - 1.0;
   let ny = ncol.y * 2.0 - 1.0;
   let flow = vec2f(nx, ny);
 
-  // update in world-space
-  p = p + flow * sim.speed * sim.dt;
+  // Convert flow (which was in pixel-space units) into world-space units and update
+  let pixelToWorld = (1.0 / data.scale) * data.zoom;
+  p = p + flow * sim.speed * sim.dt * pixelToWorld;
 
   // wrap in world-space extents matching the visible viewport
   let halfW = (sim.width / 2.0) / data.scale * data.zoom;

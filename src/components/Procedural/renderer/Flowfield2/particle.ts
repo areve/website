@@ -3,16 +3,16 @@ import noiseWgsl from "./noise.wgsl?raw";
 import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
-  particleCount: 100 * 100,
+  particleCount: 10000,
   particleSpeed: 500,
-  maxLife: 2.5,
+  maxLife: 2.0,
   // fade durations (seconds)
-  fadeIn: 0.05,
-  fadeOut: 1.5,
+  fadeIn: 0.5,
+  fadeOut: 0.5,
   // particle size in pixels
-  particleSize: 2.0,
+  particleSize: 3.0,
   // RGBA particle color
-  particleColor: [1.0, 1.0, 1.0, 1.0],
+  particleColor: [1.0, 1.0, 1.0, 0.5],
   // maximum random respawn delay (seconds)
   maxDelayTime: 2.0,
   // damping factor for velocity (higher = more deceleration)
@@ -161,11 +161,11 @@ export function setupParticleResources(
     config.particleSize,
     config.maxDelayTime,
     0.0, // padding so the following vec4 color is 16-byte aligned
-    0.0, // padding
     config.particleColor[0],
     config.particleColor[1],
     config.particleColor[2],
     config.particleColor[3],
+    // 0.0, // padding
   ]);
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,

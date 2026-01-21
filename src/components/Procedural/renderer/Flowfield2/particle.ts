@@ -4,7 +4,7 @@ import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
   particleCount: 1024,
-  particleSpeed: 100,
+  particleSpeed: 500,
   maxLife: 5.0,
   // fade durations (seconds)
   fadeIn: 0.05,
@@ -15,6 +15,8 @@ const config = {
   particleColor: [1.0, 1.0, 1.0, 1.0],
   // maximum random respawn delay (seconds)
   maxDelayTime: 5.0,
+  // damping factor for velocity (higher = more deceleration)
+  damping: 0.1,
 };
 
 export function setupParticleResources(
@@ -90,6 +92,20 @@ export function setupParticleResources(
     alphas.byteLength
   );
 
+  // per-particle velocities (vec2) for momentum
+  const velocities = new Float32Array(config.particleCount * 2);
+  const velocitiesBuffer = device.createBuffer({
+    size: velocities.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(
+    velocitiesBuffer,
+    0,
+    velocities.buffer,
+    velocities.byteOffset,
+    velocities.byteLength
+  );
+
   // create shader module (common + particle)
   const module = device.createShaderModule({
     code: `
@@ -135,6 +151,7 @@ export function setupParticleResources(
   const simParams = new Float32Array([
     0.016,
     config.particleSpeed,
+    config.damping,
     width,
     height,
     config.maxLife,
@@ -181,7 +198,7 @@ export function setupParticleResources(
     compute: { module, entryPoint: "cs" },
   });
 
-  function setParams(params: Partial<{ fadeIn: number; fadeOut: number; particleSize: number; particleColor: number[]; maxDelayTime: number; }>) {
+  function setParams(params: Partial<{ fadeIn: number; fadeOut: number; particleSize: number; particleColor: number[]; maxDelayTime: number; damping: number; }>) {
     Object.assign(config, params);
   }
 
@@ -195,6 +212,8 @@ export function setupParticleResources(
     statesBuffer,
     // expose alphas buffer for render and compute
     alphasBuffer,
+    // velocities buffer for compute
+    velocitiesBuffer,
     colorAttachment,
     renderPassDescriptor,
     bindGroup,
@@ -255,6 +274,7 @@ export function updateParticles(
   const simArray = new Float32Array([
     deltaTime,
     config.particleSpeed,
+    config.damping,
     normals.width,
     normals.height,
     particle.maxLife,
@@ -290,6 +310,8 @@ export function updateParticles(
       { binding: 5, resource: { buffer: particle.statesBuffer } },
       // alphas buffer (binding 6) - read/write for compute
       { binding: 6, resource: { buffer: particle.alphasBuffer } },
+      // velocities buffer (binding 8) - read/write for compute
+      { binding: 8, resource: { buffer: particle.velocitiesBuffer } },
     ],
   });
 

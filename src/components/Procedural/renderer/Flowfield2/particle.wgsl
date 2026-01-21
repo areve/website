@@ -35,6 +35,7 @@ struct VSOut {
 struct Sim {
   dt: f32,
   speed: f32,
+  damping: f32,
   width: f32,
   height: f32,
   maxLife: f32,
@@ -56,6 +57,7 @@ struct Sim {
 @group(0) @binding(5) var<storage, read_write> states: array<f32>;
 @group(0) @binding(6) var<storage, read_write> alphas: array<f32>;
 @group(0) @binding(7) var<storage, read> alphasRead: array<f32>;
+@group(0) @binding(8) var<storage, read_write> velocities: array<vec2<f32>>;
 @group(0) @binding(4) var<uniform> sim: Sim;
 
 @compute @workgroup_size(64)
@@ -129,10 +131,14 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let ny = ncol.y * 2.0 - 1.0;
   let flow = vec2f(nx, ny);
 
-  // Apply flow in WORLD units: treat `flow` as a direction vector and
-  // apply `sim.speed` as world-units per second so motion is independent
-  // of the pixel->world transform (camera zoom/scale).
-  p = p + flow * sim.speed * sim.dt;
+  // Update velocity with acceleration from flow and damping for inertia
+  var v = velocities[idx];
+  let acceleration = flow * sim.speed; // acceleration in direction of flow
+  v = v * (1.0 - sim.damping * sim.dt) + acceleration * sim.dt; // damping + acceleration
+  velocities[idx] = v;
+
+  // Update position based on velocity
+  p = p + v * sim.dt;
 
   // If pixel coords fall outside the viewport, mark the particle dead so it
   // will respawn randomly next frame instead of wrapping.
@@ -143,6 +149,8 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     lifetimes[idx] = delay;
     // mark state as waiting (0.0) so the spawn logic will run after the delay
     states[idx] = 0.0;
+    // reset velocity on respawn
+    velocities[idx] = vec2f(0.0, 0.0);
     positions[idx] = p;
     return;
   }

@@ -61,7 +61,7 @@ export async function setupFlowfield2Renderer(
     dataBuffer,
     background,
     particle,
-    trails
+    { texture: trails.textures[trails.srcIndex] }
   );
 
   let lastFrameTime = performance.now();
@@ -95,7 +95,7 @@ export async function setupFlowfield2Renderer(
         deltaTime
       );
       renderParticleTexture(encoder, particle);
-      // accumulate particle image into trails texture (ping-pong)
+      // accumulate particle image into trails texture
       renderTrails(encoder, device, trails, particle.texture);
       // composite using the latest trails texture
       renderComposite(encoder, context, composite, device, trails.textures[trails.srcIndex]);

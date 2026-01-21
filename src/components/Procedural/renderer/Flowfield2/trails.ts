@@ -27,7 +27,7 @@ export function setupTrailsResources(
   const trailsWgsl = `
     const W: f32 = ${width}.0;
     const H: f32 = ${height}.0;
-    const FADE: f32 = 0.96;
+    const FADE: f32 = 0.985;
     @group(0) @binding(0) var samp: sampler;
     @group(0) @binding(1) var prevTex: texture_2d<f32>;
     @group(0) @binding(2) var pTex: texture_2d<f32>;
@@ -40,13 +40,15 @@ export function setupTrailsResources(
       let uv = coord.xy / vec2<f32>(W, H);
       let prev = textureSample(prevTex, samp, uv);
       let part = textureSample(pTex, samp, uv);
-      let out = prev * FADE + part;
-      return out;
+      // Ensure trails are rendered in a visible yellow regardless of particle RGB
+      let trailColor = vec3<f32>(1.0, 1.0, 0.0) * part.a;
+      let combined = prev * FADE + vec4<f32>(trailColor, part.a);
+      return combined;
     }
   `;
 
   const module = device.createShaderModule({ code: trailsWgsl });
-  const pipeline = device.createRenderPipeline({
+    const pipeline = device.createRenderPipeline({
     layout: "auto",
     vertex: { module, entryPoint: "vsBlit" },
     fragment: {
@@ -55,10 +57,7 @@ export function setupTrailsResources(
       targets: [
         {
           format,
-          blend: {
-            color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
-            alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
-          },
+          // no blending: shader outputs the faded/accumulated color directly
         },
       ],
     },

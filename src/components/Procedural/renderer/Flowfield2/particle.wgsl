@@ -42,7 +42,7 @@ struct Sim {
   fadeIn: f32,
   fadeOut: f32,
   size: f32,
-  delayScale: f32,
+  maxDelayTime: f32,
   color: vec4<f32>,
 };
 @group(0) @binding(1) var normalsTex: texture_2d<f32>;
@@ -92,7 +92,7 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   // If alive, and lifetime expired -> schedule respawn after random delay
   if (lifetimes[idx] <= 0.0) {
-    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife * sim.delayScale;
+    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxDelayTime;
     lifetimes[idx] = delay;
     states[idx] = 0.0;
     // clear alpha so when waiting the particle is invisible
@@ -138,8 +138,8 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   // will respawn randomly next frame instead of wrapping.
   var coord2 = worldToPixel(p, sim.width, sim.height);
   if (coord2.x < 0.0 || coord2.x >= sim.width || coord2.y < 0.0 || coord2.y >= sim.height) {
-    // schedule respawn after a random delay in [0, sim.maxLife] and mark as waiting
-    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife;
+    // schedule respawn after a random delay in [0, sim.maxDelayTime] and mark as waiting
+    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxDelayTime;
     lifetimes[idx] = delay;
     // mark state as waiting (0.0) so the spawn logic will run after the delay
     states[idx] = 0.0;

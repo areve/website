@@ -13,8 +13,8 @@ const config = {
   particleSize: 2.0,
   // RGBA particle color
   particleColor: [1.0, 1.0, 1.0, 1.0],
-  // spawn delay multiplier (1.0 = delay in [0, maxLife])
-  delayScale: 1.0,
+  // maximum random respawn delay (seconds)
+  maxDelayTime: 5.0,
 };
 
 export function setupParticleResources(
@@ -142,7 +142,7 @@ export function setupParticleResources(
     config.fadeIn,
     config.fadeOut,
     config.particleSize,
-    config.delayScale,
+    config.maxDelayTime,
     0.0, // padding so the following vec4 color is 16-byte aligned
     0.0, // padding
     config.particleColor[0],
@@ -181,7 +181,7 @@ export function setupParticleResources(
     compute: { module, entryPoint: "cs" },
   });
 
-  function setParams(params: Partial<{ fadeIn: number; fadeOut: number; particleSize: number; particleColor: number[]; delayScale: number; }>) {
+  function setParams(params: Partial<{ fadeIn: number; fadeOut: number; particleSize: number; particleColor: number[]; maxDelayTime: number; }>) {
     Object.assign(config, params);
   }
 
@@ -262,7 +262,7 @@ export function updateParticles(
     config.fadeIn,
     config.fadeOut,
     config.particleSize,
-    config.delayScale,
+    config.maxDelayTime,
     0.0, // padding so the following vec4 color is 16-byte aligned
     0.0, // padding
     config.particleColor[0],

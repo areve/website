@@ -3,24 +3,29 @@ import normalsWgsl from "./normals.wgsl?raw";
 
 export function setupNormalsResources(
   device: GPUDevice,
-  presentationFormat: GPUTextureFormat,
   width: number,
   height: number,
   dataBuffer: GPUBuffer,
   srcTexture: GPUTexture,
   srcSampler: GPUSampler
 ) {
-  const module = device.createShaderModule({ code: `${commonWgsl}\n${normalsWgsl}` });
+  const module = device.createShaderModule({
+    code: `${commonWgsl}\n${normalsWgsl}`,
+  });
   const pipeline = device.createRenderPipeline({
     layout: "auto",
     vertex: { module, entryPoint: "vsNorm" },
-    fragment: { module, entryPoint: "fsNorm", targets: [{ format: presentationFormat }] },
+    fragment: {
+      module,
+      entryPoint: "fsNorm",
+      targets: [{ format: "rgba16float" }],
+    },
     primitive: { topology: "triangle-list" },
   });
 
   const texture = device.createTexture({
     size: { width, height, depthOrArrayLayers: 1 },
-    format: presentationFormat,
+    format: "rgba16float",
     usage:
       GPUTextureUsage.RENDER_ATTACHMENT |
       GPUTextureUsage.TEXTURE_BINDING |
@@ -68,7 +73,10 @@ export function renderNormalsToTexture(
   }
 ) {
   const view = normals.texture.createView();
-  (normals.renderPassDescriptor.colorAttachments as GPURenderPassColorAttachment[])[0].view = view;
+  (
+    normals.renderPassDescriptor
+      .colorAttachments as GPURenderPassColorAttachment[]
+  )[0].view = view;
   const pass = encoder.beginRenderPass(normals.renderPassDescriptor);
   pass.setPipeline(normals.pipeline);
   pass.setBindGroup(0, normals.bindGroup);

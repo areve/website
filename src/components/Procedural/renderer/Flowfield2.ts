@@ -1,7 +1,13 @@
 import { setupSharedResources } from "./Flowfield2/shared";
 import { setupWebGpu } from "./Flowfield2/webgpu";
-import { renderBackgroundToTexture, setupBackgroundResources } from "./Flowfield2/background";
-import { setupNormalsResources, renderNormalsToTexture } from "./Flowfield2/normals";
+import {
+  renderBackgroundToTexture,
+  setupBackgroundResources,
+} from "./Flowfield2/background";
+import {
+  setupNormalsResources,
+  renderNormalsToTexture,
+} from "./Flowfield2/normals";
 import {
   renderComposite,
   setupCompositeResources,
@@ -20,7 +26,7 @@ export async function setupFlowfield2Renderer(
     height: number;
     seed?: number;
     scale?: number;
-  }
+  },
 ) {
   canvas.width = options.width;
   canvas.height = options.height;
@@ -41,17 +47,16 @@ export async function setupFlowfield2Renderer(
     presentationFormat,
     options.width,
     options.height,
-    dataBuffer
+    dataBuffer,
   );
 
   const normals = setupNormalsResources(
     device,
-    presentationFormat,
     options.width,
     options.height,
     dataBuffer,
     background.texture,
-    background.sampler
+    background.sampler,
   );
 
   const particle = setupParticleResources(
@@ -59,7 +64,7 @@ export async function setupFlowfield2Renderer(
     options.width,
     options.height,
     dataBuffer,
-    sharedData
+    sharedData,
   );
 
   const trails = setupTrailsResources(device, options.width, options.height);
@@ -69,7 +74,7 @@ export async function setupFlowfield2Renderer(
     dataBuffer,
     background,
     particle,
-    { texture: trails.textures[trails.srcIndex] }
+    { texture: trails.textures[trails.srcIndex] },
   );
 
   let lastFrameTime = performance.now();
@@ -80,7 +85,7 @@ export async function setupFlowfield2Renderer(
       data?: {
         x?: number;
         y?: number;
-      }
+      },
     ) {
       const now = performance.now();
       const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
@@ -104,13 +109,26 @@ export async function setupFlowfield2Renderer(
         dataBuffer,
         particle,
         normals,
-        deltaTime
+        deltaTime,
       );
       renderParticleTexture(encoder, particle);
       // accumulate particle image into trails texture
-      renderTrails(encoder, device, trails, particle.texture, dataBuffer, prevDataBuffer);
+      renderTrails(
+        encoder,
+        device,
+        trails,
+        particle.texture,
+        dataBuffer,
+        prevDataBuffer,
+      );
       // composite using the latest trails texture
-      renderComposite(encoder, context, composite, device, trails.textures[trails.srcIndex]);
+      renderComposite(
+        encoder,
+        context,
+        composite,
+        device,
+        trails.textures[trails.srcIndex],
+      );
 
       device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();

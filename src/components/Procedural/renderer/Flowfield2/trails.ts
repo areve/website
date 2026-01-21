@@ -99,8 +99,16 @@ export function setupTrailsResources(
       let world = pixelToWorld(pixel, curr);
       // map that world position to the PREVIOUS frame's pixel coordinates
       let prevPx = worldToPixel(world, prev);
-      let uv = clamp(prevPx / vec2<f32>(prev.width, prev.height), vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 1.0));
-      let prevCol = textureSample(prevTex, samp, uv);
+      // Sample unconditionally at a clamped UV to satisfy WGSL's uniform control-flow
+      // requirement. After sampling, mask out-of-bounds results so they are treated as transparent.
+      let uv = prevPx / vec2<f32>(prev.width, prev.height);
+      let uvClamped = clamp(uv, vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 1.0));
+      let sampled = textureSample(prevTex, samp, uvClamped);
+      var inside: f32 = 0.0;
+      if (uv.x >= 0.0 && uv.x < 1.0 && uv.y >= 0.0 && uv.y < 1.0) {
+        inside = 1.0;
+      }
+      let prevCol = sampled * inside;
 
       // Subtract DECAY from alpha and scale RGB to keep premultiplied property.
       let newA = max(prevCol.a - DECAY, 0.0);

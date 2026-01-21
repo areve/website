@@ -27,7 +27,10 @@ export function setupTrailsResources(
   const trailsWgsl = `
     const W: f32 = ${width}.0;
     const H: f32 = ${height}.0;
-    const FADE: f32 = 0.985;
+    const FADE: f32 = 0.985;        // color fade per-frame (still used if needed)
+    const FADE_A: f32 = 0.92;       // legacy alpha fade (kept for compatibility)
+    const NEW_A: f32 = 0.6;         // initial trail alpha contribution when particle hits
+    const DECAY: f32 = 0.03;        // subtractive alpha decay per frame (ensures finite fade)
     @group(0) @binding(0) var samp: sampler;
     @group(0) @binding(1) var prevTex: texture_2d<f32>;
     @group(0) @binding(2) var pTex: texture_2d<f32>;
@@ -40,9 +43,25 @@ export function setupTrailsResources(
       let uv = coord.xy / vec2<f32>(W, H);
       let prev = textureSample(prevTex, samp, uv);
       let part = textureSample(pTex, samp, uv);
-      // Ensure trails are rendered in a visible yellow regardless of particle RGB
-      let trailColor = vec3<f32>(1.0, 1.0, 0.0) * part.a;
-      let combined = prev * FADE + vec4<f32>(trailColor, part.a);
+      // Subtractive alpha decay: ensures alpha reaches zero in finite time.
+      var newA: f32 = prev.a;
+      var newRGB: vec3<f32> = prev.rgb;
+      if (prev.a > 0.0) {
+        newA = max(prev.a - DECAY, 0.0);
+        // Scale RGB proportionally to new alpha to keep premultiplied invariant
+        newRGB = prev.rgb * (newA / prev.a);
+      }
+      var combined = vec4<f32>(newRGB, newA);
+      // Add particle contribution if significant
+      if (part.a > 0.01) {
+        let contribA = part.a * NEW_A;
+        let trailColor = vec3<f32>(1.0, 1.0, 0.0) * contribA;
+        combined = combined + vec4<f32>(trailColor, contribA);
+      }
+      // If alpha is tiny, zero everything to avoid residues
+      if (combined.a <= 0.0001) {
+        combined = vec4<f32>(0.0, 0.0, 0.0, 0.0);
+      }
       return combined;
     }
   `;

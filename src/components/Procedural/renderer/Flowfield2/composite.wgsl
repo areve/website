@@ -13,9 +13,10 @@
   let bg = textureSample(bgTex, samp2, uv);
   let p = textureSample(pTex, samp2, uv);
   let t = textureSample(trailsTex, samp2, uv);
-  // simple alpha overlay: out = bg*(1-a) + p.rgb*a
-  // compose: background -> trails -> particles
-  let mid = bg.rgb * (1.0 - t.a) + t.rgb * t.a;
+  // Trails are stored as premultiplied alpha (rgb already multiplied by alpha).
+  // Compose as: mid = bg*(1 - t.a) + t.rgb
+  let mid = bg.rgb * (1.0 - t.a) + t.rgb;
+  // Particles are non-premultiplied -> multiply rgb by alpha when compositing
   let out = mid * (1.0 - p.a) + p.rgb * p.a;
   return vec4f(out, 1.0);
 }

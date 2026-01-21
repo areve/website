@@ -129,7 +129,7 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   // Update velocity with acceleration from flow and damping for inertia
   var v = velocities[idx];
-  let acceleration = flow * sim.speed; // acceleration in direction of flow
+  let acceleration = -flow * sim.speed; // acceleration in direction of flow
   v = v * (1.0 - sim.damping * sim.dt) + acceleration * sim.dt; // damping + acceleration
   velocities[idx] = v;
 

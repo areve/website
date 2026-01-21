@@ -75,7 +75,7 @@ export async function setupFlowfield2Renderer(
       lastFrameTime = now;
 
       Object.assign(sharedData, data);
-      sharedData.z = time * 0.001;
+      sharedData.z = time * 0.0001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
 
       const encoder = device.createCommandEncoder();

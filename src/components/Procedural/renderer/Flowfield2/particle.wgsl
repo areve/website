@@ -25,8 +25,10 @@ struct VSOut {
 }
 
 @fragment fn fs(@location(0) alpha: f32) -> @location(0) vec4<f32> {
-  // Particle color controlled by Sim uniform with per-instance alpha
-  return vec4<f32>(sim.color.x, sim.color.y, sim.color.z, alpha);
+  // Particle color controlled by Sim uniform with per-instance alpha;
+  // multiply per-instance alpha by sim.color.w so the uniform alpha scales visibility
+  let outAlpha: f32 = sim.color.w * alpha;
+  return vec4<f32>(sim.color.x, sim.color.y, sim.color.z, outAlpha);
 }
 
 struct Sim {

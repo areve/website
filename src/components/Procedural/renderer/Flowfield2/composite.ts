@@ -1,6 +1,11 @@
 import commonWgsl from "./common.wgsl?raw";
 import compositeWgsl from "./composite.wgsl?raw";
 
+// Simple runtime config for composite behaviour
+export const config = {
+  renderBackground: false,
+};
+
 export function setupCompositeResources(
   device: GPUDevice,
   presentationFormat: GPUTextureFormat,
@@ -35,13 +40,26 @@ export function setupCompositeResources(
   });
   const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
+  // Use the provided background texture; composite shader will decide
+  // whether to sample it based on the runtime flag buffer.
+  const backgroundTexture: GPUTexture = background.texture;
+
+  // Create a small uniform buffer carrying the renderBackground flag
+  const flagArray = new Float32Array([config.renderBackground ? 1.0 : 0.0, 0.0, 0.0, 0.0]);
+  const flagBuffer = device.createBuffer({
+    size: flagArray.byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(flagBuffer, 0, flagArray.buffer, flagArray.byteOffset, flagArray.byteLength);
+
   return {
     sampler,
     pipeline,
     bindGroupLayout,
     dataBuffer,
-    backgroundTexture: background.texture,
+    backgroundTexture,
     particleTexture: particle.texture,
+    flagBuffer,
   };
 }
 
@@ -55,6 +73,7 @@ export function renderComposite(
     dataBuffer: GPUBuffer;
     backgroundTexture: GPUTexture;
     particleTexture: GPUTexture;
+    flagBuffer: GPUBuffer;
   },
   device: GPUDevice,
   trailsTexture: GPUTexture
@@ -79,6 +98,7 @@ export function renderComposite(
       { binding: 2, resource: composite.backgroundTexture.createView() },
       { binding: 3, resource: composite.particleTexture.createView() },
       { binding: 4, resource: trailsTexture.createView() },
+        { binding: 5, resource: { buffer: composite.flagBuffer } },
     ],
   });
 

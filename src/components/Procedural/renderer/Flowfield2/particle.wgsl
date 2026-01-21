@@ -3,7 +3,7 @@ struct VSOut {
   @location(0) alpha: f32,
 };
 
-@vertex fn vs(@location(0) instancePos: vec2<f32>, @builtin(instance_index) instanceIndex: u32, @builtin(vertex_index) vi: u32) -> VSOut {
+@vertex fn vs(@builtin(instance_index) instanceIndex: u32, @builtin(vertex_index) vi: u32) -> VSOut {
   let quad = array<vec2<f32>, 6>(
     vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(-0.5, 0.5),
     vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(0.5, -0.5)
@@ -11,8 +11,9 @@ struct VSOut {
   let q = quad[vi];
   let size = vec2f(sim.size, sim.size);
 
-  // instancePos is stored in WORLD coordinates now. Convert to screen pixel
-  // coordinates using the shared helper so particles move/rotate/zoom with the background.
+  // Read the instance position from the read-only storage alias so the vertex
+  // stage doesn't access a read-write storage buffer.
+  let instancePos = positionsRead[instanceIndex];
   let coord = worldToPixel(instancePos, data.width, data.height);
 
   let pixelPos = coord + q * size;
@@ -45,7 +46,11 @@ struct Sim {
   color: vec4<f32>,
 };
 @group(0) @binding(1) var normalsTex: texture_2d<f32>;
+// Compute shader needs a read-write storage buffer for positions, but the vertex stage
+// can only access storage buffers as read-only. Provide both: a read-write `positions`
+// for the compute stage and a read-only alias `positionsRead` used by the vertex shader.
 @group(0) @binding(2) var<storage, read_write> positions: array<vec2<f32>>;
+@group(0) @binding(2) var<storage, read> positionsRead: array<vec2<f32>>;
 @group(0) @binding(3) var<storage, read_write> lifetimes: array<f32>;
 // states: 0.0 = waiting to spawn, 1.0 = alive
 @group(0) @binding(5) var<storage, read_write> states: array<f32>;

@@ -34,52 +34,15 @@ export function setupParticleResources(
       GPUTextureUsage.COPY_SRC,
   });
 
-  // place particles offscreen initially; they'll spawn after a randomized delay
-  const positions = new Float32Array(config.particleCount * 2);
-  const cols = Math.ceil(Math.sqrt(config.particleCount));
-  const rows = Math.ceil(config.particleCount / cols);
-  const spacingX = width / cols;
-  const spacingY = height / rows;
-
-  // Precompute shared transform values for mapping pixel -> world (same math as background.wgsl)
-  const scale = sharedData.scale;
-  const zoom = sharedData.zoom;
-  const sx = sharedData.x;
-  const sy = sharedData.y;
-  const rot = sharedData.rotation;
-  const cosR = Math.cos(rot);
-  const sinR = Math.sin(rot);
-  const centerX = (width / 2) / scale * zoom + sx / scale;
-  const centerY = (height / 2) / scale * zoom + sy / scale;
-
-  // pick an offscreen pixel to map to world-space so particles are invisible until spawn
-  const offPx = -1000;
-  const offPy = -1000;
-  const baseOffX = offPx / scale * zoom + sx / scale;
-  const baseOffY = offPy / scale * zoom + sy / scale;
-  const relOffX = baseOffX - centerX;
-  const relOffY = baseOffY - centerY;
-  const offWorldX = relOffX * cosR - relOffY * sinR + centerX;
-  const offWorldY = relOffX * sinR + relOffY * cosR + centerY;
-
-  for (let i = 0; i < config.particleCount; i++) {
-    positions[i * 2 + 0] = offWorldX;
-    positions[i * 2 + 1] = offWorldY;
-  }
+  // Positions are owned and initialized by the compute shader. Compute the byte size
+  // here so we can create a GPU storage buffer without allocating a large CPU array.
+  const posByteLength = config.particleCount * 2 * Float32Array.BYTES_PER_ELEMENT;
 
   const posBuffer = device.createBuffer({
-    size: positions.byteLength,
-    usage:
-      GPUBufferUsage.VERTEX | GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+    size: posByteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     mappedAtCreation: false,
   });
-  device.queue.writeBuffer(
-    posBuffer,
-    0,
-    positions.buffer,
-    positions.byteOffset,
-    positions.byteLength
-  );
 
   // create lifetimes buffer (time-until-spawn while waiting, remaining-life while alive)
   const lifetimes = new Float32Array(config.particleCount);
@@ -138,17 +101,7 @@ export function setupParticleResources(
 
   const pipeline = device.createRenderPipeline({
     layout: "auto",
-    vertex: {
-      module,
-      entryPoint: "vs",
-      buffers: [
-        {
-          arrayStride: 8,
-          stepMode: "instance",
-          attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }],
-        },
-      ],
-    },
+    vertex: { module, entryPoint: "vs" },
     fragment: {
       module,
       entryPoint: "fs",
@@ -214,6 +167,8 @@ export function setupParticleResources(
     layout: pipeline.getBindGroupLayout(0),
     entries: [
       { binding: 0, resource: { buffer: dataBuffer } },
+      // bind the positions buffer as a read-only storage buffer for the vertex stage
+      { binding: 2, resource: { buffer: posBuffer } },
       // sim uniform (binding 4) is used by vertex/fragment for size/color/fade
       { binding: 4, resource: { buffer: simBuffer } },
       // binding 7 is the read-only alias used by the vertex shader
@@ -271,7 +226,6 @@ export function renderParticleTexture(
   const pass = encoder.beginRenderPass(particle.renderPassDescriptor);
   pass.setBindGroup(0, particle.bindGroup);
   pass.setPipeline(particle.pipeline);
-  pass.setVertexBuffer(0, particle.posBuffer);
   pass.draw(6, particle.numParticles);
   pass.end();
 }

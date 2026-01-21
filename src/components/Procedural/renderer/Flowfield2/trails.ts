@@ -23,6 +23,26 @@ export function setupTrailsResources(
 
   const sampler = device.createSampler({ magFilter: "linear", minFilter: "linear" });
 
+  // Configurable trail parameters (fade life and color RGBA)
+  const config = {
+    fadeLife: 5.0,
+    color: [0.5, 0.6, 0.8, 0.7], 
+  };
+  const paramsArray = new Float32Array([config.fadeLife, 0.0, 0.0, 0.0]);
+  const paramsBuffer = device.createBuffer({ size: paramsArray.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(paramsBuffer, 0, paramsArray.buffer, paramsArray.byteOffset, paramsArray.byteLength);
+  const colorArray = new Float32Array(config.color);
+  const colorBuffer = device.createBuffer({ size: colorArray.byteLength, usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST });
+  device.queue.writeBuffer(colorBuffer, 0, colorArray.buffer, colorArray.byteOffset, colorArray.byteLength);
+
+  function setParams(params: Partial<{ fadeLife: number; color: number[] }>) {
+    Object.assign(config, params);
+    const arr = new Float32Array([config.fadeLife, 0.0, 0.0, 0.0]);
+    device.queue.writeBuffer(paramsBuffer, 0, arr.buffer, arr.byteOffset, arr.byteLength);
+    const col = new Float32Array([config.color[0], config.color[1], config.color[2], config.color[3] ?? 1.0]);
+    device.queue.writeBuffer(colorBuffer, 0, col.buffer, col.byteOffset, col.byteLength);
+  }
+
   // Ensure both trails textures start fully transparent to avoid uninitialized pixels
   const clearEncoder = device.createCommandEncoder();
   for (const t of [textureA, textureB]) {
@@ -43,8 +63,7 @@ export function setupTrailsResources(
     const W: f32 = ${width}.0;
     const H: f32 = ${height}.0;
 
-    // decay per frame (fraction of alpha to subtract)
-    const DECAY: f32 = 1.0 / 5.0 / 60.0;
+    // decay per frame will be driven from a uniform param (fadeLife) so it's configurable
 
     struct Uniforms {
       width: f32,
@@ -63,6 +82,10 @@ export function setupTrailsResources(
     // bind 2 = current frame uniforms, bind 3 = previous frame uniforms
     @group(0) @binding(2) var<uniform> curr: Uniforms;
     @group(0) @binding(3) var<uniform> prev: Uniforms;
+    // bind 4 = trail params: vec4<f32>(fadeLife, _, _, _)
+    @group(0) @binding(4) var<uniform> params: vec4<f32>;
+    // bind 5 = trail color: vec4<f32>(r,g,b,a)
+    @group(0) @binding(5) var<uniform> trailColor: vec4<f32>;
 
     fn pixelToWorld(px: vec2<f32>, u: Uniforms) -> vec2<f32> {
       let center = vec2f((u.width / 2.0) / u.scale * u.zoom + u.x / u.scale,
@@ -110,7 +133,10 @@ export function setupTrailsResources(
       }
       let prevCol = sampled * inside;
 
-      // Subtract DECAY from alpha and scale RGB to keep premultiplied property.
+        // Compute decay from configured fadeLife: DECAY = 1 / fadeLife / fps
+      let DECAY = 1.0 / params.x / 60.0;
+      // Optionally tint trails by trailColor alpha if desired (not used for decay)
+      let trailA = trailColor.w;      // Subtract DECAY from alpha and scale RGB to keep premultiplied property.
       let newA = max(prevCol.a - DECAY, 0.0);
       var newRgb = vec3<f32>(0.0, 0.0, 0.0);
       if (prevCol.a > 0.0) {
@@ -126,6 +152,8 @@ export function setupTrailsResources(
     const H: f32 = ${height}.0;
     @group(0) @binding(0) var samp: sampler;
     @group(0) @binding(1) var pTex: texture_2d<f32>;
+    // binding 2: trail color vec4(r,g,b,a)
+    @group(0) @binding(2) var<uniform> trailColor: vec4<f32>;
 
     @vertex fn vsBlit(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4<f32> {
       let pos = array(vec2<f32>(-1.0,-1.0), vec2<f32>(1.0,1.0), vec2<f32>(-1.0,1.0), vec2<f32>(-1.0,-1.0), vec2<f32>(1.0,1.0), vec2<f32>(1.0,-1.0));
@@ -134,9 +162,9 @@ export function setupTrailsResources(
     @fragment fn fsAdd(@builtin(position) coord: vec4<f32>) -> @location(0) vec4<f32> {
       let uv = coord.xy / vec2<f32>(W, H);
       let p = textureSample(pTex, samp, uv);
-      // use particle alpha to drive a yellow premultiplied contribution
-      let a = p.a;
-      let col = vec3<f32>(1.0, 1.0, 0.0) * a;
+      // use particle alpha to drive a premultiplied contribution in the configured color
+      let a = p.a * trailColor.w;
+      let col = vec3<f32>(trailColor.x, trailColor.y, trailColor.z) * a;
       return vec4<f32>(col, a);
     }
   `;
@@ -181,13 +209,16 @@ export function setupTrailsResources(
       fadePipeline,
       addPipeline,
       addBindGroupLayout,
+      paramsBuffer,
+      colorBuffer,
+      setParams,
     };
 }
 
 export function renderTrails(
   encoder: GPUCommandEncoder,
   device: GPUDevice,
-  trails: { textures: GPUTexture[]; srcIndex: number; sampler: GPUSampler; fadePipeline: GPURenderPipeline; addPipeline: GPURenderPipeline; addBindGroupLayout: GPUBindGroupLayout },
+  trails: { textures: GPUTexture[]; srcIndex: number; sampler: GPUSampler; fadePipeline: GPURenderPipeline; addPipeline: GPURenderPipeline; addBindGroupLayout: GPUBindGroupLayout; paramsBuffer: GPUBuffer; colorBuffer: GPUBuffer; setParams: Function },
   particleTexture: GPUTexture,
   dataBuffer: GPUBuffer,
   prevDataBuffer: GPUBuffer
@@ -203,6 +234,8 @@ export function renderTrails(
     { binding: 1, resource: srcView },
     { binding: 2, resource: { buffer: dataBuffer } },
     { binding: 3, resource: { buffer: prevDataBuffer } },
+    { binding: 4, resource: { buffer: trails.paramsBuffer } },
+    { binding: 5, resource: { buffer: trails.colorBuffer } },
   ] });
   const fadeAttachment: GPURenderPassColorAttachment = { view: dstView, loadOp: "clear", storeOp: "store", clearValue: [0,0,0,0] };
   const fadeDesc: GPURenderPassDescriptor = { colorAttachments: [fadeAttachment] };
@@ -213,7 +246,7 @@ export function renderTrails(
   fadePass.end();
 
   // Add particles into dst using premultiplied blending (load existing dst)
-  const addBindGroup = device.createBindGroup({ layout: trails.addBindGroupLayout, entries: [ { binding: 0, resource: trails.sampler }, { binding: 1, resource: particleTexture.createView() } ] });
+  const addBindGroup = device.createBindGroup({ layout: trails.addBindGroupLayout, entries: [ { binding: 0, resource: trails.sampler }, { binding: 1, resource: particleTexture.createView() }, { binding: 2, resource: { buffer: trails.colorBuffer } } ] });
   const addAttachment: GPURenderPassColorAttachment = { view: dstView, loadOp: "load", storeOp: "store" };
   const addDesc: GPURenderPassDescriptor = { colorAttachments: [addAttachment] };
   const addPass = encoder.beginRenderPass(addDesc);

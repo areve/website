@@ -3,9 +3,9 @@ import noiseWgsl from "./noise.wgsl?raw";
 import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
-  particleCount: 1024,
+  particleCount: 100 * 100,
   particleSpeed: 500,
-  maxLife: 5.0,
+  maxLife: 2.5,
   // fade durations (seconds)
   fadeIn: 0.05,
   fadeOut: 1.5,
@@ -14,9 +14,9 @@ const config = {
   // RGBA particle color
   particleColor: [1.0, 1.0, 1.0, 1.0],
   // maximum random respawn delay (seconds)
-  maxDelayTime: 5.0,
+  maxDelayTime: 2.0,
   // damping factor for velocity (higher = more deceleration)
-  damping: 0.1,
+  damping: 5.0,
 };
 
 export function setupParticleResources(

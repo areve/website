@@ -27,6 +27,14 @@ export async function setupFlowfield2Renderer(
 
   const { device, context, presentationFormat } = await setupWebGpu(canvas);
   const { dataBuffer, sharedData } = setupSharedResources(device, options);
+  // Keep a copy of the previous-frame uniforms so we can reproject trails when
+  // the camera (pan/zoom/rotation) changes.
+  const prevDataBuffer = device.createBuffer({
+    size: sharedData.asBuffer().byteLength,
+    usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+  });
+  // initialize prevDataBuffer to the same starting values
+  device.queue.writeBuffer(prevDataBuffer, 0, sharedData.asBuffer());
 
   const background = setupBackgroundResources(
     device,
@@ -78,6 +86,10 @@ export async function setupFlowfield2Renderer(
       const deltaTime = Math.max(0.001, (now - lastFrameTime) / 1000);
       lastFrameTime = now;
 
+      // store current uniforms into prevDataBuffer so the trails fade shader can
+      // reproject previous-frame trails into the current view
+      device.queue.writeBuffer(prevDataBuffer, 0, sharedData.asBuffer());
+
       Object.assign(sharedData, data);
       sharedData.z = time * 0.0001;
       device.queue.writeBuffer(dataBuffer, 0, sharedData.asBuffer());
@@ -96,7 +108,7 @@ export async function setupFlowfield2Renderer(
       );
       renderParticleTexture(encoder, particle);
       // accumulate particle image into trails texture
-      renderTrails(encoder, device, trails, particle.texture);
+      renderTrails(encoder, device, trails, particle.texture, dataBuffer, prevDataBuffer);
       // composite using the latest trails texture
       renderComposite(encoder, context, composite, device, trails.textures[trails.srcIndex]);
 

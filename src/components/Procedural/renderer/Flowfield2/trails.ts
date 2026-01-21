@@ -36,28 +36,77 @@ export function setupTrailsResources(
   }
   device.queue.submit([clearEncoder.finish()]);
 
-  // Fade pass shader (outputs a constant alpha used as srcAlpha to scale dst)
+  // Fade pass shader (reprojects previous-frame trails by world-space coordinates
+  // so trails pan/zoom/rotate with the background)
   const fadeWgsl = `
+    // current canvas size (used only for reference; uniforms carry current/prev view)
     const W: f32 = ${width}.0;
     const H: f32 = ${height}.0;
 
-    // decay = 1 / maxLife / framesPerSecond
-    const DECAY: f32 = 1.0 / 5.0 / 60.0; // fraction to reduce each frame
+    // decay per frame (fraction of alpha to subtract)
+    const DECAY: f32 = 1.0 / 5.0 / 60.0;
+
+    struct Uniforms {
+      width: f32,
+      height: f32,
+      seed: f32,
+      scale: f32,
+      x: f32,
+      y: f32,
+      z: f32,
+      zoom: f32,
+      rotation: f32,
+    };
+
     @group(0) @binding(0) var samp: sampler;
     @group(0) @binding(1) var prevTex: texture_2d<f32>;
+    // bind 2 = current frame uniforms, bind 3 = previous frame uniforms
+    @group(0) @binding(2) var<uniform> curr: Uniforms;
+    @group(0) @binding(3) var<uniform> prev: Uniforms;
+
+    fn pixelToWorld(px: vec2<f32>, u: Uniforms) -> vec2<f32> {
+      let center = vec2f((u.width / 2.0) / u.scale * u.zoom + u.x / u.scale,
+                         (u.height / 2.0) / u.scale * u.zoom + u.y / u.scale);
+      let baseX = px.x / u.scale * u.zoom + u.x / u.scale;
+      let baseY = px.y / u.scale * u.zoom + u.y / u.scale;
+      let rel = vec2f(baseX - center.x, baseY - center.y);
+      let cos_r = cos(u.rotation);
+      let sin_r = sin(u.rotation);
+      let rotX = rel.x * cos_r - rel.y * sin_r;
+      let rotY = rel.x * sin_r + rel.y * cos_r;
+      return vec2f(rotX + center.x, rotY + center.y);
+    }
+
+    fn worldToPixel(p: vec2<f32>, u: Uniforms) -> vec2<f32> {
+      let center = vec2f((u.width / 2.0) / u.scale * u.zoom + u.x / u.scale,
+                         (u.height / 2.0) / u.scale * u.zoom + u.y / u.scale);
+      let d = p - center;
+      let cos_r = cos(u.rotation);
+      let sin_r = sin(u.rotation);
+      let dprime = vec2f(d.x * cos_r + d.y * sin_r, -d.x * sin_r + d.y * cos_r);
+      return dprime * (u.scale / u.zoom) + vec2f(u.width / 2.0, u.height / 2.0);
+    }
 
     @vertex fn vsBlit(@builtin(vertex_index) vertexIndex: u32) -> @builtin(position) vec4<f32> {
       let pos = array(vec2<f32>(-1.0,-1.0), vec2<f32>(1.0,1.0), vec2<f32>(-1.0,1.0), vec2<f32>(-1.0,-1.0), vec2<f32>(1.0,1.0), vec2<f32>(1.0,-1.0));
       return vec4<f32>(pos[vertexIndex], 0.0, 1.0);
     }
+
     @fragment fn fsFade(@builtin(position) coord: vec4<f32>) -> @location(0) vec4<f32> {
-      let uv = coord.xy / vec2<f32>(W, H);
-      let prev = textureSample(prevTex, samp, uv);
+      // coord.xy is pixel position in the CURRENT FRAME's screen space
+      let pixel = coord.xy;
+      // map current pixel -> world position using current uniforms
+      let world = pixelToWorld(pixel, curr);
+      // map that world position to the PREVIOUS frame's pixel coordinates
+      let prevPx = worldToPixel(world, prev);
+      let uv = clamp(prevPx / vec2<f32>(prev.width, prev.height), vec2<f32>(0.0, 0.0), vec2<f32>(1.0, 1.0));
+      let prevCol = textureSample(prevTex, samp, uv);
+
       // Subtract DECAY from alpha and scale RGB to keep premultiplied property.
-      let newA = max(prev.a - DECAY, 0.0);
+      let newA = max(prevCol.a - DECAY, 0.0);
       var newRgb = vec3<f32>(0.0, 0.0, 0.0);
-      if (prev.a > 0.0) {
-        newRgb = prev.rgb * (newA / prev.a);
+      if (prevCol.a > 0.0) {
+        newRgb = prevCol.rgb * (newA / prevCol.a);
       }
       return vec4<f32>(newRgb, newA);
     }
@@ -131,15 +180,22 @@ export function renderTrails(
   encoder: GPUCommandEncoder,
   device: GPUDevice,
   trails: { textures: GPUTexture[]; srcIndex: number; sampler: GPUSampler; fadePipeline: GPURenderPipeline; addPipeline: GPURenderPipeline; addBindGroupLayout: GPUBindGroupLayout },
-  particleTexture: GPUTexture
+  particleTexture: GPUTexture,
+  dataBuffer: GPUBuffer,
+  prevDataBuffer: GPUBuffer
 ) {
   const srcIndex = trails.srcIndex;
   const dstIndex = 1 - srcIndex;
   const srcView = trails.textures[srcIndex].createView();
   const dstView = trails.textures[dstIndex].createView();
 
-  // Fade pass: read src, write dst (dst = src * (1-DECAY))
-  const fadeBind = device.createBindGroup({ layout: trails.fadePipeline.getBindGroupLayout(0), entries: [ { binding: 0, resource: trails.sampler }, { binding: 1, resource: srcView } ] });
+  // Fade pass: reproject previous trails into current view and apply decay
+  const fadeBind = device.createBindGroup({ layout: trails.fadePipeline.getBindGroupLayout(0), entries: [
+    { binding: 0, resource: trails.sampler },
+    { binding: 1, resource: srcView },
+    { binding: 2, resource: { buffer: dataBuffer } },
+    { binding: 3, resource: { buffer: prevDataBuffer } },
+  ] });
   const fadeAttachment: GPURenderPassColorAttachment = { view: dstView, loadOp: "clear", storeOp: "store", clearValue: [0,0,0,0] };
   const fadeDesc: GPURenderPassDescriptor = { colorAttachments: [fadeAttachment] };
   const fadePass = encoder.beginRenderPass(fadeDesc);

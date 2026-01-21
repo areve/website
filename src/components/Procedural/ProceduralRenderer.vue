@@ -607,12 +607,13 @@ button.compass {
   width: 4em;
   height: 4em;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 30;
-  box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.5);
   cursor: pointer;
 }
 .compass:focus {

@@ -167,8 +167,11 @@ export function setupParticleResources(
     config.particleColor[3],
     // 0.0, // padding
   ]);
+  // Round up to 16-byte multiple to ensure writes (which may be padded)
+  // always fit the allocated uniform buffer (avoids writeBuffer overflow).
+  const simBufferSize = Math.ceil(simParams.byteLength / 16) * 16;
   const simBuffer = device.createBuffer({
-    size: simParams.byteLength,
+    size: simBufferSize,
     usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
   });
   device.queue.writeBuffer(
@@ -285,7 +288,6 @@ export function updateParticles(
     config.particleSize,
     config.maxDelayTime,
     0.0, // padding so the following vec4 color is 16-byte aligned
-    0.0, // padding
     config.particleColor[0],
     config.particleColor[1],
     config.particleColor[2],

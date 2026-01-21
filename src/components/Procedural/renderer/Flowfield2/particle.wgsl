@@ -111,24 +111,14 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let fadeIn = sim.fadeIn; // seconds - quick fade in
   let fadeOut = sim.fadeOut; // seconds - slow fade out
 
-  // Bilinear sample the normals texture to avoid sudden nearest-neighbour jumps
+  // Simple nearest-neighbor sample the normals texture
   let tx = uv.x * sim.width;
   let ty = uv.y * sim.height;
-  let fx = fract(tx);
-  let fy = fract(ty);
-  let ix0 = i32(clamp(floor(tx), 0.0, sim.width - 1.0));
-  let iy0 = i32(clamp(floor(ty), 0.0, sim.height - 1.0));
-  let ix1 = i32(clamp(floor(tx) + 1.0, 0.0, sim.width - 1.0));
-  let iy1 = i32(clamp(floor(ty) + 1.0, 0.0, sim.height - 1.0));
-  let c00 = textureLoad(normalsTex, vec2<i32>(ix0, iy0), 0).xyz;
-  let c10 = textureLoad(normalsTex, vec2<i32>(ix1, iy0), 0).xyz;
-  let c01 = textureLoad(normalsTex, vec2<i32>(ix0, iy1), 0).xyz;
-  let c11 = textureLoad(normalsTex, vec2<i32>(ix1, iy1), 0).xyz;
-  let col0 = c00 * (1.0 - fx) + c10 * fx;
-  let col1 = c01 * (1.0 - fx) + c11 * fx;
-  let ncol = col0 * (1.0 - fy) + col1 * fy;
-  let nx = ncol.x * 2.0 - 1.0;
-  let ny = ncol.y * 2.0 - 1.0;
+  let ix = i32(clamp(floor(tx), 0.0, sim.width - 1.0));
+  let iy = i32(clamp(floor(ty), 0.0, sim.height - 1.0));
+  let c = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
+  let nx = c.x * 2.0 - 1.0;
+  let ny = c.y * 2.0 - 1.0;
   let flow = vec2f(nx, ny);
 
   // Update velocity with acceleration from flow and damping for inertia

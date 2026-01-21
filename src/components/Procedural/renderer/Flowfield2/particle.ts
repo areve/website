@@ -261,6 +261,7 @@ export function updateParticles(
     lifetimesBuffer: GPUBuffer;
     statesBuffer: GPUBuffer;
     alphasBuffer: GPUBuffer;
+    velocitiesBuffer: GPUBuffer;
     maxLife: number;
     seed: number;
   },

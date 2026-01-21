@@ -4,7 +4,7 @@
     vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(0.5, -0.5)
   );
   let q = quad[vi];
-  let size = vec2f(4.0, 4.0);
+  let size = vec2f(2.0, 2.0);
 
   // instancePos is stored in WORLD coordinates now. Convert to screen pixel
   // coordinates using the shared helper so particles move/rotate/zoom with the background.

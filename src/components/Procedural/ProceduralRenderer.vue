@@ -124,10 +124,6 @@ const controller = makeController({
 const controller3d = makeController3d();
 const controllerMode = ref<'2d' | '3d'>('2d');
 
-function toggleControllerMode() {
-  // Convenience: toggle to the other mode
-  setControllerMode(controllerMode.value === '2d' ? '3d' : '2d');
-}
 
 function setControllerMode(mode: '2d' | '3d') {
   if (!canvas.value) return;
@@ -246,14 +242,10 @@ function resetRotation() {
   _rotationAnim = requestAnimationFrame(step);
 }
 // Controls visibility
-const controlsVisible = ref(true);
+const controlsVisible = ref(false);
 
 function hideControls() {
   controlsVisible.value = false;
-}
-
-function showControls() {
-  controlsVisible.value = true;
 }
 
 function toggleControls() {

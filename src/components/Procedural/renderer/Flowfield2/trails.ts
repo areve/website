@@ -3,7 +3,7 @@ import trailsWgsl from "./trails.wgsl?raw";
 
 const config = {
   fadeLife: 1.0,
-  color: [0.8, 0.8, 1.0, 0.5],
+  color: [1.0, 1.0, 1.0, 0.5],
 };
 
 export function setupTrailsResources(

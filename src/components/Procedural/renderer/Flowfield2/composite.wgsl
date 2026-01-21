@@ -16,7 +16,8 @@
   // Trails are stored as premultiplied alpha (rgb already multiplied by alpha).
   // Compose as: mid = bg*(1 - t.a) + t.rgb
   let mid = bg.rgb * (1.0 - t.a) + t.rgb;
-  // Particles are non-premultiplied -> multiply rgb by alpha when compositing
-  let out = mid * (1.0 - p.a) + p.rgb * p.a;
+  // Particles are rendered premultiplied (rgb already multiplied by alpha)
+  // Compose premultiplied source over mid: out = mid*(1 - a) + src.rgb
+  let out = mid * (1.0 - p.a) + p.rgb;
   return vec4f(out, 1.0);
 }

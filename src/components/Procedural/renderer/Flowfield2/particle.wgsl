@@ -29,7 +29,8 @@ struct VSOut {
   // Particle color controlled by Sim uniform with per-instance alpha;
   // multiply per-instance alpha by sim.color.w so the uniform alpha scales visibility
   let outAlpha: f32 = sim.color.w * alpha;
-  return vec4<f32>(sim.color.x, sim.color.y, sim.color.z, outAlpha);
+  // Output premultiplied RGB so the particle render pass can use premultiplied blending.
+  return vec4<f32>(sim.color.x * outAlpha, sim.color.y * outAlpha, sim.color.z * outAlpha, outAlpha);
 }
 
 struct Sim {

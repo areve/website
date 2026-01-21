@@ -3,12 +3,12 @@ import noiseWgsl from "./noise.wgsl?raw";
 import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
-  particleCount: 10000,
+  particleCount: 5000,
   particleSpeed: 500,
   maxLife: 2.0,
   // fade durations (seconds)
-  fadeIn: 0.5,
-  fadeOut: 0.5,
+  fadeIn: 0.0,
+  fadeOut: 0.0,
   // particle size in pixels
   particleSize: 3.0,
   // RGBA particle color
@@ -123,9 +123,9 @@ export function setupParticleResources(
       entryPoint: "fs",
       targets: [{
         format: navigator.gpu.getPreferredCanvasFormat(),
-        // enable alpha blending so particles can fade smoothly
+        // premultiplied alpha blending: source RGB already multiplied by alpha
         blend: {
-          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+          color: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
           alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
         },
       }],

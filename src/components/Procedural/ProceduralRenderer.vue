@@ -89,7 +89,7 @@ import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer"
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
 import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
 import { setupValueRenderer } from "./renderer/setupValueRenderer";
-import { setupFlowfieldRenderer } from "./renderer/Flowfield";
+import { setupFlowfieldRenderer } from "./renderer/Flowfield/Flowfield";
 import { setupValueCubicRenderer } from "./renderer/setupValueCubicRenderer";
 import { setupNewtonRenderer } from "./renderer/setupNewtonRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";

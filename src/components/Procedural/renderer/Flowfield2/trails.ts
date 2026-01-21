@@ -40,7 +40,9 @@ export function setupTrailsResources(
   const fadeWgsl = `
     const W: f32 = ${width}.0;
     const H: f32 = ${height}.0;
-    const DECAY: f32 = 0.01; // fraction to reduce each frame
+
+    // decay = 1 / maxLife / framesPerSecond
+    const DECAY: f32 = 1.0 / 5.0 / 60.0; // fraction to reduce each frame
     @group(0) @binding(0) var samp: sampler;
     @group(0) @binding(1) var prevTex: texture_2d<f32>;
 
@@ -51,7 +53,13 @@ export function setupTrailsResources(
     @fragment fn fsFade(@builtin(position) coord: vec4<f32>) -> @location(0) vec4<f32> {
       let uv = coord.xy / vec2<f32>(W, H);
       let prev = textureSample(prevTex, samp, uv);
-      return vec4<f32>(prev.rgb - DECAY, prev.a - DECAY);
+      // Subtract DECAY from alpha and scale RGB to keep premultiplied property.
+      let newA = max(prev.a - DECAY, 0.0);
+      var newRgb = vec3<f32>(0.0, 0.0, 0.0);
+      if (prev.a > 0.0) {
+        newRgb = prev.rgb * (newA / prev.a);
+      }
+      return vec4<f32>(newRgb, newA);
     }
   `;
 

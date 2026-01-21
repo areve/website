@@ -10,9 +10,9 @@ const config = {
   fadeIn: 0.05,
   fadeOut: 1.5,
   // particle size in pixels
-  particleSize: 3.0,
+  particleSize: 2.0,
   // RGBA particle color
-  particleColor: [1.0, 1.0, 0.0, 1.0],
+  particleColor: [1.0, 1.0, 1.0, 1.0],
   // spawn delay multiplier (1.0 = delay in [0, maxLife])
   delayScale: 1.0,
 };

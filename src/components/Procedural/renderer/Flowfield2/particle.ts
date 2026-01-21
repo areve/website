@@ -190,12 +190,12 @@ export function setupParticleResources(
     config.fadeOut,
     config.particleSize,
     config.delayScale,
+    0.0, // padding so the following vec4 color is 16-byte aligned
+    0.0, // padding
     config.particleColor[0],
     config.particleColor[1],
     config.particleColor[2],
     config.particleColor[3],
-    0.0,
-    0.0, // padding to reach 64-byte minimum for uniforms
   ]);
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,
@@ -309,12 +309,12 @@ export function updateParticles(
     config.fadeOut,
     config.particleSize,
     config.delayScale,
+    0.0, // padding so the following vec4 color is 16-byte aligned
+    0.0, // padding
     config.particleColor[0],
     config.particleColor[1],
     config.particleColor[2],
     config.particleColor[3],
-    0.0,
-    0.0, // padding to reach 64-byte minimum for uniforms
   ]);
   device.queue.writeBuffer(
     particle.simBuffer,

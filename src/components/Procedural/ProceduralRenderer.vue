@@ -7,10 +7,9 @@
       ref="compass"
       type="button"
       class="compass"
-      aria-label="Reset rotation (click) — double-click to show controls"
+      aria-label="Reset rotation (click)"
       @click.stop="resetRotation"
       @keydown.enter.prevent="resetRotation"
-      @dblclick.stop="toggleControls"
     >
       <div
         class="compass-pointer"
@@ -20,14 +19,19 @@
       ></div>
     </button>
 
+    <!-- Controls button overlay: circular button to show controls -->
+    <button
+      :class="['controls-button', { hidden: controlsVisible }]"
+      type="button"
+      aria-label="Show controls"
+      @click.stop="showControls"
+      @keydown.enter.prevent="showControls"
+    ></button>
+
     <div :class="['controls-overlay', { 'controls-hidden': !controlsVisible }]">
       <div class="stats">
-        {{ stats.fps.toPrecision(3) }}fps
-        {{ statsX }}x
-        {{ statsY }}y
-        {{ statsZ }}z
-        {{ statsZoom }}zoom
-        {{ statsRot }}rot
+        {{ stats.fps.toPrecision(3) }}fps {{ statsX }}x {{ statsY }}y
+        {{ statsZ }}z {{ statsZoom }}zoom {{ statsRot }}rot
         <span v-if="statsPaused">paused</span>
       </div>
       <div>
@@ -41,9 +45,9 @@
             <option value="value">Value</option>
             <option value="fractal">Fractal</option>
             <option value="julia">Julia</option>
-              <option value="lorenz">Lorenz</option>
-              <option value="sierpinski">Sierpinski</option>
-              <option value="trigonometry">Trigonometry</option>
+            <option value="lorenz">Lorenz</option>
+            <option value="sierpinski">Sierpinski</option>
+            <option value="trigonometry">Trigonometry</option>
             <option value="valuecubic">Value Cubic</option>
             <option value="newton">Newton Raphson</option>
             <option value="ripple">Ripple</option>
@@ -65,15 +69,28 @@
         <button @click="handleToggleFullscreen" type="button">
           Fullscreen
         </button>
-        <label v-if="shaderMode === 'mountains3d' || shaderMode === 'opensimplex3d'" class="mode-select">
+        <label
+          v-if="shaderMode === 'mountains3d' || shaderMode === 'opensimplex3d'"
+          class="mode-select"
+        >
           Controller:
-          <select v-model="controllerMode" @change="setControllerMode(controllerMode)">
+          <select
+            v-model="controllerMode"
+            @change="setControllerMode(controllerMode)"
+          >
             <option value="2d">2D Controller (texture)</option>
             <option value="3d">3D Controller (camera)</option>
           </select>
         </label>
-            <!-- Close button: hides controls overlay -->
-            <button class="controls-close" type="button" @click.stop="hideControls" aria-label="Hide controls">✕</button>
+        <!-- Close button: hides controls overlay -->
+        <button
+          class="controls-close"
+          type="button"
+          @click.stop="hideControls"
+          aria-label="Hide controls"
+        >
+          ✕
+        </button>
       </div>
     </div>
   </div>
@@ -120,67 +137,73 @@ const controller = makeController({
 });
 
 const controller3d = makeController3d();
-const controllerMode = ref<'2d' | '3d'>('2d');
+const controllerMode = ref<"2d" | "3d">("2d");
 
-
-function setControllerMode(mode: '2d' | '3d') {
+function setControllerMode(mode: "2d" | "3d") {
   if (!canvas.value) return;
-  if (mode === '3d') {
+  if (mode === "3d") {
     controller.value.unmount();
     controller3d.value.mount(canvas.value);
-    controllerMode.value = '3d';
+    controllerMode.value = "3d";
   } else {
     controller3d.value.unmount();
     controller.value.mount(canvas.value);
-    controllerMode.value = '2d';
+    controllerMode.value = "2d";
   }
 }
 
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
   // Use 3D yaw only when a 3D controller is active for 3D-capable modes
-  const use3d = (shaderMode.value === 'opensimplex3d' && controllerMode.value === '3d') || (shaderMode.value === 'mountains3d' && controllerMode.value === '3d');
-  const rad = use3d ? controller3d.value.yaw ?? 0 : controller.value.rotation ?? 0;
+  const use3d =
+    (shaderMode.value === "opensimplex3d" && controllerMode.value === "3d") ||
+    (shaderMode.value === "mountains3d" && controllerMode.value === "3d");
+  const rad = use3d
+    ? (controller3d.value.yaw ?? 0)
+    : (controller.value.rotation ?? 0);
   const deg = (-rad * 180) / Math.PI;
   return `rotate(${deg}deg)`;
 });
 
 // Which controller is currently active (object, not ref)
 const activeController = computed(() => {
-  if (shaderMode.value === 'opensimplex3d') {
-    return controllerMode.value === '3d' ? controller3d.value : controller.value;
+  if (shaderMode.value === "opensimplex3d") {
+    return controllerMode.value === "3d"
+      ? controller3d.value
+      : controller.value;
   }
-  if (shaderMode.value === 'mountains3d' && controllerMode.value === '3d') return controller3d.value;
+  if (shaderMode.value === "mountains3d" && controllerMode.value === "3d")
+    return controller3d.value;
   return controller.value;
 });
 
 // Safe formatted stats for template (avoid calling toFixed on undefined)
 const statsX = computed(() => {
   const c = activeController.value;
-  const x = typeof c?.x === 'number' ? c.x : (c?.position ? c.position[0] : 0);
+  const x = typeof c?.x === "number" ? c.x : c?.position ? c.position[0] : 0;
   return x.toFixed(1);
 });
 const statsY = computed(() => {
   const c = activeController.value;
-  const y = typeof c?.y === 'number' ? c.y : (c?.position ? c.position[1] : 0);
+  const y = typeof c?.y === "number" ? c.y : c?.position ? c.position[1] : 0;
   return y.toFixed(1);
 });
 const statsZ = computed(() => {
   const c = activeController.value;
-  const z = typeof c?.z === 'number' ? c.z : (c?.position ? c.position[2] : 0);
+  const z = typeof c?.z === "number" ? c.z : c?.position ? c.position[2] : 0;
   return z.toFixed(1);
 });
 const statsZoom = computed(() => {
   const c = activeController.value;
-  if (typeof c?.zoom === 'number') return c.zoom.toFixed(2);
-  if (typeof c?.fov === 'number') return c.fov.toFixed(2);
-  return '0.00';
+  if (typeof c?.zoom === "number") return c.zoom.toFixed(2);
+  if (typeof c?.fov === "number") return c.fov.toFixed(2);
+  return "0.00";
 });
 const statsRot = computed(() => {
   const c = activeController.value;
-  if (typeof c?.rotation === 'number') return c.rotation.toFixed(1);
-  if (typeof c?.yaw === 'number') return c.yaw.toFixed(1);
-  return '0.0';
+  if (typeof c?.rotation === "number") return c.rotation.toFixed(1);
+  if (typeof c?.yaw === "number") return c.yaw.toFixed(1);
+  return "0.0";
 });
 const statsPaused = computed(() => !!activeController.value?.paused);
 
@@ -201,8 +224,10 @@ function resetRotation() {
   }
 
   // Determine which controller to reset based on current mode
-  const is3d = shaderMode.value === 'opensimplex3d';
-  const start = is3d ? (controller3d.value.yaw ?? 0) : (controller.value.rotation ?? 0);
+  const is3d = shaderMode.value === "opensimplex3d";
+  const start = is3d
+    ? (controller3d.value.yaw ?? 0)
+    : (controller.value.rotation ?? 0);
   // shortest delta to zero
   const delta = normalizeAngle(0 - start);
   const duration = 220; // ms
@@ -246,6 +271,10 @@ function hideControls() {
   controlsVisible.value = false;
 }
 
+function showControls() {
+  controlsVisible.value = true;
+}
+
 function toggleControls() {
   controlsVisible.value = !controlsVisible.value;
 }
@@ -254,8 +283,25 @@ const width = 500;
 const height = 500;
 const seed = 12345;
 const shaderMode = ref<
-  "perlin" | "value" | "valuecubic" | "newton" | "julia" | "lorenz" | "sierpinski" | "fractal" | "trigonometry" | "opensimplex2" | "simplex" | "ripple" | "mandelbrot" | "worley" | "mountains" | "opensimplex3d" | "mountains3d" | "flowfield"
-  >("flowfield");
+  | "perlin"
+  | "value"
+  | "valuecubic"
+  | "newton"
+  | "julia"
+  | "lorenz"
+  | "sierpinski"
+  | "fractal"
+  | "trigonometry"
+  | "opensimplex2"
+  | "simplex"
+  | "ripple"
+  | "mandelbrot"
+  | "worley"
+  | "mountains"
+  | "opensimplex3d"
+  | "mountains3d"
+  | "flowfield"
+>("flowfield");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
@@ -339,14 +385,19 @@ const initializeCanvas = async () => {
     });
   } else if (shaderMode.value === "opensimplex3d") {
     // Pass both controllers; renderer.update will receive the currently active controller
-    renderer = await setupOpenSimplex3dRenderer(canvas.value, {
-      width: newWidth,
-      height: newHeight,
-      seed,
-    }, controller, controller3d);
+    renderer = await setupOpenSimplex3dRenderer(
+      canvas.value,
+      {
+        width: newWidth,
+        height: newHeight,
+        seed,
+      },
+      controller,
+      controller3d,
+    );
     // Mount the currently selected controller (2D or 3D)
     if (canvas.value) {
-      if (controllerMode.value === '2d') {
+      if (controllerMode.value === "2d") {
         controller.value.mount(canvas.value);
       } else {
         controller3d.value.mount(canvas.value);
@@ -432,14 +483,19 @@ const initializeCanvas = async () => {
     if (canvas.value) controller.value.mount(canvas.value);
   } else if (shaderMode.value === "mountains3d") {
     // Pass both controllers; renderer will use controller3d for camera if present
-    renderer = await setupMountains3dRenderer(canvas.value, {
-      width: newWidth,
-      height: newHeight,
-      seed,
-    }, controller, controller3d);
+    renderer = await setupMountains3dRenderer(
+      canvas.value,
+      {
+        width: newWidth,
+        height: newHeight,
+        seed,
+      },
+      controller,
+      controller3d,
+    );
     // Mount the currently selected controller
     if (canvas.value) {
-      if (controllerMode.value === '2d') {
+      if (controllerMode.value === "2d") {
         controller.value.mount(canvas.value);
       } else {
         controller3d.value.mount(canvas.value);
@@ -453,7 +509,10 @@ const initializeCanvas = async () => {
     });
   }
   // For all non-3D modes, mount the 2D controller (covers simplex/ripple/worley/mountains)
-  if (shaderMode.value !== "opensimplex3d" && shaderMode.value !== "mountains3d") {
+  if (
+    shaderMode.value !== "opensimplex3d" &&
+    shaderMode.value !== "mountains3d"
+  ) {
     if (canvas.value) {
       controller.value.mount(canvas.value);
     }
@@ -539,8 +598,8 @@ onUnmounted(() => {
   gap: 12px;
   /* reserve space on the right so the close button does not overlap the
      fullscreen button (close sits in the overlay's top-right corner) */
-  padding: 0.5rem  calc(0.75rem + 44px) 0.5rem 0.75rem;
-  background: rgba(0,0,0,0.45);
+  padding: 0.5rem calc(0.75rem + 44px) 0.5rem 0.75rem;
+  background: rgba(0, 0, 0, 0.45);
   color: #fff;
   border-radius: 8px;
   z-index: 25;
@@ -562,7 +621,7 @@ onUnmounted(() => {
 .controls-close {
   background: transparent;
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.12);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -575,7 +634,9 @@ onUnmounted(() => {
   top: 8px;
   right: 8px;
 }
-.controls-close:active { transform: scale(0.96); }
+.controls-close:active {
+  transform: scale(0.96);
+}
 
 /* Hidden (non-fullscreen): fade only */
 .controls-hidden {
@@ -589,7 +650,9 @@ onUnmounted(() => {
 .canvas-container:-webkit-full-screen .controls-overlay,
 .canvas-container:-moz-full-screen .controls-overlay {
   transform: translateY(0);
-  transition: transform 260ms cubic-bezier(.22,.9,.32,1), opacity 200ms ease;
+  transition:
+    transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
+    opacity 200ms ease;
 }
 .canvas-container:fullscreen .controls-hidden,
 .canvas-container:-webkit-full-screen .controls-hidden,
@@ -600,10 +663,11 @@ onUnmounted(() => {
 }
 
 /* Compass overlay styles */
+button.controls-button,
 button.compass {
   position: absolute;
-  top: 1em;
-  right: 1em;
+  top: 0.5em;
+  right: 0.5em;
   width: 4em;
   height: 4em;
   border-radius: 50%;
@@ -615,10 +679,21 @@ button.compass {
   z-index: 30;
   box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.5);
   cursor: pointer;
+  &.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+  &:focus {
+    box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
+  }
 }
-.compass:focus {
-  box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.5);
-} 
+
+button.controls-button {
+  bottom: 0.5em;
+  right: 0em;
+  margin-right: -2em;
+  top: auto;
+}
 
 .compass-pointer {
   width: 3em;

@@ -95,9 +95,10 @@ export async function setupFlowfield2Renderer(
         deltaTime
       );
       renderParticleTexture(encoder, particle);
-      // accumulate particle image into trails texture
+      // accumulate particle image into trails texture (ping-pong)
       renderTrails(encoder, device, trails, particle.texture);
-      renderComposite(encoder, context, composite);
+      // composite using the latest trails texture
+      renderComposite(encoder, context, composite, device, trails.textures[trails.srcIndex]);
 
       device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();

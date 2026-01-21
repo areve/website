@@ -33,21 +33,15 @@ export function setupCompositeResources(
     magFilter: "linear",
     minFilter: "linear",
   });
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      { binding: 1, resource: sampler },
-      { binding: 2, resource: background.texture.createView() },
-      { binding: 3, resource: particle.texture.createView() },
-      { binding: 4, resource: trails.texture.createView() },
-    ],
-  });
+  const bindGroupLayout = pipeline.getBindGroupLayout(0);
 
   return {
     sampler,
     pipeline,
-    bindGroup,
+    bindGroupLayout,
+    dataBuffer,
+    backgroundTexture: background.texture,
+    particleTexture: particle.texture,
   };
 }
 
@@ -56,8 +50,14 @@ export function renderComposite(
   context: GPUCanvasContext,
   composite: {
     pipeline: GPURenderPipeline;
-    bindGroup: GPUBindGroup;
-  }
+    sampler: GPUSampler;
+    bindGroupLayout: GPUBindGroupLayout;
+    dataBuffer: GPUBuffer;
+    backgroundTexture: GPUTexture;
+    particleTexture: GPUTexture;
+  },
+  device: GPUDevice,
+  trailsTexture: GPUTexture
 ) {
   const view = context.getCurrentTexture().createView();
   const descriptor: GPURenderPassDescriptor = {
@@ -70,9 +70,21 @@ export function renderComposite(
       },
     ],
   };
+
+  const bindGroup = device.createBindGroup({
+    layout: composite.bindGroupLayout,
+    entries: [
+      { binding: 0, resource: { buffer: composite.dataBuffer } },
+      { binding: 1, resource: composite.sampler },
+      { binding: 2, resource: composite.backgroundTexture.createView() },
+      { binding: 3, resource: composite.particleTexture.createView() },
+      { binding: 4, resource: trailsTexture.createView() },
+    ],
+  });
+
   const pass = encoder.beginRenderPass(descriptor);
   pass.setPipeline(composite.pipeline);
-  pass.setBindGroup(0, composite.bindGroup);
+  pass.setBindGroup(0, bindGroup);
   pass.draw(6);
   pass.end();
 }

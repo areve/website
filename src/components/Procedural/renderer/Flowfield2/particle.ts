@@ -6,6 +6,15 @@ const config = {
   particleCount: 256,
   particleSpeed: 2000,
   maxLife: 5.0,
+  // fade durations (seconds)
+  fadeIn: 0.05,
+  fadeOut: 1.5,
+  // particle size in pixels
+  particleSize: 3.0,
+  // RGBA particle color
+  particleColor: [1.0, 1.0, 0.0, 1.0],
+  // spawn delay multiplier (1.0 = delay in [0, maxLife])
+  delayScale: 1.0,
 };
 
 export function setupParticleResources(
@@ -166,14 +175,7 @@ export function setupParticleResources(
     colorAttachments: [colorAttachment],
   };
 
-  const bindGroup = device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
-      { binding: 0, resource: { buffer: dataBuffer } },
-      // binding 7 is the read-only alias used by the vertex shader
-      { binding: 7, resource: { buffer: alphasBuffer } },
-    ],
-  });
+
 
   // simulation params uniform (dt, speed, width, height, maxLife, seed)
   const seed = Math.random() * 1000.0;
@@ -184,6 +186,16 @@ export function setupParticleResources(
     height,
     config.maxLife,
     seed,
+    config.fadeIn,
+    config.fadeOut,
+    config.particleSize,
+    config.delayScale,
+    config.particleColor[0],
+    config.particleColor[1],
+    config.particleColor[2],
+    config.particleColor[3],
+    0.0,
+    0.0, // padding to reach 64-byte minimum for uniforms
   ]);
   const simBuffer = device.createBuffer({
     size: simParams.byteLength,
@@ -197,10 +209,26 @@ export function setupParticleResources(
     simParams.byteLength
   );
 
+  // Now that simBuffer exists, create the render bind group which references it
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: { buffer: dataBuffer } },
+      // sim uniform (binding 4) is used by vertex/fragment for size/color/fade
+      { binding: 4, resource: { buffer: simBuffer } },
+      // binding 7 is the read-only alias used by the vertex shader
+      { binding: 7, resource: { buffer: alphasBuffer } },
+    ],
+  });
+
   const computePipeline = device.createComputePipeline({
     layout: "auto",
     compute: { module, entryPoint: "cs" },
   });
+
+  function setParams(params: Partial<{ fadeIn: number; fadeOut: number; particleSize: number; particleColor: number[]; delayScale: number; }>) {
+    Object.assign(config, params);
+  }
 
   return {
     texture,
@@ -219,6 +247,7 @@ export function setupParticleResources(
     simBuffer,
     maxLife: config.maxLife,
     seed,
+    setParams,
   };
 }
 
@@ -276,6 +305,16 @@ export function updateParticles(
     normals.height,
     particle.maxLife,
     particle.seed,
+    config.fadeIn,
+    config.fadeOut,
+    config.particleSize,
+    config.delayScale,
+    config.particleColor[0],
+    config.particleColor[1],
+    config.particleColor[2],
+    config.particleColor[3],
+    0.0,
+    0.0, // padding to reach 64-byte minimum for uniforms
   ]);
   device.queue.writeBuffer(
     particle.simBuffer,

@@ -9,7 +9,7 @@ struct VSOut {
     vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(0.5, -0.5)
   );
   let q = quad[vi];
-  let size = vec2f(2.0, 2.0);
+  let size = vec2f(sim.size, sim.size);
 
   // instancePos is stored in WORLD coordinates now. Convert to screen pixel
   // coordinates using the shared helper so particles move/rotate/zoom with the background.
@@ -25,11 +25,23 @@ struct VSOut {
 }
 
 @fragment fn fs(@location(0) alpha: f32) -> @location(0) vec4<f32> {
-  // Yellow particles with per-instance alpha for fade-in/out
-  return vec4<f32>(1.0, 1.0, 0.0, alpha);
+  // Particle color controlled by Sim uniform with per-instance alpha
+  return vec4<f32>(sim.color.x, sim.color.y, sim.color.z, alpha);
 }
 
-struct Sim { dt: f32, speed: f32, width: f32, height: f32, maxLife: f32, seed: f32 };
+struct Sim {
+  dt: f32,
+  speed: f32,
+  width: f32,
+  height: f32,
+  maxLife: f32,
+  seed: f32,
+  fadeIn: f32,
+  fadeOut: f32,
+  size: f32,
+  delayScale: f32,
+  color: vec4<f32>,
+};
 @group(0) @binding(1) var normalsTex: texture_2d<f32>;
 @group(0) @binding(2) var<storage, read_write> positions: array<vec2<f32>>;
 @group(0) @binding(3) var<storage, read_write> lifetimes: array<f32>;
@@ -73,7 +85,7 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
 
   // If alive, and lifetime expired -> schedule respawn after random delay
   if (lifetimes[idx] <= 0.0) {
-    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife;
+    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife * sim.delayScale;
     lifetimes[idx] = delay;
     states[idx] = 0.0;
     // clear alpha so when waiting the particle is invisible
@@ -86,9 +98,9 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let coord = worldToPixel(p, sim.width, sim.height);
   let uv = coord / vec2f(sim.width, sim.height);
 
-  // Fade parameters
-  let fadeIn = 0.05; // seconds - quick fade in
-  let fadeOut = 1.5; // seconds - slow fade out
+  // Fade parameters (controlled by Sim uniform)
+  let fadeIn = sim.fadeIn; // seconds - quick fade in
+  let fadeOut = sim.fadeOut; // seconds - slow fade out
 
   // Bilinear sample the normals texture to avoid sudden nearest-neighbour jumps
   let tx = uv.x * sim.width;

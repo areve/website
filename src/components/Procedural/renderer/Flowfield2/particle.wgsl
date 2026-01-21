@@ -124,9 +124,10 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let ny = ncol.y * 2.0 - 1.0;
   let flow = vec2f(nx, ny);
 
-  // Convert flow (which was in pixel-space units) into world-space units and update
-  let pixelToWorldScale = (1.0 / data.scale) * data.zoom;
-  p = p + flow * sim.speed * sim.dt * pixelToWorldScale;
+  // Apply flow in WORLD units: treat `flow` as a direction vector and
+  // apply `sim.speed` as world-units per second so motion is independent
+  // of the pixel->world transform (camera zoom/scale).
+  p = p + flow * sim.speed * sim.dt;
 
   // If pixel coords fall outside the viewport, mark the particle dead so it
   // will respawn randomly next frame instead of wrapping.

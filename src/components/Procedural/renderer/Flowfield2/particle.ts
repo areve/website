@@ -4,7 +4,7 @@ import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
   particleCount: 256,
-  particleSpeed: 2000,
+  particleSpeed: 50,
   maxLife: 5.0,
   // fade durations (seconds)
   fadeIn: 0.05,

@@ -119,7 +119,12 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let c = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
   let nx = c.x * 2.0 - 1.0;
   let ny = c.y * 2.0 - 1.0;
-  let flow = vec2f(nx, ny);
+  // Sampled normals are in texture/screen space; rotate by -data.rotation
+  // to convert them into world-space flow directions (undo double-rotation).
+  let sample = vec2f(nx, ny);
+  let cos_r = -cos(data.rotation);
+  let sin_r = sin(data.rotation);
+  let flow = vec2f(sample.x * cos_r + sample.y * sin_r, -sample.x * sin_r + sample.y * cos_r);
 
   // Update velocity with acceleration from flow and damping for inertia
   var v = velocities[idx];

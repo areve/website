@@ -118,8 +118,8 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   let ix = i32(clamp(floor(tx), 0.0, sim.width - 1.0));
   let iy = i32(clamp(floor(ty), 0.0, sim.height - 1.0));
   let c = textureLoad(normalsTex, vec2<i32>(ix, iy), 0).xyz;
-  let nx = c.x * 2.0 - 1.0;
-  let ny = c.y * 2.0 - 1.0;
+  let nx = c.x * 2.0 - 1.004;
+  let ny = c.y * 2.0 - 1.004;
   // Sampled normals are in texture/screen space; rotate by -data.rotation
   // to convert them into world-space flow directions (undo double-rotation).
   let sample = vec2f(nx, ny);

@@ -3,7 +3,7 @@ import compositeWgsl from "./composite.wgsl?raw";
 
 // Simple runtime config for composite behaviour
 export const config = {
-  renderBackground: false,
+  renderBackground: true,
 };
 
 export function setupCompositeResources(

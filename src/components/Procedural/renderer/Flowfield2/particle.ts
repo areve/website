@@ -51,7 +51,10 @@ export function setupParticleResources(
   // create states buffer (0 = waiting, 1 = alive)
   const states = new Float32Array(config.particleCount);
   for (let i = 0; i < config.particleCount; i++) {
-    lifetimes[i] = Math.random() * config.maxLife; // randomized initial delay
+    // Start each particle in the waiting state with a randomized delay
+    // before first spawn. Use `maxDelayTime` to spread initial spawns
+    // across a longer window so they don't all appear at once.
+    lifetimes[i] = Math.random() * config.maxDelayTime;
     states[i] = 0.0; // start waiting
   }
   const lifetimesBuffer = device.createBuffer({

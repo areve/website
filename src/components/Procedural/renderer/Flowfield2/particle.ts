@@ -7,10 +7,10 @@ const config = {
   particleSpeed: 500,
   maxLife: 2.0,
   // fade durations (seconds)
-  fadeIn: 0.0,
-  fadeOut: 0.0,
+  fadeIn: 0.5,
+  fadeOut: 0.5,
   // particle size in pixels
-  particleSize: 3.0,
+  particleSize: 2.0,
   // RGBA particle color
   particleColor: [1.0, 1.0, 1.0, 0.5],
   // maximum random respawn delay (seconds)

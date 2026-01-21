@@ -1,25 +1,25 @@
-import { setupSharedResources } from "./Flowfield2/shared";
-import { setupWebGpu } from "./Flowfield2/webgpu";
+import { setupSharedResources } from "./Flowfield/shared";
+import { setupWebGpu } from "./Flowfield/webgpu";
 import {
   renderBackgroundToTexture,
   setupBackgroundResources,
-} from "./Flowfield2/background";
+} from "./Flowfield/background";
 import {
   setupNormalsResources,
   renderNormalsToTexture,
-} from "./Flowfield2/normals";
+} from "./Flowfield/normals";
 import {
   renderComposite,
   setupCompositeResources,
-} from "./Flowfield2/composite";
+} from "./Flowfield/composite";
 import {
   renderParticleTexture,
   setupParticleResources,
   updateParticles,
-} from "./Flowfield2/particle";
-import { setupTrailsResources, renderTrails } from "./Flowfield2/trails";
+} from "./Flowfield/particle";
+import { setupTrailsResources, renderTrails } from "./Flowfield/trails";
 
-export async function setupFlowfield2Renderer(
+export async function setupFlowfieldRenderer(
   canvas: HTMLCanvasElement,
   options: {
     width: number;

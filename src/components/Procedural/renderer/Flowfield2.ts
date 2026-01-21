@@ -11,6 +11,7 @@ import {
   setupParticleResources,
   updateParticles,
 } from "./Flowfield2/particle";
+import { setupTrailsResources, renderTrails } from "./Flowfield2/trails";
 
 export async function setupFlowfield2Renderer(
   canvas: HTMLCanvasElement,
@@ -52,12 +53,15 @@ export async function setupFlowfield2Renderer(
     dataBuffer,
     sharedData
   );
+
+  const trails = setupTrailsResources(device, options.width, options.height);
   const composite = setupCompositeResources(
     device,
     presentationFormat,
     dataBuffer,
     background,
-    particle
+    particle,
+    trails
   );
 
   let lastFrameTime = performance.now();
@@ -91,6 +95,8 @@ export async function setupFlowfield2Renderer(
         deltaTime
       );
       renderParticleTexture(encoder, particle);
+      // accumulate particle image into trails texture
+      renderTrails(encoder, device, trails, particle.texture);
       renderComposite(encoder, context, composite);
 
       device.queue.submit([encoder.finish()]);

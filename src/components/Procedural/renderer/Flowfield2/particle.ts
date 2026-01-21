@@ -3,8 +3,8 @@ import noiseWgsl from "./noise.wgsl?raw";
 import particleWgsl from "./particle.wgsl?raw";
 
 const config = {
-  particleCount: 256,
-  particleSpeed: 50,
+  particleCount: 1024,
+  particleSpeed: 100,
   maxLife: 5.0,
   // fade durations (seconds)
   fadeIn: 0.05,

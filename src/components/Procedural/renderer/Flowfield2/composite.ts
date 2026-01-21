@@ -10,6 +10,9 @@ export function setupCompositeResources(
   },
   particle: {
     texture: GPUTexture;
+  },
+  trails: {
+    texture: GPUTexture;
   }
 ) {
   const blitModule = device.createShaderModule({
@@ -37,6 +40,7 @@ export function setupCompositeResources(
       { binding: 1, resource: sampler },
       { binding: 2, resource: background.texture.createView() },
       { binding: 3, resource: particle.texture.createView() },
+      { binding: 4, resource: trails.texture.createView() },
     ],
   });
 

@@ -104,6 +104,20 @@ export function setupParticleResources(
     states.byteLength
   );
 
+  // per-particle alpha values for fade in/out
+  const alphas = new Float32Array(config.particleCount);
+  const alphasBuffer = device.createBuffer({
+    size: alphas.byteLength,
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+  });
+  device.queue.writeBuffer(
+    alphasBuffer,
+    0,
+    alphas.buffer,
+    alphas.byteOffset,
+    alphas.byteLength
+  );
+
   // create shader module (common + particle)
   const module = device.createShaderModule({
     code: `
@@ -129,7 +143,14 @@ export function setupParticleResources(
     fragment: {
       module,
       entryPoint: "fs",
-      targets: [{ format: navigator.gpu.getPreferredCanvasFormat() }],
+      targets: [{
+        format: navigator.gpu.getPreferredCanvasFormat(),
+        // enable alpha blending so particles can fade smoothly
+        blend: {
+          color: { srcFactor: "src-alpha", dstFactor: "one-minus-src-alpha", operation: "add" },
+          alpha: { srcFactor: "one", dstFactor: "one-minus-src-alpha", operation: "add" },
+        },
+      }],
     },
     primitive: { topology: "triangle-list" },
   });
@@ -147,7 +168,11 @@ export function setupParticleResources(
 
   const bindGroup = device.createBindGroup({
     layout: pipeline.getBindGroupLayout(0),
-    entries: [{ binding: 0, resource: { buffer: dataBuffer } }],
+    entries: [
+      { binding: 0, resource: { buffer: dataBuffer } },
+      // binding 7 is the read-only alias used by the vertex shader
+      { binding: 7, resource: { buffer: alphasBuffer } },
+    ],
   });
 
   // simulation params uniform (dt, speed, width, height, maxLife, seed)
@@ -185,6 +210,8 @@ export function setupParticleResources(
     lifetimesBuffer,
     // expose states buffer for compute bindgroup
     statesBuffer,
+    // expose alphas buffer for render and compute
+    alphasBuffer,
     colorAttachment,
     renderPassDescriptor,
     bindGroup,
@@ -231,6 +258,7 @@ export function updateParticles(
     simBuffer: GPUBuffer;
     lifetimesBuffer: GPUBuffer;
     statesBuffer: GPUBuffer;
+    alphasBuffer: GPUBuffer;
     maxLife: number;
     seed: number;
   },
@@ -267,6 +295,8 @@ export function updateParticles(
       { binding: 4, resource: { buffer: particle.simBuffer } },
       // states buffer binding (binding 5)
       { binding: 5, resource: { buffer: particle.statesBuffer } },
+      // alphas buffer (binding 6) - read/write for compute
+      { binding: 6, resource: { buffer: particle.alphasBuffer } },
     ],
   });
 

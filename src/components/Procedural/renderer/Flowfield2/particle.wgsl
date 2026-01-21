@@ -1,4 +1,9 @@
-@vertex fn vs(@location(0) instancePos: vec2<f32>, @builtin(vertex_index) vi: u32) -> @builtin(position) vec4f {
+struct VSOut {
+  @builtin(position) pos: vec4<f32>,
+  @location(0) alpha: f32,
+};
+
+@vertex fn vs(@location(0) instancePos: vec2<f32>, @builtin(instance_index) instanceIndex: u32, @builtin(vertex_index) vi: u32) -> VSOut {
   let quad = array<vec2<f32>, 6>(
     vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(-0.5, 0.5),
     vec2f(-0.5, -0.5), vec2f(0.5, 0.5), vec2f(0.5, -0.5)
@@ -12,11 +17,16 @@
 
   let pixelPos = coord + q * size;
   let ndc = (pixelPos / vec2f(data.width, data.height)) * vec2f(2.0, -2.0) + vec2f(-1.0, 1.0);
-  return vec4f(ndc, 0.0, 1.0);
+
+  var out: VSOut;
+  out.pos = vec4<f32>(ndc.x, ndc.y, 0.0, 1.0);
+  out.alpha = alphasRead[instanceIndex];
+  return out;
 }
 
-@fragment fn fs() -> @location(0) vec4f {
-  return vec4f(1.0, 1.0, 0.0, 1.0);
+@fragment fn fs(@location(0) alpha: f32) -> @location(0) vec4<f32> {
+  // Yellow particles with per-instance alpha for fade-in/out
+  return vec4<f32>(1.0, 1.0, 0.0, alpha);
 }
 
 struct Sim { dt: f32, speed: f32, width: f32, height: f32, maxLife: f32, seed: f32 };
@@ -25,6 +35,8 @@ struct Sim { dt: f32, speed: f32, width: f32, height: f32, maxLife: f32, seed: f
 @group(0) @binding(3) var<storage, read_write> lifetimes: array<f32>;
 // states: 0.0 = waiting to spawn, 1.0 = alive
 @group(0) @binding(5) var<storage, read_write> states: array<f32>;
+@group(0) @binding(6) var<storage, read_write> alphas: array<f32>;
+@group(0) @binding(7) var<storage, read> alphasRead: array<f32>;
 @group(0) @binding(4) var<uniform> sim: Sim;
 
 @compute @workgroup_size(64)
@@ -48,10 +60,13 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
       p = pixelToWorld(spawnPx, sim.width, sim.height);
       lifetimes[idx] = sim.maxLife;
       states[idx] = 1.0;
+      // start invisible; alpha will ramp up in subsequent updates
+      alphas[idx] = 0.0;
       positions[idx] = p;
     } else {
-      // still waiting, leave position unchanged
+      // still waiting, leave position unchanged and keep alpha zero
       positions[idx] = p;
+      alphas[idx] = 0.0;
     }
     return;
   }
@@ -61,6 +76,8 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxLife;
     lifetimes[idx] = delay;
     states[idx] = 0.0;
+    // clear alpha so when waiting the particle is invisible
+    alphas[idx] = 0.0;
     positions[idx] = p;
     return;
   }
@@ -68,6 +85,10 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Convert world-space particle position into screen UVs to sample the normals
   let coord = worldToPixel(p, sim.width, sim.height);
   let uv = coord / vec2f(sim.width, sim.height);
+
+  // Fade parameters
+  let fadeIn = 0.05; // seconds - quick fade in
+  let fadeOut = 1.5; // seconds - slow fade out
 
   // Bilinear sample the normals texture to avoid sudden nearest-neighbour jumps
   let tx = uv.x * sim.width;
@@ -106,6 +127,16 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
     return;
   }
   p = pixelToWorld(coord2, sim.width, sim.height);
+
+  // Compute alpha based on time alive: fade in quickly, fade out slowly
+  let lifeRemaining = lifetimes[idx];
+  let lifeLived = sim.maxLife - lifeRemaining;
+  let inAlpha = min(1.0, lifeLived / fadeIn);
+  var outAlpha: f32 = 1.0;
+  if (lifeRemaining < fadeOut) {
+    outAlpha = lifeRemaining / fadeOut;
+  }
+  alphas[idx] = inAlpha * outAlpha;
 
   positions[idx] = p;
 }

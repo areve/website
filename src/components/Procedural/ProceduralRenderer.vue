@@ -850,5 +850,6 @@ button.controls-button {
 
 .top-menu {
   text-align: center;
+  margin-bottom: 0.5em;
 }
 </style>

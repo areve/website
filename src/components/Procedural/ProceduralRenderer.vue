@@ -95,15 +95,6 @@
         <button @click="compassVisible = !compassVisible" type="button">
           {{ compassVisible ? 'Hide' : 'Show' }} Compass
         </button>
-        <!-- Close button: hides controls overlay -->
-        <button
-          class="controls-close"
-          type="button"
-          @click.stop="toggleControls"
-          aria-label="Hide controls"
-        >
-          ✕
-        </button>
       </div>
     </div>
   </div>
@@ -284,6 +275,8 @@ const compassVisible = ref(false);
 // Controls button vertical position (pixels from top of container)
 const controlsButton = ref<HTMLElement | null>(null);
 const controlsButtonTop = ref<number>(0);
+// Stored as fraction [0..1] of container height so position scales on resize/fullscreen
+const controlsButtonPct = ref<number | null>(null);
 let _dragging = false;
 let _dragStartY = 0;
 let _dragStartTop = 0;
@@ -312,6 +305,8 @@ function onPointerMove(e: PointerEvent) {
   const delta = e.clientY - _dragStartY;
   const newTop = clamp(_dragStartTop + delta, 0, rect.height);
   controlsButtonTop.value = newTop;
+  // record relative position so it can be restored on resize/fullscreen
+  if (rect.height > 0) controlsButtonPct.value = controlsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDrag = true;
 }
 
@@ -326,6 +321,8 @@ function onPointerUp(e: PointerEvent) {
   const snapThreshold = 30;
   if (controlsButtonTop.value! <= snapThreshold) controlsButtonTop.value = 0;
   else if (controlsButtonTop.value! >= rect.height - snapThreshold) controlsButtonTop.value = rect.height;
+  // update stored percentage after snapping
+  if (rect.height > 0) controlsButtonPct.value = controlsButtonTop.value! / rect.height;
   // keep _didDrag true long enough to cancel the following click event, then clear
   setTimeout(() => { _didDrag = false; }, 0);
 }
@@ -580,6 +577,17 @@ const initializeCanvas = async () => {
       controller.value.mount(canvas.value);
     }
   }
+  // Restore controls button position proportionally to the new container height
+  if (container.value && controlsButton.value) {
+    const rect = container.value.getBoundingClientRect();
+    if (controlsButtonPct.value != null && rect.height > 0) {
+      controlsButtonTop.value = clamp(Math.round(controlsButtonPct.value * rect.height), 0, rect.height);
+    } else {
+      // default to bottom
+      controlsButtonTop.value = rect.height;
+      controlsButtonPct.value = rect.height > 0 ? controlsButtonTop.value / rect.height : 0;
+    }
+  }
   await renderer.init();
 };
 
@@ -687,27 +695,6 @@ onUnmounted(() => {
 .controls-overlay .stats {
   font-family: monospace;
   font-size: 0.9rem;
-}
-
-/* Close button inside controls overlay */
-.controls-close {
-  background: transparent;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  cursor: pointer;
-  position: absolute;
-  top: 8px;
-  right: 8px;
-}
-.controls-close:active {
-  transform: scale(0.96);
 }
 
 /* Hidden (non-fullscreen): fade only */

@@ -381,7 +381,10 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   }
 
   function onKeyDown(event: KeyboardEvent) {
-    if (states.isPointerOver) {
+    // Allow accelerator keys when the pointer is over the element OR when
+    // the element has keyboard focus (so WASD works after canvas.focus()).
+    const elementHasFocus = bindElement && document.activeElement === bindElement;
+    if (states.isPointerOver || elementHasFocus) {
       handleAcceleratorKeys(event.key, true);
     }
   }

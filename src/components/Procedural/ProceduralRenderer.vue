@@ -42,13 +42,13 @@
       class="controls-button"
       type="button"
       aria-label="Show controls"
-      @click.stop="onControlsButtonClick"
-      @keydown.enter.prevent="onControlsButtonClick"
+      @click.stop="toggleControls"
+      @keydown.enter.prevent="toggleControls"
       @pointerdown.stop.prevent="startDragControlsButton"
       :style="{ top: controlsButtonTop + 'px' }"
     ></button>
 
-    <div :class="['controls-overlay', { 'controls-hidden': !controlsVisible }]">
+    <div :class="['controls-overlay', { 'controls-hidden': !state.controls.visible }]">
       <div>
         <label class="mode-select">
           Mode:
@@ -297,10 +297,6 @@ const state = ref({
 });
 
 // Convenience refs/computeds that keep the existing names used around the file
-const controlsVisible = computed({
-  get: () => state.value.controls.visible,
-  set: (v: boolean) => (state.value.controls.visible = v),
-});
 const toolsVisible = computed({
   get: () => state.value.tools.visible,
   set: (v: boolean) => (state.value.tools.visible = v),
@@ -450,12 +446,12 @@ function onPointerUpTools(e: PointerEvent) {
   }, 0);
 }
 
-function onControlsButtonClick(e: Event) {
+function toggleControls(e: Event) {
   if (_didDrag) {
     e.stopPropagation?.();
     return;
   }
-  toggleControls();
+  state.value.controls.visible = !state.value.controls.visible;
 }
 
 function onToolsButtonClick(e: Event) {
@@ -464,10 +460,6 @@ function onToolsButtonClick(e: Event) {
     return;
   }
   toggleTools();
-}
-
-function toggleControls() {
-  controlsVisible.value = !controlsVisible.value;
 }
 
 function toggleTools() {

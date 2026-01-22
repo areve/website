@@ -386,6 +386,7 @@ const shaderMode = ref<
   | "fractal"
   | "trigonometry"
   | "opensimplex2"
+  | "opensimplex2s"
   | "simplex"
   | "ripple"
   | "mandelbrot"
@@ -400,20 +401,25 @@ let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const availableModes = [
+  "simplex",
   "opensimplex2",
-  "sierpinski",
-  "trigonometry",
-  "fractal",
   "opensimplex2s",
   "perlin",
-  "simplex",
+  "value",
+  "fractal",
+  "julia",
+  "lorenz",
+  "sierpinski",
+  "trigonometry",
+  "valuecubic",
+  "newton",
   "ripple",
   "mandelbrot",
   "worley",
   "mountains",
   "opensimplex3d",
-  "mountains3d",
   "flowfield",
+  "mountains3d",
 ] as const;
 
 const handleChangeMode = async () => {

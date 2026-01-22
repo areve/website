@@ -20,7 +20,7 @@
 
     <!-- Compass overlay: circular 50px compass with rotating SVG needle -->
     <button
-      v-show="compassVisible"
+      v-show="state.controls.showCompass"
       ref="compass"
       type="button"
       class="compass"
@@ -85,26 +85,26 @@
         <label class="mode-select checkbox">
           <input
             type="checkbox"
-            v-model="isFullscreen"
+            v-model="state.fullscreen"
             @change="handleToggleFullscreen"
           />
           Fullscreen
         </label>
         <label class="mode-select checkbox">
-          <input type="checkbox" v-model="compassVisible" />
+          <input type="checkbox" v-model="state.controls.showCompass" />
           Show Compass
         </label>
         <label class="mode-select checkbox">
-          <input type="checkbox" v-model="statusVisible" />
+          <input type="checkbox" v-model="state.status.visible" />
           Show Status Panel
         </label>
       </div>
     </div>
-    <div :class="['tools-overlay', { 'tools-hidden': !toolsVisible }]">
+    <div :class="['tools-overlay', { 'tools-hidden': !state.tools.visible }]">
       <!-- tools panel (empty for now) -->
     </div>
     <!-- Bottom status panel (full width) -->
-    <div :class="['status-panel', { 'status-hidden': !statusVisible }]">
+    <div :class="['status-panel', { 'status-hidden': !state.status.visible }]">
       <div class="status-content">
         {{ stats.fps.toPrecision(3) }}fps {{ statsX }}x {{ statsY }}y
         {{ statsZ }}z {{ statsZoom }}zoom {{ statsRot }}rot
@@ -296,23 +296,7 @@ const state = ref({
   fullscreen: false as boolean,
 });
 
-// Convenience refs/computeds that keep the existing names used around the file
-const toolsVisible = computed({
-  get: () => state.value.tools.visible,
-  set: (v: boolean) => (state.value.tools.visible = v),
-});
-const compassVisible = computed({
-  get: () => state.value.controls.showCompass,
-  set: (v: boolean) => (state.value.controls.showCompass = v),
-});
-const statusVisible = computed({
-  get: () => state.value.status.visible,
-  set: (v: boolean) => (state.value.status.visible = v),
-});
-const isFullscreen = computed({
-  get: () => state.value.fullscreen,
-  set: (v: boolean) => (state.value.fullscreen = v),
-});
+// Removed convenience computed wrappers; use `state` directly.
 
 // Controls button vertical position (pixels from top of container)
 const controlsButton = ref<HTMLElement | null>(null);
@@ -459,11 +443,11 @@ function onToolsButtonClick(e: Event) {
     e.stopPropagation?.();
     return;
   }
-  toggleTools();
+  state.value.tools.visible = !state.value.tools.visible;
 }
 
 function toggleTools() {
-  toolsVisible.value = !toolsVisible.value;
+  state.value.tools.visible = !state.value.tools.visible;
 }
 
 const width = 500;
@@ -534,7 +518,7 @@ const initializeCanvas = async () => {
   const newHeight = isFs ? (fsEl?.clientHeight ?? window.innerHeight) : height;
 
   // sync fullscreen checkbox state
-  isFullscreen.value = isFs;
+  state.value.fullscreen = isFs;
 
   // Ensure the canvas CSS size matches measured values so drawing matches onscreen aspect
   if (canvas.value) {
@@ -705,7 +689,7 @@ const initializeCanvas = async () => {
     }
   }
   // sync fullscreen checkbox state
-  isFullscreen.value = isFs;
+  state.value.fullscreen = isFs;
   // Restore controls button position proportionally to the new container height
   if (container.value && controlsButton.value) {
     const rect = container.value.getBoundingClientRect();

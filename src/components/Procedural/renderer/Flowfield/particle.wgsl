@@ -136,20 +136,13 @@ fn cs(@builtin(global_invocation_id) gid: vec3<u32>) {
   // Update position based on velocity
   p = p + v * sim.dt;
 
-  // If pixel coords fall outside the viewport, mark the particle dead so it
-  // will respawn randomly next frame instead of wrapping.
+  // Convert to pixel coords, wrap around edges to keep particles on-screen,
+  // then map back to world-space.
   var coord2 = worldToPixel(p, sim.width, sim.height);
-  if (coord2.x < 0.0 || coord2.x >= sim.width || coord2.y < 0.0 || coord2.y >= sim.height) {
-    // schedule respawn after a random delay in [0, sim.maxDelayTime] and mark as waiting
-    let delay = noise(vec4<f32>(f32(idx), 123.456, 654.321, sim.seed + 2.0)) * sim.maxDelayTime;
-    lifetimes[idx] = delay;
-    // mark state as waiting (0.0) so the spawn logic will run after the delay
-    states[idx] = 0.0;
-    // reset velocity on respawn
-    velocities[idx] = vec2f(0.0, 0.0);
-    positions[idx] = p;
-    return;
-  }
+  coord2.x = coord2.x % sim.width;
+  if (coord2.x < 0.0) { coord2.x += sim.width; }
+  coord2.y = coord2.y % sim.height;
+  if (coord2.y < 0.0) { coord2.y += sim.height; }
   p = pixelToWorld(coord2, sim.width, sim.height);
 
   // Compute alpha based on time alive: fade in quickly, fade out slowly

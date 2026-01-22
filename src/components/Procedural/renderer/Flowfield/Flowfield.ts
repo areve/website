@@ -4,14 +4,8 @@ import {
   renderBackgroundToTexture,
   setupBackgroundResources,
 } from "./background";
-import {
-  setupNormalsResources,
-  renderNormalsToTexture,
-} from "./normals";
-import {
-  renderComposite,
-  setupCompositeResources,
-} from "./composite";
+import { setupNormalsResources, renderNormalsToTexture } from "./normals";
+import { renderComposite, setupCompositeResources } from "./composite";
 import {
   renderParticleTexture,
   setupParticleResources,

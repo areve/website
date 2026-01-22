@@ -6,6 +6,18 @@
   <div ref="container" class="canvas-container">
     <canvas ref="canvas" class="canvas" tabindex="0"></canvas>
 
+    <!-- Tools button overlay: circular button on the left to show tools -->
+    <button
+      ref="toolsButton"
+      class="tools-button"
+      type="button"
+      aria-label="Show tools"
+      @click.stop="onToolsButtonClick"
+      @keydown.enter.prevent="onToolsButtonClick"
+      @pointerdown.stop.prevent="startDragToolsButton"
+      :style="{ top: toolsButtonTop + 'px' }"
+    ></button>
+
     <!-- Compass overlay: circular 50px compass with rotating SVG needle -->
     <button
       v-show="compassVisible"
@@ -87,6 +99,9 @@
           Show Status Panel
         </label>
       </div>
+    </div>
+    <div :class="['tools-overlay', { 'tools-hidden': !toolsVisible }]">
+      <!-- tools panel (empty for now) -->
     </div>
     <!-- Bottom status panel (full width) -->
     <div :class="['status-panel', { 'status-hidden': !statusVisible }]">
@@ -270,6 +285,7 @@ function resetRotation() {
 }
 // Controls visibility
 const controlsVisible = ref(false);
+const toolsVisible = ref(false);
 const compassVisible = ref(false);
 
 // Controls button vertical position (pixels from top of container)
@@ -277,6 +293,10 @@ const controlsButton = ref<HTMLElement | null>(null);
 const controlsButtonTop = ref<number>(0);
 // Stored as fraction [0..1] of container height so position scales on resize/fullscreen
 const controlsButtonPct = ref<number | null>(null);
+// Tools button (left)
+const toolsButton = ref<HTMLElement | null>(null);
+const toolsButtonTop = ref<number>(0);
+const toolsButtonPct = ref<number | null>(null);
 // Fullscreen checkbox state (kept in sync in initializeCanvas)
 const isFullscreen = ref(false);
 // Status panel visibility
@@ -285,6 +305,11 @@ let _dragging = false;
 let _dragStartY = 0;
 let _dragStartTop = 0;
 let _didDrag = false;
+// Tools drag state
+let _draggingTools = false;
+let _dragStartYTools = 0;
+let _dragStartTopTools = 0;
+let _didDragTools = false;
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -305,6 +330,21 @@ function startDragControlsButton(e: PointerEvent) {
   window.addEventListener("pointerup", onPointerUp);
 }
 
+function startDragToolsButton(e: PointerEvent) {
+  if (!toolsButton.value || !container.value) return;
+  _draggingTools = true;
+  _dragStartYTools = e.clientY;
+  _dragStartTopTools = toolsButtonTop.value ?? 0;
+  try {
+    toolsButton.value.setPointerCapture?.(e.pointerId);
+  } catch {}
+  e.preventDefault?.();
+  window.addEventListener("pointermove", onPointerMoveTools, {
+    passive: false,
+  } as any);
+  window.addEventListener("pointerup", onPointerUpTools);
+}
+
 function onPointerMove(e: PointerEvent) {
   if (
     !_dragging ||
@@ -323,6 +363,25 @@ function onPointerMove(e: PointerEvent) {
   if (rect.height > 0)
     controlsButtonPct.value = controlsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDrag = true;
+}
+
+function onPointerMoveTools(e: PointerEvent) {
+  if (
+    !_draggingTools ||
+    !container.value ||
+    toolsButtonTop.value == null ||
+    !toolsButton.value
+  )
+    return;
+  e.preventDefault?.();
+  const rect = container.value.getBoundingClientRect();
+
+  const delta = e.clientY - _dragStartYTools;
+  const newTop = clamp(_dragStartTopTools + delta, 0, rect.height);
+  toolsButtonTop.value = newTop;
+  // record relative position so it can be restored on resize/fullscreen
+  if (rect.height > 0) toolsButtonPct.value = toolsButtonTop.value / rect.height;
+  if (Math.abs(delta) > 4) _didDragTools = true;
 }
 
 function onPointerUp(e: PointerEvent) {
@@ -348,6 +407,27 @@ function onPointerUp(e: PointerEvent) {
   }, 0);
 }
 
+function onPointerUpTools(e: PointerEvent) {
+  if (!container.value || !toolsButton.value) return;
+  _draggingTools = false;
+  try {
+    toolsButton.value.releasePointerCapture?.(e.pointerId);
+  } catch {}
+  window.removeEventListener("pointermove", onPointerMoveTools);
+  window.removeEventListener("pointerup", onPointerUpTools);
+  // snap to corners if close
+  const rect = container.value.getBoundingClientRect();
+  const snapThreshold = 30;
+  if (toolsButtonTop.value! <= snapThreshold) toolsButtonTop.value = 0;
+  else if (toolsButtonTop.value! >= rect.height - snapThreshold) toolsButtonTop.value = rect.height;
+  // update stored percentage after snapping
+  if (rect.height > 0) toolsButtonPct.value = toolsButtonTop.value! / rect.height;
+  // keep _didDragTools true long enough to cancel the following click event, then clear
+  setTimeout(() => {
+    _didDragTools = false;
+  }, 0);
+}
+
 function onControlsButtonClick(e: Event) {
   if (_didDrag) {
     e.stopPropagation?.();
@@ -356,8 +436,20 @@ function onControlsButtonClick(e: Event) {
   toggleControls();
 }
 
+function onToolsButtonClick(e: Event) {
+  if (_didDragTools) {
+    e.stopPropagation?.();
+    return;
+  }
+  toggleTools();
+}
+
 function toggleControls() {
   controlsVisible.value = !controlsVisible.value;
+}
+
+function toggleTools() {
+  toolsVisible.value = !toolsVisible.value;
 }
 
 const width = 500;
@@ -616,6 +708,21 @@ const initializeCanvas = async () => {
         rect.height > 0 ? controlsButtonTop.value / rect.height : 0;
     }
   }
+  // Restore tools button position proportionally to the new container height
+  if (container.value && toolsButton.value) {
+    const rect = container.value.getBoundingClientRect();
+    if (toolsButtonPct.value != null && rect.height > 0) {
+      toolsButtonTop.value = clamp(
+        Math.round(toolsButtonPct.value * rect.height),
+        0,
+        rect.height,
+      );
+    } else {
+      // default to bottom
+      toolsButtonTop.value = rect.height;
+      toolsButtonPct.value = rect.height > 0 ? toolsButtonTop.value / rect.height : 0;
+    }
+  }
   await renderer.init();
   // Ensure the canvas has keyboard focus so controller keyboard shortcuts work
   // after fullscreen/resizes (some browsers move focus away on fullscreenchange).
@@ -661,6 +768,10 @@ onMounted(async () => {
     const rect = container.value.getBoundingClientRect();
     controlsButtonTop.value = rect.height;
   }
+  if (container.value && toolsButton.value) {
+    const rect = container.value.getBoundingClientRect();
+    toolsButtonTop.value = rect.height;
+  }
   frameId = requestAnimationFrame(render);
 });
 
@@ -684,6 +795,8 @@ onUnmounted(() => {
   // ensure any drag listeners removed
   window.removeEventListener("pointermove", onPointerMove);
   window.removeEventListener("pointerup", onPointerUp);
+  window.removeEventListener("pointermove", onPointerMoveTools);
+  window.removeEventListener("pointerup", onPointerUpTools);
 });
 </script>
 
@@ -743,6 +856,36 @@ onUnmounted(() => {
     opacity 200ms ease;
 }
 
+/* Tools panel: slide-in from the left, full height, ~45% width capped at 300px */
+.tools-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 1em;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  z-index: 35;
+  backdrop-filter: blur(6px);
+  pointer-events: auto;
+  transform: translateX(0);
+  opacity: 1;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.8);
+  transition:
+    transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
+    opacity 200ms ease;
+}
+.tools-hidden {
+  transform: translateX(-110%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .controls-overlay .stats {
   font-family: monospace;
   font-size: 0.9rem;
@@ -795,8 +938,20 @@ onUnmounted(() => {
   transform: translateX(110%);
 }
 
+.canvas-container:fullscreen .tools-overlay,
+.canvas-container:-webkit-full-screen .tools-overlay,
+.canvas-container:-moz-full-screen .tools-overlay {
+  transform: translateX(0);
+}
+.canvas-container:fullscreen .tools-hidden,
+.canvas-container:-webkit-full-screen .tools-hidden,
+.canvas-container:-moz-full-screen .tools-hidden {
+  transform: translateX(-110%);
+}
+
 /* Compass overlay styles */
 button.controls-button,
+button.tools-button,
 button.compass {
   position: absolute;
   top: 0.5em;
@@ -830,6 +985,17 @@ button.controls-button {
   bottom: 0;
   right: 0;
   margin-right: -2.5em;
+  margin-top: -2.5em;
+  top: auto;
+}
+
+button.tools-button {
+  z-index: 50;
+  width: 5em;
+  height: 5em;
+  bottom: 0;
+  left: 0;
+  margin-left: -2.5em;
   margin-top: -2.5em;
   top: auto;
 }

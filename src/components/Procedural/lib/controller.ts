@@ -42,7 +42,10 @@ const defaultOptions = {
     },
     mode: {
       changeKeys: ["m"],
+      // Reverse mode key (cycles modes in reverse order)
+      reverseKeys: ["n"],
       eventName: "changeMode",
+      reverseEventName: "changeModeReverse",
     },
     fullscreen: {
       toggleKeys: ["f"], // "doubletap"
@@ -401,6 +404,15 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
     }
     if (opt.basicKeys.mode.changeKeys.includes(action)) {
       document.dispatchEvent(new CustomEvent(opt.basicKeys.mode.eventName));
+      return true;
+    }
+    if (
+      Array.isArray((opt.basicKeys.mode as any).reverseKeys) &&
+      (opt.basicKeys.mode as any).reverseKeys.includes(action)
+    ) {
+      // dispatch a separate event for reverse mode cycling
+      const revName = (opt.basicKeys.mode as any).reverseEventName || "changeModeReverse";
+      document.dispatchEvent(new CustomEvent(revName));
       return true;
     }
     if (opt.basicKeys.fullscreen.toggleKeys.includes(action)) {

@@ -423,6 +423,14 @@ const handleChangeMode = async () => {
   await initializeCanvas();
 };
 
+const handleChangeModeReverse = async () => {
+  const idx = availableModes.indexOf(shaderMode.value);
+  const len = availableModes.length;
+  const prev = availableModes[(idx - 1 + len) % len];
+  shaderMode.value = prev;
+  await initializeCanvas();
+};
+
 const handleToggleFullscreen = () => {
   const el = container.value || canvas.value;
 
@@ -645,6 +653,7 @@ onMounted(async () => {
   await renderer.update(0, activeController.value);
 
   document.addEventListener("changeMode", handleChangeMode);
+  document.addEventListener("changeModeReverse", handleChangeModeReverse);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
   document.addEventListener("fullscreenchange", initializeCanvas);
   // Recompute canvas size when the window or container resizes (covers devtools toggle)
@@ -678,6 +687,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   document.removeEventListener("changeMode", handleChangeMode);
+  document.removeEventListener("changeModeReverse", handleChangeModeReverse);
   document.removeEventListener("toggleFullscreen", handleToggleFullscreen);
   document.removeEventListener("fullscreenchange", initializeCanvas);
   window.removeEventListener("resize", initializeCanvas);

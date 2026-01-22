@@ -304,7 +304,7 @@ function onPointerMove(e: PointerEvent) {
   const rect = container.value.getBoundingClientRect();
 
   const delta = e.clientY - _dragStartY;
-  const newTop = clamp(_dragStartTop + delta, 8, rect.height);
+  const newTop = clamp(_dragStartTop + delta, 0, rect.height);
   controlsButtonTop.value = newTop;
   if (Math.abs(delta) > 4) _didDrag = true;
 }

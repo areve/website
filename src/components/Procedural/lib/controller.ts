@@ -45,7 +45,7 @@ const defaultOptions = {
       eventName: "changeMode",
     },
     fullscreen: {
-      toggleKeys: ["f", "doubletap"],
+      toggleKeys: ["f"], // "doubletap"
       eventName: "toggleFullscreen",
     },
   },

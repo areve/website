@@ -56,7 +56,7 @@ const defaultOptions = {
       eventName: "changeMode",
     },
     fullscreen: {
-      toggleKeys: ["f", "doubletap"],
+      toggleKeys: ["f"], // "doubletap"
       eventName: "toggleFullscreen",
     },
   },
@@ -145,20 +145,23 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       states.keyboard.buttons.zoom.speed = updateSpeed(
         opt.acceleratorKeys.zoom,
         states.keyboard.buttons.zoom,
-        diffTime
+        diffTime,
       );
 
       // Apply zoom (inverse relationship: positive speed reduces FOV for zoom in)
       this.fov = Math.max(
         opt.camera.minFov,
-        Math.min(opt.camera.maxFov, this.fov - states.keyboard.buttons.zoom.speed * diffTime)
+        Math.min(
+          opt.camera.maxFov,
+          this.fov - states.keyboard.buttons.zoom.speed * diffTime,
+        ),
       );
 
       // Update rotation speed
       states.keyboard.buttons.rotation.speed = updateSpeed(
         opt.acceleratorKeys.rotation,
         states.keyboard.buttons.rotation,
-        diffTime
+        diffTime,
       );
 
       // Apply rotation
@@ -171,12 +174,12 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       states.keyboard.buttons.moveForward.speed = updateSpeed(
         opt.acceleratorKeys.moveForward,
         states.keyboard.buttons.moveForward,
-        diffTime
+        diffTime,
       );
       states.keyboard.buttons.moveRight.speed = updateSpeed(
         opt.acceleratorKeys.moveRight,
         states.keyboard.buttons.moveRight,
-        diffTime
+        diffTime,
       );
 
       // Calculate forward and right vectors from yaw and pitch
@@ -281,7 +284,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   function updateSpeed(
     options: { accel: number; decel: number; maxSpeed: number },
     state: { speed: number; increasing: boolean; decreasing: boolean },
-    diffTime: number
+    diffTime: number,
   ): number {
     const { accel, decel, maxSpeed } = options;
     const { speed, increasing, decreasing } = state;
@@ -304,7 +307,9 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       return true;
     }
     if (opt.basicKeys.fullscreen.toggleKeys.includes(action)) {
-      document.dispatchEvent(new CustomEvent(opt.basicKeys.fullscreen.eventName));
+      document.dispatchEvent(
+        new CustomEvent(opt.basicKeys.fullscreen.eventName),
+      );
       return true;
     }
     return false;
@@ -332,7 +337,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     }
     if (opt.basicKeys.fullscreen.toggleKeys.includes(key)) {
       document.dispatchEvent(
-        new CustomEvent(opt.basicKeys.fullscreen.eventName)
+        new CustomEvent(opt.basicKeys.fullscreen.eventName),
       );
     }
   }
@@ -369,7 +374,8 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     }
     if (states.rightDragging.isRightDragging) {
       states.rightDragging.current = { x: e.clientX, y: e.clientY };
-      const deltaX = states.rightDragging.start.x - states.rightDragging.current.x;
+      const deltaX =
+        states.rightDragging.start.x - states.rightDragging.current.x;
       // Sensitivity chosen to give a sensible rotation rate
       const sensitivity = 0.005;
       rotateAroundLook(deltaX * sensitivity);
@@ -391,7 +397,10 @@ export const makeController3d = function (options: Partial<Options> = {}) {
     const maxSpeed = opt.acceleratorKeys.zoom.maxSpeed;
     const zoomChange = e.deltaY * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
-    states.keyboard.buttons.zoom.speed = Math.max(-maxSpeed, Math.min(maxSpeed, zoomDiff));
+    states.keyboard.buttons.zoom.speed = Math.max(
+      -maxSpeed,
+      Math.min(maxSpeed, zoomDiff),
+    );
   }
 
   function onTouchStart(e: TouchEvent) {
@@ -410,7 +419,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       states.pinch.isPinching = true;
       states.touchRotate.lastAngle = Math.atan2(
         t2.clientY - t1.clientY,
-        t2.clientX - t1.clientX
+        t2.clientX - t1.clientX,
       );
       const dx = t2.clientX - t1.clientX;
       const dy = t2.clientY - t1.clientY;
@@ -427,7 +436,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
       const [t1, t2] = e.touches as unknown as [Touch, Touch];
       const angle = Math.atan2(
         t2.clientY - t1.clientY,
-        t2.clientX - t1.clientX
+        t2.clientX - t1.clientX,
       );
       const deltaAngle = states.touchRotate.lastAngle - angle; // flipped direction
 
@@ -449,7 +458,7 @@ export const makeController3d = function (options: Partial<Options> = {}) {
         const newFov = controller.value.fov / safeRatio;
         controller.value.fov = Math.min(
           opt.camera.maxFov,
-          Math.max(opt.camera.minFov, newFov)
+          Math.max(opt.camera.minFov, newFov),
         );
         states.pinch.startDistance = dist;
       }

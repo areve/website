@@ -390,7 +390,7 @@ type ShaderMode = typeof availableModes[number];
 const shaderMode = ref<ShaderMode>("flowfield");
 
 // Human-friendly labels for the mode dropdown. Keep keys matching availableModes.
-const modeLabels: Record<string, string> = {
+const modeLabels = {
   simplex: "OpenSimplex",
   opensimplex2: "OpenSimplex2",
   opensimplex2s: "OpenSimplex2S",

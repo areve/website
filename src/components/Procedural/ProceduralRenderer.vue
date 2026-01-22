@@ -694,9 +694,12 @@ button.compass {
 }
 
 button.controls-button {
+  width: 4em;
+  height: 4em;
   bottom: 0.5em;
-  right: 0em;
+  right: 0.5em;
   margin-right: -2em;
+  margin-bottom: -2em;
   top: auto;
 }
 

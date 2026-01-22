@@ -57,7 +57,7 @@
       <div>
         <label class="mode-select">
           Mode:
-          <select @change="initializeCanvas" v-model="shaderMode">
+          <select @change="initializeCanvas" v-model="state.controls.mode">
             <option v-for="mode in availableModes" :key="mode" :value="mode">
               {{ modeLabels[mode] || mode }}
             </option>
@@ -65,13 +65,13 @@
         </label>
         <label class="mode-select">
           Zoom Centre:
-          <select v-model="zoomOrigin">
+          <select v-model="state.controls.zoomOrigin">
             <option value="pointer">Mouse</option>
             <option value="center">Center</option>
           </select>
         </label>
         <label
-          v-if="shaderMode === 'mountains3d' || shaderMode === 'opensimplex3d'"
+          v-if="state.controls.mode === 'mountains3d' || state.controls.mode === 'opensimplex3d'"
           class="mode-select"
         >
           Controller:
@@ -143,14 +143,13 @@ import { setupMountains3dRenderer } from "./renderer/setupMountains3dRenderer";
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const container = ref<HTMLElement>(undefined!);
 const stats = makeStats();
-const zoomOrigin = ref<"pointer" | "center">("center");
 const controller = makeController({
   basicKeys: {
     pause: { startPaused: false },
   },
   acceleratorKeys: {
     zoom: {
-      origin: () => zoomOrigin.value,
+      origin: () => state.value?.controls?.zoomOrigin ?? "center",
     },
   },
 });
@@ -181,9 +180,10 @@ function setControllerMode(mode: "2d" | "3d") {
 // Rotation for the compass pointer (degrees, inverted so pointer indicates "up"/north)
 const compassRotation = computed(() => {
   // Use 3D yaw only when a 3D controller is active for 3D-capable modes
+  const currentMode = state.value.controls.mode as ShaderMode;
   const use3d =
-    (shaderMode.value === "opensimplex3d" && controllerMode.value === "3d") ||
-    (shaderMode.value === "mountains3d" && controllerMode.value === "3d");
+    (currentMode === "opensimplex3d" && controllerMode.value === "3d") ||
+    (currentMode === "mountains3d" && controllerMode.value === "3d");
   const rad = use3d
     ? (controller3d.value.yaw ?? 0)
     : (controller.value.rotation ?? 0);
@@ -193,12 +193,13 @@ const compassRotation = computed(() => {
 
 // Which controller is currently active (object, not ref)
 const activeController = computed(() => {
-  if (shaderMode.value === "opensimplex3d") {
+  const currentMode = state.value.controls.mode as ShaderMode;
+  if (currentMode === "opensimplex3d") {
     return controllerMode.value === "3d"
       ? controller3d.value
       : controller.value;
   }
-  if (shaderMode.value === "mountains3d" && controllerMode.value === "3d")
+  if (currentMode === "mountains3d" && controllerMode.value === "3d")
     return controller3d.value;
   return controller.value;
 });
@@ -252,7 +253,7 @@ function resetRotation() {
   }
 
   // Determine which controller to reset based on current mode
-  const is3d = shaderMode.value === "opensimplex3d";
+  const is3d = state.value.controls.mode === "opensimplex3d";
   const start = is3d
     ? (controller3d.value.yaw ?? 0)
     : (controller.value.rotation ?? 0);
@@ -302,6 +303,7 @@ function getDefaultState() {
       visible: false as boolean,
       buttonPosition: null as number | null,
       mode: "flowfield" as ShaderMode,
+      zoomOrigin: "center" as "pointer" | "center",
       showCompass: false as boolean,
     },
     status: { visible: false as boolean },
@@ -533,7 +535,7 @@ type ShaderMode = keyof typeof modeLabels;
 // derive the array of modes from the labels object to keep a single source of truth
 const availableModes = Object.keys(modeLabels) as ShaderMode[];
 
-const shaderMode = ref<ShaderMode>("flowfield");
+// shaderMode persisted in `state.controls.mode`; remove local ref
 
 let frameId: number = 0;
 let lastRenderTime: DOMHighResTimeStamp = 0;
@@ -542,17 +544,17 @@ let totalPausedTime = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const handleChangeMode = async () => {
-  const idx = availableModes.indexOf(shaderMode.value);
+  const idx = availableModes.indexOf(state.value.controls.mode);
   const next = availableModes[(idx + 1) % availableModes.length];
-  shaderMode.value = next;
+  state.value.controls.mode = next;
   await initializeCanvas();
 };
 
 const handleChangeModeReverse = async () => {
-  const idx = availableModes.indexOf(shaderMode.value);
+  const idx = availableModes.indexOf(state.value.controls.mode);
   const len = availableModes.length;
   const prev = availableModes[(idx - 1 + len) % len];
-  shaderMode.value = prev;
+  state.value.controls.mode = prev;
   await initializeCanvas();
 };
 
@@ -586,31 +588,31 @@ const initializeCanvas = async () => {
   controller.value.unmount();
   controller3d.value.unmount();
 
-  if (shaderMode.value === "mandelbrot") {
+  if (state.value.controls.mode === "mandelbrot") {
     renderer = await setupMandelbrotRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
-  } else if (shaderMode.value === "ripple") {
+  } else if (state.value.controls.mode === "ripple") {
     renderer = await setupRippleRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
-  } else if (shaderMode.value === "worley") {
+  } else if (state.value.controls.mode === "worley") {
     renderer = await setupWorleyRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
-  } else if (shaderMode.value === "mountains") {
+  } else if (state.value.controls.mode === "mountains") {
     renderer = await setupMountainsRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
-  } else if (shaderMode.value === "opensimplex3d") {
+  } else if (state.value.controls.mode === "opensimplex3d") {
     // Pass both controllers; renderer.update will receive the currently active controller
     renderer = await setupOpenSimplex3dRenderer(
       canvas.value,
@@ -630,14 +632,14 @@ const initializeCanvas = async () => {
         controller3d.value.mount(canvas.value);
       }
     }
-  } else if (shaderMode.value === "opensimplex2") {
+  } else if (state.value.controls.mode === "opensimplex2") {
     renderer = await setupOpenSimplex2Renderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "perlin") {
+  } else if (state.value.controls.mode === "perlin") {
     // Perlin renderer (copied from OpenSimplex variant) — useful for debugging.
     renderer = await setupPerlinRenderer(canvas.value, {
       width: newWidth,
@@ -645,70 +647,70 @@ const initializeCanvas = async () => {
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "julia") {
+  } else if (state.value.controls.mode === "julia") {
     renderer = await setupJuliaRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "lorenz") {
+  } else if (state.value.controls.mode === "lorenz") {
     renderer = await setupLorenzRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "fractal") {
+  } else if (state.value.controls.mode === "fractal") {
     renderer = await setupFractalRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "trigonometry") {
+  } else if (state.value.controls.mode === "trigonometry") {
     renderer = await setupTrigonometryRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "sierpinski") {
+  } else if (state.value.controls.mode === "sierpinski") {
     renderer = await setupSierpinskiRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "valuecubic") {
+  } else if (state.value.controls.mode === "valuecubic") {
     renderer = await setupValueCubicRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "value") {
+  } else if (state.value.controls.mode === "value") {
     renderer = await setupValueRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "flowfield") {
+  } else if (state.value.controls.mode === "flowfield") {
     renderer = await setupFlowfieldRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "newton") {
+  } else if (state.value.controls.mode === "newton") {
     renderer = await setupNewtonRenderer(canvas.value, {
       width: newWidth,
       height: newHeight,
       seed,
     });
     if (canvas.value) controller.value.mount(canvas.value);
-  } else if (shaderMode.value === "mountains3d") {
+  } else if (state.value.controls.mode === "mountains3d") {
     // Pass both controllers; renderer will use controller3d for camera if present
     renderer = await setupMountains3dRenderer(
       canvas.value,
@@ -737,8 +739,8 @@ const initializeCanvas = async () => {
   }
   // For all non-3D modes, mount the 2D controller (covers simplex/ripple/worley/mountains)
   if (
-    shaderMode.value !== "opensimplex3d" &&
-    shaderMode.value !== "mountains3d"
+    state.value.controls.mode !== "opensimplex3d" &&
+    state.value.controls.mode !== "mountains3d"
   ) {
     if (canvas.value) {
       controller.value.mount(canvas.value);

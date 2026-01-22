@@ -99,7 +99,7 @@
         <button
           class="controls-close"
           type="button"
-          @click.stop="hideControls"
+          @click.stop="toggleControls"
           aria-label="Hide controls"
         >
           ✕
@@ -335,15 +335,7 @@ function onControlsButtonClick(e: Event) {
     e.stopPropagation?.();
     return;
   }
-  showControls();
-}
-
-function hideControls() {
-  controlsVisible.value = false;
-}
-
-function showControls() {
-  controlsVisible.value = true;
+  toggleControls();
 }
 
 function toggleControls() {

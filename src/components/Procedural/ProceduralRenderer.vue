@@ -76,9 +76,10 @@
             <option value="center">Center</option>
           </select>
         </label>
-        <button @click="handleToggleFullscreen" type="button">
+        <label class="mode-select checkbox">
+          <input type="checkbox" v-model="isFullscreen" @change="handleToggleFullscreen" />
           Fullscreen
-        </button>
+        </label>
         <label
           v-if="shaderMode === 'mountains3d' || shaderMode === 'opensimplex3d'"
           class="mode-select"
@@ -92,9 +93,10 @@
             <option value="3d">3D Controller (camera)</option>
           </select>
         </label>
-        <button @click="compassVisible = !compassVisible" type="button">
-          {{ compassVisible ? 'Hide' : 'Show' }} Compass
-        </button>
+        <label class="mode-select checkbox">
+          <input type="checkbox" v-model="compassVisible" />
+          Show Compass
+        </label>
       </div>
     </div>
   </div>
@@ -277,6 +279,8 @@ const controlsButton = ref<HTMLElement | null>(null);
 const controlsButtonTop = ref<number>(0);
 // Stored as fraction [0..1] of container height so position scales on resize/fullscreen
 const controlsButtonPct = ref<number | null>(null);
+// Fullscreen checkbox state (kept in sync in initializeCanvas)
+const isFullscreen = ref(false);
 let _dragging = false;
 let _dragStartY = 0;
 let _dragStartTop = 0;
@@ -408,6 +412,9 @@ const initializeCanvas = async () => {
   // Prefer the fullscreen element's client size (accounts for toolbars/OS chrome) when available
   const newWidth = isFs ? (fsEl?.clientWidth ?? window.innerWidth) : width;
   const newHeight = isFs ? (fsEl?.clientHeight ?? window.innerHeight) : height;
+
+  // sync fullscreen checkbox state
+  isFullscreen.value = isFs;
 
   // Ensure the canvas CSS size matches measured values so drawing matches onscreen aspect
   if (canvas.value) {
@@ -577,6 +584,8 @@ const initializeCanvas = async () => {
       controller.value.mount(canvas.value);
     }
   }
+      // sync fullscreen checkbox state
+      isFullscreen.value = isFs;
   // Restore controls button position proportionally to the new container height
   if (container.value && controlsButton.value) {
     const rect = container.value.getBoundingClientRect();

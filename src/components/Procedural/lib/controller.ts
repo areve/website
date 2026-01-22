@@ -140,6 +140,9 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.addEventListener("touchend", onTouchEnd);
       // Prevent context menu on right click
       bindElement.addEventListener("contextmenu", preventContextMenu);
+      // Focus/blur help: treat focus as pointer-over for keyboard input
+      bindElement.addEventListener("focus", onFocus as EventListener);
+      bindElement.addEventListener("blur", onBlur as EventListener);
     },
     unmount() {
       if (!bindElement || !bindGlobalElement) return; // Guard against unmounting before mounting
@@ -158,6 +161,8 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
       bindElement.removeEventListener("touchend", onTouchEnd);
       bindGlobalElement.removeEventListener("fullscreenchange", onFullscreenChange as EventListener);
       bindElement.removeEventListener("contextmenu", preventContextMenu);
+      bindElement.removeEventListener("focus", onFocus as EventListener);
+      bindElement.removeEventListener("blur", onBlur as EventListener);
     },
     update() {
       const now = performance.now() / 1000;
@@ -405,10 +410,11 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   }
 
   function onKeyPress(event: KeyboardEvent) {
-    if (states.isPointerOver) {
-      const lowerCaseKey = event.key.toLowerCase();
-      if (actionHandler(lowerCaseKey)) event.preventDefault();
-    }
+    // Allow basic action keys (mode, pause, fullscreen) even when pointer is not over the canvas.
+    // Allow basic action keys (mode, pause, fullscreen) even when pointer is not over the canvas.
+    const lowerCaseKey = event.key.toLowerCase();
+    const handled = actionHandler(lowerCaseKey);
+    if (handled) event.preventDefault();
   }
 
   function handleAcceleratorKeys(key: string, pressed: boolean) {
@@ -487,6 +493,15 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
   }
 
   function onMouseOut() {
+    states.isPointerOver = false;
+  }
+
+  function onFocus() {
+    // treat keyboard focus as pointer-over so keyboard controls work
+    states.isPointerOver = true;
+  }
+
+  function onBlur() {
     states.isPointerOver = false;
   }
 

@@ -4,7 +4,7 @@
   </div>
 
   <div ref="container" class="canvas-container">
-    <canvas ref="canvas" class="canvas"></canvas>
+    <canvas ref="canvas" class="canvas" tabindex="0"></canvas>
 
     <!-- Compass overlay: circular 50px compass with rotating SVG needle -->
     <button
@@ -427,9 +427,7 @@ const handleToggleFullscreen = () => {
   const el = container.value || canvas.value;
 
   if (!document.fullscreenElement) {
-    el.requestFullscreen?.().catch(() => {
-      console.warn("Failed to enter fullscreen mode");
-    });
+    el.requestFullscreen?.().catch(() => {});
   } else {
     document.exitFullscreen?.();
   }
@@ -632,6 +630,14 @@ const initializeCanvas = async () => {
     }
   }
   await renderer.init();
+  // Ensure the canvas has keyboard focus so controller keyboard shortcuts work
+  // after fullscreen/resizes (some browsers move focus away on fullscreenchange).
+  await nextTick();
+  try {
+    canvas.value?.focus?.();
+  } catch (_) {
+    // ignore focus errors
+  }
 };
 
 onMounted(async () => {
@@ -767,7 +773,9 @@ onUnmounted(() => {
   padding: 0 0.75rem;
   z-index: 20; /* below controls panel (35) and controls button (50) */
   transform: translateY(0);
-  transition: transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1), opacity 180ms ease;
+  transition:
+    transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
+    opacity 180ms ease;
 }
 .status-panel .status-content {
   font-family: monospace;
@@ -813,7 +821,7 @@ button.compass {
   align-items: center;
   justify-content: center;
   z-index: 30;
-  
+
   box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.5);
   cursor: pointer;
   touch-action: none;

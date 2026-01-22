@@ -292,13 +292,15 @@ function startDragControlsButton(e: PointerEvent) {
   _dragging = true;
   _dragStartY = e.clientY;
   _dragStartTop = controlsButtonTop.value ?? 0;
-  (e.target as Element).setPointerCapture?.(e.pointerId);
-  window.addEventListener("pointermove", onPointerMove);
+  try { controlsButton.value.setPointerCapture?.(e.pointerId); } catch {}
+  e.preventDefault?.();
+  window.addEventListener("pointermove", onPointerMove, { passive: false } as any);
   window.addEventListener("pointerup", onPointerUp);
 }
 
 function onPointerMove(e: PointerEvent) {
   if (!_dragging || !container.value || controlsButtonTop.value == null || !controlsButton.value) return;
+  e.preventDefault?.();
   const rect = container.value.getBoundingClientRect();
 
   const delta = e.clientY - _dragStartY;
@@ -310,7 +312,7 @@ function onPointerMove(e: PointerEvent) {
 function onPointerUp(e: PointerEvent) {
   if (!container.value || !controlsButton.value) return;
   _dragging = false;
-  try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+  try { controlsButton.value.releasePointerCapture?.(e.pointerId); } catch {}
   window.removeEventListener("pointermove", onPointerMove);
   window.removeEventListener("pointerup", onPointerUp);
   // snap to corners if close
@@ -604,9 +606,9 @@ onMounted(async () => {
 
     // initialize controls button position after first render
     await nextTick();
-    if (controlsButtonTop.value === null && container.value && controlsButton.value) {
+    if (container.value && controlsButton.value) {
       const rect = container.value.getBoundingClientRect();
-      controlsButtonTop.value = rect.height; 
+      controlsButtonTop.value = rect.height;
     }
     frameId = requestAnimationFrame(render);
 });
@@ -751,6 +753,7 @@ button.compass {
   z-index: 30;
   box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.5);
   cursor: pointer;
+  touch-action: none;
   &.hidden {
     opacity: 0;
     pointer-events: none;

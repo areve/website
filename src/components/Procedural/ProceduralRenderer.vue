@@ -363,33 +363,6 @@ function toggleControls() {
 const width = 500;
 const height = 500;
 const seed = 12345;
-const availableModes = [
-  "simplex",
-  "opensimplex2",
-  "opensimplex2s",
-  "perlin",
-  "value",
-  "fractal",
-  "julia",
-  "lorenz",
-  "sierpinski",
-  "trigonometry",
-  "valuecubic",
-  "newton",
-  "ripple",
-  "mandelbrot",
-  "worley",
-  "mountains",
-  "opensimplex3d",
-  "flowfield",
-  "mountains3d",
-] as const;
-
-type ShaderMode = typeof availableModes[number];
-
-const shaderMode = ref<ShaderMode>("flowfield");
-
-// Human-friendly labels for the mode dropdown. Keep keys matching availableModes.
 const modeLabels = {
   simplex: "OpenSimplex",
   opensimplex2: "OpenSimplex2",
@@ -410,7 +383,14 @@ const modeLabels = {
   opensimplex3d: "OpenSimplex 3D",
   flowfield: "Flow Field",
   mountains3d: "Mountains 3D",
-};
+} as const;
+
+type ShaderMode = keyof typeof modeLabels;
+
+// derive the array of modes from the labels object to keep a single source of truth
+const availableModes = Object.keys(modeLabels) as ShaderMode[];
+
+const shaderMode = ref<ShaderMode>("flowfield");
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;

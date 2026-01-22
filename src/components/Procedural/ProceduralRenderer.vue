@@ -416,19 +416,18 @@ const availableModes = [
   "flowfield",
 ] as const;
 
-const changeMode = async (delta = 1) => {
-  const len = availableModes.length;
-  if (len === 0) return;
-  const idx = availableModes.indexOf(shaderMode.value);
-  const start = idx === -1 ? 0 : idx;
-  const nextIdx = (start + delta + len) % len;
-  if (nextIdx === start) return;
-  shaderMode.value = availableModes[nextIdx];
+const changeMode = async (forward: boolean) => {
+  // const nextIdx = forward ? (start + 1) % len : (start - 1   + len) % len;
+  shaderMode.value =
+    availableModes[
+      (availableModes.indexOf(shaderMode.value) + (forward ? 1 : -1)) %
+        availableModes.length
+    ];
   await initializeCanvas();
 };
 
-const handleChangeMode = () => changeMode(1);
-const handleChangeModeReverse = () => changeMode(-1);
+const handleChangeMode = () => changeMode(true);
+const handleChangeModeReverse = () => changeMode(false);
 
 const handleToggleFullscreen = () => {
   const el = container.value || canvas.value;

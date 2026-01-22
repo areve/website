@@ -758,13 +758,12 @@ button.compass {
   height: 4em;
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(127, 127, 127, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 30;
-  /* ensure it sits above the controls panel */
-  z-index: 50;
+  
   box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.5);
   cursor: pointer;
   touch-action: none;
@@ -778,6 +777,7 @@ button.compass {
 }
 
 button.controls-button {
+  z-index: 50;
   width: 5em;
   height: 5em;
   bottom: 0;

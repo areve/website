@@ -705,7 +705,8 @@ onUnmounted(() => {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(45%, 300px);
+  width: 220px;
+  /* width: min(45%, 300px); */
   display: flex;
   flex-direction: column;
   gap: 12px;

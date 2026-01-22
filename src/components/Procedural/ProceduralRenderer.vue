@@ -29,7 +29,7 @@
     <!-- Controls button overlay: circular button to show controls -->
     <button
       ref="controlsButton"
-      :class="['controls-button', { 'controls-button-hidden': controlsVisible }]"
+      class="controls-button"
       type="button"
       aria-label="Show controls"
       @click.stop="onControlsButtonClick"
@@ -76,10 +76,6 @@
             <option value="center">Center</option>
           </select>
         </label>
-        <label class="mode-select checkbox">
-          <input type="checkbox" v-model="isFullscreen" @change="handleToggleFullscreen" />
-          Fullscreen
-        </label>
         <label
           v-if="shaderMode === 'mountains3d' || shaderMode === 'opensimplex3d'"
           class="mode-select"
@@ -92,6 +88,10 @@
             <option value="2d">2D Controller (texture)</option>
             <option value="3d">3D Controller (camera)</option>
           </select>
+        </label>
+        <label class="mode-select checkbox">
+          <input type="checkbox" v-model="isFullscreen" @change="handleToggleFullscreen" />
+          Fullscreen
         </label>
         <label class="mode-select checkbox">
           <input type="checkbox" v-model="compassVisible" />
@@ -674,31 +674,26 @@ onUnmounted(() => {
   height: 100%;
 }
 
-/* Controls overlay positioned as a semi-transparent bar across the bottom
-   of the canvas so it remains visible in fullscreen. */
+/* Controls panel: slide-in from the right, full height, ~45% width capped at 300px */
 .controls-overlay {
   position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 12px;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(45%, 300px);
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  /* reserve space on the right so the close button does not overlap the
-     fullscreen button (close sits in the overlay's top-right corner) */
-  padding: 0.5rem calc(0.75rem + 44px) 0.5rem 0.75rem;
-  background: rgba(0, 0, 0, 0.45);
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  border-radius: 8px;
-  z-index: 25;
-  backdrop-filter: blur(4px);
-  /* allow clicks on controls */
+  border-radius: 8px 0 0 8px;
+  z-index: 35;
+  backdrop-filter: blur(6px);
   pointer-events: auto;
-  /* Default (non-fullscreen): fade in/out */
-  transform: none;
+  transform: translateX(0);
   opacity: 1;
-  transition: opacity 200ms ease;
+  transition: transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1), opacity 200ms ease;
 }
 
 .controls-overlay .stats {
@@ -706,28 +701,23 @@ onUnmounted(() => {
   font-size: 0.9rem;
 }
 
-/* Hidden (non-fullscreen): fade only */
+/* Hidden state: slide completely off the right */
 .controls-hidden {
+  transform: translateX(110%);
   opacity: 0;
   pointer-events: none;
 }
 
-/* When the canvas container is fullscreen, slide the overlay off the bottom.
-   Use both standard and vendor-prefixed fullscreen selectors for compatibility. */
+/* Fullscreen rules — behave the same (slide in/out horizontally) */
 .canvas-container:fullscreen .controls-overlay,
 .canvas-container:-webkit-full-screen .controls-overlay,
 .canvas-container:-moz-full-screen .controls-overlay {
-  transform: translateY(0);
-  transition:
-    transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
-    opacity 200ms ease;
+  transform: translateX(0);
 }
 .canvas-container:fullscreen .controls-hidden,
 .canvas-container:-webkit-full-screen .controls-hidden,
 .canvas-container:-moz-full-screen .controls-hidden {
-  transform: translateY(110%);
-  opacity: 0;
-  pointer-events: none;
+  transform: translateX(110%);
 }
 
 /* Compass overlay styles */
@@ -745,6 +735,8 @@ button.compass {
   align-items: center;
   justify-content: center;
   z-index: 30;
+  /* ensure it sits above the controls panel */
+  z-index: 50;
   box-shadow: 0 0 0.5em rgba(255, 255, 255, 0.5);
   cursor: pointer;
   touch-action: none;

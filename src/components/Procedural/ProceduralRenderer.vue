@@ -375,31 +375,6 @@ function toggleControls() {
 const width = 500;
 const height = 500;
 const seed = 12345;
-const shaderMode = ref<
-  | "perlin"
-  | "value"
-  | "valuecubic"
-  | "newton"
-  | "julia"
-  | "lorenz"
-  | "sierpinski"
-  | "fractal"
-  | "trigonometry"
-  | "opensimplex2"
-  | "opensimplex2s"
-  | "simplex"
-  | "ripple"
-  | "mandelbrot"
-  | "worley"
-  | "mountains"
-  | "opensimplex3d"
-  | "mountains3d"
-  | "flowfield"
->("flowfield");
-
-let frameId: number = 0;
-let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
-
 const availableModes = [
   "simplex",
   "opensimplex2",
@@ -421,6 +396,13 @@ const availableModes = [
   "flowfield",
   "mountains3d",
 ] as const;
+
+type ShaderMode = typeof availableModes[number];
+
+const shaderMode = ref<ShaderMode>("flowfield");
+
+let frameId: number = 0;
+let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const handleChangeMode = async () => {
   const idx = availableModes.indexOf(shaderMode.value);

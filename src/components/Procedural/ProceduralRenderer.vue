@@ -283,24 +283,47 @@ function resetRotation() {
 
   _rotationAnim = requestAnimationFrame(step);
 }
-// Controls visibility
-const controlsVisible = ref(false);
-const toolsVisible = ref(false);
-const compassVisible = ref(false);
+// Global UI state (single source of truth)
+const state = ref({
+  tools: { visible: false as boolean, buttonPosition: null as number | null },
+  controls: {
+    visible: false as boolean,
+    buttonPosition: null as number | null,
+    mode: "flowfield" as ShaderMode,
+    showCompass: false as boolean,
+  },
+  status: { visible: false as boolean },
+  fullscreen: false as boolean,
+});
+
+// Convenience refs/computeds that keep the existing names used around the file
+const controlsVisible = computed({
+  get: () => state.value.controls.visible,
+  set: (v: boolean) => (state.value.controls.visible = v),
+});
+const toolsVisible = computed({
+  get: () => state.value.tools.visible,
+  set: (v: boolean) => (state.value.tools.visible = v),
+});
+const compassVisible = computed({
+  get: () => state.value.controls.showCompass,
+  set: (v: boolean) => (state.value.controls.showCompass = v),
+});
+const statusVisible = computed({
+  get: () => state.value.status.visible,
+  set: (v: boolean) => (state.value.status.visible = v),
+});
+const isFullscreen = computed({
+  get: () => state.value.fullscreen,
+  set: (v: boolean) => (state.value.fullscreen = v),
+});
 
 // Controls button vertical position (pixels from top of container)
 const controlsButton = ref<HTMLElement | null>(null);
 const controlsButtonTop = ref<number>(0);
-// Stored as fraction [0..1] of container height so position scales on resize/fullscreen
-const controlsButtonPct = ref<number | null>(null);
 // Tools button (left)
 const toolsButton = ref<HTMLElement | null>(null);
 const toolsButtonTop = ref<number>(0);
-const toolsButtonPct = ref<number | null>(null);
-// Fullscreen checkbox state (kept in sync in initializeCanvas)
-const isFullscreen = ref(false);
-// Status panel visibility
-const statusVisible = ref(false);
 let _dragging = false;
 let _dragStartY = 0;
 let _dragStartTop = 0;
@@ -360,8 +383,7 @@ function onPointerMove(e: PointerEvent) {
   const newTop = clamp(_dragStartTop + delta, 0, rect.height);
   controlsButtonTop.value = newTop;
   // record relative position so it can be restored on resize/fullscreen
-  if (rect.height > 0)
-    controlsButtonPct.value = controlsButtonTop.value / rect.height;
+  if (rect.height > 0) state.value.controls.buttonPosition = controlsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDrag = true;
 }
 
@@ -380,7 +402,7 @@ function onPointerMoveTools(e: PointerEvent) {
   const newTop = clamp(_dragStartTopTools + delta, 0, rect.height);
   toolsButtonTop.value = newTop;
   // record relative position so it can be restored on resize/fullscreen
-  if (rect.height > 0) toolsButtonPct.value = toolsButtonTop.value / rect.height;
+  if (rect.height > 0) state.value.tools.buttonPosition = toolsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDragTools = true;
 }
 
@@ -400,7 +422,7 @@ function onPointerUp(e: PointerEvent) {
     controlsButtonTop.value = rect.height;
   // update stored percentage after snapping
   if (rect.height > 0)
-    controlsButtonPct.value = controlsButtonTop.value! / rect.height;
+    state.value.controls.buttonPosition = controlsButtonTop.value! / rect.height;
   // keep _didDrag true long enough to cancel the following click event, then clear
   setTimeout(() => {
     _didDrag = false;
@@ -421,7 +443,7 @@ function onPointerUpTools(e: PointerEvent) {
   if (toolsButtonTop.value! <= snapThreshold) toolsButtonTop.value = 0;
   else if (toolsButtonTop.value! >= rect.height - snapThreshold) toolsButtonTop.value = rect.height;
   // update stored percentage after snapping
-  if (rect.height > 0) toolsButtonPct.value = toolsButtonTop.value! / rect.height;
+  if (rect.height > 0) state.value.tools.buttonPosition = toolsButtonTop.value! / rect.height;
   // keep _didDragTools true long enough to cancel the following click event, then clear
   setTimeout(() => {
     _didDragTools = false;
@@ -695,32 +717,32 @@ const initializeCanvas = async () => {
   // Restore controls button position proportionally to the new container height
   if (container.value && controlsButton.value) {
     const rect = container.value.getBoundingClientRect();
-    if (controlsButtonPct.value != null && rect.height > 0) {
+    if (state.value.controls.buttonPosition != null && rect.height > 0) {
       controlsButtonTop.value = clamp(
-        Math.round(controlsButtonPct.value * rect.height),
+        Math.round(state.value.controls.buttonPosition * rect.height),
         0,
         rect.height,
       );
     } else {
       // default to bottom
       controlsButtonTop.value = rect.height;
-      controlsButtonPct.value =
+      state.value.controls.buttonPosition =
         rect.height > 0 ? controlsButtonTop.value / rect.height : 0;
     }
   }
   // Restore tools button position proportionally to the new container height
   if (container.value && toolsButton.value) {
     const rect = container.value.getBoundingClientRect();
-    if (toolsButtonPct.value != null && rect.height > 0) {
+    if (state.value.tools.buttonPosition != null && rect.height > 0) {
       toolsButtonTop.value = clamp(
-        Math.round(toolsButtonPct.value * rect.height),
+        Math.round(state.value.tools.buttonPosition * rect.height),
         0,
         rect.height,
       );
     } else {
       // default to bottom
       toolsButtonTop.value = rect.height;
-      toolsButtonPct.value = rect.height > 0 ? toolsButtonTop.value / rect.height : 0;
+      state.value.tools.buttonPosition = rect.height > 0 ? toolsButtonTop.value / rect.height : 0;
     }
   }
   await renderer.init();

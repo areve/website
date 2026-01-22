@@ -1,4 +1,10 @@
 <template>
+  <div class="top-menu">
+    <button @click="handleToggleFullscreen" type="button">
+      Fullscreen
+    </button>
+  </div>
+  
   <div ref="container" class="canvas-container">
     <canvas ref="canvas" class="canvas"></canvas>
 
@@ -785,5 +791,9 @@ button.controls-button {
   transform-origin: 50% 50%;
   pointer-events: none;
   opacity: 0.8;
+}
+
+.top-menu {
+  text-align: center;
 }
 </style>

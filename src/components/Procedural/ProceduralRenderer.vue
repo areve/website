@@ -41,25 +41,13 @@
         <label class="mode-select">
           Mode:
           <select @change="initializeCanvas" v-model="shaderMode">
-            <option value="simplex">OpenSimplex</option>
-            <option value="opensimplex2">OpenSimplex2</option>
-            <option value="opensimplex2s">OpenSimplex2S</option>
-            <option value="perlin">Perlin</option>
-            <option value="value">Value</option>
-            <option value="fractal">Fractal</option>
-            <option value="julia">Julia</option>
-            <option value="lorenz">Lorenz</option>
-            <option value="sierpinski">Sierpinski</option>
-            <option value="trigonometry">Trigonometry</option>
-            <option value="valuecubic">Value Cubic</option>
-            <option value="newton">Newton Raphson</option>
-            <option value="ripple">Ripple</option>
-            <option value="mandelbrot">Mandelbrot</option>
-            <option value="worley">Worley</option>
-            <option value="mountains">Mountains</option>
-            <option value="opensimplex3d">OpenSimplex 3D</option>
-            <option value="flowfield">Flow Field</option>
-            <option value="mountains3d">Mountains 3D</option>
+            <option
+              v-for="mode in availableModes"
+              :key="mode"
+              :value="mode"
+            >
+              {{ modeLabels[mode] || mode }}
+            </option>
           </select>
         </label>
         <label class="mode-select">
@@ -400,6 +388,29 @@ const availableModes = [
 type ShaderMode = typeof availableModes[number];
 
 const shaderMode = ref<ShaderMode>("flowfield");
+
+// Human-friendly labels for the mode dropdown. Keep keys matching availableModes.
+const modeLabels: Record<string, string> = {
+  simplex: "OpenSimplex",
+  opensimplex2: "OpenSimplex2",
+  opensimplex2s: "OpenSimplex2S",
+  perlin: "Perlin",
+  value: "Value",
+  fractal: "Fractal",
+  julia: "Julia",
+  lorenz: "Lorenz",
+  sierpinski: "Sierpinski",
+  trigonometry: "Trigonometry",
+  valuecubic: "Value Cubic",
+  newton: "Newton Raphson",
+  ripple: "Ripple",
+  mandelbrot: "Mandelbrot",
+  worley: "Worley",
+  mountains: "Mountains",
+  opensimplex3d: "OpenSimplex 3D",
+  flowfield: "Flow Field",
+  mountains3d: "Mountains 3D",
+};
 
 let frameId: number = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;

@@ -37,11 +37,6 @@
     ></button>
 
     <div :class="['controls-overlay', { 'controls-hidden': !controlsVisible }]">
-      <div class="stats">
-        {{ stats.fps.toPrecision(3) }}fps {{ statsX }}x {{ statsY }}y
-        {{ statsZ }}z {{ statsZoom }}zoom {{ statsRot }}rot
-        <span v-if="statsPaused">paused</span>
-      </div>
       <div>
         <label class="mode-select">
           Mode:
@@ -99,6 +94,18 @@
           <input type="checkbox" v-model="compassVisible" />
           Show Compass
         </label>
+        <label class="mode-select checkbox">
+          <input type="checkbox" v-model="statusVisible" />
+          Show Status Panel
+        </label>
+      </div>
+    </div>
+    <!-- Bottom status panel (full width) -->
+    <div :class="['status-panel', { 'status-hidden': !statusVisible }]">
+      <div class="status-content">
+        {{ stats.fps.toPrecision(3) }}fps {{ statsX }}x {{ statsY }}y
+        {{ statsZ }}z {{ statsZoom }}zoom {{ statsRot }}rot
+        <span v-if="statsPaused">paused</span>
       </div>
     </div>
   </div>
@@ -283,6 +290,8 @@ const controlsButtonTop = ref<number>(0);
 const controlsButtonPct = ref<number | null>(null);
 // Fullscreen checkbox state (kept in sync in initializeCanvas)
 const isFullscreen = ref(false);
+// Status panel visibility
+const statusVisible = ref(false);
 let _dragging = false;
 let _dragStartY = 0;
 let _dragStartTop = 0;
@@ -728,6 +737,32 @@ onUnmounted(() => {
 .controls-overlay .stats {
   font-family: monospace;
   font-size: 0.9rem;
+}
+
+/* Bottom status panel (full-width strip) */
+.status-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2.25rem;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  z-index: 20; /* below controls panel (35) and controls button (50) */
+  transform: translateY(0);
+  transition: transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1), opacity 180ms ease;
+}
+.status-panel .status-content {
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+.status-hidden {
+  transform: translateY(110%);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Hidden state: slide completely off the right */

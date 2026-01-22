@@ -10,8 +10,6 @@ export function setupSharedResources(
     x: 0,
     y: 0,
     z: 0,
-    // frame counter incremented by the renderer when a new frame is processed
-    frame: 0,
     zoom: 1,
     rotation: 0,
     asBuffer() {
@@ -23,7 +21,6 @@ export function setupSharedResources(
         this.x,
         this.y,
         this.z,
-        this.frame,
         this.zoom,
         this.rotation,
       ]);

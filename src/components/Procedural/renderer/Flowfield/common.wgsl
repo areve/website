@@ -6,7 +6,6 @@ struct Uniforms {
   x: f32,
   y: f32,
   z: f32,
-  frame: f32,
   zoom: f32,
   rotation: f32
 };

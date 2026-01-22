@@ -47,7 +47,10 @@ fn worldToPixelU(p: vec2<f32>, u: Uniforms) -> vec2<f32> {
   }
   let prevCol = sampled * inside;
 
-  let DECAY = 1.0 / params.x / 60.0;
+  // Compute decay based on number of frames elapsed between `prev` and `curr`.
+  // If no frames elapsed (paused), decay is zero.
+  let framesDelta = max(curr.frame - prev.frame, 0.0);
+  let DECAY = framesDelta * (1.0 / params.x / 60.0);
   let newA = max(prevCol.a - DECAY, 0.0);
   var newRgb = vec3<f32>(0.0, 0.0, 0.0);
   if (prevCol.a > 0.0) {

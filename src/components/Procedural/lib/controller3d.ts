@@ -393,9 +393,21 @@ export const makeController3d = function (options: Partial<Options> = {}) {
   }
 
   function onWheel(e: WheelEvent) {
+    // Prefer horizontal wheel (deltaX) for rotation when horizontal motion is dominant;
+    // otherwise use vertical wheel for zoom (existing behavior).
+    const horiz = e.deltaX || 0;
+    const vert = e.deltaY || 0;
+
+    if (Math.abs(horiz) > Math.abs(vert) && Math.abs(horiz) > 0) {
+      const rotationSensitivity = 0.005;
+      rotateAroundLook(horiz * rotationSensitivity);
+      e.preventDefault();
+      return;
+    }
+
     e.preventDefault();
     const maxSpeed = opt.acceleratorKeys.zoom.maxSpeed;
-    const zoomChange = e.deltaY * maxSpeed;
+    const zoomChange = vert * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
     states.keyboard.buttons.zoom.speed = Math.max(
       -maxSpeed,

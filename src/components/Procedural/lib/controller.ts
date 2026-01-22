@@ -522,8 +522,24 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
 
   function onWheel(event: WheelEvent) {
     states.pointer.origin = getClientCoord(event);
+
+    // Detect horizontal wheel (deltaX) and treat it as rotation input when
+    // horizontal motion is dominant. Otherwise keep vertical wheel for zoom.
+    const horiz = event.deltaX || 0;
+    const vert = event.deltaY || 0;
+
+    // If horizontal movement is larger than vertical, rotate the view.
+    if (Math.abs(horiz) > Math.abs(vert) && Math.abs(horiz) > 0) {
+      // Sensitivity can be tuned; adjust multiplier as needed.
+      const rotationSensitivity = 0.005;
+      controller.value.rotation += horiz * rotationSensitivity;
+      event.preventDefault();
+      return;
+    }
+
+    // Default vertical wheel -> zoom behavior (existing logic)
     const maxSpeed = opt.acceleratorKeys.zoom.maxSpeed;
-    const zoomChange = event.deltaY * maxSpeed;
+    const zoomChange = vert * maxSpeed;
     const zoomDiff = states.keyboard.buttons.zoom.speed - zoomChange;
     states.keyboard.buttons.zoom.speed = clamp(zoomDiff, -maxSpeed, maxSpeed);
     event.preventDefault();

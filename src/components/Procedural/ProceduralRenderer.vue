@@ -416,15 +416,20 @@ const availableModes = [
   "flowfield",
 ] as const;
 
-const changeMode = async (forward: boolean) => {
-  shaderMode.value =
-    availableModes[
-      (availableModes.indexOf(shaderMode.value) + (forward ? 1 : -1)) %
-        availableModes.length
-    ];
+const handleChangeMode = async () => {
+  const idx = availableModes.indexOf(shaderMode.value);
+  const next = availableModes[(idx + 1) % availableModes.length];
+  shaderMode.value = next;
   await initializeCanvas();
 };
 
+const handleChangeModeReverse = async () => {
+  const idx = availableModes.indexOf(shaderMode.value);
+  const len = availableModes.length;
+  const prev = availableModes[(idx - 1 + len) % len];
+  shaderMode.value = prev;
+  await initializeCanvas();
+};
 
 const handleToggleFullscreen = () => {
   const el = container.value || canvas.value;
@@ -647,8 +652,8 @@ onMounted(async () => {
   await initializeCanvas();
   await renderer.update(0, activeController.value);
 
-  document.addEventListener("changeMode", () => changeMode(true));
-  document.addEventListener("changeModeReverse", () => changeMode(false));
+  document.addEventListener("changeMode", handleChangeMode);
+  document.addEventListener("changeModeReverse", handleChangeModeReverse);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
   document.addEventListener("fullscreenchange", initializeCanvas);
   // Recompute canvas size when the window or container resizes (covers devtools toggle)

@@ -12,8 +12,8 @@
       class="tools-button"
       type="button"
       aria-label="Show tools"
-      @click.stop="onToolsButtonClick"
-      @keydown.enter.prevent="onToolsButtonClick"
+      @click.stop="toggleTools"
+      @keydown.enter.prevent="toggleTools"
       @pointerdown.stop.prevent="startDragToolsButton"
       :style="{ top: toolsButtonTop + 'px' }"
     ></button>
@@ -438,7 +438,7 @@ function toggleControls(e: Event) {
   state.value.controls.visible = !state.value.controls.visible;
 }
 
-function onToolsButtonClick(e: Event) {
+function toggleTools(e: Event) {
   if (_didDragTools) {
     e.stopPropagation?.();
     return;
@@ -446,9 +446,6 @@ function onToolsButtonClick(e: Event) {
   state.value.tools.visible = !state.value.tools.visible;
 }
 
-function toggleTools() {
-  state.value.tools.visible = !state.value.tools.visible;
-}
 
 const width = 500;
 const height = 500;

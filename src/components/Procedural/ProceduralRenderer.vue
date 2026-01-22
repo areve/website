@@ -4,6 +4,7 @@
 
     <!-- Compass overlay: circular 50px compass with rotating SVG needle -->
     <button
+      v-show="compassVisible"
       ref="compass"
       type="button"
       class="compass"
@@ -82,6 +83,9 @@
             <option value="3d">3D Controller (camera)</option>
           </select>
         </label>
+        <button @click="compassVisible = !compassVisible" type="button">
+          {{ compassVisible ? 'Hide' : 'Show' }} Compass
+        </button>
         <!-- Close button: hides controls overlay -->
         <button
           class="controls-close"
@@ -266,6 +270,7 @@ function resetRotation() {
 }
 // Controls visibility
 const controlsVisible = ref(false);
+const compassVisible = ref(false);
 
 function hideControls() {
   controlsVisible.value = false;

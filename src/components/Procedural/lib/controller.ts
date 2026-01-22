@@ -398,7 +398,10 @@ export const makeController = function (options: DeepPartial<Options> = {}) {
 
   function actionHandler(action: string) {
     if (opt.basicKeys.pause.toggleKeys.includes(action)) {
-      controller.value.paused = !controller.value.paused;
+      // Only dispatch a global pause event; do not toggle controller.paused
+      // so that input handling (WASD, drag, pinch) continues while animation
+      // is paused. The renderer component should listen for the event and
+      // manage animation pause state separately.
       document.dispatchEvent(new CustomEvent(opt.basicKeys.pause.eventName));
       return true;
     }

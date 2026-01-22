@@ -298,7 +298,8 @@ export const makeController3d = function (options: Partial<Options> = {}) {
 
   function actionHandler(action: string) {
     if (opt.basicKeys.pause.toggleKeys.includes(action)) {
-      controller.value.paused = !controller.value.paused;
+      // Dispatch pause event only; keep controller input active so camera
+      // controls continue to respond while animation is paused.
       document.dispatchEvent(new CustomEvent(opt.basicKeys.pause.eventName));
       return true;
     }

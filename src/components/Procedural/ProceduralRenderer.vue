@@ -154,6 +154,13 @@ const controller = makeController({
   },
 });
 
+// Animation pause state (separate from controller.paused which used to be toggled)
+const animationPaused = ref(controller.value.paused);
+
+function handleTogglePause() {
+  animationPaused.value = !animationPaused.value;
+}
+
 const controller3d = makeController3d();
 const controllerMode = ref<"2d" | "3d">("2d");
 
@@ -480,6 +487,9 @@ const availableModes = Object.keys(modeLabels) as ShaderMode[];
 const shaderMode = ref<ShaderMode>("flowfield");
 
 let frameId: number = 0;
+let lastRenderTime: DOMHighResTimeStamp = 0;
+let pauseStartReal: DOMHighResTimeStamp | null = null;
+let totalPausedTime = 0;
 let renderer: Awaited<ReturnType<typeof setupOpenSimplexRenderer>>;
 
 const handleChangeMode = async () => {
@@ -731,11 +741,16 @@ const initializeCanvas = async () => {
 
 onMounted(async () => {
   await initializeCanvas();
+  // initial renderer update with time=0 (use timing offset)
+  lastRenderTime = 0;
+  totalPausedTime = 0;
+  pauseStartReal = null;
   await renderer.update(0, activeController.value);
 
   document.addEventListener("changeMode", handleChangeMode);
   document.addEventListener("changeModeReverse", handleChangeModeReverse);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
+  document.addEventListener("togglePause", handleTogglePause);
   document.addEventListener("fullscreenchange", initializeCanvas);
   // Recompute canvas size when the window or container resizes (covers devtools toggle)
   window.addEventListener("resize", initializeCanvas);
@@ -748,12 +763,25 @@ onMounted(async () => {
 
   const render = async (time: DOMHighResTimeStamp) => {
     const active = activeController.value;
-    if (!active.paused) {
-      await renderer.update(time, active);
-      // Call the update method on whichever controller is active
-      if (active.update) active.update();
-      stats.value.update();
+    let effectiveTime: DOMHighResTimeStamp;
+    if (animationPaused.value) {
+      // on pause start, capture real time; freeze effectiveTime to the
+      // animation time at the moment of pause (pauseStartReal - totalPausedTime)
+      if (pauseStartReal == null) pauseStartReal = time;
+      effectiveTime = pauseStartReal - totalPausedTime;
+    } else {
+      // if we are resuming from a pause, add paused duration to the accumulator
+      if (pauseStartReal != null) {
+        totalPausedTime += time - pauseStartReal;
+        pauseStartReal = null;
+      }
+      effectiveTime = time - totalPausedTime;
     }
+
+    await renderer.update(effectiveTime, active);
+    // Always update controller input state so WASD/drag/pinch remain responsive
+    if (active.update) active.update();
+    stats.value.update();
     frameId = requestAnimationFrame(render);
   };
 
@@ -774,6 +802,7 @@ onUnmounted(() => {
   document.removeEventListener("changeMode", handleChangeMode);
   document.removeEventListener("changeModeReverse", handleChangeModeReverse);
   document.removeEventListener("toggleFullscreen", handleToggleFullscreen);
+  document.removeEventListener("togglePause", handleTogglePause);
   document.removeEventListener("fullscreenchange", initializeCanvas);
   window.removeEventListener("resize", initializeCanvas);
   if (_resizeObserver) {

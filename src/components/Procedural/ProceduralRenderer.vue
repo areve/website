@@ -26,8 +26,8 @@
       :class="['controls-button', { 'controls-button-hidden': controlsVisible }]"
       type="button"
       aria-label="Show controls"
-      @click.stop="showControls"
-      @keydown.enter.prevent="showControls"
+      @click.stop="onControlsButtonClick"
+      @keydown.enter.prevent="onControlsButtonClick"
       @pointerdown.stop.prevent="startDragControlsButton"
       :style="{ top: controlsButtonTop + 'px' }"
     ></button>
@@ -281,6 +281,7 @@ const controlsButtonTop = ref<number>(0);
 let _dragging = false;
 let _dragStartY = 0;
 let _dragStartTop = 0;
+let _didDrag = false;
 
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
@@ -299,10 +300,11 @@ function startDragControlsButton(e: PointerEvent) {
 function onPointerMove(e: PointerEvent) {
   if (!_dragging || !container.value || controlsButtonTop.value == null || !controlsButton.value) return;
   const rect = container.value.getBoundingClientRect();
-  
+
   const delta = e.clientY - _dragStartY;
-  const newTop = clamp(_dragStartTop + delta, 0, rect.height);
+  const newTop = clamp(_dragStartTop + delta, 8, rect.height);
   controlsButtonTop.value = newTop;
+  if (Math.abs(delta) > 4) _didDrag = true;
 }
 
 function onPointerUp(e: PointerEvent) {
@@ -315,7 +317,17 @@ function onPointerUp(e: PointerEvent) {
   const rect = container.value.getBoundingClientRect();
   const snapThreshold = 30;
   if (controlsButtonTop.value! <= snapThreshold) controlsButtonTop.value = 0;
-  else if (controlsButtonTop.value! >= rect.height - snapThreshold) controlsButtonTop.value = rect.height - btnH - 8;
+  else if (controlsButtonTop.value! >= rect.height - snapThreshold) controlsButtonTop.value = rect.height;
+  // keep _didDrag true long enough to cancel the following click event, then clear
+  setTimeout(() => { _didDrag = false; }, 0);
+}
+
+function onControlsButtonClick(e: Event) {
+  if (_didDrag) {
+    e.stopPropagation?.();
+    return;
+  }
+  showControls();
 }
 
 function hideControls() {

@@ -48,16 +48,17 @@
       :style="{ top: controlsButtonTop + 'px' }"
     ></button>
 
-    <div :class="['controls-overlay', { 'controls-hidden': !state.controls.visible }]">
+    <div
+      :class="[
+        'controls-overlay',
+        { 'controls-hidden': !state.controls.visible },
+      ]"
+    >
       <div>
         <label class="mode-select">
           Mode:
           <select @change="initializeCanvas" v-model="shaderMode">
-            <option
-              v-for="mode in availableModes"
-              :key="mode"
-              :value="mode"
-            >
+            <option v-for="mode in availableModes" :key="mode" :value="mode">
               {{ modeLabels[mode] || mode }}
             </option>
           </select>
@@ -370,7 +371,8 @@ function onPointerMove(e: PointerEvent) {
   const newTop = clamp(_dragStartTop + delta, 0, rect.height);
   controlsButtonTop.value = newTop;
   // record relative position so it can be restored on resize/fullscreen
-  if (rect.height > 0) state.value.controls.buttonPosition = controlsButtonTop.value / rect.height;
+  if (rect.height > 0)
+    state.value.controls.buttonPosition = controlsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDrag = true;
 }
 
@@ -389,7 +391,8 @@ function onPointerMoveTools(e: PointerEvent) {
   const newTop = clamp(_dragStartTopTools + delta, 0, rect.height);
   toolsButtonTop.value = newTop;
   // record relative position so it can be restored on resize/fullscreen
-  if (rect.height > 0) state.value.tools.buttonPosition = toolsButtonTop.value / rect.height;
+  if (rect.height > 0)
+    state.value.tools.buttonPosition = toolsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDragTools = true;
 }
 
@@ -409,7 +412,8 @@ function onPointerUp(e: PointerEvent) {
     controlsButtonTop.value = rect.height;
   // update stored percentage after snapping
   if (rect.height > 0)
-    state.value.controls.buttonPosition = controlsButtonTop.value! / rect.height;
+    state.value.controls.buttonPosition =
+      controlsButtonTop.value! / rect.height;
   // keep _didDrag true long enough to cancel the following click event, then clear
   setTimeout(() => {
     _didDrag = false;
@@ -428,9 +432,11 @@ function onPointerUpTools(e: PointerEvent) {
   const rect = container.value.getBoundingClientRect();
   const snapThreshold = 30;
   if (toolsButtonTop.value! <= snapThreshold) toolsButtonTop.value = 0;
-  else if (toolsButtonTop.value! >= rect.height - snapThreshold) toolsButtonTop.value = rect.height;
+  else if (toolsButtonTop.value! >= rect.height - snapThreshold)
+    toolsButtonTop.value = rect.height;
   // update stored percentage after snapping
-  if (rect.height > 0) state.value.tools.buttonPosition = toolsButtonTop.value! / rect.height;
+  if (rect.height > 0)
+    state.value.tools.buttonPosition = toolsButtonTop.value! / rect.height;
   // keep _didDragTools true long enough to cancel the following click event, then clear
   setTimeout(() => {
     _didDragTools = false;
@@ -452,7 +458,6 @@ function toggleTools(e: Event) {
   }
   state.value.tools.visible = !state.value.tools.visible;
 }
-
 
 const width = 500;
 const height = 500;
@@ -725,7 +730,8 @@ const initializeCanvas = async () => {
     } else {
       // default to bottom
       toolsButtonTop.value = rect.height;
-      state.value.tools.buttonPosition = rect.height > 0 ? toolsButtonTop.value / rect.height : 0;
+      state.value.tools.buttonPosition =
+        rect.height > 0 ? toolsButtonTop.value / rect.height : 0;
     }
   }
   await renderer.init();
@@ -873,7 +879,8 @@ onUnmounted(() => {
   pointer-events: auto;
   transform: translateX(0);
   opacity: 1;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: solid rgba(255, 255, 255, 0.2);
+  border-width: 0 0 0 1px;
   box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.8);
   transition:
     transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
@@ -898,7 +905,9 @@ onUnmounted(() => {
   pointer-events: auto;
   transform: translateX(0);
   opacity: 1;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: solid rgba(255, 255, 255, 0.2);
+  border-width: 0 1px 0 0;
+
   box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.8);
   transition:
     transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),

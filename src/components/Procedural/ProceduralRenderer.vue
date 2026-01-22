@@ -223,6 +223,7 @@ const statsRot = computed(() => {
 const statsPaused = computed(() => !!activeController.value?.paused);
 
 let _rotationAnim: number | null = null;
+let _resizeObserver: ResizeObserver | null = null;
 
 function normalizeAngle(a: number) {
   while (a <= -Math.PI) a += Math.PI * 2;
@@ -640,6 +641,14 @@ onMounted(async () => {
   document.addEventListener("changeMode", handleChangeMode);
   document.addEventListener("toggleFullscreen", handleToggleFullscreen);
   document.addEventListener("fullscreenchange", initializeCanvas);
+  // Recompute canvas size when the window or container resizes (covers devtools toggle)
+  window.addEventListener("resize", initializeCanvas);
+  if (typeof ResizeObserver !== "undefined") {
+    _resizeObserver = new ResizeObserver(() => {
+      initializeCanvas();
+    });
+    if (container.value) _resizeObserver.observe(container.value);
+  }
 
   const render = async (time: DOMHighResTimeStamp) => {
     const active = activeController.value;
@@ -665,6 +674,11 @@ onUnmounted(() => {
   document.removeEventListener("changeMode", handleChangeMode);
   document.removeEventListener("toggleFullscreen", handleToggleFullscreen);
   document.removeEventListener("fullscreenchange", initializeCanvas);
+  window.removeEventListener("resize", initializeCanvas);
+  if (_resizeObserver) {
+    _resizeObserver.disconnect();
+    _resizeObserver = null;
+  }
   cancelAnimationFrame(frameId);
   if (_rotationAnim) {
     cancelAnimationFrame(_rotationAnim);

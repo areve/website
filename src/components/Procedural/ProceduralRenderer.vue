@@ -22,11 +22,14 @@
 
     <!-- Controls button overlay: circular button to show controls -->
     <button
-      :class="['controls-button', { hidden: controlsVisible }]"
+      ref="controlsButton"
+      :class="['controls-button', { 'controls-button-hidden': controlsVisible }]"
       type="button"
       aria-label="Show controls"
       @click.stop="showControls"
       @keydown.enter.prevent="showControls"
+      @pointerdown.stop.prevent="startDragControlsButton"
+      :style="{ top: controlsButtonTop + 'px' }"
     ></button>
 
     <div :class="['controls-overlay', { 'controls-hidden': !controlsVisible }]">
@@ -101,7 +104,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref, computed } from "vue";
+import { onMounted, onUnmounted, ref, computed, nextTick } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
 import { makeController3d } from "./lib/controller3d";
@@ -271,6 +274,49 @@ function resetRotation() {
 // Controls visibility
 const controlsVisible = ref(false);
 const compassVisible = ref(false);
+
+// Controls button vertical position (pixels from top of container)
+const controlsButton = ref<HTMLElement | null>(null);
+const controlsButtonTop = ref<number>(0);
+let _dragging = false;
+let _dragStartY = 0;
+let _dragStartTop = 0;
+
+function clamp(v: number, a: number, b: number) {
+  return Math.max(a, Math.min(b, v));
+}
+
+function startDragControlsButton(e: PointerEvent) {
+  if (!controlsButton.value || !container.value) return;
+  _dragging = true;
+  _dragStartY = e.clientY;
+  _dragStartTop = controlsButtonTop.value ?? 0;
+  (e.target as Element).setPointerCapture?.(e.pointerId);
+  window.addEventListener("pointermove", onPointerMove);
+  window.addEventListener("pointerup", onPointerUp);
+}
+
+function onPointerMove(e: PointerEvent) {
+  if (!_dragging || !container.value || controlsButtonTop.value == null || !controlsButton.value) return;
+  const rect = container.value.getBoundingClientRect();
+  
+  const delta = e.clientY - _dragStartY;
+  const newTop = clamp(_dragStartTop + delta, 0, rect.height);
+  controlsButtonTop.value = newTop;
+}
+
+function onPointerUp(e: PointerEvent) {
+  if (!container.value || !controlsButton.value) return;
+  _dragging = false;
+  try { (e.target as Element).releasePointerCapture?.(e.pointerId); } catch {}
+  window.removeEventListener("pointermove", onPointerMove);
+  window.removeEventListener("pointerup", onPointerUp);
+  // snap to corners if close
+  const rect = container.value.getBoundingClientRect();
+  const snapThreshold = 30;
+  if (controlsButtonTop.value! <= snapThreshold) controlsButtonTop.value = 0;
+  else if (controlsButtonTop.value! >= rect.height - snapThreshold) controlsButtonTop.value = rect.height - btnH - 8;
+}
 
 function hideControls() {
   controlsVisible.value = false;
@@ -544,7 +590,13 @@ onMounted(async () => {
     frameId = requestAnimationFrame(render);
   };
 
-  frameId = requestAnimationFrame(render);
+    // initialize controls button position after first render
+    await nextTick();
+    if (controlsButtonTop.value === null && container.value && controlsButton.value) {
+      const rect = container.value.getBoundingClientRect();
+      controlsButtonTop.value = rect.height; 
+    }
+    frameId = requestAnimationFrame(render);
 });
 
 onUnmounted(() => {
@@ -558,6 +610,9 @@ onUnmounted(() => {
   }
   controller.value.unmount();
   controller3d.value.unmount();
+    // ensure any drag listeners removed
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
 });
 </script>
 
@@ -699,7 +754,7 @@ button.controls-button {
   bottom: 0;
   right: 0;
   margin-right: -2.5em;
-  margin-bottom: -2.5em;
+  margin-top: -2.5em;
   top: auto;
 }
 

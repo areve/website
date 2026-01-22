@@ -417,7 +417,6 @@ const availableModes = [
 ] as const;
 
 const changeMode = async (forward: boolean) => {
-  // const nextIdx = forward ? (start + 1) % len : (start - 1   + len) % len;
   shaderMode.value =
     availableModes[
       (availableModes.indexOf(shaderMode.value) + (forward ? 1 : -1)) %

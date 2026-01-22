@@ -1,10 +1,8 @@
 <template>
   <div class="top-menu">
-    <button @click="handleToggleFullscreen" type="button">
-      Fullscreen
-    </button>
+    <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
   </div>
-  
+
   <div ref="container" class="canvas-container">
     <canvas ref="canvas" class="canvas"></canvas>
 
@@ -90,7 +88,11 @@
           </select>
         </label>
         <label class="mode-select checkbox">
-          <input type="checkbox" v-model="isFullscreen" @change="handleToggleFullscreen" />
+          <input
+            type="checkbox"
+            v-model="isFullscreen"
+            @change="handleToggleFullscreen"
+          />
           Fullscreen
         </label>
         <label class="mode-select checkbox">
@@ -295,14 +297,24 @@ function startDragControlsButton(e: PointerEvent) {
   _dragging = true;
   _dragStartY = e.clientY;
   _dragStartTop = controlsButtonTop.value ?? 0;
-  try { controlsButton.value.setPointerCapture?.(e.pointerId); } catch {}
+  try {
+    controlsButton.value.setPointerCapture?.(e.pointerId);
+  } catch {}
   e.preventDefault?.();
-  window.addEventListener("pointermove", onPointerMove, { passive: false } as any);
+  window.addEventListener("pointermove", onPointerMove, {
+    passive: false,
+  } as any);
   window.addEventListener("pointerup", onPointerUp);
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (!_dragging || !container.value || controlsButtonTop.value == null || !controlsButton.value) return;
+  if (
+    !_dragging ||
+    !container.value ||
+    controlsButtonTop.value == null ||
+    !controlsButton.value
+  )
+    return;
   e.preventDefault?.();
   const rect = container.value.getBoundingClientRect();
 
@@ -310,25 +322,32 @@ function onPointerMove(e: PointerEvent) {
   const newTop = clamp(_dragStartTop + delta, 0, rect.height);
   controlsButtonTop.value = newTop;
   // record relative position so it can be restored on resize/fullscreen
-  if (rect.height > 0) controlsButtonPct.value = controlsButtonTop.value / rect.height;
+  if (rect.height > 0)
+    controlsButtonPct.value = controlsButtonTop.value / rect.height;
   if (Math.abs(delta) > 4) _didDrag = true;
 }
 
 function onPointerUp(e: PointerEvent) {
   if (!container.value || !controlsButton.value) return;
   _dragging = false;
-  try { controlsButton.value.releasePointerCapture?.(e.pointerId); } catch {}
+  try {
+    controlsButton.value.releasePointerCapture?.(e.pointerId);
+  } catch {}
   window.removeEventListener("pointermove", onPointerMove);
   window.removeEventListener("pointerup", onPointerUp);
   // snap to corners if close
   const rect = container.value.getBoundingClientRect();
   const snapThreshold = 30;
   if (controlsButtonTop.value! <= snapThreshold) controlsButtonTop.value = 0;
-  else if (controlsButtonTop.value! >= rect.height - snapThreshold) controlsButtonTop.value = rect.height;
+  else if (controlsButtonTop.value! >= rect.height - snapThreshold)
+    controlsButtonTop.value = rect.height;
   // update stored percentage after snapping
-  if (rect.height > 0) controlsButtonPct.value = controlsButtonTop.value! / rect.height;
+  if (rect.height > 0)
+    controlsButtonPct.value = controlsButtonTop.value! / rect.height;
   // keep _didDrag true long enough to cancel the following click event, then clear
-  setTimeout(() => { _didDrag = false; }, 0);
+  setTimeout(() => {
+    _didDrag = false;
+  }, 0);
 }
 
 function onControlsButtonClick(e: Event) {
@@ -584,17 +603,22 @@ const initializeCanvas = async () => {
       controller.value.mount(canvas.value);
     }
   }
-      // sync fullscreen checkbox state
-      isFullscreen.value = isFs;
+  // sync fullscreen checkbox state
+  isFullscreen.value = isFs;
   // Restore controls button position proportionally to the new container height
   if (container.value && controlsButton.value) {
     const rect = container.value.getBoundingClientRect();
     if (controlsButtonPct.value != null && rect.height > 0) {
-      controlsButtonTop.value = clamp(Math.round(controlsButtonPct.value * rect.height), 0, rect.height);
+      controlsButtonTop.value = clamp(
+        Math.round(controlsButtonPct.value * rect.height),
+        0,
+        rect.height,
+      );
     } else {
       // default to bottom
       controlsButtonTop.value = rect.height;
-      controlsButtonPct.value = rect.height > 0 ? controlsButtonTop.value / rect.height : 0;
+      controlsButtonPct.value =
+        rect.height > 0 ? controlsButtonTop.value / rect.height : 0;
     }
   }
   await renderer.init();
@@ -619,13 +643,13 @@ onMounted(async () => {
     frameId = requestAnimationFrame(render);
   };
 
-    // initialize controls button position after first render
-    await nextTick();
-    if (container.value && controlsButton.value) {
-      const rect = container.value.getBoundingClientRect();
-      controlsButtonTop.value = rect.height;
-    }
-    frameId = requestAnimationFrame(render);
+  // initialize controls button position after first render
+  await nextTick();
+  if (container.value && controlsButton.value) {
+    const rect = container.value.getBoundingClientRect();
+    controlsButtonTop.value = rect.height;
+  }
+  frameId = requestAnimationFrame(render);
 });
 
 onUnmounted(() => {
@@ -639,9 +663,9 @@ onUnmounted(() => {
   }
   controller.value.unmount();
   controller3d.value.unmount();
-    // ensure any drag listeners removed
-    window.removeEventListener("pointermove", onPointerMove);
-    window.removeEventListener("pointerup", onPointerUp);
+  // ensure any drag listeners removed
+  window.removeEventListener("pointermove", onPointerMove);
+  window.removeEventListener("pointerup", onPointerUp);
 });
 </script>
 
@@ -653,6 +677,7 @@ onUnmounted(() => {
 .canvas-container {
   position: relative;
   display: inline-block;
+  overflow: hidden;
 }
 
 .canvas-container .canvas {
@@ -684,16 +709,19 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 1rem;
+  padding: 1em;
   background: rgba(0, 0, 0, 0.6);
   color: #fff;
-  border-radius: 8px 0 0 8px;
   z-index: 35;
   backdrop-filter: blur(6px);
   pointer-events: auto;
   transform: translateX(0);
   opacity: 1;
-  transition: transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1), opacity 200ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0.5em rgba(0, 0, 0, 0.8);
+  transition:
+    transform 260ms cubic-bezier(0.22, 0.9, 0.32, 1),
+    opacity 200ms ease;
 }
 
 .controls-overlay .stats {

@@ -1,3 +1,6 @@
+<template>
+Hello Flowfield Renderer
+</template>
 <script lang="ts">
 import { setupSharedResources } from "./shared";
 import { setupWebGpu } from "./webgpu";

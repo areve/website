@@ -116,13 +116,14 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref, computed, nextTick, watch } from "vue";
+import { onMounted, onUnmounted, ref, computed, nextTick } from "vue";
 import { makeStats } from "./lib/stats";
 import { makeController } from "./lib/controller";
 import { makeController3d } from "./lib/controller3d";
 import { setupOpenSimplexRenderer } from "./renderer/setupOpenSimplexRenderer";
 import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer";
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
+import { usePersistentState } from "./lib/persistenceService";
 import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
 import { setupValueRenderer } from "./renderer/setupValueRenderer";
 import { setupFlowfieldRenderer } from "./renderer/Flowfield/Flowfield";
@@ -237,7 +238,6 @@ const statsPaused = computed(() => !!activeController.value?.paused);
 
 let _rotationAnim: number | null = null;
 let _resizeObserver: ResizeObserver | null = null;
-let _stopStateWatcher: (() => void) | null = null;
 
 function normalizeAngle(a: number) {
   while (a <= -Math.PI) a += Math.PI * 2;
@@ -294,11 +294,8 @@ function resetRotation() {
 
   _rotationAnim = requestAnimationFrame(step);
 }
-// LocalStorage persistence for UI state
-const STORAGE_KEY = "proceduralRenderer.state.v1";
 
-function getDefaultState() {
-  return {
+const state = ref({
     tools: { visible: false as boolean, buttonPosition: null as number | null },
     controls: {
       visible: false as boolean,
@@ -309,49 +306,9 @@ function getDefaultState() {
     },
     status: { visible: false as boolean },
     fullscreen: false as boolean,
-  };
-}
+  });
 
-function mergeDeep(dest: any, src: any) {
-  if (!src || typeof src !== "object") return dest;
-  for (const key of Object.keys(src)) {
-    const val = src[key];
-    if (val && typeof val === "object" && !Array.isArray(val)) {
-      if (!dest[key] || typeof dest[key] !== "object") dest[key] = {};
-      mergeDeep(dest[key], val);
-    } else {
-      dest[key] = val;
-    }
-  }
-  return dest;
-}
-
-function loadState() {
-  const defaults = getDefaultState();
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaults;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return defaults;
-    return mergeDeep(defaults, parsed);
-  } catch (e) {
-    return defaults;
-  }
-}
-
-function saveState(obj: any) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(obj));
-  } catch (_e) {
-    // ignore localStorage errors
-  }
-}
-
-// Global UI state (single source of truth)
-// Initialize by merging saved state with defaults so new properties get defaults
-const state = ref(loadState());
-
-// Removed convenience computed wrappers; use `state` directly.
+usePersistentState("proceduralRenderer.state.v1", state);
 
 // Controls button vertical position (pixels from top of container)
 const controlsButton = ref<HTMLElement | null>(null);
@@ -820,16 +777,7 @@ onMounted(async () => {
     if (container.value) _resizeObserver.observe(container.value);
   }
 
-  // Start a deep watcher to persist UI state to localStorage whenever it changes
-  _stopStateWatcher = watch(
-    state,
-    (val) => {
-      try {
-        saveState(val);
-      } catch (_) {}
-    },
-    { deep: true },
-  );
+  // Persistence handled by `usePersistentState`
 
   const render = async (time: DOMHighResTimeStamp) => {
     const active = activeController.value;
@@ -878,12 +826,6 @@ onUnmounted(() => {
   if (_resizeObserver) {
     _resizeObserver.disconnect();
     _resizeObserver = null;
-  }
-  if (_stopStateWatcher) {
-    try {
-      _stopStateWatcher();
-    } catch (_) {}
-    _stopStateWatcher = null;
   }
   cancelAnimationFrame(frameId);
   if (_rotationAnim) {

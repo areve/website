@@ -102,7 +102,7 @@
       </div>
     </div>
     <div :class="['tools-overlay', { 'tools-hidden': !state.tools.visible }]">
-      <!-- tools panel (empty for now) -->
+      <component v-if="rendererTools" :is="rendererTools"></component>
     </div>
     <!-- Bottom status panel (full width) -->
     <div :class="['status-panel', { 'status-hidden': !state.status.visible }]">
@@ -125,7 +125,7 @@ import { setupOpenSimplex2Renderer } from "./renderer/setupOpenSimplex2Renderer"
 import { setupOpenSimplex2SRenderer } from "./renderer/setupOpenSimplex2SRenderer";
 import { setupPerlinRenderer } from "./renderer/setupPerlinRenderer";
 import { setupValueRenderer } from "./renderer/setupValueRenderer";
-import { setupFlowfieldRenderer } from "./renderer/Flowfield/Flowfield.vue";
+import { setupFlowfieldRenderer } from "./renderer/Flowfield/Flowfield";
 import { setupValueCubicRenderer } from "./renderer/setupValueCubicRenderer";
 import { setupNewtonRenderer } from "./renderer/setupNewtonRenderer";
 import { setupMandelbrotRenderer } from "./renderer/setupMandelbrotRenderer";
@@ -142,6 +142,7 @@ import { setupMountains3dRenderer } from "./renderer/setupMountains3dRenderer";
 
 const canvas = ref<HTMLCanvasElement>(undefined!);
 const container = ref<HTMLElement>(undefined!);
+const rendererTools = ref<any | null>(null);
 const stats = makeStats();
 const controller = makeController({
   basicKeys: {
@@ -781,6 +782,12 @@ const initializeCanvas = async () => {
     }
   }
   await renderer.init();
+  // expose renderer-provided tools UI (if any) for the tools panel
+  try {
+    rendererTools.value = (renderer as any)?.toolsComponent ?? null;
+  } catch (_e) {
+    rendererTools.value = null;
+  }
   // Ensure the canvas has keyboard focus so controller keyboard shortcuts work
   // after fullscreen/resizes (some browsers move focus away on fullscreenchange).
   await nextTick();

@@ -1,3 +1,4 @@
+import ToolsComponent from "./FlowfieldTools.vue";
 import { setupSharedResources } from "./shared";
 import { setupWebGpu } from "./webgpu";
 import {
@@ -127,5 +128,9 @@ export async function setupFlowfieldRenderer(
       device.queue.submit([encoder.finish()]);
       return device.queue.onSubmittedWorkDone();
     },
+    // expose optional UI for tools panel (FlowfieldTools SFC)
+    toolsComponent: ToolsComponent,
   };
 }
+
+export default {};

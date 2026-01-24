@@ -637,8 +637,8 @@ async function initWebGPU() {
     // size canvas and create depth
     resizeCanvasForMode();
 
-    // Generate white keys (7) and black keys (5) for one octave
-    const whiteCount = 7;
+    // Generate white keys (14) and black keys for two octaves
+    const whiteCount = 14;
     // More realistic proportions (relative scene units)
     const step = 0.26; // spacing between white key centers
     const hw = 0.115; // white half width (~0.23 total)
@@ -646,7 +646,8 @@ async function initWebGPU() {
     const hd = 0.02; // white half thickness (top surface at +0.02)
     const verts: number[] = [];
     const whiteCenters: number[] = [];
-    for (let i = -3; i <= 3; i++) {
+    // center white keys left-to-right; for 14 keys use -7..6
+    for (let i = -7; i <= 6; i++) {
       const cx = i * step;
       whiteCenters.push(cx);
       const x1 = cx - hw, x2 = cx + hw;
@@ -685,8 +686,14 @@ async function initWebGPU() {
       verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
     }
 
-    // Black keys: between whites (skip between E-F)
-    const blackPairs = [[0,1],[1,2],[3,4],[4,5],[5,6]];
+    // Black keys: generate pairs between whites, skipping the E-F and B-C gaps
+    const blackPairs: number[][] = [];
+    for (let j = 0; j < whiteCount - 1; j++) {
+      const mod = ((j % 7) + 7) % 7; // 0=C,1=D,2=E,3=F,4=G,5=A,6=B
+      // skip between E-F (mod==2) and B-C (mod==6)
+      if (mod === 2 || mod === 6) continue;
+      blackPairs.push([j, j + 1]);
+    }
     const hwB = 0.07; // black half width (~0.14 total)
     const hlB = 0.32; // black half length (shorter)
     const blackThickness = 0.06; // total thickness of black key
@@ -830,18 +837,20 @@ async function initWebGPU() {
 
     // build keysInfo: record base vertex and centers so we can detect presses and update vertices
     _keysInfo = [];
-    // whites first
-    const whiteMidis = [60, 62, 64, 65, 67, 69, 71]; // C4..B4
+    // white semitone offsets relative to C
+    const whiteOffsets = [0, 2, 4, 5, 7, 9, 11];
     for (let k = 0; k < whiteCount; k++) {
       const base = k * 24;
       // pivot under the back edge of the key
       const pivotY = hl; // back edge y
       const pivotZ = -hd - 0.02; // a bit under the key bottom
-      const midi = whiteMidis[k] ?? 60;
+      const octave = Math.floor(k / 7);
+      const semitone = whiteOffsets[k % 7] + octave * 12;
+      const midi = 60 + semitone; // start at C4 = 60
       _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false, pivotY, pivotZ, midi } as any);
     }
     // blacks follow
-    const blackMidis = [61, 63, 66, 68, 70];
+    const blackOffsetsMap: Record<number, number> = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };
     for (let j = 0; j < blackPairs.length; j++) {
       const pair = blackPairs[j];
       const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
@@ -850,7 +859,11 @@ async function initWebGPU() {
       // pivot for black key just below its bottom face
       const pivotY = hl; // align pivot along back same as whites
       const pivotZ = hd + blackRaiseGap - 0.02;
-      const midi = blackMidis[j] ?? 61;
+      const left = pair[0];
+      const octave = Math.floor(left / 7);
+      const mod = ((left % 7) + 7) % 7;
+      const offset = blackOffsetsMap[mod] ?? 1;
+      const midi = 60 + octave * 12 + offset;
       _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ, midi } as any);
     }
 

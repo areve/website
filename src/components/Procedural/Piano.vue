@@ -1,7 +1,7 @@
 <template>
   <article>
     <h1>Piano</h1>
-    <p>WGSL-based canvas placeholder. Piano rendering will be added later.</p>
+    <p>An attempt to make a working piano keyboard.</p>
 
     <div class="top-menu">
       <button @click="handleToggleFullscreen" type="button">Fullscreen</button>
@@ -278,6 +278,11 @@ type KeyInfo = {
   screenX?: number;
   screenY?: number;
   screenHalfW?: number;
+  screenMinX?: number;
+  screenMaxX?: number;
+  screenMinY?: number;
+  screenMaxY?: number;
+  screenDepth?: number;
 };
 let _keysInfo: KeyInfo[] = [];
 function mulMat4Vec4(m: Float32Array, v: [number, number, number, number]) {
@@ -297,6 +302,41 @@ function projectToScreen(proj: Float32Array, view: Float32Array, model: Float32A
   const x = (ndcX * 0.5 + 0.5) * canvasEl.width;
   const y = (-ndcY * 0.5 + 0.5) * canvasEl.height;
   return { x, y };
+}
+
+function updateKeyScreenBoxes() {
+  if (!canvas.value || !_projectionMatrix || !_viewMatrix || !_modelMatrix || !_originalVertices) return;
+  const proj = _projectionMatrix, view = _viewMatrix, model = _modelMatrix;
+  for (let i = 0; i < _keysInfo.length; i++) {
+    const info: any = _keysInfo[i];
+    const base = info.baseVertex * 9;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let sumDepth = 0, count = 0;
+    for (let v = 0; v < 24; v++) {
+      const idx = base + v * 9;
+      const px = _originalVertices[idx + 0];
+      const py = _originalVertices[idx + 1];
+      const pz = _originalVertices[idx + 2];
+      const mv = mulMat4Vec4(view, mulMat4Vec4(model, [px, py, pz, 1.0]));
+      const clip = mulMat4Vec4(proj, mv);
+      const w = clip[3] || 1.0;
+      const ndcX = clip[0] / w;
+      const ndcY = clip[1] / w;
+      const sx = (ndcX * 0.5 + 0.5) * canvas.value.width;
+      const sy = (-ndcY * 0.5 + 0.5) * canvas.value.height;
+      minX = Math.min(minX, sx);
+      maxX = Math.max(maxX, sx);
+      minY = Math.min(minY, sy);
+      maxY = Math.max(maxY, sy);
+      sumDepth += mv[2];
+      count++;
+    }
+    info.screenMinX = minX;
+    info.screenMaxX = maxX;
+    info.screenMinY = minY;
+    info.screenMaxY = maxY;
+    info.screenDepth = sumDepth / Math.max(1, count);
+  }
 }
 
 function _writeVertexSlice(baseVertex: number, updated: Float32Array) {
@@ -355,22 +395,66 @@ function findKeyAtPoint(clientX: number, clientY: number) {
   const rect = canvas.value.getBoundingClientRect();
   const px = (clientX - rect.left) * (canvas.value.width / rect.width);
   const py = (clientY - rect.top) * (canvas.value.height / rect.height);
-  let best = -1;
-  let bestDist = Infinity;
-  for (let i = 0; i < _keysInfo.length; i++) {
-    const info: any = _keysInfo[i] as any;
-    if (!info.screenX) continue;
-    const dx = px - info.screenX;
-    const dy = py - info.screenY;
-    const dist = Math.hypot(dx, dy);
-    // use screenHalfW if available to prefer keys under cursor horizontally
-    const threshold = (info.screenHalfW || 40) + 20;
-    if (Math.abs(dx) <= threshold && dist < bestDist) {
-      bestDist = dist;
-      best = i;
+  if (!_vertices) return -1;
+  // triangle index layout per key (each face makes two triangles)
+  const tris = [
+    [0,1,2],[0,2,3], // front
+    [4,5,6],[4,6,7], // back
+    [8,9,10],[8,10,11], // top
+    [12,13,14],[12,14,15], // bottom
+    [16,17,18],[16,18,19], // right
+    [20,21,22],[20,22,23], // left
+  ];
+  let bestKey = -1;
+  let bestDepth = Infinity;
+  // helper: point-in-triangle using barycentric coordinates
+  function pointInTri(px: number, py: number, ax: number, ay: number, bx: number, by: number, cx: number, cy: number) {
+    const v0x = cx - ax, v0y = cy - ay;
+    const v1x = bx - ax, v1y = by - ay;
+    const v2x = px - ax, v2y = py - ay;
+    const dot00 = v0x * v0x + v0y * v0y;
+    const dot01 = v0x * v1x + v0y * v1y;
+    const dot02 = v0x * v2x + v0y * v2y;
+    const dot11 = v1x * v1x + v1y * v1y;
+    const dot12 = v1x * v2x + v1y * v2y;
+    const denom = dot00 * dot11 - dot01 * dot01;
+    if (Math.abs(denom) < 1e-8) return false;
+    const invDen = 1 / denom;
+    const u = (dot11 * dot02 - dot01 * dot12) * invDen;
+    const v = (dot00 * dot12 - dot01 * dot02) * invDen;
+    return u >= 0 && v >= 0 && (u + v) <= 1;
+  }
+
+  for (let k = 0; k < _keysInfo.length; k++) {
+    const info: any = _keysInfo[k];
+    const base = info.baseVertex * 9;
+    // for each triangle, project its verts and test containment
+    for (let t = 0; t < tris.length; t++) {
+      const [i0, i1, i2] = tris[t];
+      const idx0 = base + i0 * 9;
+      const idx1 = base + i1 * 9;
+      const idx2 = base + i2 * 9;
+      const v0 = [_vertices[idx0 + 0], _vertices[idx0 + 1], _vertices[idx0 + 2]] as [number,number,number];
+      const v1 = [_vertices[idx1 + 0], _vertices[idx1 + 1], _vertices[idx1 + 2]] as [number,number,number];
+      const v2 = [_vertices[idx2 + 0], _vertices[idx2 + 1], _vertices[idx2 + 2]] as [number,number,number];
+      // project to screen
+      const p0 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v0, canvas.value);
+      const p1 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v1, canvas.value);
+      const p2 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v2, canvas.value);
+      if (pointInTri(px, py, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y)) {
+        // compute average view-space depth for this triangle
+        const mv0 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v0[0], v0[1], v0[2], 1]));
+        const mv1 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v1[0], v1[1], v1[2], 1]));
+        const mv2 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v2[0], v2[1], v2[2], 1]));
+        const depth = (Math.abs(mv0[2]) + Math.abs(mv1[2]) + Math.abs(mv2[2])) / 3;
+        if (depth < bestDepth) {
+          bestDepth = depth;
+          bestKey = k;
+        }
+      }
     }
   }
-  return best;
+  return bestKey;
 }
 
 function onCanvasPointerDown(e: PointerEvent) {
@@ -784,14 +868,8 @@ function resizeCanvasForMode() {
   // recompute screen-space projections for key hit testing when size changes
   try {
     if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value && _keysInfo && _keysInfo.length) {
-      for (let i = 0; i < _keysInfo.length; i++) {
-        const info: any = _keysInfo[i];
-        const projPos = projectToScreen(_projectionMatrix, _viewMatrix, _modelMatrix, [info.cx, 0, info.zCenter], canvas.value);
-        info.screenX = projPos.x;
-        info.screenY = projPos.y;
-        const edge = projectToScreen(_projectionMatrix, _viewMatrix, _modelMatrix, [info.cx + (info.halfWidth || 0.1), 0, info.zCenter], canvas.value);
-        info.screenHalfW = Math.abs(edge.x - projPos.x);
-      }
+      // update bounding boxes using all key vertices
+      updateKeyScreenBoxes();
     }
   } catch {}
 

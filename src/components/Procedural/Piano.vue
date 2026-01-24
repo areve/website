@@ -147,6 +147,101 @@ let _originalVertices: Float32Array | null = null;
 let _projectionMatrix: Float32Array | null = null;
 let _viewMatrix: Float32Array | null = null;
 let _modelMatrix: Float32Array | null = null;
+// Audio
+let _audioCtx: AudioContext | null = null;
+const _activeVoices = new Map<number, any>();
+
+function ensureAudio() {
+  if (_audioCtx) return _audioCtx;
+  _audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  return _audioCtx;
+}
+
+function midiToFreq(m: number) {
+  return 440 * Math.pow(2, (m - 69) / 12);
+}
+
+function playNoteForKey(keyIdx: number) {
+  const ctx = ensureAudio();
+  if (!ctx) return;
+  // resume audio context on first user gesture
+  if (ctx.state === "suspended") ctx.resume();
+  const info: any = _keysInfo[keyIdx];
+  if (!info || !info.midi) return;
+  const freq = midiToFreq(info.midi);
+  // create harmonic-rich oscillator (additive via multiple oscillators)
+  const master = ctx.createGain();
+  master.gain.value = 0.0001;
+  master.connect(ctx.destination);
+
+  // lowpass for body
+  const bodyFilter = ctx.createBiquadFilter();
+  bodyFilter.type = "lowpass";
+  bodyFilter.frequency.value = 6000;
+  bodyFilter.Q.value = 0.8;
+  bodyFilter.connect(master);
+
+  // fundamental + a few harmonics
+  const osc1 = ctx.createOscillator();
+  osc1.type = "sine";
+  osc1.frequency.value = freq;
+  const g1 = ctx.createGain(); g1.gain.value = 0.8;
+  osc1.connect(g1); g1.connect(bodyFilter);
+
+  const osc2 = ctx.createOscillator();
+  osc2.type = "sine";
+  osc2.frequency.value = freq * 2.0;
+  const g2 = ctx.createGain(); g2.gain.value = 0.25;
+  osc2.connect(g2); g2.connect(bodyFilter);
+
+  const osc3 = ctx.createOscillator();
+  osc3.type = "sine";
+  osc3.frequency.value = freq * 3.0;
+  const g3 = ctx.createGain(); g3.gain.value = 0.12;
+  osc3.connect(g3); g3.connect(bodyFilter);
+
+  // hammer noise (short burst of filtered noise)
+  const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.0, ctx.sampleRate);
+  const data = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
+  const noiseSrc = ctx.createBufferSource();
+  noiseSrc.buffer = noiseBuffer; noiseSrc.loop = false;
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = "bandpass"; noiseFilter.frequency.value = Math.max(1000, freq * 4);
+  noiseSrc.connect(noiseFilter); noiseFilter.connect(master);
+
+  const now = ctx.currentTime;
+  // envelope on master gain
+  const attack = 0.004;
+  const decay = 1.6;
+  const sustain = 0.0;
+  const release = 0.25;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.linearRampToValueAtTime(1.0, now + attack);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + attack + decay);
+
+  osc1.start(now); osc2.start(now); osc3.start(now); noiseSrc.start(now);
+
+  _activeVoices.set(keyIdx, { ctx, master, osc1, osc2, osc3, noiseSrc, release });
+}
+
+function stopNoteForKey(keyIdx: number) {
+  const v = _activeVoices.get(keyIdx);
+  if (!v) return;
+  const { ctx, master, osc1, osc2, osc3, noiseSrc, release } = v;
+  const now = ctx.currentTime;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(master.gain.value, now);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + release);
+  // stop oscillators after release
+  const stopTime = now + release + 0.05;
+  try { osc1.stop(stopTime); osc2.stop(stopTime); osc3.stop(stopTime); noiseSrc.stop(stopTime); } catch {}
+  setTimeout(() => {
+    try { master.disconnect(); } catch {}
+    _activeVoices.delete(keyIdx);
+  }, (release + 0.2) * 1000);
+}
 type KeyInfo = {
   baseVertex: number;
   type: "white" | "black";
@@ -257,11 +352,15 @@ function findKeyAtPoint(clientX: number, clientY: number) {
 function onCanvasPointerDown(e: PointerEvent) {
   const idx = findKeyAtPoint(e.clientX, e.clientY);
   if (idx >= 0) setKeyPressed(idx, true);
+  if (idx >= 0) playNoteForKey(idx);
 }
 
 function onCanvasPointerUp() {
   for (let i = 0; i < _keysInfo.length; i++) {
-    if (_keysInfo[i].pressed) setKeyPressed(i, false);
+    if (_keysInfo[i].pressed) {
+      setKeyPressed(i, false);
+      stopNoteForKey(i);
+    }
   }
 }
 
@@ -473,14 +572,17 @@ async function initWebGPU() {
     // build keysInfo: record base vertex and centers so we can detect presses and update vertices
     _keysInfo = [];
     // whites first
+    const whiteMidis = [60, 62, 64, 65, 67, 69, 71]; // C4..B4
     for (let k = 0; k < whiteCount; k++) {
       const base = k * 24;
       // pivot under the back edge of the key
       const pivotY = hl; // back edge y
       const pivotZ = -hd - 0.02; // a bit under the key bottom
-      _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false, pivotY, pivotZ } as any);
+      const midi = whiteMidis[k] ?? 60;
+      _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false, pivotY, pivotZ, midi } as any);
     }
     // blacks follow
+    const blackMidis = [61, 63, 66, 68, 70];
     for (let j = 0; j < blackPairs.length; j++) {
       const pair = blackPairs[j];
       const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
@@ -489,7 +591,8 @@ async function initWebGPU() {
       // pivot for black key just below its bottom face
       const pivotY = hl; // align pivot along back same as whites
       const pivotZ = hd + blackRaiseGap - 0.02;
-      _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ } as any);
+      const midi = blackMidis[j] ?? 61;
+      _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ, midi } as any);
     }
 
     // store matrices globally so we can recompute screen projections on resize/fullscreen

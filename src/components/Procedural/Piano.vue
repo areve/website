@@ -35,6 +35,10 @@
             <input type="checkbox" v-model="state.controls.showHitRegions" />
             Show hit regions
           </label>
+          <label class="mode-select">
+            <span>Octaves</span>
+            <input type="number" v-model.number="state.controls.octaves" min="1" max="6" style="width:4em;margin-left:8px;" />
+          </label>
         </div>
       </div>
     </div>
@@ -42,7 +46,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { usePersistentState } from "./lib/persistenceService";
 
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -54,7 +58,7 @@ const controlsButtonTop = ref<number>(0);
 let onFsChange: (() => void) | null = null;
 
 const state = ref({
-  controls: { visible: false as boolean, buttonPosition: null as number | null, showHitRegions: false as boolean },
+  controls: { visible: false as boolean, buttonPosition: null as number | null, showHitRegions: false as boolean, octaves: 2 as number },
   fullscreen: false as boolean,
 });
 
@@ -168,6 +172,192 @@ function ensureAudio() {
 function midiToFreq(m: number) {
   return 440 * Math.pow(2, (m - 69) / 12);
 }
+
+function rebuildKeyboard(octaves: number) {
+  if (!_device) return;
+  const whiteCount = (octaves || 2) * 7;
+  // More realistic proportions (relative scene units)
+  const step = 0.26; // spacing between white key centers
+  const hw = 0.115; // white half width (~0.23 total)
+  const hl = 0.5; // white half length (~1.0 total)
+  const hd = 0.02; // white half thickness (top surface at +0.02)
+  const verts: number[] = [];
+  const whiteCenters: number[] = [];
+  // center white keys left-to-right
+  const half = Math.floor(whiteCount / 2);
+  const start = -half;
+  for (let i = start; i < start + whiteCount; i++) {
+    const cx = i * step;
+    whiteCenters.push(cx);
+    const x1 = cx - hw, x2 = cx + hw;
+    const y1 = -hl, y2 = hl;
+    const z1 = -hd, z2 = hd;
+    const cR = 1.0, cG = 1.0, cB = 1.0;
+    // front
+    verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);
+    verts.push(x2, y1, z2, cR, cG, cB, 0, 0, 1);
+    verts.push(x2, y2, z2, cR, cG, cB, 0, 0, 1);
+    verts.push(x1, y2, z2, cR, cG, cB, 0, 0, 1);
+    // back
+    verts.push(x1, y1, z1, cR, cG, cB, 0, 0, -1);
+    verts.push(x1, y2, z1, cR, cG, cB, 0, 0, -1);
+    verts.push(x2, y2, z1, cR, cG, cB, 0, 0, -1);
+    verts.push(x2, y1, z1, cR, cG, cB, 0, 0, -1);
+    // top
+    verts.push(x1, y2, z1, cR, cG, cB, 0, 1, 0);
+    verts.push(x1, y2, z2, cR, cG, cB, 0, 1, 0);
+    verts.push(x2, y2, z2, cR, cG, cB, 0, 1, 0);
+    verts.push(x2, y2, z1, cR, cG, cB, 0, 1, 0);
+    // bottom
+    verts.push(x1, y1, z1, cR, cG, cB, 0, -1, 0);
+    verts.push(x2, y1, z1, cR, cG, cB, 0, -1, 0);
+    verts.push(x2, y1, z2, cR, cG, cB, 0, -1, 0);
+    verts.push(x1, y1, z2, cR, cG, cB, 0, -1, 0);
+    // right
+    verts.push(x2, y1, z1, cR, cG, cB, 1, 0, 0);
+    verts.push(x2, y2, z1, cR, cG, cB, 1, 0, 0);
+    verts.push(x2, y2, z2, cR, cG, cB, 1, 0, 0);
+    verts.push(x2, y1, z2, cR, cG, cB, 1, 0, 0);
+    // left
+    verts.push(x1, y1, z1, cR, cG, cB, -1, 0, 0);
+    verts.push(x1, y1, z2, cR, cG, cB, -1, 0, 0);
+    verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
+    verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
+  }
+
+  // Black keys: generate pairs between whites, skipping the E-F and B-C gaps
+  const blackPairs: number[][] = [];
+  for (let j = 0; j < whiteCount - 1; j++) {
+    const mod = ((j % 7) + 7) % 7; // 0=C,1=D,2=E,3=F,4=G,5=A,6=B
+    if (mod === 2 || mod === 6) continue;
+    blackPairs.push([j, j + 1]);
+  }
+  const hwB = 0.07; // black half width (~0.14 total)
+  const hlB = 0.32; // black half length (shorter)
+  const blackThickness = 0.06; // total thickness of black key
+  const blackRaiseGap = 0.01; // gap above white top surface
+  for (const pair of blackPairs) {
+    const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
+    const x1 = cx - hwB, x2 = cx + hwB;
+    const y2 = hl;
+    const y1 = hl - 2 * hlB;
+    const z1 = hd + blackRaiseGap;
+    const z2 = z1 + blackThickness;
+    const cR = 0.02, cG = 0.02, cB = 0.02;
+    // front
+    verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);
+    verts.push(x2, y1, z2, cR, cG, cB, 0, 0, 1);
+    verts.push(x2, y2, z2, cR, cG, cB, 0, 0, 1);
+    verts.push(x1, y2, z2, cR, cG, cB, 0, 0, 1);
+    // back
+    verts.push(x1, y1, z1, cR, cG, cB, 0, 0, -1);
+    verts.push(x1, y2, z1, cR, cG, cB, 0, 0, -1);
+    verts.push(x2, y2, z1, cR, cG, cB, 0, 0, -1);
+    verts.push(x2, y1, z1, cR, cG, cB, 0, 0, -1);
+    // top
+    verts.push(x1, y2, z1, cR, cG, cB, 0, 1, 0);
+    verts.push(x1, y2, z2, cR, cG, cB, 0, 1, 0);
+    verts.push(x2, y2, z2, cR, cG, cB, 0, 1, 0);
+    verts.push(x2, y2, z1, cR, cG, cB, 0, 1, 0);
+    // bottom
+    verts.push(x1, y1, z1, cR, cG, cB, 0, -1, 0);
+    verts.push(x2, y1, z1, cR, cG, cB, 0, -1, 0);
+    verts.push(x2, y1, z2, cR, cG, cB, 0, -1, 0);
+    verts.push(x1, y1, z2, cR, cG, cB, 0, -1, 0);
+    // right
+    verts.push(x2, y1, z1, cR, cG, cB, 1, 0, 0);
+    verts.push(x2, y2, z1, cR, cG, cB, 1, 0, 0);
+    verts.push(x2, y2, z2, cR, cG, cB, 1, 0, 0);
+    verts.push(x2, y1, z2, cR, cG, cB, 1, 0, 0);
+    // left
+    verts.push(x1, y1, z1, cR, cG, cB, -1, 0, 0);
+    verts.push(x1, y1, z2, cR, cG, cB, -1, 0, 0);
+    verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
+    verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
+  }
+
+  const vertices = new Float32Array(verts);
+
+  // create/update vertex buffer
+  _vertexBuffer = _device.createBuffer({
+    size: vertices.byteLength,
+    usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+  });
+  _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
+  _originalVertices = new Float32Array(vertices);
+  _vertices = new Float32Array(vertices);
+
+  // build indices
+  const totalKeys = whiteCount + blackPairs.length;
+  const idx: number[] = [];
+  for (let k = 0; k < totalKeys; k++) {
+    const base = k * 24;
+    idx.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
+    idx.push(base + 4, base + 5, base + 6, base + 4, base + 6, base + 7);
+    idx.push(base + 8, base + 9, base + 10, base + 8, base + 10, base + 11);
+    idx.push(base + 12, base + 13, base + 14, base + 12, base + 14, base + 15);
+    idx.push(base + 16, base + 17, base + 18, base + 16, base + 18, base + 19);
+    idx.push(base + 20, base + 21, base + 22, base + 20, base + 22, base + 23);
+  }
+  const indices = new Uint16Array(idx);
+
+  _indexBuffer = _device.createBuffer({
+    size: indices.byteLength,
+    usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+  });
+  _device.queue.writeBuffer(_indexBuffer, 0, indices);
+  _indexCount = indices.length;
+
+  // build keysInfo and center middle C
+  _keysInfo = [];
+  const whiteOffsets = [0, 2, 4, 5, 7, 9, 11];
+  const centerIndex = Math.floor(whiteCount / 2);
+  const centerOctave = Math.floor(centerIndex / 7);
+  const centerOffset = whiteOffsets[centerIndex % 7];
+  for (let k = 0; k < whiteCount; k++) {
+    const base = k * 24;
+    const pivotY = hl;
+    const pivotZ = -hd - 0.02;
+    const octave = Math.floor(k / 7);
+    const semitone = whiteOffsets[k % 7] + (octave - centerOctave) * 12 - centerOffset;
+    const midi = 60 + semitone;
+    _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false, pivotY, pivotZ, midi } as any);
+  }
+  const blackOffsetsMap: Record<number, number> = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };
+  for (let j = 0; j < blackPairs.length; j++) {
+    const pair = blackPairs[j];
+    const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
+    const base = (whiteCount + j) * 24;
+    const zCenter = hd + blackRaiseGap + blackThickness / 2;
+    const pivotY = hl;
+    const pivotZ = hd + blackRaiseGap - 0.02;
+    const left = pair[0];
+    const octave = Math.floor(left / 7);
+    const mod = ((left % 7) + 7) % 7;
+    const offset = blackOffsetsMap[mod] ?? 1;
+    const semitone = offset + (octave - centerOctave) * 12 - centerOffset;
+    const midi = 60 + semitone;
+    _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ, midi } as any);
+  }
+
+  // set halfWidth
+  for (let i = 0; i < _keysInfo.length; i++) {
+    const info: any = _keysInfo[i];
+    info.halfWidth = info.type === "white" ? hw : hwB;
+  }
+
+  // recompute screen boxes if matrices exist
+  try { if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value) updateKeyScreenBoxes(); } catch {}
+}
+
+// react to octaves control changes and rebuild keyboard at runtime
+watch(() => state.value.controls.octaves, (v, oldV) => {
+  const oct = Math.max(1, Math.min(8, Math.floor(v || 1)));
+  state.value.controls.octaves = oct;
+  try {
+    if (_device) rebuildKeyboard(oct);
+  } catch {}
+});
 
 function playNoteForKey(keyIdx: number) {
   const ctx = ensureAudio();
@@ -579,6 +769,8 @@ function onPointerUpOrCancel(e: PointerEvent) {
 function onCanvasPointerMove(e: PointerEvent) {
   if (!canvas.value) return;
   const pid = e.pointerId;
+  // Ignore mouse hover (no buttons pressed) to avoid triggering presses on mouseover
+  if (e.pointerType === "mouse" && (e.buttons === 0)) return;
   const prevKey = _pointerToKey.get(pid);
   const curKey = findKeyAtPoint(e.clientX, e.clientY);
   if (prevKey == null) {
@@ -637,146 +829,8 @@ async function initWebGPU() {
     // size canvas and create depth
     resizeCanvasForMode();
 
-    // Generate white keys (14) and black keys for two octaves
-    const whiteCount = 14;
-    // More realistic proportions (relative scene units)
-    const step = 0.26; // spacing between white key centers
-    const hw = 0.115; // white half width (~0.23 total)
-    const hl = 0.5; // white half length (~1.0 total)
-    const hd = 0.02; // white half thickness (top surface at +0.02)
-    const verts: number[] = [];
-    const whiteCenters: number[] = [];
-    // center white keys left-to-right; for 14 keys use -7..6
-    for (let i = -7; i <= 6; i++) {
-      const cx = i * step;
-      whiteCenters.push(cx);
-      const x1 = cx - hw, x2 = cx + hw;
-      const y1 = -hl, y2 = hl;
-      const z1 = -hd, z2 = hd;
-      const cR = 1.0, cG = 1.0, cB = 1.0;
-      // front
-      verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);
-      verts.push(x2, y1, z2, cR, cG, cB, 0, 0, 1);
-      verts.push(x2, y2, z2, cR, cG, cB, 0, 0, 1);
-      verts.push(x1, y2, z2, cR, cG, cB, 0, 0, 1);
-      // back
-      verts.push(x1, y1, z1, cR, cG, cB, 0, 0, -1);
-      verts.push(x1, y2, z1, cR, cG, cB, 0, 0, -1);
-      verts.push(x2, y2, z1, cR, cG, cB, 0, 0, -1);
-      verts.push(x2, y1, z1, cR, cG, cB, 0, 0, -1);
-      // top
-      verts.push(x1, y2, z1, cR, cG, cB, 0, 1, 0);
-      verts.push(x1, y2, z2, cR, cG, cB, 0, 1, 0);
-      verts.push(x2, y2, z2, cR, cG, cB, 0, 1, 0);
-      verts.push(x2, y2, z1, cR, cG, cB, 0, 1, 0);
-      // bottom
-      verts.push(x1, y1, z1, cR, cG, cB, 0, -1, 0);
-      verts.push(x2, y1, z1, cR, cG, cB, 0, -1, 0);
-      verts.push(x2, y1, z2, cR, cG, cB, 0, -1, 0);
-      verts.push(x1, y1, z2, cR, cG, cB, 0, -1, 0);
-      // right
-      verts.push(x2, y1, z1, cR, cG, cB, 1, 0, 0);
-      verts.push(x2, y2, z1, cR, cG, cB, 1, 0, 0);
-      verts.push(x2, y2, z2, cR, cG, cB, 1, 0, 0);
-      verts.push(x2, y1, z2, cR, cG, cB, 1, 0, 0);
-      // left
-      verts.push(x1, y1, z1, cR, cG, cB, -1, 0, 0);
-      verts.push(x1, y1, z2, cR, cG, cB, -1, 0, 0);
-      verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
-      verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
-    }
-
-    // Black keys: generate pairs between whites, skipping the E-F and B-C gaps
-    const blackPairs: number[][] = [];
-    for (let j = 0; j < whiteCount - 1; j++) {
-      const mod = ((j % 7) + 7) % 7; // 0=C,1=D,2=E,3=F,4=G,5=A,6=B
-      // skip between E-F (mod==2) and B-C (mod==6)
-      if (mod === 2 || mod === 6) continue;
-      blackPairs.push([j, j + 1]);
-    }
-    const hwB = 0.07; // black half width (~0.14 total)
-    const hlB = 0.32; // black half length (shorter)
-    const blackThickness = 0.06; // total thickness of black key
-    const blackRaiseGap = 0.01; // gap above white top surface
-    for (const pair of blackPairs) {
-      const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
-      const x1 = cx - hwB, x2 = cx + hwB;
-      // align black key back edge with white key back (y = hl)
-      const y2 = hl;
-      const y1 = hl - 2 * hlB; // shorter length, anchored to back
-      // position black key above white key surface: bottom = white top + gap
-      const z1 = hd + blackRaiseGap; // bottom of black key
-      const z2 = z1 + blackThickness; // top of black key
-      const cR = 0.02, cG = 0.02, cB = 0.02;
-      // front
-      verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);
-      verts.push(x2, y1, z2, cR, cG, cB, 0, 0, 1);
-      verts.push(x2, y2, z2, cR, cG, cB, 0, 0, 1);
-      verts.push(x1, y2, z2, cR, cG, cB, 0, 0, 1);
-      // back
-      verts.push(x1, y1, z1, cR, cG, cB, 0, 0, -1);
-      verts.push(x1, y2, z1, cR, cG, cB, 0, 0, -1);
-      verts.push(x2, y2, z1, cR, cG, cB, 0, 0, -1);
-      verts.push(x2, y1, z1, cR, cG, cB, 0, 0, -1);
-      // top
-      verts.push(x1, y2, z1, cR, cG, cB, 0, 1, 0);
-      verts.push(x1, y2, z2, cR, cG, cB, 0, 1, 0);
-      verts.push(x2, y2, z2, cR, cG, cB, 0, 1, 0);
-      verts.push(x2, y2, z1, cR, cG, cB, 0, 1, 0);
-      // bottom
-      verts.push(x1, y1, z1, cR, cG, cB, 0, -1, 0);
-      verts.push(x2, y1, z1, cR, cG, cB, 0, -1, 0);
-      verts.push(x2, y1, z2, cR, cG, cB, 0, -1, 0);
-      verts.push(x1, y1, z2, cR, cG, cB, 0, -1, 0);
-      // right
-      verts.push(x2, y1, z1, cR, cG, cB, 1, 0, 0);
-      verts.push(x2, y2, z1, cR, cG, cB, 1, 0, 0);
-      verts.push(x2, y2, z2, cR, cG, cB, 1, 0, 0);
-      verts.push(x2, y1, z2, cR, cG, cB, 1, 0, 0);
-      // left
-      verts.push(x1, y1, z1, cR, cG, cB, -1, 0, 0);
-      verts.push(x1, y1, z2, cR, cG, cB, -1, 0, 0);
-      verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
-      verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
-    }
-
-    const vertices = new Float32Array(verts);
-
-    _vertexBuffer = _device.createBuffer({
-      size: vertices.byteLength,
-      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
-    });
-    _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
-    // keep the original immutable copy and a working copy we can modify for key press animation
-    _originalVertices = new Float32Array(vertices);
-    _vertices = new Float32Array(vertices);
-
-    // build indices for each key (24 verts per key, 36 indices per key)
-    const totalKeys = whiteCount + blackPairs.length;
-    const idx: number[] = [];
-    for (let k = 0; k < totalKeys; k++) {
-      const base = k * 24;
-      // front
-      idx.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
-      // back
-      idx.push(base + 4, base + 5, base + 6, base + 4, base + 6, base + 7);
-      // top
-      idx.push(base + 8, base + 9, base + 10, base + 8, base + 10, base + 11);
-      // bottom
-      idx.push(base + 12, base + 13, base + 14, base + 12, base + 14, base + 15);
-      // right
-      idx.push(base + 16, base + 17, base + 18, base + 16, base + 18, base + 19);
-      // left
-      idx.push(base + 20, base + 21, base + 22, base + 20, base + 22, base + 23);
-    }
-    const indices = new Uint16Array(idx);
-
-    _indexBuffer = _device.createBuffer({
-      size: indices.byteLength,
-      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
-    });
-    _device.queue.writeBuffer(_indexBuffer, 0, indices);
-    _indexCount = indices.length;
+    // build keyboard geometry according to configured octaves
+    rebuildKeyboard(state.value.controls?.octaves ?? 2);
 
     // Uniform buffer for MVP matrices and light direction
     _uniformBuffer = _device.createBuffer({
@@ -835,48 +889,14 @@ async function initWebGPU() {
     uniforms[51] = 0; // padding
     _device.queue.writeBuffer(_uniformBuffer, 0, uniforms);
 
-    // build keysInfo: record base vertex and centers so we can detect presses and update vertices
-    _keysInfo = [];
-    // white semitone offsets relative to C
-    const whiteOffsets = [0, 2, 4, 5, 7, 9, 11];
-    for (let k = 0; k < whiteCount; k++) {
-      const base = k * 24;
-      // pivot under the back edge of the key
-      const pivotY = hl; // back edge y
-      const pivotZ = -hd - 0.02; // a bit under the key bottom
-      const octave = Math.floor(k / 7);
-      const semitone = whiteOffsets[k % 7] + octave * 12;
-      const midi = 60 + semitone; // start at C4 = 60
-      _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false, pivotY, pivotZ, midi } as any);
-    }
-    // blacks follow
-    const blackOffsetsMap: Record<number, number> = { 0: 1, 1: 3, 3: 6, 4: 8, 5: 10 };
-    for (let j = 0; j < blackPairs.length; j++) {
-      const pair = blackPairs[j];
-      const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
-      const base = (whiteCount + j) * 24;
-      const zCenter = hd + blackRaiseGap + blackThickness / 2;
-      // pivot for black key just below its bottom face
-      const pivotY = hl; // align pivot along back same as whites
-      const pivotZ = hd + blackRaiseGap - 0.02;
-      const left = pair[0];
-      const octave = Math.floor(left / 7);
-      const mod = ((left % 7) + 7) % 7;
-      const offset = blackOffsetsMap[mod] ?? 1;
-      const midi = 60 + octave * 12 + offset;
-      _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ, midi } as any);
-    }
+    // keysInfo is built inside rebuildKeyboard
 
     // store matrices globally so we can recompute screen projections on resize/fullscreen
     _projectionMatrix = projectionMatrix;
     _viewMatrix = viewMatrix;
     _modelMatrix = modelMatrix;
 
-    // store half-width per key for later screen projection
-    for (let i = 0; i < _keysInfo.length; i++) {
-      const info: any = _keysInfo[i];
-      info.halfWidth = info.type === "white" ? hw : hwB;
-    }
+    // half-width per key is computed in `rebuildKeyboard`
 
     const shaderCode = `
       struct Uniforms {

@@ -237,10 +237,8 @@ async function initWebGPU() {
       0, 0, (2 * far * near) / (near - far), 0,
     ]);
 
-    // View matrix (camera at (0,0,3) looking down -Z with Y rotation)
-    const viewAngleY = Math.PI / 4; // 45 degrees
-    const cosVY = Math.cos(viewAngleY);
-    const sinVY = Math.sin(viewAngleY);
+    const cosVY = Math.cos(0);
+    const sinVY = Math.sin(0);
     const viewMatrix = new Float32Array([
       cosVY, 0, sinVY, 0,
       0, 1, 0, 0,
@@ -249,8 +247,8 @@ async function initWebGPU() {
     ]);
 
     // Model matrix (rotation)
-    const angleY = Math.PI / 6; // 30 degrees
-    const angleX = Math.PI / 6;
+    const angleY = 0; // 30 degrees
+    const angleX = 0;
     const cosY = Math.cos(angleY);
     const sinY = Math.sin(angleY);
     const cosX = Math.cos(angleX);

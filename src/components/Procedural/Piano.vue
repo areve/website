@@ -576,6 +576,53 @@ function onPointerUpOrCancel(e: PointerEvent) {
   try { canvas.value?.releasePointerCapture?.(pid); } catch {}
 }
 
+function onCanvasPointerMove(e: PointerEvent) {
+  if (!canvas.value) return;
+  const pid = e.pointerId;
+  const prevKey = _pointerToKey.get(pid);
+  const curKey = findKeyAtPoint(e.clientX, e.clientY);
+  if (prevKey == null) {
+    // pointer had no mapping; if it moved onto a key, press it
+    if (curKey >= 0) {
+      _pointerToKey.set(pid, curKey);
+      let s = _keyToPointers.get(curKey);
+      if (!s) { s = new Set(); _keyToPointers.set(curKey, s); }
+      const prevCount = s.size;
+      s.add(pid);
+      if (prevCount === 0) { setKeyPressed(curKey, true); playNoteForKey(curKey); }
+      try { canvas.value.setPointerCapture?.(pid); } catch {}
+    }
+    return;
+  }
+
+  if (curKey === prevKey) return; // still on same key
+
+  // moved off previous key: release it for this pointer
+  _pointerToKey.delete(pid);
+  const sPrev = _keyToPointers.get(prevKey);
+  if (sPrev) {
+    sPrev.delete(pid);
+    if (sPrev.size === 0) {
+      _keyToPointers.delete(prevKey);
+      setKeyPressed(prevKey, false);
+      stopNoteForKey(prevKey);
+    }
+  }
+
+  // if moved onto another key, press that one
+  if (curKey >= 0) {
+    _pointerToKey.set(pid, curKey);
+    let s = _keyToPointers.get(curKey);
+    if (!s) { s = new Set(); _keyToPointers.set(curKey, s); }
+    const prevCount = s.size;
+    s.add(pid);
+    if (prevCount === 0) { setKeyPressed(curKey, true); playNoteForKey(curKey); }
+    try { canvas.value.setPointerCapture?.(pid); } catch {}
+  } else {
+    try { canvas.value.releasePointerCapture?.(pid); } catch {}
+  }
+}
+
 async function initWebGPU() {
   if (!canvas.value) return;
   if (!("gpu" in navigator)) return;
@@ -1046,6 +1093,7 @@ onMounted(async () => {
   // add pointer handlers for key presses
   try {
     canvas.value?.addEventListener("pointerdown", onCanvasPointerDown);
+    canvas.value?.addEventListener("pointermove", onCanvasPointerMove, { passive: false } as any);
     window.addEventListener("pointerup", onPointerUpOrCancel);
     window.addEventListener("pointercancel", onPointerUpOrCancel);
     // prevent long-press context menu on canvas/container
@@ -1078,6 +1126,7 @@ onUnmounted(() => {
   }
   try {
     canvas.value?.removeEventListener("pointerdown", onCanvasPointerDown);
+    canvas.value?.removeEventListener("pointermove", onCanvasPointerMove as any);
     window.removeEventListener("pointerup", onPointerUpOrCancel);
     window.removeEventListener("pointercancel", onPointerUpOrCancel);
   } catch {}

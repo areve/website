@@ -142,6 +142,86 @@ let _bindGroup: GPUBindGroup | null = null;
 let _depthTexture: GPUTexture | null = null;
 let _raf = 0;
 let _indexCount = 0;
+let _vertices: Float32Array | null = null;
+type KeyInfo = { baseVertex: number; type: "white" | "black"; cx: number; zCenter: number; pressed: boolean };
+let _keysInfo: KeyInfo[] = [];
+function mulMat4Vec4(m: Float32Array, v: [number, number, number, number]) {
+  const r0 = m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12] * v[3];
+  const r1 = m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13] * v[3];
+  const r2 = m[2] * v[0] + m[6] * v[1] + m[10] * v[2] + m[14] * v[3];
+  const r3 = m[3] * v[0] + m[7] * v[1] + m[11] * v[2] + m[15] * v[3];
+  return [r0, r1, r2, r3] as [number, number, number, number];
+}
+
+function projectToScreen(proj: Float32Array, view: Float32Array, model: Float32Array, pos: [number, number, number], canvasEl: HTMLCanvasElement) {
+  const mv = mulMat4Vec4(view, mulMat4Vec4(model, [pos[0], pos[1], pos[2], 1.0]));
+  const clip = mulMat4Vec4(proj, mv);
+  const w = clip[3] || 1.0;
+  const ndcX = clip[0] / w;
+  const ndcY = clip[1] / w;
+  const x = (ndcX * 0.5 + 0.5) * canvasEl.width;
+  const y = (-ndcY * 0.5 + 0.5) * canvasEl.height;
+  return { x, y };
+}
+
+function _writeVertexSlice(baseVertex: number, updated: Float32Array) {
+  if (!_device || !_vertexBuffer) return;
+  const offset = baseVertex * 9 * 4; // floats-per-vertex * bytes
+  _device.queue.writeBuffer(_vertexBuffer, offset, updated.buffer, updated.byteOffset, updated.byteLength);
+}
+
+function setKeyPressed(keyIdx: number, pressed: boolean) {
+  if (!_vertices || !_device || !_vertexBuffer) return;
+  const info = _keysInfo[keyIdx];
+  if (!info || info.pressed === pressed) return;
+  const baseFloat = info.baseVertex * 9;
+  const pressDepth = 0.04; // how much to move along -Z when pressed
+  for (let v = 0; v < 24; v++) {
+    const zIndex = baseFloat + v * 9 + 2; // z is third float in vertex
+    // original stored in _vertices; we assume base stored is rest state
+    const originalZ = _vertices[zIndex];
+    const newZ = pressed ? originalZ - pressDepth : originalZ + pressDepth;
+    _vertices[zIndex] = newZ;
+  }
+  // write updated slice back to GPU
+  const slice = new Float32Array(_vertices.buffer, info.baseVertex * 9 * 4, 24 * 9);
+  _writeVertexSlice(info.baseVertex, slice);
+  info.pressed = pressed;
+}
+
+function findKeyAtPoint(clientX: number, clientY: number) {
+  if (!canvas.value || !_keysInfo || _keysInfo.length === 0) return -1;
+  const rect = canvas.value.getBoundingClientRect();
+  const px = (clientX - rect.left) * (canvas.value.width / rect.width);
+  const py = (clientY - rect.top) * (canvas.value.height / rect.height);
+  let best = -1;
+  let bestDist = Infinity;
+  for (let i = 0; i < _keysInfo.length; i++) {
+    const info: any = _keysInfo[i] as any;
+    if (!info.screenX) continue;
+    const dx = px - info.screenX;
+    const dy = py - info.screenY;
+    const dist = Math.hypot(dx, dy);
+    // use screenHalfW if available to prefer keys under cursor horizontally
+    const threshold = (info.screenHalfW || 40) + 20;
+    if (Math.abs(dx) <= threshold && dist < bestDist) {
+      bestDist = dist;
+      best = i;
+    }
+  }
+  return best;
+}
+
+function onCanvasPointerDown(e: PointerEvent) {
+  const idx = findKeyAtPoint(e.clientX, e.clientY);
+  if (idx >= 0) setKeyPressed(idx, true);
+}
+
+function onCanvasPointerUp() {
+  for (let i = 0; i < _keysInfo.length; i++) {
+    if (_keysInfo[i].pressed) setKeyPressed(i, false);
+  }
+}
 
 async function initWebGPU() {
   if (!canvas.value) return;
@@ -260,6 +340,8 @@ async function initWebGPU() {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
+    // keep a copy we can modify for key press animation
+    _vertices = new Float32Array(vertices);
 
     // build indices for each key (24 verts per key, 36 indices per key)
     const totalKeys = whiteCount + blackPairs.length;
@@ -344,6 +426,38 @@ async function initWebGPU() {
     uniforms[50] = lightDir[2]/len;
     uniforms[51] = 0; // padding
     _device.queue.writeBuffer(_uniformBuffer, 0, uniforms);
+
+    // build keysInfo: record base vertex and centers so we can detect presses and update vertices
+    _keysInfo = [];
+    // whites first
+    for (let k = 0; k < whiteCount; k++) {
+      const base = k * 24;
+      _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false });
+    }
+    // blacks follow
+    for (let j = 0; j < blackPairs.length; j++) {
+      const pair = blackPairs[j];
+      const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
+      const base = (whiteCount + j) * 24;
+      const zCenter = hd + blackRaiseGap + blackThickness / 2;
+      _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false });
+    }
+
+    // compute screen-space projections for each key center
+    try {
+      if (canvas.value) {
+        for (let i = 0; i < _keysInfo.length; i++) {
+          const info = _keysInfo[i];
+          const projPos = projectToScreen(projectionMatrix, viewMatrix, modelMatrix, [info.cx, 0, info.zCenter], canvas.value);
+          // store temporary screen data on object
+          (info as any).screenX = projPos.x;
+          (info as any).screenY = projPos.y;
+          // approximate screen half-width by projecting one offset in X
+          const edge = projectToScreen(projectionMatrix, viewMatrix, modelMatrix, [info.cx + (info.type === "white" ? hw : hwB), 0, info.zCenter], canvas.value);
+          (info as any).screenHalfW = Math.abs(edge.x - projPos.x);
+        }
+      }
+    } catch {}
 
     const shaderCode = `
       struct Uniforms {
@@ -558,6 +672,11 @@ onMounted(async () => {
   };
   document.addEventListener("fullscreenchange", onFsChange);
   window.addEventListener("resize", resizeCanvasForMode);
+  // add pointer handlers for key presses
+  try {
+    canvas.value?.addEventListener("pointerdown", onCanvasPointerDown);
+    window.addEventListener("pointerup", onCanvasPointerUp);
+  } catch {}
 });
 
 onUnmounted(() => {
@@ -572,6 +691,10 @@ onUnmounted(() => {
   if (onFsChange) {
     document.removeEventListener("fullscreenchange", onFsChange);
   }
+  try {
+    canvas.value?.removeEventListener("pointerdown", onCanvasPointerDown);
+    window.removeEventListener("pointerup", onCanvasPointerUp);
+  } catch {}
 });
 </script>
 

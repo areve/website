@@ -97,6 +97,9 @@
           <li>
             <router-link to="/Procedural" @click="toggle()">Procedural</router-link>
           </li>
+          <li>
+            <router-link to="/piano" @click="toggle()">Piano</router-link>
+          </li>
         </ul>
       </nav>
     </div>

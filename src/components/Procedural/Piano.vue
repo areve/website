@@ -141,6 +141,7 @@ let _uniformBuffer: GPUBuffer | null = null;
 let _bindGroup: GPUBindGroup | null = null;
 let _depthTexture: GPUTexture | null = null;
 let _raf = 0;
+let _indexCount = 0;
 
 async function initWebGPU() {
   if (!canvas.value) return;
@@ -156,39 +157,51 @@ async function initWebGPU() {
     // size canvas and create depth
     resizeCanvasForMode();
 
-    // Define piano key vertices in JavaScript (rectangular prism) oriented vertically (long axis = Y)
-    const vertices = new Float32Array([
-      // Front face normal (0,0,1)
-      -0.15, -0.75,  0.025, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-       0.15, -0.75,  0.025, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-       0.15,  0.75,  0.025, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-      -0.15,  0.75,  0.025, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-      // Back face normal (0,0,-1)
-      -0.15, -0.75, -0.025, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0,
-      -0.15,  0.75, -0.025, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0,
-       0.15,  0.75, -0.025, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0,
-       0.15, -0.75, -0.025, 1.0, 1.0, 1.0, 0.0, 0.0, -1.0,
-      // Top face normal (0,1,0)
-      -0.15,  0.75, -0.025, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
-      -0.15,  0.75,  0.025, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
-       0.15,  0.75,  0.025, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
-       0.15,  0.75, -0.025, 1.0, 1.0, 1.0, 0.0, 1.0, 0.0,
-      // Bottom face normal (0,-1,0)
-      -0.15, -0.75, -0.025, 1.0, 1.0, 1.0, 0.0, -1.0, 0.0,
-       0.15, -0.75, -0.025, 1.0, 1.0, 1.0, 0.0, -1.0, 0.0,
-       0.15, -0.75,  0.025, 1.0, 1.0, 1.0, 0.0, -1.0, 0.0,
-      -0.15, -0.75,  0.025, 1.0, 1.0, 1.0, 0.0, -1.0, 0.0,
-      // Right face normal (1,0,0)
-       0.15, -0.75, -0.025, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-       0.15,  0.75, -0.025, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-       0.15,  0.75,  0.025, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-       0.15, -0.75,  0.025, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-      // Left face normal (-1,0,0)
-      -0.15, -0.75, -0.025, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0,
-      -0.15, -0.75,  0.025, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0,
-      -0.15,  0.75,  0.025, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0,
-      -0.15,  0.75, -0.025, 1.0, 1.0, 1.0, -1.0, 0.0, 0.0,
-    ]);
+    // Generate seven piano keys (3 left, center, 3 right). long axis = Y
+    const keyCount = 7;
+    const step = 0.34; // spacing between key centers
+    const hw = 0.15; // half width along X
+    const hl = 0.75; // half length along Y
+    const hd = 0.025; // half depth along Z
+    const verts: number[] = [];
+    for (let i = -3; i <= 3; i++) {
+      const cx = i * step;
+      const x1 = cx - hw, x2 = cx + hw;
+      const y1 = -hl, y2 = hl;
+      const z1 = -hd, z2 = hd;
+      const cR = 1.0, cG = 1.0, cB = 1.0;
+      // front
+      verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);
+      verts.push(x2, y1, z2, cR, cG, cB, 0, 0, 1);
+      verts.push(x2, y2, z2, cR, cG, cB, 0, 0, 1);
+      verts.push(x1, y2, z2, cR, cG, cB, 0, 0, 1);
+      // back
+      verts.push(x1, y1, z1, cR, cG, cB, 0, 0, -1);
+      verts.push(x1, y2, z1, cR, cG, cB, 0, 0, -1);
+      verts.push(x2, y2, z1, cR, cG, cB, 0, 0, -1);
+      verts.push(x2, y1, z1, cR, cG, cB, 0, 0, -1);
+      // top
+      verts.push(x1, y2, z1, cR, cG, cB, 0, 1, 0);
+      verts.push(x1, y2, z2, cR, cG, cB, 0, 1, 0);
+      verts.push(x2, y2, z2, cR, cG, cB, 0, 1, 0);
+      verts.push(x2, y2, z1, cR, cG, cB, 0, 1, 0);
+      // bottom
+      verts.push(x1, y1, z1, cR, cG, cB, 0, -1, 0);
+      verts.push(x2, y1, z1, cR, cG, cB, 0, -1, 0);
+      verts.push(x2, y1, z2, cR, cG, cB, 0, -1, 0);
+      verts.push(x1, y1, z2, cR, cG, cB, 0, -1, 0);
+      // right
+      verts.push(x2, y1, z1, cR, cG, cB, 1, 0, 0);
+      verts.push(x2, y2, z1, cR, cG, cB, 1, 0, 0);
+      verts.push(x2, y2, z2, cR, cG, cB, 1, 0, 0);
+      verts.push(x2, y1, z2, cR, cG, cB, 1, 0, 0);
+      // left
+      verts.push(x1, y1, z1, cR, cG, cB, -1, 0, 0);
+      verts.push(x1, y1, z2, cR, cG, cB, -1, 0, 0);
+      verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
+      verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
+    }
+    const vertices = new Float32Array(verts);
 
     _vertexBuffer = _device.createBuffer({
       size: vertices.byteLength,
@@ -197,26 +210,31 @@ async function initWebGPU() {
     _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
 
     // Indices for cube triangles
-    const indices = new Uint16Array([
-      // Front
-      0, 1, 2, 0, 2, 3,
-      // Back
-      4, 5, 6, 4, 6, 7,
-      // Top
-      8, 9, 10, 8, 10, 11,
-      // Bottom
-      12, 13, 14, 12, 14, 15,
-      // Right
-      16, 17, 18, 16, 18, 19,
-      // Left
-      20, 21, 22, 20, 22, 23,
-    ]);
+    // build indices for each key (24 verts per key, 36 indices per key)
+    const idx: number[] = [];
+    for (let k = 0; k < keyCount; k++) {
+      const base = k * 24;
+      // front
+      idx.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);
+      // back
+      idx.push(base + 4, base + 5, base + 6, base + 4, base + 6, base + 7);
+      // top
+      idx.push(base + 8, base + 9, base + 10, base + 8, base + 10, base + 11);
+      // bottom
+      idx.push(base + 12, base + 13, base + 14, base + 12, base + 14, base + 15);
+      // right
+      idx.push(base + 16, base + 17, base + 18, base + 16, base + 18, base + 19);
+      // left
+      idx.push(base + 20, base + 21, base + 22, base + 20, base + 22, base + 23);
+    }
+    const indices = new Uint16Array(idx);
 
     _indexBuffer = _device.createBuffer({
       size: indices.byteLength,
       usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
     });
     _device.queue.writeBuffer(_indexBuffer, 0, indices);
+    _indexCount = indices.length;
 
     // Uniform buffer for MVP matrices and light direction
     _uniformBuffer = _device.createBuffer({
@@ -443,7 +461,7 @@ function startRenderLoop() {
     pass.setBindGroup(0, _bindGroup);
     pass.setVertexBuffer(0, _vertexBuffer);
     pass.setIndexBuffer(_indexBuffer, "uint16");
-    pass.drawIndexed(36); // 36 indices for cube
+    pass.drawIndexed(_indexCount);
     pass.end();
     _device.queue.submit([commandEncoder.finish()]);
     _raf = requestAnimationFrame(frame);

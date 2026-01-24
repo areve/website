@@ -216,13 +216,30 @@ async function initWebGPU() {
     });
     _device.queue.writeBuffer(_indexBuffer, 0, indices);
 
-    // Uniform buffer for model matrix
+    // Uniform buffer for MVP matrices
     _uniformBuffer = _device.createBuffer({
-      size: 64, // 4x4 matrix * 4 bytes
+      size: 192, // 3x 4x4 matrices * 4 bytes
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Simple rotation matrix (rotate around Y and X)
+    // Simple orthographic projection to fit the cube
+    const left = -2, right = 2, bottom = -2, top = 2, near = -5, far = 5;
+    const projectionMatrix = new Float32Array([
+      2 / (right - left), 0, 0, 0,
+      0, 2 / (top - bottom), 0, 0,
+      0, 0, -2 / (far - near), 0,
+      -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1,
+    ]);
+
+    // View matrix (camera at (0,0,3) looking down -Z)
+    const viewMatrix = new Float32Array([
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      0, 0, 1, 0,
+      0, 0, -3, 1,  // translate z by 3
+    ]);
+
+    // Model matrix (rotation)
     const angleY = Math.PI / 6; // 30 degrees
     const angleX = Math.PI / 6;
     const cosY = Math.cos(angleY);
@@ -235,10 +252,18 @@ async function initWebGPU() {
       -cosX * sinY, sinX, cosX * cosY, 0,
       0, 0, 0, 1,
     ]);
-    _device.queue.writeBuffer(_uniformBuffer, 0, modelMatrix);
+
+    // Combine into uniform buffer: projection, view, model
+    const uniforms = new Float32Array(48); // 3 matrices
+    uniforms.set(projectionMatrix, 0);
+    uniforms.set(viewMatrix, 16);
+    uniforms.set(modelMatrix, 32);
+    _device.queue.writeBuffer(_uniformBuffer, 0, uniforms);
 
     const shaderCode = `
       struct Uniforms {
+        projection: mat4x4<f32>,
+        view: mat4x4<f32>,
         model: mat4x4<f32>,
       };
 
@@ -257,7 +282,7 @@ async function initWebGPU() {
       @vertex
       fn vs_main(input: VertexInput) -> VertexOutput {
         var output: VertexOutput;
-        output.position = uniforms.model * vec4<f32>(input.position, 1.0);
+        output.position = uniforms.projection * uniforms.view * uniforms.model * vec4<f32>(input.position, 1.0);
         output.color = input.color;
         return output;
       }

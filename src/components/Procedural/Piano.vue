@@ -143,7 +143,19 @@ let _depthTexture: GPUTexture | null = null;
 let _raf = 0;
 let _indexCount = 0;
 let _vertices: Float32Array | null = null;
-type KeyInfo = { baseVertex: number; type: "white" | "black"; cx: number; zCenter: number; pressed: boolean };
+let _originalVertices: Float32Array | null = null;
+type KeyInfo = {
+  baseVertex: number;
+  type: "white" | "black";
+  cx: number;
+  zCenter: number;
+  pressed: boolean;
+  pivotY?: number;
+  pivotZ?: number;
+  screenX?: number;
+  screenY?: number;
+  screenHalfW?: number;
+};
 let _keysInfo: KeyInfo[] = [];
 function mulMat4Vec4(m: Float32Array, v: [number, number, number, number]) {
   const r0 = m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12] * v[3];
@@ -171,17 +183,43 @@ function _writeVertexSlice(baseVertex: number, updated: Float32Array) {
 }
 
 function setKeyPressed(keyIdx: number, pressed: boolean) {
-  if (!_vertices || !_device || !_vertexBuffer) return;
-  const info = _keysInfo[keyIdx];
+  if (!_vertices || !_device || !_vertexBuffer || !_originalVertices) return;
+  const info: any = _keysInfo[keyIdx];
   if (!info || info.pressed === pressed) return;
   const baseFloat = info.baseVertex * 9;
-  const pressDepth = 0.04; // how much to move along -Z when pressed
+  // rotate around X axis through pivot (pivotY, pivotZ)
+  // use a much smaller angle and invert sign so keys rotate downward
+  const maxAngle = 0.6 / 8; // reduced to ~1/8th (~1.3deg)
+  const angle = pressed ? maxAngle : 0;
+  const cosA = Math.cos(angle);
+  const sinA = Math.sin(angle);
+  const pivotY = info.pivotY ?? 0;
+  const pivotZ = info.pivotZ ?? 0;
+  // each key has 24 vertices, 9 floats per vertex
   for (let v = 0; v < 24; v++) {
-    const zIndex = baseFloat + v * 9 + 2; // z is third float in vertex
-    // original stored in _vertices; we assume base stored is rest state
-    const originalZ = _vertices[zIndex];
-    const newZ = pressed ? originalZ - pressDepth : originalZ + pressDepth;
-    _vertices[zIndex] = newZ;
+    const idx = baseFloat + v * 9;
+    // original position
+    const ox = _originalVertices[idx + 0];
+    const oy = _originalVertices[idx + 1];
+    const oz = _originalVertices[idx + 2];
+    // translate to pivot, rotate around X (y/z)
+    const dy = oy - pivotY;
+    const dz = oz - pivotZ;
+    const ny = cosA * dy - sinA * dz + pivotY;
+    const nz = sinA * dy + cosA * dz + pivotZ;
+    _vertices[idx + 0] = ox;
+    _vertices[idx + 1] = ny;
+    _vertices[idx + 2] = nz;
+
+    // rotate normals as directions (no translation)
+    const onx = _originalVertices[idx + 6];
+    const ony = _originalVertices[idx + 7];
+    const onz = _originalVertices[idx + 8];
+    const rny = cosA * ony - sinA * onz;
+    const rnz = sinA * ony + cosA * onz;
+    _vertices[idx + 6] = onx;
+    _vertices[idx + 7] = rny;
+    _vertices[idx + 8] = rnz;
   }
   // write updated slice back to GPU
   const slice = new Float32Array(_vertices.buffer, info.baseVertex * 9 * 4, 24 * 9);
@@ -340,7 +378,8 @@ async function initWebGPU() {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
-    // keep a copy we can modify for key press animation
+    // keep the original immutable copy and a working copy we can modify for key press animation
+    _originalVertices = new Float32Array(vertices);
     _vertices = new Float32Array(vertices);
 
     // build indices for each key (24 verts per key, 36 indices per key)
@@ -432,7 +471,10 @@ async function initWebGPU() {
     // whites first
     for (let k = 0; k < whiteCount; k++) {
       const base = k * 24;
-      _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false });
+      // pivot under the back edge of the key
+      const pivotY = hl; // back edge y
+      const pivotZ = -hd - 0.02; // a bit under the key bottom
+      _keysInfo.push({ baseVertex: base, type: "white", cx: whiteCenters[k], zCenter: 0, pressed: false, pivotY, pivotZ } as any);
     }
     // blacks follow
     for (let j = 0; j < blackPairs.length; j++) {
@@ -440,7 +482,10 @@ async function initWebGPU() {
       const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
       const base = (whiteCount + j) * 24;
       const zCenter = hd + blackRaiseGap + blackThickness / 2;
-      _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false });
+      // pivot for black key just below its bottom face
+      const pivotY = hl; // align pivot along back same as whites
+      const pivotZ = hd + blackRaiseGap - 0.02;
+      _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ } as any);
     }
 
     // compute screen-space projections for each key center

@@ -133,6 +133,7 @@ let _adapter: GPUAdapter | null = null;
 let _device: GPUDevice | null = null;
 let _context: GPUCanvasContext | null = null;
 let _pipeline: GPURenderPipeline | null = null;
+let _vertexBuffer: GPUBuffer | null = null;
 let _raf = 0;
 
 async function initWebGPU() {
@@ -146,16 +147,27 @@ async function initWebGPU() {
     const format = (navigator as any).gpu.getPreferredCanvasFormat ? (navigator as any).gpu.getPreferredCanvasFormat() : "bgra8unorm";
     _context.configure({ device: _device, format, alphaMode: "opaque" });
 
+    // Define triangle vertices in JavaScript
+    const vertices = new Float32Array([
+      0.0, 0.5, 0.0,   // top
+      -0.5, -0.5, 0.0, // bottom left
+      0.5, -0.5, 0.0   // bottom right
+    ]);
+
+    _vertexBuffer = _device.createBuffer({
+      size: vertices.byteLength,
+      usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
+    });
+    _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
+
     const shaderCode = `
+      struct VertexInput {
+        @location(0) position: vec3<f32>,
+      };
+
       @vertex
-      fn vs_main(@builtin(vertex_index) vid : u32) -> @builtin(position) vec4<f32> {
-        var positions = array<vec3<f32>, 3>(
-          vec3<f32>(0.0, 0.5, 0.0),   // top
-          vec3<f32>(-0.5, -0.5, 0.0), // bottom left
-          vec3<f32>(0.5, -0.5, 0.0)   // bottom right
-        );
-        let pos = positions[vid];
-        return vec4<f32>(pos, 1.0);
+      fn vs_main(input: VertexInput) -> @builtin(position) vec4<f32> {
+        return vec4<f32>(input.position, 1.0);
       }
 
       @fragment
@@ -170,6 +182,18 @@ async function initWebGPU() {
       vertex: {
         module,
         entryPoint: "vs_main",
+        buffers: [
+          {
+            arrayStride: 3 * 4, // 3 floats * 4 bytes
+            attributes: [
+              {
+                shaderLocation: 0,
+                offset: 0,
+                format: "float32x3",
+              },
+            ],
+          },
+        ],
       },
       fragment: {
         module,
@@ -223,7 +247,7 @@ function resizeCanvasForMode() {
 
 function startRenderLoop() {
   const frame = () => {
-    if (!_device || !_context || !_pipeline) return;
+    if (!_device || !_context || !_pipeline || !_vertexBuffer) return;
     const commandEncoder = _device.createCommandEncoder();
     const textureView = _context.getCurrentTexture().createView();
     const pass = commandEncoder.beginRenderPass({
@@ -237,6 +261,7 @@ function startRenderLoop() {
       ],
     });
     pass.setPipeline(_pipeline);
+    pass.setVertexBuffer(0, _vertexBuffer);
     pass.draw(3);
     pass.end();
     _device.queue.submit([commandEncoder.finish()]);

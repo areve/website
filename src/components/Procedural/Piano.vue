@@ -346,6 +346,14 @@ function rebuildKeyboard(octaves: number) {
     info.halfWidth = info.type === "white" ? hw : hwB;
   }
 
+  // compute keyboard extents for camera fitting
+  if (whiteCenters.length > 0) {
+    const minX = whiteCenters[0] - hw;
+    const maxX = whiteCenters[whiteCenters.length - 1] + hw;
+    _keyboardHalfWidth = (maxX - minX) / 2;
+    _keyboardCenterX = (minX + maxX) / 2;
+  }
+
   // recompute screen boxes if matrices exist
   try { if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value) updateKeyScreenBoxes(); } catch {}
 }
@@ -386,12 +394,42 @@ function updateProjection() {
   try { if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value) updateKeyScreenBoxes(); } catch {}
 }
 
+function fitCameraToKeyboard() {
+  if (!canvas.value) return;
+  const fov = Math.PI / 4;
+  const aspect = canvas.value.width / Math.max(1, canvas.value.height);
+  const hfov = 2 * Math.atan(Math.tan(fov / 2) * aspect);
+  // ensure we have a half-width
+  const halfW = Math.max(0.001, _keyboardHalfWidth);
+  // required distance along view axis to fit half-width
+  const requiredZ = halfW / Math.tan(hfov / 2);
+  // add margins so keys are not flush to edges; tune multiplier and offset
+  const camZ = requiredZ * 1.15 + 0.6;
+  const viewAngleX = -Math.PI / 3;
+  const cosVX = Math.cos(viewAngleX);
+  const sinVX = Math.sin(viewAngleX);
+  // build view matrix with translation along z = -camZ
+  const viewMatrix = new Float32Array([
+    1, 0, 0, 0,
+    0, cosVX, sinVX, 0,
+    0, -sinVX, cosVX, 0,
+    0, 0, -camZ, 1,
+  ]);
+  _viewMatrix = viewMatrix;
+  // upload updated projection/uniforms and recompute screen boxes
+  updateProjection();
+}
+
 // react to octaves control changes and rebuild keyboard at runtime
 watch(() => state.value.controls.octaves, (v, oldV) => {
   const oct = Math.max(1, Math.min(8, Math.floor(v || 1)));
   state.value.controls.octaves = oct;
   try {
-    if (_device) rebuildKeyboard(oct);
+    if (_device) {
+      rebuildKeyboard(oct);
+      // adjust camera to fit new keyboard if view exists
+      try { fitCameraToKeyboard(); } catch {}
+    }
   } catch {}
 });
 
@@ -524,6 +562,9 @@ let _keysInfo: KeyInfo[] = [];
 // multi-touch tracking
 const _pointerToKey = new Map<number, number>();
 const _keyToPointers = new Map<number, Set<number>>();
+// keyboard metrics used for camera fitting
+let _keyboardHalfWidth = 1;
+let _keyboardCenterX = 0;
 function mulMat4Vec4(m: Float32Array, v: [number, number, number, number]) {
   const r0 = m[0] * v[0] + m[4] * v[1] + m[8] * v[2] + m[12] * v[3];
   const r1 = m[1] * v[0] + m[5] * v[1] + m[9] * v[2] + m[13] * v[3];
@@ -901,7 +942,7 @@ async function initWebGPU() {
     // store view/model globally and compute/upload projection using canvas aspect
     _viewMatrix = viewMatrix;
     _modelMatrix = modelMatrix;
-    updateProjection();
+    fitCameraToKeyboard();
 
     // half-width per key is computed in `rebuildKeyboard`
 
@@ -1058,7 +1099,7 @@ function resizeCanvasForMode() {
 
   // update projection/uniforms and recompute screen-space projections for hit testing
   try {
-    if (_viewMatrix && _modelMatrix) updateProjection();
+    if (_viewMatrix && _modelMatrix) fitCameraToKeyboard();
     if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value && _keysInfo && _keysInfo.length) {
       updateKeyScreenBoxes();
     }

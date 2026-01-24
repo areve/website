@@ -45,6 +45,8 @@ const container = ref<HTMLElement | null>(null);
 const controlsButton = ref<HTMLElement | null>(null);
 const controlsButtonTop = ref<number>(0);
 
+let onFsChange: (() => void) | null = null;
+
 const state = ref({
   controls: { visible: false as boolean, buttonPosition: null as number | null },
   fullscreen: false as boolean,
@@ -460,7 +462,7 @@ onMounted(async () => {
   } catch {}
   // size canvas and init webgpu
   await initWebGPU();
-  const onFsChange = () => {
+  onFsChange = () => {
     // update fullscreen state and resize
     state.value.fullscreen = !!document.fullscreenElement;
     resizeCanvasForMode();
@@ -478,7 +480,9 @@ onUnmounted(() => {
     }
   } catch {}
   window.removeEventListener("resize", resizeCanvasForMode);
-  document.removeEventListener("fullscreenchange", onFsChange);
+  if (onFsChange) {
+    document.removeEventListener("fullscreenchange", onFsChange);
+  }
 });
 </script>
 

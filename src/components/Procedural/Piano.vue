@@ -144,6 +144,9 @@ let _raf = 0;
 let _indexCount = 0;
 let _vertices: Float32Array | null = null;
 let _originalVertices: Float32Array | null = null;
+let _projectionMatrix: Float32Array | null = null;
+let _viewMatrix: Float32Array | null = null;
+let _modelMatrix: Float32Array | null = null;
 type KeyInfo = {
   baseVertex: number;
   type: "white" | "black";
@@ -152,6 +155,7 @@ type KeyInfo = {
   pressed: boolean;
   pivotY?: number;
   pivotZ?: number;
+  halfWidth?: number;
   screenX?: number;
   screenY?: number;
   screenHalfW?: number;
@@ -488,21 +492,16 @@ async function initWebGPU() {
       _keysInfo.push({ baseVertex: base, type: "black", cx, zCenter, pressed: false, pivotY, pivotZ } as any);
     }
 
-    // compute screen-space projections for each key center
-    try {
-      if (canvas.value) {
-        for (let i = 0; i < _keysInfo.length; i++) {
-          const info = _keysInfo[i];
-          const projPos = projectToScreen(projectionMatrix, viewMatrix, modelMatrix, [info.cx, 0, info.zCenter], canvas.value);
-          // store temporary screen data on object
-          (info as any).screenX = projPos.x;
-          (info as any).screenY = projPos.y;
-          // approximate screen half-width by projecting one offset in X
-          const edge = projectToScreen(projectionMatrix, viewMatrix, modelMatrix, [info.cx + (info.type === "white" ? hw : hwB), 0, info.zCenter], canvas.value);
-          (info as any).screenHalfW = Math.abs(edge.x - projPos.x);
-        }
-      }
-    } catch {}
+    // store matrices globally so we can recompute screen projections on resize/fullscreen
+    _projectionMatrix = projectionMatrix;
+    _viewMatrix = viewMatrix;
+    _modelMatrix = modelMatrix;
+
+    // store half-width per key for later screen projection
+    for (let i = 0; i < _keysInfo.length; i++) {
+      const info: any = _keysInfo[i];
+      info.halfWidth = info.type === "white" ? hw : hwB;
+    }
 
     const shaderCode = `
       struct Uniforms {
@@ -654,6 +653,20 @@ function resizeCanvasForMode() {
     format: "depth24plus",
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
+
+  // recompute screen-space projections for key hit testing when size changes
+  try {
+    if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value && _keysInfo && _keysInfo.length) {
+      for (let i = 0; i < _keysInfo.length; i++) {
+        const info: any = _keysInfo[i];
+        const projPos = projectToScreen(_projectionMatrix, _viewMatrix, _modelMatrix, [info.cx, 0, info.zCenter], canvas.value);
+        info.screenX = projPos.x;
+        info.screenY = projPos.y;
+        const edge = projectToScreen(_projectionMatrix, _viewMatrix, _modelMatrix, [info.cx + (info.halfWidth || 0.1), 0, info.zCenter], canvas.value);
+        info.screenHalfW = Math.abs(edge.x - projPos.x);
+      }
+    }
+  } catch {}
 
   // Update controls button position to track right-hand side similar to Procedural
   try {

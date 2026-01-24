@@ -208,7 +208,7 @@ async function initWebGPU() {
     const blackPairs = [[0,1],[1,2],[3,4],[4,5],[5,6]];
     const hwB = 0.09; // black half width
     const hlB = 0.45; // black half length (shorter)
-    const hdB = 0.03; // black depth
+    const hdB = 0.08; // black key half-depth (raised above white keys)
     for (const pair of blackPairs) {
       const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
       const x1 = cx - hwB, x2 = cx + hwB;

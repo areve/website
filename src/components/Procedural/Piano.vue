@@ -230,25 +230,27 @@ function playNoteForKey(keyIdx: number) {
     o.start(now);
     // envelope: sharp attack, faster decay for higher harmonics
     const attack = 0.001 + 0.001 * (h / harmonics);
-    const decay = 0.8 + (h / harmonics) * 0.9;
+    // longer harmonic decay for more sustain
+    const decay = 1.6 + (h / harmonics) * 1.2;
     g.gain.cancelScheduledValues(now);
     g.gain.setValueAtTime(0.00001, now);
     g.gain.linearRampToValueAtTime(amp, now + attack);
     g.gain.exponentialRampToValueAtTime(0.00001, now + attack + decay);
   }
 
-  // body filter brightness envelope
+  // body filter brightness envelope (slower decay)
   bodyFilter.frequency.setValueAtTime(Math.max(3000, freq * 6), now);
-  bodyFilter.frequency.exponentialRampToValueAtTime(Math.max(900, freq * 1.5), now + 1.2);
+  bodyFilter.frequency.exponentialRampToValueAtTime(Math.max(900, freq * 1.5), now + 2.8);
 
   // start noise (hammer)
   noise.start(now);
 
-  // overall master envelope to control perceived level
+  // overall master envelope to control perceived level (longer sustain)
   master.gain.cancelScheduledValues(now);
   master.gain.setValueAtTime(0.00001, now);
-  master.gain.linearRampToValueAtTime(1.0, now + 0.003);
-  master.gain.exponentialRampToValueAtTime(0.00001, now + 2.6);
+  master.gain.linearRampToValueAtTime(1.0, now + 0.004);
+  // sustain for several seconds before long decay
+  master.gain.exponentialRampToValueAtTime(0.00001, now + 6.0);
 
   _activeVoices.set(keyIdx, { ctx, master, oscs, gains, noise, delay, fb, fbFilter });
 }
@@ -258,12 +260,12 @@ function stopNoteForKey(keyIdx: number) {
   if (!v) return;
   const { ctx, master, oscs, gains, noise, delay, fb, fbFilter } = v as any;
   const now = ctx.currentTime;
-  // ramp master down quickly for release
+  // ramp master down over a longer release for sustain
   master.gain.cancelScheduledValues(now);
   master.gain.setValueAtTime(master.gain.value, now);
-  master.gain.exponentialRampToValueAtTime(0.00001, now + 0.35);
-  // stop oscillators after short tail
-  const stopTime = now + 0.5;
+  master.gain.exponentialRampToValueAtTime(0.00001, now + 8);
+  // stop oscillators after a longer tail
+  const stopTime = now + 1.6;
   try {
     if (noise) noise.stop(stopTime);
     if (oscs && oscs.length) oscs.forEach((o: OscillatorNode) => o.stop(stopTime));

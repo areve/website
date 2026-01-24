@@ -134,6 +134,7 @@ let _device: GPUDevice | null = null;
 let _context: GPUCanvasContext | null = null;
 let _pipeline: GPURenderPipeline | null = null;
 let _vertexBuffer: GPUBuffer | null = null;
+let _indexBuffer: GPUBuffer | null = null;
 let _raf = 0;
 
 async function initWebGPU() {
@@ -147,11 +148,38 @@ async function initWebGPU() {
     const format = (navigator as any).gpu.getPreferredCanvasFormat ? (navigator as any).gpu.getPreferredCanvasFormat() : "bgra8unorm";
     _context.configure({ device: _device, format, alphaMode: "opaque" });
 
-    // Define triangle vertices in JavaScript
+    // Define cube vertices in JavaScript (unit cube)
     const vertices = new Float32Array([
-      0.0, 0.5, 0.0,   // top
-      -0.5, -0.5, 0.0, // bottom left
-      0.5, -0.5, 0.0   // bottom right
+      // Front face
+      -0.5, -0.5,  0.5,
+       0.5, -0.5,  0.5,
+       0.5,  0.5,  0.5,
+      -0.5,  0.5,  0.5,
+      // Back face
+      -0.5, -0.5, -0.5,
+      -0.5,  0.5, -0.5,
+       0.5,  0.5, -0.5,
+       0.5, -0.5, -0.5,
+      // Top face
+      -0.5,  0.5, -0.5,
+      -0.5,  0.5,  0.5,
+       0.5,  0.5,  0.5,
+       0.5,  0.5, -0.5,
+      // Bottom face
+      -0.5, -0.5, -0.5,
+       0.5, -0.5, -0.5,
+       0.5, -0.5,  0.5,
+      -0.5, -0.5,  0.5,
+      // Right face
+       0.5, -0.5, -0.5,
+       0.5,  0.5, -0.5,
+       0.5,  0.5,  0.5,
+       0.5, -0.5,  0.5,
+      // Left face
+      -0.5, -0.5, -0.5,
+      -0.5, -0.5,  0.5,
+      -0.5,  0.5,  0.5,
+      -0.5,  0.5, -0.5,
     ]);
 
     _vertexBuffer = _device.createBuffer({
@@ -159,6 +187,28 @@ async function initWebGPU() {
       usage: GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST,
     });
     _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
+
+    // Indices for cube triangles
+    const indices = new Uint16Array([
+      // Front
+      0, 1, 2, 0, 2, 3,
+      // Back
+      4, 5, 6, 4, 6, 7,
+      // Top
+      8, 9, 10, 8, 10, 11,
+      // Bottom
+      12, 13, 14, 12, 14, 15,
+      // Right
+      16, 17, 18, 16, 18, 19,
+      // Left
+      20, 21, 22, 20, 22, 23,
+    ]);
+
+    _indexBuffer = _device.createBuffer({
+      size: indices.byteLength,
+      usage: GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST,
+    });
+    _device.queue.writeBuffer(_indexBuffer, 0, indices);
 
     const shaderCode = `
       struct VertexInput {
@@ -172,7 +222,7 @@ async function initWebGPU() {
 
       @fragment
       fn fs_main() -> @location(0) vec4<f32> {
-        return vec4<f32>(1.0, 0.0, 0.0, 1.0); // red triangle
+        return vec4<f32>(1.0, 0.0, 0.0, 1.0); // red cube
       }
     `;
 
@@ -247,7 +297,7 @@ function resizeCanvasForMode() {
 
 function startRenderLoop() {
   const frame = () => {
-    if (!_device || !_context || !_pipeline || !_vertexBuffer) return;
+    if (!_device || !_context || !_pipeline || !_vertexBuffer || !_indexBuffer) return;
     const commandEncoder = _device.createCommandEncoder();
     const textureView = _context.getCurrentTexture().createView();
     const pass = commandEncoder.beginRenderPass({
@@ -262,7 +312,8 @@ function startRenderLoop() {
     });
     pass.setPipeline(_pipeline);
     pass.setVertexBuffer(0, _vertexBuffer);
-    pass.draw(3);
+    pass.setIndexBuffer(_indexBuffer, "uint16");
+    pass.drawIndexed(36); // 36 indices for cube
     pass.end();
     _device.queue.submit([commandEncoder.finish()]);
     _raf = requestAnimationFrame(frame);

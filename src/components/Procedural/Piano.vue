@@ -135,6 +135,9 @@ let _context: GPUCanvasContext | null = null;
 let _pipeline: GPURenderPipeline | null = null;
 let _vertexBuffer: GPUBuffer | null = null;
 let _indexBuffer: GPUBuffer | null = null;
+let _uniformBuffer: GPUBuffer | null = null;
+let _bindGroup: GPUBindGroup | null = null;
+let _depthTexture: GPUTexture | null = null;
 let _raf = 0;
 
 async function initWebGPU() {
@@ -148,38 +151,41 @@ async function initWebGPU() {
     const format = (navigator as any).gpu.getPreferredCanvasFormat ? (navigator as any).gpu.getPreferredCanvasFormat() : "bgra8unorm";
     _context.configure({ device: _device, format, alphaMode: "opaque" });
 
-    // Define cube vertices in JavaScript (unit cube)
+    // size canvas and create depth
+    resizeCanvasForMode();
+
+    // Define cube vertices in JavaScript (unit cube) with colors per face
     const vertices = new Float32Array([
-      // Front face
-      -0.5, -0.5,  0.5,
-       0.5, -0.5,  0.5,
-       0.5,  0.5,  0.5,
-      -0.5,  0.5,  0.5,
-      // Back face
-      -0.5, -0.5, -0.5,
-      -0.5,  0.5, -0.5,
-       0.5,  0.5, -0.5,
-       0.5, -0.5, -0.5,
-      // Top face
-      -0.5,  0.5, -0.5,
-      -0.5,  0.5,  0.5,
-       0.5,  0.5,  0.5,
-       0.5,  0.5, -0.5,
-      // Bottom face
-      -0.5, -0.5, -0.5,
-       0.5, -0.5, -0.5,
-       0.5, -0.5,  0.5,
-      -0.5, -0.5,  0.5,
-      // Right face
-       0.5, -0.5, -0.5,
-       0.5,  0.5, -0.5,
-       0.5,  0.5,  0.5,
-       0.5, -0.5,  0.5,
-      // Left face
-      -0.5, -0.5, -0.5,
-      -0.5, -0.5,  0.5,
-      -0.5,  0.5,  0.5,
-      -0.5,  0.5, -0.5,
+      // Front face (red)
+      -0.5, -0.5,  0.5, 1.0, 0.0, 0.0,
+       0.5, -0.5,  0.5, 1.0, 0.0, 0.0,
+       0.5,  0.5,  0.5, 1.0, 0.0, 0.0,
+      -0.5,  0.5,  0.5, 1.0, 0.0, 0.0,
+      // Back face (green)
+      -0.5, -0.5, -0.5, 0.0, 1.0, 0.0,
+      -0.5,  0.5, -0.5, 0.0, 1.0, 0.0,
+       0.5,  0.5, -0.5, 0.0, 1.0, 0.0,
+       0.5, -0.5, -0.5, 0.0, 1.0, 0.0,
+      // Top face (blue)
+      -0.5,  0.5, -0.5, 0.0, 0.0, 1.0,
+      -0.5,  0.5,  0.5, 0.0, 0.0, 1.0,
+       0.5,  0.5,  0.5, 0.0, 0.0, 1.0,
+       0.5,  0.5, -0.5, 0.0, 0.0, 1.0,
+      // Bottom face (yellow)
+      -0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
+       0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
+       0.5, -0.5,  0.5, 1.0, 1.0, 0.0,
+      -0.5, -0.5,  0.5, 1.0, 1.0, 0.0,
+      // Right face (magenta)
+       0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
+       0.5,  0.5, -0.5, 1.0, 0.0, 1.0,
+       0.5,  0.5,  0.5, 1.0, 0.0, 1.0,
+       0.5, -0.5,  0.5, 1.0, 0.0, 1.0,
+      // Left face (cyan)
+      -0.5, -0.5, -0.5, 0.0, 1.0, 1.0,
+      -0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
+      -0.5,  0.5,  0.5, 0.0, 1.0, 1.0,
+      -0.5,  0.5, -0.5, 0.0, 1.0, 1.0,
     ]);
 
     _vertexBuffer = _device.createBuffer({
@@ -210,19 +216,55 @@ async function initWebGPU() {
     });
     _device.queue.writeBuffer(_indexBuffer, 0, indices);
 
+    // Uniform buffer for model matrix
+    _uniformBuffer = _device.createBuffer({
+      size: 64, // 4x4 matrix * 4 bytes
+      usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
+    });
+
+    // Simple rotation matrix (rotate around Y and X)
+    const angleY = Math.PI / 6; // 30 degrees
+    const angleX = Math.PI / 6;
+    const cosY = Math.cos(angleY);
+    const sinY = Math.sin(angleY);
+    const cosX = Math.cos(angleX);
+    const sinX = Math.sin(angleX);
+    const modelMatrix = new Float32Array([
+      cosY, 0, sinY, 0,
+      sinX * sinY, cosX, -sinX * cosY, 0,
+      -cosX * sinY, sinX, cosX * cosY, 0,
+      0, 0, 0, 1,
+    ]);
+    _device.queue.writeBuffer(_uniformBuffer, 0, modelMatrix);
+
     const shaderCode = `
+      struct Uniforms {
+        model: mat4x4<f32>,
+      };
+
+      @group(0) @binding(0) var<uniform> uniforms: Uniforms;
+
       struct VertexInput {
         @location(0) position: vec3<f32>,
+        @location(1) color: vec3<f32>,
+      };
+
+      struct VertexOutput {
+        @builtin(position) position: vec4<f32>,
+        @location(0) color: vec3<f32>,
       };
 
       @vertex
-      fn vs_main(input: VertexInput) -> @builtin(position) vec4<f32> {
-        return vec4<f32>(input.position, 1.0);
+      fn vs_main(input: VertexInput) -> VertexOutput {
+        var output: VertexOutput;
+        output.position = uniforms.model * vec4<f32>(input.position, 1.0);
+        output.color = input.color;
+        return output;
       }
 
       @fragment
-      fn fs_main() -> @location(0) vec4<f32> {
-        return vec4<f32>(1.0, 0.0, 0.0, 1.0); // red cube
+      fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
+        return vec4<f32>(input.color, 1.0);
       }
     `;
 
@@ -234,11 +276,16 @@ async function initWebGPU() {
         entryPoint: "vs_main",
         buffers: [
           {
-            arrayStride: 3 * 4, // 3 floats * 4 bytes
+            arrayStride: 6 * 4, // 6 floats * 4 bytes (pos + color)
             attributes: [
               {
                 shaderLocation: 0,
                 offset: 0,
+                format: "float32x3",
+              },
+              {
+                shaderLocation: 1,
+                offset: 3 * 4, // after position
                 format: "float32x3",
               },
             ],
@@ -250,7 +297,22 @@ async function initWebGPU() {
         entryPoint: "fs_main",
         targets: [{ format }],
       },
-      primitive: { topology: "triangle-list" },
+      primitive: { topology: "triangle-list", cullMode: "back" },
+      depthStencil: {
+        depthWriteEnabled: true,
+        depthCompare: "less",
+        format: "depth24plus",
+      },
+    });
+
+    _bindGroup = _device.createBindGroup({
+      layout: _pipeline.getBindGroupLayout(0),
+      entries: [
+        {
+          binding: 0,
+          resource: { buffer: _uniformBuffer },
+        },
+      ],
     });
 
     startRenderLoop();
@@ -260,7 +322,7 @@ async function initWebGPU() {
 }
 
 function resizeCanvasForMode() {
-  if (!canvas.value || !container.value) return;
+  if (!canvas.value || !container.value || !_device) return;
   const isFs = !!document.fullscreenElement;
   // sync fullscreen state
   state.value.fullscreen = isFs;
@@ -283,6 +345,14 @@ function resizeCanvasForMode() {
     canvas.value.width = Math.round(rect.width * dpr);
     canvas.value.height = Math.round(rect.height * dpr);
   }
+
+  // Create depth texture
+  _depthTexture = _device.createTexture({
+    size: [canvas.value.width, canvas.value.height],
+    format: "depth24plus",
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+
   // Update controls button position to track right-hand side similar to Procedural
   try {
     const rect = container.value.getBoundingClientRect();
@@ -297,7 +367,7 @@ function resizeCanvasForMode() {
 
 function startRenderLoop() {
   const frame = () => {
-    if (!_device || !_context || !_pipeline || !_vertexBuffer || !_indexBuffer) return;
+    if (!_device || !_context || !_pipeline || !_vertexBuffer || !_indexBuffer || !_bindGroup || !_depthTexture) return;
     const commandEncoder = _device.createCommandEncoder();
     const textureView = _context.getCurrentTexture().createView();
     const pass = commandEncoder.beginRenderPass({
@@ -309,8 +379,15 @@ function startRenderLoop() {
           storeOp: "store",
         },
       ],
+      depthStencilAttachment: {
+        view: _depthTexture.createView(),
+        depthClearValue: 1.0,
+        depthLoadOp: "clear",
+        depthStoreOp: "store",
+      },
     });
     pass.setPipeline(_pipeline);
+    pass.setBindGroup(0, _bindGroup);
     pass.setVertexBuffer(0, _vertexBuffer);
     pass.setIndexBuffer(_indexBuffer, "uint16");
     pass.drawIndexed(36); // 36 indices for cube
@@ -330,7 +407,6 @@ onMounted(async () => {
     }
   } catch {}
   // size canvas and init webgpu
-  resizeCanvasForMode();
   await initWebGPU();
   const onFsChange = () => {
     // update fullscreen state and resize

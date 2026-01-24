@@ -212,7 +212,9 @@ async function initWebGPU() {
     for (const pair of blackPairs) {
       const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
       const x1 = cx - hwB, x2 = cx + hwB;
-      const y1 = -hlB, y2 = hlB;
+      // align black key back edge with white key back (y = hl)
+      const y2 = hl;
+      const y1 = hl - 2 * hlB; // shorter length, anchored to back
       const z1 = -hdB, z2 = hdB;
       const cR = 0.02, cG = 0.02, cB = 0.02;
       // front

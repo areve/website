@@ -164,83 +164,107 @@ function midiToFreq(m: number) {
 function playNoteForKey(keyIdx: number) {
   const ctx = ensureAudio();
   if (!ctx) return;
-  // resume audio context on first user gesture
   if (ctx.state === "suspended") ctx.resume();
   const info: any = _keysInfo[keyIdx];
   if (!info || !info.midi) return;
   const freq = midiToFreq(info.midi);
-  // create harmonic-rich oscillator (additive via multiple oscillators)
-  const master = ctx.createGain();
-  master.gain.value = 0.0001;
-  master.connect(ctx.destination);
-
-  // lowpass for body
-  const bodyFilter = ctx.createBiquadFilter();
-  bodyFilter.type = "lowpass";
-  bodyFilter.frequency.value = 6000;
-  bodyFilter.Q.value = 0.8;
-  bodyFilter.connect(master);
-
-  // fundamental + a few harmonics
-  const osc1 = ctx.createOscillator();
-  osc1.type = "sine";
-  osc1.frequency.value = freq;
-  const g1 = ctx.createGain(); g1.gain.value = 0.8;
-  osc1.connect(g1); g1.connect(bodyFilter);
-
-  const osc2 = ctx.createOscillator();
-  osc2.type = "sine";
-  osc2.frequency.value = freq * 2.0;
-  const g2 = ctx.createGain(); g2.gain.value = 0.25;
-  osc2.connect(g2); g2.connect(bodyFilter);
-
-  const osc3 = ctx.createOscillator();
-  osc3.type = "sine";
-  osc3.frequency.value = freq * 3.0;
-  const g3 = ctx.createGain(); g3.gain.value = 0.12;
-  osc3.connect(g3); g3.connect(bodyFilter);
-
-  // hammer noise (short burst of filtered noise)
-  const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * 1.0, ctx.sampleRate);
-  const data = noiseBuffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
-  const noiseSrc = ctx.createBufferSource();
-  noiseSrc.buffer = noiseBuffer; noiseSrc.loop = false;
-  const noiseFilter = ctx.createBiquadFilter();
-  noiseFilter.type = "bandpass"; noiseFilter.frequency.value = Math.max(1000, freq * 4);
-  noiseSrc.connect(noiseFilter); noiseFilter.connect(master);
 
   const now = ctx.currentTime;
-  // envelope on master gain
-  const attack = 0.004;
-  const decay = 1.6;
-  const sustain = 0.0;
-  const release = 0.25;
+  // voice nodes
+  const master = ctx.createGain();
+  const bodyFilter = ctx.createBiquadFilter();
+  bodyFilter.type = "lowpass";
+  bodyFilter.Q.value = 0.9;
+
+  const wetGain = ctx.createGain();
+  wetGain.gain.value = 0.14;
+  wetGain.connect(master);
+
+  master.gain.value = 0.00001;
+  master.connect(ctx.destination);
+
+  // simple feedback delay reverb for body
+  const delay = ctx.createDelay(); delay.delayTime.value = 0.115;
+  const fb = ctx.createGain(); fb.gain.value = 0.28;
+  const fbFilter = ctx.createBiquadFilter(); fbFilter.type = "lowpass"; fbFilter.frequency.value = 3000;
+  delay.connect(fbFilter); fbFilter.connect(fb); fb.connect(delay);
+  delay.connect(wetGain);
+
+  bodyFilter.connect(master);
+  bodyFilter.connect(delay);
+
+  // hammer noise (short filtered burst)
+  const noise = ctx.createBufferSource();
+  const nb = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.06), ctx.sampleRate);
+  const nd = nb.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.01));
+  noise.buffer = nb; noise.loop = false;
+  const noiseF = ctx.createBiquadFilter(); noiseF.type = "bandpass"; noiseF.frequency.value = Math.max(1200, freq * 3.5);
+  noise.connect(noiseF); noiseF.connect(bodyFilter);
+
+  // additive harmonics with inharmonicity and per-harmonic envelopes
+  const harmonics = 8;
+  const oscs: OscillatorNode[] = [];
+  const gains: GainNode[] = [];
+  for (let h = 1; h <= harmonics; h++) {
+    const o = ctx.createOscillator();
+    o.type = "sine";
+    // small inharmonicity factor for piano-like partials
+    const inharm = 1 + 0.0006 * (h * h);
+    o.frequency.value = freq * h * inharm;
+    const g = ctx.createGain();
+    // amplitude ~ 1/h with slight rolloff
+    const amp = (1 / h) * Math.pow(0.9, h);
+    g.gain.value = 0.00001;
+    o.connect(g); g.connect(bodyFilter);
+    oscs.push(o); gains.push(g);
+    // start
+    o.start(now);
+    // envelope: sharp attack, faster decay for higher harmonics
+    const attack = 0.001 + 0.001 * (h / harmonics);
+    const decay = 0.8 + (h / harmonics) * 0.9;
+    g.gain.cancelScheduledValues(now);
+    g.gain.setValueAtTime(0.00001, now);
+    g.gain.linearRampToValueAtTime(amp, now + attack);
+    g.gain.exponentialRampToValueAtTime(0.00001, now + attack + decay);
+  }
+
+  // body filter brightness envelope
+  bodyFilter.frequency.setValueAtTime(Math.max(3000, freq * 6), now);
+  bodyFilter.frequency.exponentialRampToValueAtTime(Math.max(900, freq * 1.5), now + 1.2);
+
+  // start noise (hammer)
+  noise.start(now);
+
+  // overall master envelope to control perceived level
   master.gain.cancelScheduledValues(now);
-  master.gain.setValueAtTime(0.0001, now);
-  master.gain.linearRampToValueAtTime(1.0, now + attack);
-  master.gain.exponentialRampToValueAtTime(0.0001, now + attack + decay);
+  master.gain.setValueAtTime(0.00001, now);
+  master.gain.linearRampToValueAtTime(1.0, now + 0.003);
+  master.gain.exponentialRampToValueAtTime(0.00001, now + 2.6);
 
-  osc1.start(now); osc2.start(now); osc3.start(now); noiseSrc.start(now);
-
-  _activeVoices.set(keyIdx, { ctx, master, osc1, osc2, osc3, noiseSrc, release });
+  _activeVoices.set(keyIdx, { ctx, master, oscs, gains, noise, delay, fb, fbFilter });
 }
 
 function stopNoteForKey(keyIdx: number) {
   const v = _activeVoices.get(keyIdx);
   if (!v) return;
-  const { ctx, master, osc1, osc2, osc3, noiseSrc, release } = v;
+  const { ctx, master, oscs, gains, noise, delay, fb, fbFilter } = v as any;
   const now = ctx.currentTime;
+  // ramp master down quickly for release
   master.gain.cancelScheduledValues(now);
   master.gain.setValueAtTime(master.gain.value, now);
-  master.gain.exponentialRampToValueAtTime(0.0001, now + release);
-  // stop oscillators after release
-  const stopTime = now + release + 0.05;
-  try { osc1.stop(stopTime); osc2.stop(stopTime); osc3.stop(stopTime); noiseSrc.stop(stopTime); } catch {}
+  master.gain.exponentialRampToValueAtTime(0.00001, now + 0.35);
+  // stop oscillators after short tail
+  const stopTime = now + 0.5;
+  try {
+    if (noise) noise.stop(stopTime);
+    if (oscs && oscs.length) oscs.forEach((o: OscillatorNode) => o.stop(stopTime));
+  } catch {}
   setTimeout(() => {
     try { master.disconnect(); } catch {}
+    try { if (delay) delay.disconnect(); if (fb) fb.disconnect(); if (fbFilter) fbFilter.disconnect(); } catch {}
     _activeVoices.delete(keyIdx);
-  }, (release + 0.2) * 1000);
+  }, 800);
 }
 type KeyInfo = {
   baseVertex: number;

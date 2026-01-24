@@ -8,7 +8,8 @@
     </div>
 
     <div ref="container" class="canvas-container">
-      <canvas ref="canvas" class="canvas" tabindex="0"></canvas>
+        <canvas ref="canvas" class="canvas" tabindex="0"></canvas>
+        <canvas ref="overlay" class="overlay-canvas" aria-hidden="true"></canvas>
 
       <!-- Right-hand circular controls button -->
       <button
@@ -30,6 +31,10 @@
             <input type="checkbox" v-model="state.fullscreen" @change="handleToggleFullscreen" />
             Fullscreen
           </label>
+          <label class="mode-select checkbox">
+            <input type="checkbox" v-model="state.controls.showHitRegions" />
+            Show hit regions
+          </label>
         </div>
       </div>
     </div>
@@ -41,6 +46,7 @@ import { ref, onMounted, onUnmounted, nextTick } from "vue";
 import { usePersistentState } from "./lib/persistenceService";
 
 const canvas = ref<HTMLCanvasElement | null>(null);
+const overlay = ref<HTMLCanvasElement | null>(null);
 const container = ref<HTMLElement | null>(null);
 const controlsButton = ref<HTMLElement | null>(null);
 const controlsButtonTop = ref<number>(0);
@@ -48,7 +54,7 @@ const controlsButtonTop = ref<number>(0);
 let onFsChange: (() => void) | null = null;
 
 const state = ref({
-  controls: { visible: false as boolean, buttonPosition: null as number | null },
+  controls: { visible: false as boolean, buttonPosition: null as number | null, showHitRegions: false as boolean },
   fullscreen: false as boolean,
 });
 
@@ -339,6 +345,71 @@ function updateKeyScreenBoxes() {
   }
 }
 
+function drawDebugOverlay() {
+  if (!overlay.value || !canvas.value) return;
+  const ctx = overlay.value.getContext("2d");
+  if (!ctx) return;
+  // match size
+  overlay.value.width = canvas.value.width;
+  overlay.value.height = canvas.value.height;
+  overlay.value.style.width = canvas.value.style.width;
+  overlay.value.style.height = canvas.value.style.height;
+  ctx.clearRect(0, 0, overlay.value.width, overlay.value.height);
+  if (!state.value.controls.showHitRegions) return;
+  if (!_keysInfo || !_keysInfo.length) return;
+  // draw each key's triangles from current vertex positions
+  for (let k = 0; k < _keysInfo.length; k++) {
+    const info: any = _keysInfo[k];
+    const base = info.baseVertex * 9;
+    // pick color by type
+    const fill = info.type === "white" ? "rgba(30,144,255,0.12)" : "rgba(255,0,0,0.16)";
+    const stroke = info.type === "white" ? "rgba(30,144,255,0.6)" : "rgba(200,0,0,0.8)";
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    // draw all triangles (same layout as in findKeyAtPoint)
+    const tris = [
+      [0,1,2],[0,2,3],
+      [4,5,6],[4,6,7],
+      [8,9,10],[8,10,11],
+      [12,13,14],[12,14,15],
+      [16,17,18],[16,18,19],
+      [20,21,22],[20,22,23],
+    ];
+    for (let t = 0; t < tris.length; t++) {
+      const [i0, i1, i2] = tris[t];
+      const idx0 = base + i0 * 9;
+      const idx1 = base + i1 * 9;
+      const idx2 = base + i2 * 9;
+      const v0 = [_vertices ? _vertices[idx0 + 0] : 0, _vertices ? _vertices[idx0 + 1] : 0, _vertices ? _vertices[idx0 + 2] : 0];
+      const v1 = [_vertices ? _vertices[idx1 + 0] : 0, _vertices ? _vertices[idx1 + 1] : 0, _vertices ? _vertices[idx1 + 2] : 0];
+      const v2 = [_vertices ? _vertices[idx2 + 0] : 0, _vertices ? _vertices[idx2 + 1] : 0, _vertices ? _vertices[idx2 + 2] : 0];
+      const p0 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v0 as any, canvas.value);
+      const p1 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v1 as any, canvas.value);
+      const p2 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v2 as any, canvas.value);
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+    // draw bounding box if present
+    if (info.screenMinX != null) {
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(info.screenMinX, info.screenMinY, Math.max(1, info.screenMaxX - info.screenMinX), Math.max(1, info.screenMaxY - info.screenMinY));
+    }
+    // label midi
+    if (info.midi != null) {
+      ctx.fillStyle = "rgba(255,255,255,0.9)";
+      ctx.font = "12px sans-serif";
+      if (info.screenMinX != null) ctx.fillText(String(info.midi), info.screenMinX + 4, (info.screenMinY as number) + 12);
+    }
+  }
+}
+
 function _writeVertexSlice(baseVertex: number, updated: Float32Array) {
   if (!_device || !_vertexBuffer) return;
   const offset = baseVertex * 9 * 4; // floats-per-vertex * bytes
@@ -442,14 +513,31 @@ function findKeyAtPoint(clientX: number, clientY: number) {
       const p1 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v1, canvas.value);
       const p2 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v2, canvas.value);
       if (pointInTri(px, py, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y)) {
-        // compute average view-space depth for this triangle
+        // compute average view-space depth for this triangle (no abs)
         const mv0 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v0[0], v0[1], v0[2], 1]));
         const mv1 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v1[0], v1[1], v1[2], 1]));
         const mv2 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v2[0], v2[1], v2[2], 1]));
-        const depth = (Math.abs(mv0[2]) + Math.abs(mv1[2]) + Math.abs(mv2[2])) / 3;
-        if (depth < bestDepth) {
+        const depth = (mv0[2] + mv1[2] + mv2[2]) / 3;
+        // smaller negative depth is further; larger (closer to zero) is nearer
+        // prefer closer depth; break near ties by preferring black keys
+        const epsilon = 0.02;
+        if (bestKey === -1) {
           bestDepth = depth;
           bestKey = k;
+        } else {
+          // if this triangle is nearer by more than epsilon, choose it
+          if (depth > bestDepth + epsilon) {
+            bestDepth = depth;
+            bestKey = k;
+          } else if (Math.abs(depth - bestDepth) <= epsilon) {
+            // tie: prefer black key over white
+            const currentIsBlack = (_keysInfo[k] as any).type === "black";
+            const bestIsBlack = (_keysInfo[bestKey] as any).type === "black";
+            if (currentIsBlack && !bestIsBlack) {
+              bestDepth = depth;
+              bestKey = k;
+            }
+          }
         }
       }
     }
@@ -913,6 +1001,10 @@ function startRenderLoop() {
     pass.drawIndexed(_indexCount);
     pass.end();
     _device.queue.submit([commandEncoder.finish()]);
+    // draw debug overlay after GPU frame
+    try {
+      drawDebugOverlay();
+    } catch {}
     _raf = requestAnimationFrame(frame);
   };
   _raf = requestAnimationFrame(frame);
@@ -970,6 +1062,14 @@ onUnmounted(() => {
   position: relative;
   display: inline-block;
   overflow: hidden;
+}
+
+.overlay-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 60;
 }
 
 .canvas-container .canvas {

@@ -38,6 +38,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, onUnmounted, nextTick } from "vue";
+import { usePersistentState } from "./lib/persistenceService";
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 const container = ref<HTMLElement | null>(null);
@@ -48,6 +49,8 @@ const state = ref({
   controls: { visible: false as boolean, buttonPosition: null as number | null },
   fullscreen: false as boolean,
 });
+
+usePersistentState("piano.state.v1", state);
 
 function toggleControls(e?: Event) {
   if (_didDrag) {

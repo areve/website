@@ -235,11 +235,14 @@ async function initWebGPU() {
       0, 0, (2 * far * near) / (near - far), 0,
     ]);
 
-    // View matrix (camera at (0,0,3) looking down -Z)
+    // View matrix (camera at (0,0,3) looking down -Z with Y rotation)
+    const viewAngleY = Math.PI / 4; // 45 degrees
+    const cosVY = Math.cos(viewAngleY);
+    const sinVY = Math.sin(viewAngleY);
     const viewMatrix = new Float32Array([
-      1, 0, 0, 0,
+      cosVY, 0, sinVY, 0,
       0, 1, 0, 0,
-      0, 0, 1, 0,
+      -sinVY, 0, cosVY, 0,
       0, 0, -3, 1,  // translate z by 3
     ]);
 

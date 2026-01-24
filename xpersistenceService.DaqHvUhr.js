@@ -1,0 +1,1 @@
+import{P as a}from"./xindex.R2jgJwyS.js";const s={};function c(t,e){s[t]=e;const o=window.localStorage.getItem(t);o&&(e.value=JSON.parse(o)),a(()=>window.localStorage.setItem(t,JSON.stringify(e.value)))}export{c as u};

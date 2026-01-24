@@ -237,12 +237,13 @@ async function initWebGPU() {
       0, 0, (2 * far * near) / (near - far), 0,
     ]);
 
-    const cosVY = Math.cos(0);
-    const sinVY = Math.sin(0);
+    const viewAngleX = -Math.PI / 3; 
+    const cosVX = Math.cos(viewAngleX);
+    const sinVX = Math.sin(viewAngleX);
     const viewMatrix = new Float32Array([
-      cosVY, 0, sinVY, 0,
-      0, 1, 0, 0,
-      -sinVY, 0, cosVY, 0,
+      1, 0, 0, 0,
+      0, cosVX, sinVX, 0,
+      0, -sinVX, cosVX, 0,
       0, 0, -3, 1,  // translate z by 3
     ]);
 

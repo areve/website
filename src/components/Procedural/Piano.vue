@@ -159,10 +159,11 @@ async function initWebGPU() {
 
     // Generate white keys (7) and black keys (5) for one octave
     const whiteCount = 7;
-    const step = 0.34; // spacing between white key centers
-    const hw = 0.15; // white half width along X
-    const hl = 0.75; // white half length along Y
-    const hd = 0.025; // white half depth along Z
+    // More realistic proportions (relative scene units)
+    const step = 0.26; // spacing between white key centers
+    const hw = 0.115; // white half width (~0.23 total)
+    const hl = 0.5; // white half length (~1.0 total)
+    const hd = 0.02; // white half thickness (top surface at +0.02)
     const verts: number[] = [];
     const whiteCenters: number[] = [];
     for (let i = -3; i <= 3; i++) {
@@ -204,18 +205,21 @@ async function initWebGPU() {
       verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
     }
 
-    // Black keys: between whites (skip between E-F). Use pairs of white indices.
+    // Black keys: between whites (skip between E-F)
     const blackPairs = [[0,1],[1,2],[3,4],[4,5],[5,6]];
-    const hwB = 0.09; // black half width
-    const hlB = 0.45; // black half length (shorter)
-    const hdB = 0.08; // black key half-depth (raised above white keys)
+    const hwB = 0.07; // black half width (~0.14 total)
+    const hlB = 0.32; // black half length (shorter)
+    const blackThickness = 0.06; // total thickness of black key
+    const blackRaiseGap = 0.01; // gap above white top surface
     for (const pair of blackPairs) {
       const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
       const x1 = cx - hwB, x2 = cx + hwB;
       // align black key back edge with white key back (y = hl)
       const y2 = hl;
       const y1 = hl - 2 * hlB; // shorter length, anchored to back
-      const z1 = -hdB, z2 = hdB;
+      // position black key above white key surface: bottom = white top + gap
+      const z1 = hd + blackRaiseGap; // bottom of black key
+      const z2 = z1 + blackThickness; // top of black key
       const cR = 0.02, cG = 0.02, cB = 0.02;
       // front
       verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);

@@ -154,38 +154,38 @@ async function initWebGPU() {
     // size canvas and create depth
     resizeCanvasForMode();
 
-    // Define cube vertices in JavaScript (unit cube) with colors per face
+    // Define cube vertices in JavaScript (unit cube) with colors and normals per face
     const vertices = new Float32Array([
-      // Front face (red)
-      -0.5, -0.5,  0.5, 1.0, 0.0, 0.0,
-       0.5, -0.5,  0.5, 1.0, 0.0, 0.0,
-       0.5,  0.5,  0.5, 1.0, 0.0, 0.0,
-      -0.5,  0.5,  0.5, 1.0, 0.0, 0.0,
-      // Back face (green)
-      -0.5, -0.5, -0.5, 0.0, 1.0, 0.0,
-      -0.5,  0.5, -0.5, 0.0, 1.0, 0.0,
-       0.5,  0.5, -0.5, 0.0, 1.0, 0.0,
-       0.5, -0.5, -0.5, 0.0, 1.0, 0.0,
-      // Top face (blue)
-      -0.5,  0.5, -0.5, 0.0, 0.0, 1.0,
-      -0.5,  0.5,  0.5, 0.0, 0.0, 1.0,
-       0.5,  0.5,  0.5, 0.0, 0.0, 1.0,
-       0.5,  0.5, -0.5, 0.0, 0.0, 1.0,
-      // Bottom face (yellow)
-      -0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-       0.5, -0.5, -0.5, 1.0, 1.0, 0.0,
-       0.5, -0.5,  0.5, 1.0, 1.0, 0.0,
-      -0.5, -0.5,  0.5, 1.0, 1.0, 0.0,
-      // Right face (magenta)
-       0.5, -0.5, -0.5, 1.0, 0.0, 1.0,
-       0.5,  0.5, -0.5, 1.0, 0.0, 1.0,
-       0.5,  0.5,  0.5, 1.0, 0.0, 1.0,
-       0.5, -0.5,  0.5, 1.0, 0.0, 1.0,
-      // Left face (cyan)
-      -0.5, -0.5, -0.5, 0.0, 1.0, 1.0,
-      -0.5, -0.5,  0.5, 0.0, 1.0, 1.0,
-      -0.5,  0.5,  0.5, 0.0, 1.0, 1.0,
-      -0.5,  0.5, -0.5, 0.0, 1.0, 1.0,
+      // Front face (red) normal (0,0,1)
+      -0.5, -0.5,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+       0.5, -0.5,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+       0.5,  0.5,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+      -0.5,  0.5,  0.5, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0,
+      // Back face (green) normal (0,0,-1)
+      -0.5, -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+      -0.5,  0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+       0.5,  0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+       0.5, -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, -1.0,
+      // Top face (blue) normal (0,1,0)
+      -0.5,  0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+      -0.5,  0.5,  0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+       0.5,  0.5,  0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+       0.5,  0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0,
+      // Bottom face (yellow) normal (0,-1,0)
+      -0.5, -0.5, -0.5, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+       0.5, -0.5, -0.5, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+       0.5, -0.5,  0.5, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+      -0.5, -0.5,  0.5, 1.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+      // Right face (magenta) normal (1,0,0)
+       0.5, -0.5, -0.5, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+       0.5,  0.5, -0.5, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+       0.5,  0.5,  0.5, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+       0.5, -0.5,  0.5, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0,
+      // Left face (cyan) normal (-1,0,0)
+      -0.5, -0.5, -0.5, 0.0, 1.0, 1.0, -1.0, 0.0, 0.0,
+      -0.5, -0.5,  0.5, 0.0, 1.0, 1.0, -1.0, 0.0, 0.0,
+      -0.5,  0.5,  0.5, 0.0, 1.0, 1.0, -1.0, 0.0, 0.0,
+      -0.5,  0.5, -0.5, 0.0, 1.0, 1.0, -1.0, 0.0, 0.0,
     ]);
 
     _vertexBuffer = _device.createBuffer({
@@ -216,9 +216,9 @@ async function initWebGPU() {
     });
     _device.queue.writeBuffer(_indexBuffer, 0, indices);
 
-    // Uniform buffer for MVP matrices
+    // Uniform buffer for MVP matrices and light direction
     _uniformBuffer = _device.createBuffer({
-      size: 192, // 3x 4x4 matrices * 4 bytes
+      size: 208, // 3x 4x4 matrices * 4 + 4 floats for light
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
@@ -257,11 +257,18 @@ async function initWebGPU() {
       0, 0, 0, 1,
     ]);
 
-    // Combine into uniform buffer: projection, view, model
-    const uniforms = new Float32Array(48); // 3 matrices
+    // Combine into uniform buffer: projection, view, model, lightDir
+    const uniforms = new Float32Array(52); // 3 matrices + 4 floats
     uniforms.set(projectionMatrix, 0);
     uniforms.set(viewMatrix, 16);
     uniforms.set(modelMatrix, 32);
+    // Light direction (normalized)
+    const lightDir = [1, 1, 1];
+    const len = Math.sqrt(lightDir[0]**2 + lightDir[1]**2 + lightDir[2]**2);
+    uniforms[48] = lightDir[0]/len;
+    uniforms[49] = lightDir[1]/len;
+    uniforms[50] = lightDir[2]/len;
+    uniforms[51] = 0; // padding
     _device.queue.writeBuffer(_uniformBuffer, 0, uniforms);
 
     const shaderCode = `
@@ -269,6 +276,7 @@ async function initWebGPU() {
         projection: mat4x4<f32>,
         view: mat4x4<f32>,
         model: mat4x4<f32>,
+        lightDir: vec3<f32>,
       };
 
       @group(0) @binding(0) var<uniform> uniforms: Uniforms;
@@ -276,11 +284,13 @@ async function initWebGPU() {
       struct VertexInput {
         @location(0) position: vec3<f32>,
         @location(1) color: vec3<f32>,
+        @location(2) normal: vec3<f32>,
       };
 
       struct VertexOutput {
         @builtin(position) position: vec4<f32>,
         @location(0) color: vec3<f32>,
+        @location(1) normal: vec3<f32>,
       };
 
       @vertex
@@ -288,12 +298,17 @@ async function initWebGPU() {
         var output: VertexOutput;
         output.position = uniforms.projection * uniforms.view * uniforms.model * vec4<f32>(input.position, 1.0);
         output.color = input.color;
+        output.normal = (uniforms.model * vec4<f32>(input.normal, 0.0)).xyz;
         return output;
       }
 
       @fragment
       fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-        return vec4<f32>(input.color, 1.0);
+        let normal = normalize(input.normal);
+        let lightDir = normalize(uniforms.lightDir);
+        let diffuse = max(dot(normal, lightDir), 0.0);
+        let litColor = input.color * (0.2 + 0.8 * diffuse); // ambient + diffuse
+        return vec4<f32>(litColor, 1.0);
       }
     `;
 
@@ -305,7 +320,7 @@ async function initWebGPU() {
         entryPoint: "vs_main",
         buffers: [
           {
-            arrayStride: 6 * 4, // 6 floats * 4 bytes (pos + color)
+            arrayStride: 9 * 4, // 9 floats * 4 bytes (pos + color + normal)
             attributes: [
               {
                 shaderLocation: 0,
@@ -315,6 +330,11 @@ async function initWebGPU() {
               {
                 shaderLocation: 1,
                 offset: 3 * 4, // after position
+                format: "float32x3",
+              },
+              {
+                shaderLocation: 2,
+                offset: 6 * 4, // after color
                 format: "float32x3",
               },
             ],

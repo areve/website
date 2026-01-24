@@ -361,24 +361,44 @@ async function initWebGPU() {
         @builtin(position) position: vec4<f32>,
         @location(0) color: vec3<f32>,
         @location(1) normal: vec3<f32>,
+        @location(2) viewPos: vec3<f32>,
       };
 
       @vertex
       fn vs_main(input: VertexInput) -> VertexOutput {
         var output: VertexOutput;
+        // position in clip space
         output.position = uniforms.projection * uniforms.view * uniforms.model * vec4<f32>(input.position, 1.0);
+        // pass color
         output.color = input.color;
-        output.normal = (uniforms.model * vec4<f32>(input.normal, 0.0)).xyz;
+        // transform normal into view space
+        let n_view = (uniforms.view * uniforms.model * vec4<f32>(input.normal, 0.0)).xyz;
+        output.normal = n_view;
+        // position in view space
+        output.viewPos = (uniforms.view * uniforms.model * vec4<f32>(input.position, 1.0)).xyz;
         return output;
       }
 
       @fragment
       fn fs_main(input: VertexOutput) -> @location(0) vec4<f32> {
-        let normal = normalize(input.normal);
-        let lightDir = normalize(uniforms.lightDir);
-        let diffuse = max(dot(normal, lightDir), 0.0);
-        let litColor = input.color * (0.2 + 0.8 * diffuse); // ambient + diffuse
-        return vec4<f32>(litColor, 1.0);
+        let N = normalize(input.normal);
+        // light direction transformed to view space (w=0)
+        let L = normalize((uniforms.view * vec4<f32>(uniforms.lightDir, 0.0)).xyz);
+        // view direction in view space (camera at origin)
+        let V = normalize(-input.viewPos);
+        // diffuse term
+        let diff = max(dot(N, L), 0.0);
+        // specular (Blinn-Phong)
+        let H = normalize(L + V);
+        // lower exponent for broader highlights and increase intensity
+        let specPower: f32 = 16.0;
+        let spec = pow(max(dot(N, H), 0.0), specPower);
+        let ambient = 0.20;
+        // combine with stronger specular contribution
+        let base = input.color;
+        let specIntensity: f32 = 1.6;
+        let color = base * (ambient + 0.75 * diff) + vec3<f32>(1.0, 1.0, 1.0) * spec * specIntensity;
+        return vec4<f32>(color, 1.0);
       }
     `;
 

@@ -424,7 +424,7 @@ function startRenderLoop() {
         {
           view: textureView,
           loadOp: "clear",
-          clearValue: { r: 0, g: 0, b: 0, a: 1 },
+          clearValue: { r: 0, g: 0.2, b: 0, a: 1 },
           storeOp: "store",
         },
       ],

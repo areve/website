@@ -350,6 +350,42 @@ function rebuildKeyboard(octaves: number) {
   try { if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value) updateKeyScreenBoxes(); } catch {}
 }
 
+function updateUniforms() {
+  if (!_device || !_uniformBuffer || !_projectionMatrix || !_viewMatrix || !_modelMatrix) return;
+  const uniforms = new Float32Array(52);
+  uniforms.set(_projectionMatrix, 0);
+  uniforms.set(_viewMatrix, 16);
+  uniforms.set(_modelMatrix, 32);
+  // Light direction (normalized)
+  const lightDir = [1, 1, 1];
+  const len = Math.sqrt(lightDir[0] ** 2 + lightDir[1] ** 2 + lightDir[2] ** 2);
+  uniforms[48] = lightDir[0] / len;
+  uniforms[49] = lightDir[1] / len;
+  uniforms[50] = lightDir[2] / len;
+  uniforms[51] = 0;
+  try { _device.queue.writeBuffer(_uniformBuffer!, 0, uniforms); } catch {}
+}
+
+function updateProjection() {
+  if (!canvas.value) return;
+  const fov = Math.PI / 4;
+  const near = 0.1;
+  const far = 10;
+  const aspect = canvas.value.width / Math.max(1, canvas.value.height);
+  const f = 1 / Math.tan(fov / 2);
+  const projectionMatrix = new Float32Array([
+    f / aspect, 0, 0, 0,
+    0, f, 0, 0,
+    0, 0, (far + near) / (near - far), -1,
+    0, 0, (2 * far * near) / (near - far), 0,
+  ]);
+  _projectionMatrix = projectionMatrix;
+  // upload uniforms now that projection changed
+  updateUniforms();
+  // recompute screen-space boxes
+  try { if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value) updateKeyScreenBoxes(); } catch {}
+}
+
 // react to octaves control changes and rebuild keyboard at runtime
 watch(() => state.value.controls.octaves, (v, oldV) => {
   const oct = Math.max(1, Math.min(8, Math.floor(v || 1)));
@@ -838,30 +874,17 @@ async function initWebGPU() {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Perspective projection
-    const fov = Math.PI / 4; // 45 degrees
-    const aspect = 1; // square
-    const near = 0.1;
-    const far = 10;
-    const f = 1 / Math.tan(fov / 2);
-    const projectionMatrix = new Float32Array([
-      f / aspect, 0, 0, 0,
-      0, f, 0, 0,
-      0, 0, (far + near) / (near - far), -1,
-      0, 0, (2 * far * near) / (near - far), 0,
-    ]);
 
-    const viewAngleX = -Math.PI / 3; 
+    // View and model matrices
+    const viewAngleX = -Math.PI / 3;
     const cosVX = Math.cos(viewAngleX);
     const sinVX = Math.sin(viewAngleX);
     const viewMatrix = new Float32Array([
       1, 0, 0, 0,
       0, cosVX, sinVX, 0,
       0, -sinVX, cosVX, 0,
-      0, 0, -3, 1,  // translate z by 3
+      0, 0, -3, 1,
     ]);
-
-    // Model matrix (rotation)
     const angleY = 0;
     const angleX = 0;
     const cosY = Math.cos(angleY);
@@ -875,26 +898,10 @@ async function initWebGPU() {
       0, 0, 0, 1,
     ]);
 
-    // Combine into uniform buffer: projection, view, model, lightDir
-    const uniforms = new Float32Array(52); // 3 matrices + 4 floats
-    uniforms.set(projectionMatrix, 0);
-    uniforms.set(viewMatrix, 16);
-    uniforms.set(modelMatrix, 32);
-    // Light direction (normalized)
-    const lightDir = [1, 1, 1];
-    const len = Math.sqrt(lightDir[0]**2 + lightDir[1]**2 + lightDir[2]**2);
-    uniforms[48] = lightDir[0]/len;
-    uniforms[49] = lightDir[1]/len;
-    uniforms[50] = lightDir[2]/len;
-    uniforms[51] = 0; // padding
-    _device.queue.writeBuffer(_uniformBuffer, 0, uniforms);
-
-    // keysInfo is built inside rebuildKeyboard
-
-    // store matrices globally so we can recompute screen projections on resize/fullscreen
-    _projectionMatrix = projectionMatrix;
+    // store view/model globally and compute/upload projection using canvas aspect
     _viewMatrix = viewMatrix;
     _modelMatrix = modelMatrix;
+    updateProjection();
 
     // half-width per key is computed in `rebuildKeyboard`
 
@@ -1049,10 +1056,10 @@ function resizeCanvasForMode() {
     usage: GPUTextureUsage.RENDER_ATTACHMENT,
   });
 
-  // recompute screen-space projections for key hit testing when size changes
+  // update projection/uniforms and recompute screen-space projections for hit testing
   try {
+    if (_viewMatrix && _modelMatrix) updateProjection();
     if (_projectionMatrix && _viewMatrix && _modelMatrix && canvas.value && _keysInfo && _keysInfo.length) {
-      // update bounding boxes using all key vertices
       updateKeyScreenBoxes();
     }
   } catch {}

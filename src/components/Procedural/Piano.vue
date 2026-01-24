@@ -157,15 +157,17 @@ async function initWebGPU() {
     // size canvas and create depth
     resizeCanvasForMode();
 
-    // Generate seven piano keys (3 left, center, 3 right). long axis = Y
-    const keyCount = 7;
-    const step = 0.34; // spacing between key centers
-    const hw = 0.15; // half width along X
-    const hl = 0.75; // half length along Y
-    const hd = 0.025; // half depth along Z
+    // Generate white keys (7) and black keys (5) for one octave
+    const whiteCount = 7;
+    const step = 0.34; // spacing between white key centers
+    const hw = 0.15; // white half width along X
+    const hl = 0.75; // white half length along Y
+    const hd = 0.025; // white half depth along Z
     const verts: number[] = [];
+    const whiteCenters: number[] = [];
     for (let i = -3; i <= 3; i++) {
       const cx = i * step;
+      whiteCenters.push(cx);
       const x1 = cx - hw, x2 = cx + hw;
       const y1 = -hl, y2 = hl;
       const z1 = -hd, z2 = hd;
@@ -201,6 +203,50 @@ async function initWebGPU() {
       verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
       verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
     }
+
+    // Black keys: between whites (skip between E-F). Use pairs of white indices.
+    const blackPairs = [[0,1],[1,2],[3,4],[4,5],[5,6]];
+    const hwB = 0.09; // black half width
+    const hlB = 0.45; // black half length (shorter)
+    const hdB = 0.03; // black depth
+    for (const pair of blackPairs) {
+      const cx = (whiteCenters[pair[0]] + whiteCenters[pair[1]]) / 2;
+      const x1 = cx - hwB, x2 = cx + hwB;
+      const y1 = -hlB, y2 = hlB;
+      const z1 = -hdB, z2 = hdB;
+      const cR = 0.02, cG = 0.02, cB = 0.02;
+      // front
+      verts.push(x1, y1, z2, cR, cG, cB, 0, 0, 1);
+      verts.push(x2, y1, z2, cR, cG, cB, 0, 0, 1);
+      verts.push(x2, y2, z2, cR, cG, cB, 0, 0, 1);
+      verts.push(x1, y2, z2, cR, cG, cB, 0, 0, 1);
+      // back
+      verts.push(x1, y1, z1, cR, cG, cB, 0, 0, -1);
+      verts.push(x1, y2, z1, cR, cG, cB, 0, 0, -1);
+      verts.push(x2, y2, z1, cR, cG, cB, 0, 0, -1);
+      verts.push(x2, y1, z1, cR, cG, cB, 0, 0, -1);
+      // top
+      verts.push(x1, y2, z1, cR, cG, cB, 0, 1, 0);
+      verts.push(x1, y2, z2, cR, cG, cB, 0, 1, 0);
+      verts.push(x2, y2, z2, cR, cG, cB, 0, 1, 0);
+      verts.push(x2, y2, z1, cR, cG, cB, 0, 1, 0);
+      // bottom
+      verts.push(x1, y1, z1, cR, cG, cB, 0, -1, 0);
+      verts.push(x2, y1, z1, cR, cG, cB, 0, -1, 0);
+      verts.push(x2, y1, z2, cR, cG, cB, 0, -1, 0);
+      verts.push(x1, y1, z2, cR, cG, cB, 0, -1, 0);
+      // right
+      verts.push(x2, y1, z1, cR, cG, cB, 1, 0, 0);
+      verts.push(x2, y2, z1, cR, cG, cB, 1, 0, 0);
+      verts.push(x2, y2, z2, cR, cG, cB, 1, 0, 0);
+      verts.push(x2, y1, z2, cR, cG, cB, 1, 0, 0);
+      // left
+      verts.push(x1, y1, z1, cR, cG, cB, -1, 0, 0);
+      verts.push(x1, y1, z2, cR, cG, cB, -1, 0, 0);
+      verts.push(x1, y2, z2, cR, cG, cB, -1, 0, 0);
+      verts.push(x1, y2, z1, cR, cG, cB, -1, 0, 0);
+    }
+
     const vertices = new Float32Array(verts);
 
     _vertexBuffer = _device.createBuffer({
@@ -209,10 +255,10 @@ async function initWebGPU() {
     });
     _device.queue.writeBuffer(_vertexBuffer, 0, vertices);
 
-    // Indices for cube triangles
     // build indices for each key (24 verts per key, 36 indices per key)
+    const totalKeys = whiteCount + blackPairs.length;
     const idx: number[] = [];
-    for (let k = 0; k < keyCount; k++) {
+    for (let k = 0; k < totalKeys; k++) {
       const base = k * 24;
       // front
       idx.push(base + 0, base + 1, base + 2, base + 0, base + 2, base + 3);

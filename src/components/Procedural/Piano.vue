@@ -496,10 +496,10 @@ function findKeyAtPoint(clientX: number, clientY: number) {
     return u >= 0 && v >= 0 && (u + v) <= 1;
   }
 
+  const hits: Array<{ key: number; depth: number }> = [];
   for (let k = 0; k < _keysInfo.length; k++) {
     const info: any = _keysInfo[k];
     const base = info.baseVertex * 9;
-    // for each triangle, project its verts and test containment
     for (let t = 0; t < tris.length; t++) {
       const [i0, i1, i2] = tris[t];
       const idx0 = base + i0 * 9;
@@ -508,41 +508,28 @@ function findKeyAtPoint(clientX: number, clientY: number) {
       const v0 = [_vertices[idx0 + 0], _vertices[idx0 + 1], _vertices[idx0 + 2]] as [number,number,number];
       const v1 = [_vertices[idx1 + 0], _vertices[idx1 + 1], _vertices[idx1 + 2]] as [number,number,number];
       const v2 = [_vertices[idx2 + 0], _vertices[idx2 + 1], _vertices[idx2 + 2]] as [number,number,number];
-      // project to screen
       const p0 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v0, canvas.value);
       const p1 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v1, canvas.value);
       const p2 = projectToScreen(_projectionMatrix!, _viewMatrix!, _modelMatrix!, v2, canvas.value);
       if (pointInTri(px, py, p0.x, p0.y, p1.x, p1.y, p2.x, p2.y)) {
-        // compute average view-space depth for this triangle (no abs)
         const mv0 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v0[0], v0[1], v0[2], 1]));
         const mv1 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v1[0], v1[1], v1[2], 1]));
         const mv2 = mulMat4Vec4(_viewMatrix!, mulMat4Vec4(_modelMatrix!, [v2[0], v2[1], v2[2], 1]));
         const depth = (mv0[2] + mv1[2] + mv2[2]) / 3;
-        // smaller negative depth is further; larger (closer to zero) is nearer
-        // prefer closer depth; break near ties by preferring black keys
-        const epsilon = 0.02;
-        if (bestKey === -1) {
-          bestDepth = depth;
-          bestKey = k;
-        } else {
-          // if this triangle is nearer by more than epsilon, choose it
-          if (depth > bestDepth + epsilon) {
-            bestDepth = depth;
-            bestKey = k;
-          } else if (Math.abs(depth - bestDepth) <= epsilon) {
-            // tie: prefer black key over white
-            const currentIsBlack = (_keysInfo[k] as any).type === "black";
-            const bestIsBlack = (_keysInfo[bestKey] as any).type === "black";
-            if (currentIsBlack && !bestIsBlack) {
-              bestDepth = depth;
-              bestKey = k;
-            }
-          }
-        }
+        hits.push({ key: k, depth });
       }
     }
   }
-  return bestKey;
+  if (hits.length === 0) return -1;
+  // prefer black keys among hits; otherwise pick the nearest hit
+  const blackHits = hits.filter(h => (_keysInfo[h.key] as any).type === "black");
+  const choose = (arr: Array<{ key: number; depth: number }>) => {
+    let best = arr[0];
+    for (let i = 1; i < arr.length; i++) if (arr[i].depth > best.depth) best = arr[i];
+    return best.key;
+  };
+  if (blackHits.length > 0) return choose(blackHits);
+  return choose(hits);
 }
 
 function onCanvasPointerDown(e: PointerEvent) {

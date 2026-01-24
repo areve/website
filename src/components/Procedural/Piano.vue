@@ -222,13 +222,17 @@ async function initWebGPU() {
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
 
-    // Simple orthographic projection to fit the cube
-    const left = -2, right = 2, bottom = -2, top = 2, near = -5, far = 5;
+    // Perspective projection
+    const fov = Math.PI / 4; // 45 degrees
+    const aspect = 1; // square
+    const near = 0.1;
+    const far = 10;
+    const f = 1 / Math.tan(fov / 2);
     const projectionMatrix = new Float32Array([
-      2 / (right - left), 0, 0, 0,
-      0, 2 / (top - bottom), 0, 0,
-      0, 0, -2 / (far - near), 0,
-      -(right + left) / (right - left), -(top + bottom) / (top - bottom), -(far + near) / (far - near), 1,
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (far + near) / (near - far), -1,
+      0, 0, (2 * far * near) / (near - far), 0,
     ]);
 
     // View matrix (camera at (0,0,3) looking down -Z)

@@ -308,10 +308,20 @@ function rebuildKeyboard(octaves: number) {
   _device.queue.writeBuffer(_indexBuffer, 0, indices);
   _indexCount = indices.length;
 
-  // build keysInfo and center middle C
+  // build keysInfo and center middle C -- choose the white key nearest the keyboard center
   _keysInfo = [];
   const whiteOffsets = [0, 2, 4, 5, 7, 9, 11];
-  const centerIndex = Math.floor(whiteCount / 2);
+  // geometric center X of the white keys
+  const kbMinX = whiteCenters[0] - hw;
+  const kbMaxX = whiteCenters[whiteCenters.length - 1] + hw;
+  const kbCenterX = (kbMinX + kbMaxX) / 2;
+  // find white key index nearest the keyboard center
+  let centerIndex = 0;
+  let bestDist = Infinity;
+  for (let i = 0; i < whiteCenters.length; i++) {
+    const d = Math.abs(whiteCenters[i] - kbCenterX);
+    if (d < bestDist) { bestDist = d; centerIndex = i; }
+  }
   const centerOctave = Math.floor(centerIndex / 7);
   const centerOffset = whiteOffsets[centerIndex % 7];
   for (let k = 0; k < whiteCount; k++) {

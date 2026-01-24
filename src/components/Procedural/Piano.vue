@@ -87,6 +87,8 @@ let _dragStartY = 0;
 let _dragStartTop = 0;
 let _didDrag = false;
 
+let _onContextMenu: ((e: Event) => void) | null = null;
+
 function clamp(v: number, a: number, b: number) {
   return Math.max(a, Math.min(b, v));
 }
@@ -1018,6 +1020,12 @@ onMounted(async () => {
   try {
     canvas.value?.addEventListener("pointerdown", onCanvasPointerDown);
     window.addEventListener("pointerup", onCanvasPointerUp);
+    // prevent long-press context menu on canvas/container
+    _onContextMenu = (ev: Event) => { ev.preventDefault(); };
+    try {
+      canvas.value?.addEventListener("contextmenu", _onContextMenu);
+      container.value?.addEventListener("contextmenu", _onContextMenu);
+    } catch {}
   } catch {}
 });
 
@@ -1032,6 +1040,13 @@ onUnmounted(() => {
   window.removeEventListener("resize", resizeCanvasForMode);
   if (onFsChange) {
     document.removeEventListener("fullscreenchange", onFsChange);
+  }
+  if (_onContextMenu) {
+    try {
+      canvas.value?.removeEventListener("contextmenu", _onContextMenu);
+      container.value?.removeEventListener("contextmenu", _onContextMenu);
+    } catch {}
+    _onContextMenu = null;
   }
   try {
     canvas.value?.removeEventListener("pointerdown", onCanvasPointerDown);
@@ -1056,7 +1071,7 @@ onUnmounted(() => {
   left: 0;
   top: 0;
   pointer-events: none;
-  z-index: 60;
+  z-index: 30;
 }
 
 .canvas-container .canvas {
